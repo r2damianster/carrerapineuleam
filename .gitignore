@@ -42,3 +42,5 @@ coverage/
 
 # Misc
 .turbo/
+
+graphify-out/

@@ -33,7 +33,9 @@
       "WebFetch(domain:doc-0o-a0-sheets.googleusercontent.com)",
       "WebFetch(domain:docs.google.com)",
       "Read(//c/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/65f2e2b4-17da-497d-82d8-e4b2cf74ed51/a4f08df3-514c-41e5-9595-74798656d048/skills/docx/**)",
-      "Bash(python scripts/office/validate.py \"C:/Users/User/Downloads/Reporte_Validacion_Instrumento_v1-v4.docx\")"
+      "Bash(python scripts/office/validate.py \"C:/Users/User/Downloads/Reporte_Validacion_Instrumento_v1-v4.docx\")",
+      "PowerShell(graphify *)",
+      "PowerShell(code-review-graph *)"
     ]
   }
 }
