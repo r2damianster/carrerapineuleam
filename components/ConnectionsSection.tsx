@@ -39,7 +39,10 @@ export default function ConnectionsSection() {
             <p className="text-gray-600 text-sm leading-relaxed">{group.description}</p>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all">
+          <a
+            href="/redlea"
+            className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all cursor-pointer hover:border-uleam-blue"
+          >
             <div className="relative w-32 h-32 mb-5">
               <Image
                 src="/images/logo-red-lea.jpeg"
@@ -55,7 +58,7 @@ export default function ConnectionsSection() {
               {redLea.title}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">{redLea.description}</p>
-          </div>
+          </a>
 
           <a
             href={radioUleam.url}
