@@ -763,6 +763,16 @@ export const news: News[] = [
     created: '2026-08-03T00:00:00Z',
     updated: '2026-08-03T00:00:00Z',
   },
+  {
+    id: 'news_10',
+    title: 'Capacitación en Clasificación de Artículos Científicos para Pedagogía de Lengua y Literatura',
+    content: 'El 3 de junio de 2026, el proyecto PINE realizó una actividad de transferencia dirigida a estudiantes y docentes de la carrera de Pedagogía de Lengua y Literatura. La capacitación abordó metodologías y criterios para la clasificación y evaluación de artículos científicos, fortaleciendo las competencias en investigación académica. Esta iniciativa refleja el compromiso del proyecto con la generación de conocimiento y su vinculación con otras carreras de la institución.',
+    published_date: '2026-06-03',
+    is_featured: false,
+    slug: 'capacitacion-clasificacion-articulos-cientificos-lengua-literatura',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const activities: Activity[] = [
@@ -813,6 +823,16 @@ export const activities: Activity[] = [
     photos: ['/images/Jornada-Academica-Interdisciplinaria-24Julio.jpg', '/images/Jornada-Academica-Estudiantes-24Julio.jpg'],
     event_date: '2026-07-24',
     category: 'jornada_academica',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
+  {
+    id: 'activity_6',
+    title: 'Capacitación en Clasificación de Artículos Científicos — Carrera de Pedagogía de Lengua y Literatura',
+    description: 'Actividad de transferencia realizada el 3 de junio de 2026. Capacitación dirigida a estudiantes y docentes de la carrera de Pedagogía de Lengua y Literatura sobre metodologías y criterios para la clasificación y evaluación de artículos científicos. Contribución del proyecto PINE al fortalecimiento de competencias en investigación.',
+    photos: [],
+    event_date: '2026-06-03',
+    category: 'transferencia',
     created: '2026-08-03T00:00:00Z',
     updated: '2026-08-03T00:00:00Z',
   },
