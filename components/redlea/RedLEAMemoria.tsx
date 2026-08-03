@@ -1,15 +1,9 @@
 import Image from 'next/image';
 
 const fotos = [
-  '/images/redlea/05-memoria/01-imagen.png',
   '/images/redlea/05-memoria/02-imagen.jpeg',
   '/images/redlea/05-memoria/03-imagen.jpeg',
   '/images/redlea/05-memoria/04-imagen.jpeg',
-  '/images/redlea/05-memoria/05-imagen.png',
-  '/images/redlea/05-memoria/06-imagen.png',
-  '/images/redlea/05-memoria/07-imagen.png',
-  '/images/redlea/05-memoria/08-imagen.jpeg',
-  '/images/redlea/05-memoria/09-imagen.jpeg',
   '/images/redlea/05-memoria/10-imagen.jpeg',
   '/images/redlea/05-memoria/11-imagen.jpeg',
   '/images/redlea/05-memoria/12-imagen.jpeg',
