@@ -3,6 +3,10 @@ import Link from 'next/link';
 type Doc = { id: string; title: string; filename: string; description: string; icon: string; date: string; period: string };
 
 function DocCard({ doc }: { doc: Doc }) {
+  const isExternalUrl = doc.filename.startsWith('http://') || doc.filename.startsWith('https://');
+  const fileUrl = isExternalUrl ? doc.filename : `/admin-assets/${doc.filename}`;
+  const buttonLabel = isExternalUrl ? 'Acceder' : 'Ver PDF';
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition">
       <div className="flex items-start space-x-4">
@@ -21,7 +25,7 @@ function DocCard({ doc }: { doc: Doc }) {
           <p className="mt-2 text-sm text-gray-600">{doc.description}</p>
           <div className="mt-4 flex gap-3">
             <a
-              href={`/admin-assets/${doc.filename}`}
+              href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-uleam-blue text-white rounded-lg hover:bg-blue-800 transition text-sm"
@@ -30,18 +34,20 @@ function DocCard({ doc }: { doc: Doc }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              Ver PDF
+              {buttonLabel}
             </a>
-            <a
-              href={`/admin-assets/${doc.filename}`}
-              download
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Descargar
-            </a>
+            {!isExternalUrl && (
+              <a
+                href={fileUrl}
+                download
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Descargar
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -233,6 +239,15 @@ const documents = {
       description: 'Informe mensual de la Comisión de Aseguramiento de la Calidad para junio 2026. Detalla 6 actividades cumplidas: 3 publicaciones científicas, 2 eventos de socialización y 1 sesión académica. Documento firmado.',
       icon: '📋',
       date: '2026-06-30',
+      period: '2026-1',
+    },
+    {
+      id: 'pub-lascano-villafuerte-confidence-2026',
+      title: 'Confidence and Formal Speech in High School Students in English Language: Mentoring in EFL instruction',
+      filename: 'https://doi.org/10.32996/jeltal.2026.8.8.13',
+      description: 'Lascano Parrales, M. J., & Villafuerte-Holguín, J. (2026). Publicación en Journal of English Language Teaching and Applied Linguistics, 8(8), 142–156. Acceso mediante DOI.',
+      icon: '📄',
+      date: '2026-08-01',
       period: '2026-1',
     },
   ],
