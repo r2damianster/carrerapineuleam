@@ -233,6 +233,15 @@ const documents = {
       period: '2026-1',
     },
     {
+      id: 'informe-mensual-comision-julio-2026',
+      title: 'Informe Mensual de Comisión — Julio 2026',
+      filename: '2026_InformeMensualComision_Julio.pdf',
+      description: 'Informe mensual de comisión correspondiente a julio 2026. Detalla 6 actividades cumplidas: capacitación en redacción de artículos, jornada académica interdisciplinaria, producción de 5 episodios de podcast, registro de 3 publicaciones científicas, creación de nueva categoría de podcast "Más Allá del Lienzo" e incorporación de nuevo miembro al equipo. Documento firmado por el líder del proyecto.',
+      icon: '📋',
+      date: '2026-08-03',
+      period: '2026-1',
+    },
+    {
       id: 'pub-lascano-villafuerte-confidence-2026',
       title: 'Confidence and Formal Speech in High School Students in English Language: Mentoring in EFL instruction',
       filename: 'https://doi.org/10.32996/jeltal.2026.8.8.13',
