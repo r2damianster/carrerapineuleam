@@ -152,6 +152,15 @@ const documents = {
       date: '2026-06-30',
       period: '2026-1',
     },
+    {
+      id: 'informe-socializacion-disney',
+      title: 'Informe de Socialización — Disney',
+      filename: 'Informe_sOCIALZACIÓN_dISNEY-signed.pdf',
+      description: 'Informe de la actividad de socialización realizada con Disney. Documento firmado y certificado.',
+      icon: '🎬',
+      date: '2026-07-24',
+      period: '2026-1',
+    },
   ],
   informes: [
     {
