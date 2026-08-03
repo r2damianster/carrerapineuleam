@@ -659,6 +659,20 @@ export const videos: Video[] = [
     created: '2026-08-03T00:00:00Z',
     updated: '2026-08-03T00:00:00Z',
   },
+  {
+    id: 'video_20',
+    title: 'Más allá del Lienzo: Apropiación Cultural en la Industria de la Moda. Episodio 3',
+    youtube_url: 'https://youtu.be/0VffZ_RwlRU',
+    description: 'Debate interdisciplinario entre Pedagogía de Idiomas y Artes: reflexión crítica sobre la apropiación cultural en la industria de la moda, sus implicaciones éticas y culturales. Colaboración PINE.',
+    embed_id: '0VffZ_RwlRU',
+    category: 'cat_4',
+    published_date: '2026-08-03',
+    order: 14,
+    is_featured: false,
+    tags: ['vinculacion', 'arte', 'ética', 'cultura', 'moda', 'interdisciplinario'],
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const news: News[] = [
