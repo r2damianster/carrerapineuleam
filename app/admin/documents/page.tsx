@@ -67,15 +67,6 @@ const documents = {
       period: '2025-1',
     },
     {
-      id: 'proyecto-actualizado',
-      title: 'Proyecto Actualizado 2025',
-      filename: '2025_ProyectoActualizado.pdf',
-      description: 'Versión actualizada del proyecto de innovaciones pedagógicas e internacionalización',
-      icon: '📄',
-      date: '2025-01-01',
-      period: '2025-1',
-    },
-    {
       id: 'acta-tecnica-reunion-01',
       title: 'Acta Técnica de Reunión N°1 — 2025',
       filename: '2025_ActaTecnicaReunion01.pdf',
