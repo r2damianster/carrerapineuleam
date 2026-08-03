@@ -621,6 +621,20 @@ export const videos: Video[] = [
     created: '2026-07-21T00:00:00Z',
     updated: '2026-07-21T00:00:00Z',
   },
+  {
+    id: 'video_19',
+    title: 'Unpopular Opinions and uncomfortable truths',
+    youtube_url: 'https://youtu.be/8i10ze45VuQ',
+    description: 'Podcast Educa PINE — Episodio resultado de prácticas de aula donde se discuten opiniones impopulares e incómodas verdades. Producto del proyecto de vinculación con la sociedad de la carrera de Pedagogía de Idiomas Nacionales y Extranjeros.',
+    embed_id: '8i10ze45VuQ',
+    category: 'cat_1',
+    published_date: '2026-08-03',
+    order: 10,
+    is_featured: false,
+    tags: ['docencia', 'debate', 'pensamiento-critico'],
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const news: News[] = [
