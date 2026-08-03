@@ -37,5 +37,9 @@
       "PowerShell(graphify *)",
       "PowerShell(code-review-graph *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "code-review-graph",
+    "graphify"
+  ]
 }
