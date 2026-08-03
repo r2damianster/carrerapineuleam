@@ -335,6 +335,18 @@ export const publications: Publication[] = [
     created: '2026-08-03T00:00:00Z',
     updated: '2026-08-03T00:00:00Z',
   },
+  {
+    id: 'pub_76',
+    title: 'Practice of Speaking English Language Fluency through Innovating Communicative Tasks',
+    authors: 'Velez Borja, N., & Rodriguez Zambrano, A.',
+    abstract: 'Education Quarterly Reviews, 9(3).',
+    publication_date: '2026-08-01',
+    doi_link: 'https://doi.org/10.31014/aior.1993.09.03.722',
+    type: 'article',
+    category: 'regional',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const videoCategories: VideoCategory[] = [
