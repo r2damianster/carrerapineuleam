@@ -738,6 +738,17 @@ export const news: News[] = [
     created: '2026-05-04T00:00:00Z',
     updated: '2026-05-04T00:00:00Z',
   },
+  {
+    id: 'news_9',
+    title: 'Jornada Académica Interdisciplinaria: creatividad y conocimiento en la Facultad de Educación y Turismo',
+    content: 'Viernes 24 de julio: La Facultad de Educación y Turismo abrió sus puertas con una Jornada Académica Interdisciplinaria organizada por Educación Básica, Educación Inicial y Psicología Educativa. Durante dos jornadas se presentaron pósteres científicos con metodologías de regresión lineal y correlación, conferencias, dramatizaciones, coros, bailes y exposiciones plásticas. El docente Isidro Alcívar destacó la aplicación de metodologías en los sílabos de investigación educativa, mientras que el profesor Arturo Rodríguez subrayó la importancia de la interdisciplinariedad para evitar trabajar en "islas" dentro de la facultad.',
+    featured_image: '/images/Jornada-Academica-Estudiantes-24Julio.jpg',
+    published_date: '2026-07-24',
+    is_featured: true,
+    slug: 'jornada-academica-interdisciplinaria-24-julio',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const activities: Activity[] = [
@@ -780,6 +791,16 @@ export const activities: Activity[] = [
     category: 'interclass',
     created: '2026-06-30T00:00:00Z',
     updated: '2026-06-30T00:00:00Z',
+  },
+  {
+    id: 'activity_5',
+    title: 'Jornada Académica Interdisciplinaria — Facultad de Educación y Turismo',
+    description: 'Viernes 24 de julio: Jornada Académica Interdisciplinaria organizada por las carreras de Educación Básica, Educación Inicial y Psicología Educativa. Se presentaron pósteres científicos con pruebas estadísticas (regresión lineal, correlación), conferencias de estudiantes y docentes, dramatizaciones, coros, bailes y exposiciones plásticas. Participación de docentes Isidro Alcívar y Arturo Rodríguez destacando la importancia de la interdisciplinariedad en la investigación educativa.',
+    photos: ['/images/Jornada-Academica-Interdisciplinaria-24Julio.jpg', '/images/Jornada-Academica-Estudiantes-24Julio.jpg'],
+    event_date: '2026-07-24',
+    category: 'jornada_academica',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
   },
 ];
 
