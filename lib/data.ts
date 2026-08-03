@@ -323,6 +323,18 @@ export const publications: Publication[] = [
     created: '2026-07-09T00:00:00Z',
     updated: '2026-07-09T00:00:00Z',
   },
+  {
+    id: 'pub_75',
+    title: 'Confidence and Formal Speech in High School Students in English Language: Mentoring in EFL instruction',
+    authors: 'Lascano Parrales, M. J., & Villafuerte-Holguín, J.',
+    abstract: 'Journal of English Language Teaching and Applied Linguistics, 8(8), 142–156.',
+    publication_date: '2026-08-01',
+    doi_link: 'https://doi.org/10.32996/jeltal.2026.8.8.13',
+    type: 'article',
+    category: 'regional',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
 ];
 
 export const videoCategories: VideoCategory[] = [
