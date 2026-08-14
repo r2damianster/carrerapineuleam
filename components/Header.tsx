@@ -68,8 +68,6 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
                 {link.href.startsWith('http') ? (
                   <a
                     href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className={`font-medium hover:opacity-80 transition whitespace-nowrap ${
                       scrolled ? 'text-uleam-blue' : 'text-white'
                     }`}
@@ -138,8 +136,6 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
                 {link.href.startsWith('http') ? (
                   <a
                     href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="block py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded"
                     onClick={() => setIsMenuOpen(false)}
                   >
