@@ -323,6 +323,83 @@ export const deleteActivity = async (id: string): Promise<void> => {
 };
 
 // ============================================================================
+// NEWSLETTERS (AGGREGATED)
+// ============================================================================
+
+export const getNewsletters = async (): Promise<Newsletter[]> => {
+  const newsData = await getNews();
+  const activitiesData = await getActivities();
+
+  // Convert news + activities to newsletter items
+  const items: NewsletterItem[] = [];
+
+  newsData.forEach(n => {
+    const [yearStr, monthStr] = n.published_date.split('-');
+    const month = parseInt(monthStr, 10);
+    items.push({
+      id: n.id,
+      type: 'news',
+      title: n.title,
+      date: n.published_date,
+      excerpt: n.content.substring(0, 150).replace(/<[^>]*>/g, ''),
+      image: n.featured_image,
+    });
+  });
+
+  activitiesData.forEach(a => {
+    items.push({
+      id: a.id,
+      type: 'activity',
+      title: a.title,
+      date: a.event_date,
+      excerpt: a.description,
+      image: a.photos?.[0],
+    });
+  });
+
+  // Group by bimester (year-bimesterIndex)
+  const grouped = new Map<string, NewsletterItem[]>();
+
+  items.forEach(item => {
+    const [yearStr, monthStr] = item.date.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const bimesterIndex = Math.floor((month - 1) / 2);
+    const key = `${year}-${bimesterIndex}`;
+
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(item);
+  });
+
+  // Build newsletters, sorted desc (year desc, bimester desc)
+  const newsletters: Newsletter[] = [];
+  const sortedKeys = Array.from(grouped.keys()).sort((a, b) => {
+    const [yearA, bimesterA] = a.split('-').map(Number);
+    const [yearB, bimesterB] = b.split('-').map(Number);
+    if (yearB !== yearA) return yearB - yearA;
+    return bimesterB - bimesterA;
+  });
+
+  sortedKeys.forEach(key => {
+    const [yearStr, bimesterStr] = key.split('-');
+    const year = parseInt(yearStr, 10);
+    const bimesterIndex = parseInt(bimesterStr, 10);
+    newsletters.push({
+      id: key,
+      year,
+      bimesterIndex,
+      items: grouped.get(key)!.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    });
+  });
+
+  return newsletters;
+};
+
+// ============================================================================
 // SITE SETTINGS CRUD
 // ============================================================================
 

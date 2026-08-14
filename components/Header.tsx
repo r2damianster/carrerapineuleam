@@ -60,7 +60,7 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
                 className="object-contain"
               />
             </div>
-            <span className={`font-bold text-lg hidden lg:block ${scrolled ? 'text-uleam-blue' : 'text-white'}`}>
+            <span className={`font-bold text-lg hidden lg:block leading-tight ${scrolled ? 'text-uleam-blue' : 'text-white'}`}>
               {siteName}
             </span>
           </Link>
