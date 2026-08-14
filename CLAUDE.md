@@ -10,8 +10,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
-**Versión actual:** 0.7.0
-**Última sesión:** 2026-07-21 (Sesión 13 — Diana Noemi Cedeño Sánchez agregada al equipo de podcast)
+**Versión actual:** 0.8.0
+**Última sesión:** 2026-08-14 (Sesión 15 — 8 actividades de docencia innovadora agregadas)
 
 ---
 
@@ -42,12 +42,13 @@
 | Base de datos estática | ✅ data.ts + db.ts in-memory | 100% |
 | Miembros del equipo | ✅ 9 miembros (incluye equipo Podcast) | 100% |
 | Publicaciones | ✅ 7 publicaciones (2 libros + 5 artículos) | 100% |
-| Videos / Podcast | ✅ 4 videos (Educa PINE + Voces Fuera del Aula) | 100% |
+| Videos / Podcast | ✅ 10 videos (Educa PINE + Voces Fuera del Aula + PsicoEducarte + Más Allá del Lienzo) | 100% |
+| Actividades | ✅ 14 actividades (docencia innovadora e interdisciplinaria) | 100% |
 | Compartir vía QR | ✅ QRFloatingButton + QRModal + QRPromoModal | 100% |
 | Estructura del repo | ✅ Limpia — sin legacy | 100% |
 | **Deploy Vercel** | ⏳ Pendiente confirmar en dashboard | 90% |
 
-**Progreso general: ~98%**
+**Progreso general: ~99%**
 
 ---
 
