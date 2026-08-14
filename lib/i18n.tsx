@@ -109,6 +109,9 @@ const translations = {
       activityBadge: 'Actividad',
       noImage: 'Sin imagen',
       empty: 'No hay boletines disponibles',
+      newsletters: 'Boletines',
+      bimesterPrefix: 'Boletín',
+      filterAll: 'Todos',
     },
     activities: {
       sectionTitle: 'Galería de Actividades',
@@ -240,6 +243,9 @@ const translations = {
       activityBadge: 'Activity',
       noImage: 'No image',
       empty: 'No newsletters available',
+      newsletters: 'Newsletters',
+      bimesterPrefix: 'Newsletter',
+      filterAll: 'All',
     },
     activities: {
       sectionTitle: 'Activities Gallery',
