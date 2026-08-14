@@ -116,8 +116,8 @@ proyecto-innovacion-e-internacionalizacion/
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
-cd proyecto-innovacion-e-internacionalizacion
+git clone https://github.com/r2damianster/carrerapineuleam.git
+cd carrerapineuleam
 
 # Instalar dependencias
 cd frontend
@@ -284,7 +284,7 @@ Route (app)                              Size     First Load JS
 
 ## 🔗 Links Importantes
 
-- **Repositorio GitHub**: https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
+- **Repositorio GitHub**: https://github.com/r2damianster/carrerapineuleam.git
 - **ULEAM**: https://www.uleam.edu.ec
 - **PocketBase**: https://pocketbase.io
 - **Next.js**: https://nextjs.org

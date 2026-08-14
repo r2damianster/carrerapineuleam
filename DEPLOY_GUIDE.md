@@ -140,14 +140,14 @@ El archivo `vercel.json` ya está configurado y pusheado a GitHub. Solo necesita
 
 1. Abre tu URL de Vercel:
    ```
-   https://proyecto-innovacion-e-internacionalizacion.vercel.app
+   https://carrerapineuleam.vercel.app
    ```
 
 2. Deberías ver la landing page funcionando con datos de PocketBase
 
 3. Prueba el admin:
    ```
-   https://TU-URL.vercel.app/admin/login
+   https://carrerapineuleam.vercel.app/admin/login
    ```
 
 4. Inicia sesión con:
@@ -219,10 +219,10 @@ El archivo `vercel.json` ya está configurado y pusheado a GitHub. Solo necesita
 
 ## URLs que tendrás
 
-- **Frontend público:** `https://proyecto-innovacion.vercel.app`
-- **Admin panel:** `https://proyecto-innovacion.vercel.app/admin`
-- **PocketBase:** `https://proyecto-innovacion-production.up.railway.app`
-- **PocketBase admin:** `https://proyecto-innovacion-production.up.railway.app/_/`
+- **Frontend público:** `https://carrerapineuleam.vercel.app`
+- **Admin panel:** `https://carrerapineuleam.vercel.app/admin`
+- **PocketBase:** `https://carrerapineuleam-production.up.railway.app`
+- **PocketBase admin:** `https://carrerapineuleam-production.up.railway.app/_/`
 
 ---
 
