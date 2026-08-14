@@ -9,7 +9,7 @@
 **Nombre:** Proyecto Innovaciones Pedagógicas e Internacionalización
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
-**Repositorio:** https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
+**Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.8.0
 **Última sesión:** 2026-08-14 (Sesión 15 — 8 actividades de docencia innovadora agregadas)
 

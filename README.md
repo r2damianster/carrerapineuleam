@@ -8,7 +8,7 @@ Landing page con panel de administración para el proyecto de investigación sob
 **Git:** ✅ Push a origin/main (commit 7b26b55)  
 **Tech Stack:** Next.js 14 + TypeScript + TailwindCSS + PocketBase (pendiente)
 
-**Repositorio:** https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
+**Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 
 ---
 
