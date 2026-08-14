@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 
-const SITE_URL = 'https://carrerapineuleam.vercel.app/investigación/proyecto-innovacion.html';
+const SITE_URL = 'https://carrerapineuleam.vercel.app/pine';
 const QR_API = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(SITE_URL)}`;
 
 interface QRModalProps {
