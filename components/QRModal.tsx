@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 
-const SITE_URL = 'https://proyecto-innovacion-e-internacional.vercel.app/pine';
+const SITE_URL = 'https://carrerapineuleam.vercel.app/investigación/proyecto-innovacion.html';
+const QR_API = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(SITE_URL)}`;
 
 interface QRModalProps {
   onClose: () => void;
@@ -40,7 +41,7 @@ export default function QRModal({ onClose }: QRModalProps) {
 
         <div className="mx-auto mb-4 w-full max-w-[260px]">
           <Image
-            src="/images/QR_web.png"
+            src={QR_API}
             alt="Código QR del Proyecto Innovaciones Pedagógicas e Internacionalización"
             width={260}
             height={260}
