@@ -35,7 +35,7 @@ export default function Hero() {
         <div className="mb-4 md:mb-8 flex justify-center">
           <div className="relative w-36 h-36 md:w-64 md:h-64">
             <Image
-              src="/images/logo-proyecto.png"
+              src="/images/logos/logo-proyecto.png"
               alt="Logo Proyecto Innovaciones Pedagógicas"
               fill
               className="object-contain drop-shadow-2xl"

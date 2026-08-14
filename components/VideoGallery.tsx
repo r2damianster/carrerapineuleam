@@ -122,7 +122,7 @@ export default function VideoGallery() {
             {/* Logo */}
             <div className="flex-shrink-0">
               <img
-                src="/images/logo-radio-uleam.png"
+                src="/images/logos/logo-radio-uleam.png"
                 alt="Radio ULEAM"
                 className="h-20 w-20 md:h-24 md:w-24 object-contain"
               />

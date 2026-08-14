@@ -24,7 +24,7 @@ export default function HubProjectsSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Link
-            href="/pine"
+            href="/investigacion/proyecto-innovacion"
             className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue"
           >
             <div className="relative w-32 h-32 mb-5 bg-gradient-to-br from-uleam-blue/10 to-uleam-gold/10 rounded-lg flex items-center justify-center">
@@ -45,7 +45,7 @@ export default function HubProjectsSection() {
           >
             <div className="relative w-32 h-32 mb-5">
               <Image
-                src="/images/logo-red-lea.jpeg"
+                src="/images/logos/logo-red-lea.jpeg"
                 alt={redLea.name}
                 fill
                 className="object-contain rounded-lg"

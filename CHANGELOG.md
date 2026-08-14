@@ -90,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 63 files committed to GitHub
 - Repository pushed to origin/main
 - Commit: `7b26b55 - feat: initial project setup with landing page and admin panel`
-- GitHub: https://github.com/r2damianster/proyecto-innovacion-e-internacionalizacion.git
+- GitHub: https://github.com/r2damianster/carrerapineuleam.git
 
 ### 📊 Stats
 - Total files in repo: 63

@@ -24,7 +24,7 @@ export default function ConnectionsSection() {
           <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all">
             <div className="relative w-32 h-32 mb-5">
               <Image
-                src="/images/logo-grupo-investigacion.png"
+                src="/images/logos/logo-grupo-investigacion.png"
                 alt={group.name}
                 fill
                 className="object-contain"
@@ -45,7 +45,7 @@ export default function ConnectionsSection() {
           >
             <div className="relative w-32 h-32 mb-5">
               <Image
-                src="/images/logo-red-lea.jpeg"
+                src="/images/logos/logo-red-lea.jpeg"
                 alt={redLea.name}
                 fill
                 className="object-contain rounded-lg"
@@ -68,7 +68,7 @@ export default function ConnectionsSection() {
           >
             <div className="relative w-32 h-32 mb-5">
               <Image
-                src="/images/logo-radio-uleam.png"
+                src="/images/logos/logo-radio-uleam.png"
                 alt={radioUleam.name}
                 fill
                 className="object-contain"

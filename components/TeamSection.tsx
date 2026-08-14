@@ -18,7 +18,7 @@ export default function TeamSection() {
         const data = await getMembers();
         setMembers(data as any);
       } catch (error) {
-        // Fallback to sample data if PocketBase is not available
+        // Fallback to sample data if static data is not available
         setMembers([
           {
             id: '1',
@@ -26,7 +26,7 @@ export default function TeamSection() {
             role: 'Líder del Proyecto',
             orcid: '0000-0000-0000-0000',
             email: 'arturo.rodriguez@uleam.edu.ec',
-            photo: '/images/lider_arturo_rodriguez.jpg',
+            photo: '/images/members/lider_arturo_rodriguez.jpg',
             is_leader: true,
             order: 1,
             created: '',
@@ -38,7 +38,7 @@ export default function TeamSection() {
             role: 'Colíder del Proyecto',
             orcid: '0000-0000-0000-0000',
             email: 'jhonny.villafuerte@uleam.edu.ec',
-            photo: '/images/colider_Jhonny_Villafuerte.jpg',
+            photo: '/images/members/colider_Jhonny_Villafuerte.jpg',
             is_leader: false,
             order: 2,
             created: '',

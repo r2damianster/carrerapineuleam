@@ -12,7 +12,7 @@ interface HeaderProps {
   logoAlt?: string;
 }
 
-export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
+export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -29,7 +29,7 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/redlea', label: 'Redes (RED LEA)' },
-    { href: '/pine', label: 'Investigación (Proyecto)' },
+    { href: '/investigacion/proyecto-innovacion', label: 'Investigación (Proyecto)' },
   ];
 
   const handleAdminClick = (e: React.MouseEvent) => {

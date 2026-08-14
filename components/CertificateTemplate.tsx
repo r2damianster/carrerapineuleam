@@ -8,13 +8,13 @@ const ENTITY_LABELS: Record<CertificateData['entity'], string> = {
 };
 
 export const SECONDARY_LOGO_PATHS: Record<CertificateLogo, string | null> = {
-  proyecto: '/images/logo-proyecto.png',
-  grupo_investigacion: '/images/logo-grupo-investigacion.png',
-  red_lea: '/images/logo-red-lea.jpeg',
+  proyecto: '/images/logos/logo-proyecto.png',
+  grupo_investigacion: '/images/logos/logo-grupo-investigacion.png',
+  red_lea: '/images/logos/logo-red-lea.jpeg',
   ninguno: null,
 };
 
-export const ULEAM_LOGO_PATH = '/images/logo-uleam.png';
+export const ULEAM_LOGO_PATH = '/images/logos/logo-uleam.png';
 
 function bodyText(data: CertificateData): { intro: string; showMotive: boolean } {
   switch (data.type) {
