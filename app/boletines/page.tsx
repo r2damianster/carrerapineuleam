@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AdminLoginModal from '@/components/AdminLoginModal';
 import { getNewsletters } from '@/lib/db';
 import { useLanguage } from '@/lib/i18n';
 import type { Newsletter, NewsletterItem } from '@/types';
@@ -49,7 +50,7 @@ export default function BoletinesPage() {
 
   return (
     <>
-      <Header />
+      <BoletinesHeader />
       <main className="pt-32 pb-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
@@ -163,5 +164,73 @@ function NewsletterCard({
         )}
       </div>
     </div>
+  );
+}
+
+function BoletinesHeader() {
+  const [scrolled, setScrolled] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const { lang, toggle } = useLanguage();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleAdminClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowAdminModal(true);
+  };
+
+  return (
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white shadow-lg' : 'bg-gradient-to-b from-uleam-blue/70 via-uleam-blue/30 to-transparent backdrop-blur-sm'
+      }`}
+    >
+      <nav className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo only */}
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <div className="relative w-12 h-12 shrink-0">
+              <Image
+                src="/images/logo-proyecto.png"
+                alt="Logo Proyecto"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </Link>
+
+          {/* Language + Admin buttons */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggle}
+              className={`px-3 py-1.5 rounded-md font-bold text-sm border-2 transition ${
+                scrolled
+                  ? 'border-uleam-blue text-uleam-blue hover:bg-uleam-blue hover:text-white'
+                  : 'border-white text-white hover:bg-white hover:text-uleam-blue'
+              }`}
+            >
+              {lang === 'es' ? 'EN' : 'ES'}
+            </button>
+            <button
+              onClick={handleAdminClick}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                scrolled
+                  ? 'bg-uleam-blue text-white hover:bg-uleam-blue/90'
+                  : 'bg-white text-uleam-blue hover:bg-white/90'
+              }`}
+            >
+              Admin
+            </button>
+          </div>
+        </div>
+      </nav>
+      <AdminLoginModal isOpen={showAdminModal} onClose={() => setShowAdminModal(false)} />
+    </header>
   );
 }

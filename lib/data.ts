@@ -675,6 +675,9 @@ export const videos: Video[] = [
   },
 ];
 
+// Noticias: pueden estar asociadas a un proyecto específico (ej. project_id: 'pine')
+// o ser de la carrera en general (project_id: undefined).
+// Los boletines muestran TODAS las noticias (sin filtrar por proyecto).
 export const news: News[] = [
   {
     id: 'news_8',
@@ -775,6 +778,9 @@ export const news: News[] = [
   },
 ];
 
+// Actividades: SIEMPRE pertenecen a la carrera completa, no a proyectos específicos.
+// Aunque una actividad esté en una sección de proyecto, contribuye a boletines de carrera.
+// No hay campo project_id en activities.
 export const activities: Activity[] = [
   {
     id: 'activity_1',

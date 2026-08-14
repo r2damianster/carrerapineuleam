@@ -62,6 +62,7 @@ export interface News {
   is_featured: boolean;
   slug: string;
   external_link?: string;
+  project_id?: string; // 'pine', otros proyectos, o undefined para noticias de carrera general
   created: string;
   updated: string;
 }
@@ -72,9 +73,12 @@ export interface Activity {
   description?: string;
   photos: string[];
   event_date: string;
-  category: string;
+  category: string; // categoría de actividad (taller, grabacion, etc.)
   created: string;
   updated: string;
+  // Nota: Las actividades SIEMPRE pertenecen a la carrera completa.
+  // No filtrar por proyecto. Aunque una actividad esté en una sección de proyecto,
+  // contribuye a boletines de carrera.
 }
 
 export interface SiteSettings {
