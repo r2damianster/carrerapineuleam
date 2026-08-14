@@ -27,13 +27,10 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
   }, []);
 
   const navLinks = [
-    { href: '#inicio', label: t.nav.home },
-    { href: '#about', label: t.nav.about },
-    { href: '#equipo', label: t.nav.team },
-    { href: '#videos', label: t.nav.videos },
-    { href: '#publicaciones', label: t.nav.publications },
-    { href: '#noticias', label: t.nav.news },
-    { href: '#contacto', label: t.nav.contact },
+    { href: '/', label: 'Inicio' },
+    { href: '/redlea', label: 'Redes (RED LEA)' },
+    { href: '/pine', label: 'Investigación (Proyecto)' },
+    { href: '/pine#actividades', label: 'Docencia' },
   ];
 
   const handleAdminClick = (e: React.MouseEvent) => {
