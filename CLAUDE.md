@@ -86,6 +86,31 @@
 
 ---
 
+## Cambios Recientes (Sesión 14 — 2026-08-14)
+
+### Actividades de Docencia Innovadora e Interdisciplinaria
+
+- ✅ `activity_7`: Presentación de Trabajos Finales — Mandiles para Enseñanza de Vocabulario en Inglés (4to semestre PINE, julio 2026)
+- ✅ `activity_8`: Feria de Proyectos STEAM (9no semestre, junio 2026)
+- ✅ `activity_9`: Educación Inclusiva en el Aula de Inglés — TDAH y TES
+- ✅ `activity_10`: Feria de Estrategias de Lectura de Cuentos Infantiles (4to semestre PINE)
+- ✅ `activity_11`: Práctica de Gestión de Emociones (padres y docentes)
+- ✅ `activity_12`: Estrategia de Juegos de Mesa para la Práctica del Inglés (mayo 2026)
+- ✅ `activity_13`: Investigación Educativa con Trabajo de Campo en Gimnasio (5to semestre PINE, salud universitaria y entrenamiento físico)
+- ✅ `activity_14`: Estrategia de Enseñanza de Inglés mediante Museos (5to semestre, mayo 2026)
+
+**Imágenes agregadas a `public/images/`:**
+- `Mandiles-Vocabulario-Ingles-Julio2026.jpeg`
+- `Feria-Proyectos-STEAM-Junio2026.jpeg`
+- `Educacion-Inclusiva-Ingles-TDAH-TES.jpeg`
+- `Feria-Estrategias-Lectura-Cuentos-4toSemestrePINE.jpeg`
+- `Practica-Gestion-Emociones-Padres-Teachers.jpeg`
+- `Estrategia-Juegos-Mesa-Ingles-Mayo2026.jpeg`
+- `Investigacion-Educativa-5toSemestrePINE-Gimnasio.jpeg`
+- `Estrategia-Museo-Ingles-5toSemestreMayo2026.jpeg`
+
+---
+
 ## Cambios Recientes (Sesión 13 — 2026-07-21)
 
 - ✅ `member_9`: Diana Noemi Cedeño Sánchez agregada como Estudiante Investigadora / Equipo de Podcast
