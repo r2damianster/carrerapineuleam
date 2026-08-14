@@ -6,7 +6,13 @@ import Image from 'next/image';
 import AdminLoginModal from './AdminLoginModal';
 import { useLanguage } from '@/lib/i18n';
 
-export default function Header() {
+interface HeaderProps {
+  siteName?: string;
+  logoSrc?: string;
+  logoAlt?: string;
+}
+
+export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -48,14 +54,14 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <div className="relative w-12 h-12 shrink-0">
               <Image
-                src="/images/logo-proyecto.png"
-                alt="Logo Proyecto"
+                src={logoSrc}
+                alt={logoAlt}
                 fill
                 className="object-contain"
               />
             </div>
-            <span className={`font-bold text-lg hidden lg:block whitespace-nowrap ${scrolled ? 'text-uleam-blue' : 'text-white'}`}>
-              Innovaciones Pedagógicas - ULEAM
+            <span className={`font-bold text-lg hidden lg:block ${scrolled ? 'text-uleam-blue' : 'text-white'}`}>
+              {siteName}
             </span>
           </Link>
 

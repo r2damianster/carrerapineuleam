@@ -114,3 +114,19 @@ export interface CertificateData {
   place: string;
   signers: CertificateSigner[];
 }
+
+export interface NewsletterItem {
+  id: string;
+  type: 'news' | 'activity';
+  title: string;
+  date: string;
+  excerpt?: string;
+  image?: string;
+}
+
+export interface Newsletter {
+  id: string;
+  year: number;
+  bimesterIndex: number;
+  items: NewsletterItem[];
+}

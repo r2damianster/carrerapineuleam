@@ -22,7 +22,7 @@ export default function HubProjectsSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Link
             href="/pine"
             className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue"
@@ -58,6 +58,24 @@ export default function HubProjectsSection() {
               {redLea.title}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">{redLea.description}</p>
+          </Link>
+
+          <Link
+            href="/boletines"
+            className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue"
+          >
+            <div className="relative w-32 h-32 mb-5 bg-gradient-to-br from-uleam-gold/10 to-uleam-blue/10 rounded-lg flex items-center justify-center">
+              <svg className="w-16 h-16 text-uleam-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span className="text-sm font-semibold text-uleam-gold uppercase tracking-wide mb-2">
+              {t.hub.groupName}
+            </span>
+            <h3 className="text-lg font-bold text-uleam-blue mb-3 leading-snug">
+              {t.hub.boletinesCard.title}
+            </h3>
+            <p className="text-gray-600 text-sm leading-relaxed">{t.hub.boletinesCard.description}</p>
           </Link>
         </div>
       </div>

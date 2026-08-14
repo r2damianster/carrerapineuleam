@@ -6,9 +6,9 @@ import { LanguageProvider } from "@/lib/i18n";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PINE — Portal de Proyectos de Investigación ULEAM",
-  description: "Portal de proyectos de investigación, innovación pedagógica e internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM)",
-  keywords: ["ULEAM", "investigación", "innovación pedagógica", "internacionalización", "educación"],
+  title: "Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM",
+  description: "Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros de la Universidad Laica Eloy Alfaro de Manabí (ULEAM). Proyectos de investigación, redes de cooperación y boletines académicos.",
+  keywords: ["ULEAM", "carrera", "pedagogía", "idiomas", "investigación", "innovación pedagógica", "internacionalización"],
   authors: [{ name: "Arturo Rodríguez" }, { name: "Jhonny Villafuerte" }],
 };
 

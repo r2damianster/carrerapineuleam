@@ -89,13 +89,26 @@ const translations = {
       },
     },
     hub: {
-      sectionTitle: 'Proyectos de Investigación',
-      sectionSubtitle: 'Iniciativas de innovación pedagógica, investigación y internacionalización',
+      sectionTitle: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM',
+      sectionSubtitle: 'Proyectos, redes de cooperación y boletines de la carrera',
       groupName: 'Grupo de Investigación',
       pineCard: {
-        title: 'Innovaciones Pedagógicas e Internacionalización',
+        title: 'Proyecto de Innovaciones Pedagógicas e Internacionalización',
         description: 'Proyecto integral de investigación sobre innovaciones pedagógicas, internacionalización de la educación y transformación de prácticas áulicas en la ULEAM.',
       },
+      boletinesCard: {
+        title: 'Boletines',
+        description: 'Boletines bimensuales que agrupan noticias y actividades de la carrera.',
+      },
+    },
+    boletines: {
+      pageTitle: 'Boletines de la Carrera',
+      pageSubtitle: 'Resumen bimensual de noticias y actividades',
+      bimesterLabels: ['Ene-Feb', 'Mar-Abr', 'May-Jun', 'Jul-Ago', 'Sep-Oct', 'Nov-Dic'],
+      newsBadge: 'Noticia',
+      activityBadge: 'Actividad',
+      noImage: 'Sin imagen',
+      empty: 'No hay boletines disponibles',
     },
     activities: {
       sectionTitle: 'Galería de Actividades',
@@ -207,13 +220,26 @@ const translations = {
       },
     },
     hub: {
-      sectionTitle: 'Research Projects',
-      sectionSubtitle: 'Initiatives in pedagogical innovation, research and internationalization',
+      sectionTitle: 'Bachelor\'s Degree in National and Foreign Languages Pedagogy - ULEAM',
+      sectionSubtitle: 'Projects, cooperation networks and degree newsletters',
       groupName: 'Research Group',
       pineCard: {
-        title: 'Pedagogical Innovations and Internationalization',
+        title: 'Pedagogical Innovations and Internationalization Project',
         description: 'Comprehensive research project on pedagogical innovations, internationalization of education and transformation of classroom practices at ULEAM.',
       },
+      boletinesCard: {
+        title: 'Newsletters',
+        description: 'Bimonthly newsletters grouping news and activities from the degree program.',
+      },
+    },
+    boletines: {
+      pageTitle: 'Degree Newsletters',
+      pageSubtitle: 'Bimonthly summary of news and activities',
+      bimesterLabels: ['Jan-Feb', 'Mar-Apr', 'May-Jun', 'Jul-Aug', 'Sep-Oct', 'Nov-Dec'],
+      newsBadge: 'News',
+      activityBadge: 'Activity',
+      noImage: 'No image',
+      empty: 'No newsletters available',
     },
     activities: {
       sectionTitle: 'Activities Gallery',

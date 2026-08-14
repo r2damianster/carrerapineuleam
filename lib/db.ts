@@ -1,4 +1,4 @@
-import type { Member, Publication, VideoCategory, Video, News, Activity, SiteSettings } from '@/types';
+import type { Member, Publication, VideoCategory, Video, News, Activity, SiteSettings, Newsletter, NewsletterItem } from '@/types';
 import {
   members as initialMembers,
   publications as initialPublications,
@@ -359,6 +359,61 @@ export const updateSiteSetting = async (id: string, data: Partial<SiteSettings>)
 
 export const deleteSiteSetting = async (id: string): Promise<void> => {
   siteSettings = siteSettings.filter(s => s.id !== id);
+};
+
+// ============================================================================
+// NEWSLETTERS
+// ============================================================================
+
+export const getNewsletters = async (): Promise<Newsletter[]> => {
+  const newsItems: NewsletterItem[] = news.map(n => ({
+    id: n.id,
+    type: 'news' as const,
+    title: n.title,
+    date: n.published_date,
+    excerpt: n.content.substring(0, 150),
+    image: n.featured_image,
+  }));
+
+  const activityItems: NewsletterItem[] = activities.map(a => ({
+    id: a.id,
+    type: 'activity' as const,
+    title: a.title,
+    date: a.event_date,
+    excerpt: a.description?.substring(0, 150),
+    image: a.photos && a.photos.length > 0 ? a.photos[0] : undefined,
+  }));
+
+  const allItems = [...newsItems, ...activityItems];
+
+  const grouped = new Map<string, NewsletterItem[]>();
+  allItems.forEach(item => {
+    const [year, month] = item.date.split('-').map(Number);
+    const bimesterIndex = Math.floor((month - 1) / 2);
+    const key = `${year}-${bimesterIndex}`;
+
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(item);
+  });
+
+  const newsletters: Newsletter[] = Array.from(grouped.entries())
+    .map(([key, items]) => {
+      const [year, bimesterIndex] = key.split('-').map(Number);
+      return {
+        id: key,
+        year,
+        bimesterIndex,
+        items: items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      };
+    })
+    .sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      return b.bimesterIndex - a.bimesterIndex;
+    });
+
+  return newsletters;
 };
 
 // ============================================================================
