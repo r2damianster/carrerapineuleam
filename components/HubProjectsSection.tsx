@@ -23,9 +23,11 @@ export default function HubProjectsSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <Link
-            href="/pine"
-            className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue"
+          <a
+            href="https://carrerapineuleam.vercel.app/investigación/proyecto-innovacion.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue cursor-pointer"
           >
             <div className="relative w-32 h-32 mb-5 bg-gradient-to-br from-uleam-blue/10 to-uleam-gold/10 rounded-lg flex items-center justify-center">
               <span className="text-4xl font-bold text-uleam-blue">PINE</span>
@@ -37,7 +39,7 @@ export default function HubProjectsSection() {
               {pineCard.title}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">{pineCard.description}</p>
-          </Link>
+          </a>
 
           <Link
             href="/redlea"

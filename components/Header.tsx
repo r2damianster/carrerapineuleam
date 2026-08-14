@@ -29,7 +29,7 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/redlea', label: 'Redes (RED LEA)' },
-    { href: '/pine', label: 'Investigación (Proyecto)' },
+    { href: 'https://carrerapineuleam.vercel.app/investigación/proyecto-innovacion.html', label: 'Investigación (Proyecto)' },
   ];
 
   const handleAdminClick = (e: React.MouseEvent) => {
@@ -65,14 +65,27 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
           <ul className="hidden md:flex items-center gap-4 lg:gap-6 flex-wrap justify-end">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`font-medium hover:opacity-80 transition whitespace-nowrap ${
-                    scrolled ? 'text-uleam-blue' : 'text-white'
-                  }`}
-                >
-                  {link.label}
-                </Link>
+                {link.href.startsWith('http') ? (
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`font-medium hover:opacity-80 transition whitespace-nowrap ${
+                      scrolled ? 'text-uleam-blue' : 'text-white'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={link.href}
+                    className={`font-medium hover:opacity-80 transition whitespace-nowrap ${
+                      scrolled ? 'text-uleam-blue' : 'text-white'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
             <li>
@@ -122,13 +135,25 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
           <ul className="md:hidden mt-4 bg-white rounded-lg shadow-lg p-4">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="block py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
+                {link.href.startsWith('http') ? (
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={link.href}
+                    className="block py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
             <li>
