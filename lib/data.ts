@@ -902,6 +902,26 @@ export const activities: Activity[] = [
     created: '2026-08-14T00:00:00Z',
     updated: '2026-08-14T00:00:00Z',
   },
+  {
+    id: 'activity_13',
+    title: 'Actividades de Investigación Educativa — 5to Semestre PINE',
+    description: 'Actividades de investigación educativa: trabajo de campo para la recolección de datos mediante entrevista y observación en el Gimnasio de ULEAM. Tema del proyecto: salud de los estudiantes universitarios y el entrenamiento físico. Participación de estudiantes de 5to semestre de Pedagogía de Idiomas.',
+    photos: ['/images/Investigacion-Educativa-5toSemestrePINE-Gimnasio.jpeg'],
+    event_date: '2026-08-14',
+    category: 'investigacion',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_14',
+    title: 'Estrategia: Museo y Enseñanza de Inglés',
+    description: 'Estrategia de innovación educativa: integración de museos como espacios de enseñanza de inglés. Actividad de 5to semestre PINE realizada en mayo de 2026. Promueve aprendizaje contextualizado y experiencial del idioma extranjero.',
+    photos: ['/images/Estrategia-Museo-Ingles-5toSemestreMayo2026.jpeg'],
+    event_date: '2026-05-20',
+    category: 'estrategia',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
 ];
 
 export const siteSettings: SiteSettings[] = [
