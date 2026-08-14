@@ -158,6 +158,15 @@ const documents = {
       date: '2026-07-24',
       period: '2026-1',
     },
+    {
+      id: 'jornada-academica-interdisciplinaria-24julio-2026',
+      title: 'Jornada Académica Interdisciplinaria — Facultad de Educación y Turismo',
+      filename: 'Informe_feriaInterdisciplinaria-signed.pdf',
+      description: 'Informe detallado de la Jornada Académica Interdisciplinaria realizada el 24 de julio de 2026, organizada por las carreras de Educación Básica, Educación Inicial y Psicología Educativa. Incluye pósteres científicos, conferencias, dramatizaciones y expresiones artísticas. Documento firmado y certificado.',
+      icon: '🎓',
+      date: '2026-07-24',
+      period: '2026-1',
+    },
   ],
   informes: [
     {
