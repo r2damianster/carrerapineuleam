@@ -10,8 +10,9 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.8.0
-**Última sesión:** 2026-08-14 (Sesión 15 — 8 actividades de docencia innovadora agregadas)
+**Versión actual:** 0.8.1
+**Última sesión:** 2026-08-14 (Sesión 16 — auditoría de coherencia: ruta /pine → /investigacion/proyecto-innovacion, 9 imágenes rotas corregidas, referencia de repo vieja eliminada)
+**Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 
 ---
 
@@ -84,6 +85,24 @@
 - ✅ Publicaciones `pub_1` y `pub_2` retiradas; nueva `pub_63` agregada: "Transition from Regular English Instruction to Bilingual Education: An Experience Using Gamification" (Piloso-Cedeño & Villafuerte-Holguín, regional)
 - ✅ Fix: logo del Hero (256px) se solapaba con el texto del nav (`Inicio`, `Acerca de`, `Equipo`...) en pantallas PC de poca altura (~768px) — `Hero.tsx` ahora usa `pt-24 md:pt-28` para reservar espacio bajo el header; `Header.tsx` cambia `bg-transparent` por degradado translúcido (`from-uleam-blue/70...to-transparent backdrop-blur-sm`) y ajusta breakpoints del nombre/nav para que no se encimen en anchos medianos
 - ✅ PDF "Informe Mensual Comisión Mayo" agregado a `public/admin-assets/`
+
+---
+
+## Cambios Recientes (Sesión 16 — 2026-08-14)
+
+### Auditoría de coherencia integral (repo, rutas, imágenes)
+
+- ✅ **Ruta pública movida:** `app/pine` → `app/investigacion/proyecto-innovacion`. Actualizadas 3 referencias: `Header.tsx` (nav), `HubProjectsSection.tsx` (card enlace), `QRModal.tsx` (`SITE_URL` para QR + WhatsApp share)
+- ✅ **9 imágenes rotas corregidas** (404 en producción) — `public/images/` se había reorganizado en subcarpetas (`logos/`, `members/`, `activities/`) pero 8 componentes seguían con paths planos viejos:
+  - `Header.tsx`, `Hero.tsx` → `logo-proyecto.png` (logo del nav y hero)
+  - `CertificateTemplate.tsx` → 4 logos (certificados generados)
+  - `ConnectionsSection.tsx` → 3 logos
+  - `HubProjectsSection.tsx` → `logo-red-lea.jpeg`
+  - `VideoGallery.tsx` → `logo-radio-uleam.png`
+  - `ActivityGallery.tsx`, `NewsSection.tsx` → 2 fotos de actividad podcast (datos fallback)
+  - `TeamSection.tsx` → fotos líder/colíder (datos fallback) + comentario obsoleto "PocketBase" corregido
+- ✅ **Referencia de repo vieja eliminada:** `CHANGELOG.md` apuntaba a `proyecto-innovacion-e-internacionalizacion.git` (nombre pre-cambio) → corregido a `carrerapineuleam.git`
+- ℹ️ Pendiente de decisión (no tocado): `public/images/redlea/02-logos/` (2 imágenes sin uso), `public/admin-assets/2026_ProyectoActualizado.pdf` (huérfano, sin entrada en `app/admin/documents/page.tsx`), URLs viejas de vercel (`proyecto-innovacion-e-internacional.vercel.app`) dentro de `graphify-out/` (gitignored) y `material-web-REDLEA/*.md` (docs archivados, no código vivo)
 
 ---
 
