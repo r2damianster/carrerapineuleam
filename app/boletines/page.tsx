@@ -193,17 +193,26 @@ function BoletinesHeader() {
     >
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo only */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="relative w-12 h-12 shrink-0">
-              <Image
-                src="/images/logo-proyecto.png"
-                alt="Logo Proyecto"
-                fill
-                className="object-contain"
-              />
-            </div>
-          </Link>
+          {/* Logo + Back button */}
+          <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 text-sm font-medium transition hover:opacity-80"
+              style={{ color: scrolled ? '#003366' : 'white' }}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Volver
+            </Link>
+            <Link href="/" className="flex items-center gap-3 shrink-0">
+              <div className="relative w-12 h-12 shrink-0">
+                <Image
+                  src="/images/logo-proyecto.png"
+                  alt="Logo Proyecto"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </Link>
+          </div>
 
           {/* Language + Admin buttons */}
           <div className="flex items-center gap-4">
