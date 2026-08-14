@@ -88,6 +88,15 @@ const translations = {
         url: 'https://www.facebook.com/uleamradio101.7',
       },
     },
+    hub: {
+      sectionTitle: 'Proyectos de Investigación',
+      sectionSubtitle: 'Iniciativas de innovación pedagógica, investigación y internacionalización',
+      groupName: 'Grupo de Investigación',
+      pineCard: {
+        title: 'Innovaciones Pedagógicas e Internacionalización',
+        description: 'Proyecto integral de investigación sobre innovaciones pedagógicas, internacionalización de la educación y transformación de prácticas áulicas en la ULEAM.',
+      },
+    },
     activities: {
       sectionTitle: 'Galería de Actividades',
       empty: 'No hay fotos de actividades aún',
@@ -195,6 +204,15 @@ const translations = {
         title: 'Radio ULEAM 101.7 FM',
         description: 'Broadcasting station of the Eloy Alfaro Laica University of Manabí that broadcasts our educational podcasts live. Follow us on Facebook to access the broadcast episodes.',
         url: 'https://www.facebook.com/uleamradio101.7',
+      },
+    },
+    hub: {
+      sectionTitle: 'Research Projects',
+      sectionSubtitle: 'Initiatives in pedagogical innovation, research and internationalization',
+      groupName: 'Research Group',
+      pineCard: {
+        title: 'Pedagogical Innovations and Internationalization',
+        description: 'Comprehensive research project on pedagogical innovations, internationalization of education and transformation of classroom practices at ULEAM.',
       },
     },
     activities: {

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 
-const SITE_URL = 'https://proyecto-innovacion-e-internacional.vercel.app/';
+const SITE_URL = 'https://proyecto-innovacion-e-internacional.vercel.app/pine';
 
 interface QRModalProps {
   onClose: () => void;
