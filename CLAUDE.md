@@ -102,6 +102,7 @@
 - ✅ Todas las cadenas nuevas agregadas a `lib/i18n.tsx` (ES+EN) bajo `nav.docencia/investigacion/vinculacion` y las secciones nuevas `docenciaProject` / `vinculacionProject`
 - ℹ️ `ProjectHero`, `ProjectIntegrationNote`, `TaggedVideoSection` reciben `projectKey: 'docenciaProject' | 'vinculacionProject'` y resuelven sus propios textos vía `useLanguage()` — así las páginas contenedoras siguen siendo server components y conservan `export const metadata`
 - ℹ️ HubProjectsSection (página `/`) no fue tocada — solo se pidió el dropdown del header, no tarjetas nuevas en el hub
+- ✅ **Corrección de tags mal asignados:** 5 videos tenían `tags: ['vinculacion']` sin corresponder (colaboraciones interdisciplinarias del proyecto, no vinculación con la sociedad) → cambiados a `'investigacion'`: `video_4` (Cursos vacacionales), `video_6` (PsicoEducarte | Rol del Psicólogo Educativo), `video_15`/`video_17`/`video_20` (serie Más Allá del Lienzo). Quedan 8 videos con tag `vinculacion` (todos con mención explícita de vinculación en su descripción). Esto los saca de `/vinculacion/dinamicas-linguisticas` y les cambia el badge en `VideoCard` a "Investigación".
 
 ---
 
