@@ -10,8 +10,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.8.1
-**Última sesión:** 2026-08-14 (Sesión 16 — auditoría de coherencia: ruta /pine → /investigacion/proyecto-innovacion, 9 imágenes rotas corregidas, referencia de repo vieja eliminada)
+**Versión actual:** 0.9.0
+**Última sesión:** 2026-08-18 (Sesión 17 — header con dropdowns Docencia/Investigación/Vinculación + 2 páginas de proyecto nuevas)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 
 ---
@@ -85,6 +85,23 @@
 - ✅ Publicaciones `pub_1` y `pub_2` retiradas; nueva `pub_63` agregada: "Transition from Regular English Instruction to Bilingual Education: An Experience Using Gamification" (Piloso-Cedeño & Villafuerte-Holguín, regional)
 - ✅ Fix: logo del Hero (256px) se solapaba con el texto del nav (`Inicio`, `Acerca de`, `Equipo`...) en pantallas PC de poca altura (~768px) — `Hero.tsx` ahora usa `pt-24 md:pt-28` para reservar espacio bajo el header; `Header.tsx` cambia `bg-transparent` por degradado translúcido (`from-uleam-blue/70...to-transparent backdrop-blur-sm`) y ajusta breakpoints del nombre/nav para que no se encimen en anchos medianos
 - ✅ PDF "Informe Mensual Comisión Mayo" agregado a `public/admin-assets/`
+
+---
+
+## Cambios Recientes (Sesión 17 — 2026-08-18)
+
+### Header con dropdowns por función sustantiva + 2 páginas de proyecto nuevas
+
+- ✅ `Header.tsx`: nav ahora tiene 3 categorías con dropdown (click, cierre al click-afuera, versión mobile en acordeón) — **Docencia**, **Investigación**, **Vinculación**. Cada una despliega el proyecto correspondiente.
+  - Investigación → `/investigacion/proyecto-innovacion` (existente, sin cambios de contenido)
+  - Vinculación → `/vinculacion/dinamicas-linguisticas` (nueva) — "Dinámicas Lingüísticas en Contextos Locales"
+  - Docencia → `/docencia/docencia-innovadora` (nueva) — "Docencia Innovadora e Interdisciplinaria"
+- ✅ 2 páginas nuevas creadas con componentes compartidos: `ProjectHero.tsx`, `ProjectIntegrationNote.tsx` (nota de integración con el proyecto de investigación + link de vuelta), `TaggedVideoSection.tsx` (filtra podcasts por `tags` en vez de `category` — reutiliza `videos` de `lib/data.ts`, no se duplicó ningún video)
+  - Los podcasts ya tenían `tags: ['docencia']` / `tags: ['vinculacion']` en `lib/data.ts` desde antes — la nueva sección los agrupa por función sustantiva sin mover ni duplicar entradas en `videos[]`
+  - Cada página nueva incluye texto explícito de integración entre proyectos (producción técnica conjunta del podcast institucional vía Radio ULEAM/YouTube)
+- ✅ Todas las cadenas nuevas agregadas a `lib/i18n.tsx` (ES+EN) bajo `nav.docencia/investigacion/vinculacion` y las secciones nuevas `docenciaProject` / `vinculacionProject`
+- ℹ️ `ProjectHero`, `ProjectIntegrationNote`, `TaggedVideoSection` reciben `projectKey: 'docenciaProject' | 'vinculacionProject'` y resuelven sus propios textos vía `useLanguage()` — así las páginas contenedoras siguen siendo server components y conservan `export const metadata`
+- ℹ️ HubProjectsSection (página `/`) no fue tocada — solo se pidió el dropdown del header, no tarjetas nuevas en el hub
 
 ---
 
