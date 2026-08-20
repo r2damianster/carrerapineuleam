@@ -67,6 +67,13 @@ export interface News {
   updated: string;
 }
 
+export interface VinculacionEnglishClubPhoto {
+  id: string;
+  image: string;
+  caption: string;
+  event_date: string;
+}
+
 export interface Activity {
   id: string;
   title: string;

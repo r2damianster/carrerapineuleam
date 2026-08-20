@@ -166,6 +166,11 @@ const translations = {
       videosSectionTitle: 'Podcasts de Vinculación',
       videosSectionSubtitle: 'Episodios producidos como resultado de la vinculación con la sociedad de la carrera PINE',
       emptyVideos: 'No hay episodios de vinculación publicados aún',
+      englishClubSectionTitle: 'Club de Inglés en Escenarios Locales',
+      englishClubSectionSubtitle: 'Práctica del idioma inglés desarrollada directamente en espacios y comunidades locales',
+      englishClubComingSoon: 'Se irán agregando nuevas fotos y actividades del club a medida que se desarrollen.',
+      researchSectionTitle: 'Procesos de Investigación Educativa',
+      researchSectionSubtitle: 'Investigación generada en el marco de la vinculación con la sociedad de la carrera PINE',
     },
   },
   en: {
@@ -329,6 +334,11 @@ const translations = {
       videosSectionTitle: 'Outreach Podcasts',
       videosSectionSubtitle: 'Episodes produced as a result of the PINE degree program\'s community outreach work',
       emptyVideos: 'No outreach episodes published yet',
+      englishClubSectionTitle: 'English Club in Local Settings',
+      englishClubSectionSubtitle: 'English language practice carried out directly in local spaces and communities',
+      englishClubComingSoon: 'New photos and club activities will be added as they take place.',
+      researchSectionTitle: 'Educational Research Processes',
+      researchSectionSubtitle: 'Research generated within the PINE degree program\'s community outreach work',
     },
   },
 };

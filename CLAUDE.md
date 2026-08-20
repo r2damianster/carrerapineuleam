@@ -10,8 +10,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.9.0
-**Última sesión:** 2026-08-18 (Sesión 17 — header con dropdowns Docencia/Investigación/Vinculación + 2 páginas de proyecto nuevas)
+**Versión actual:** 0.9.1
+**Última sesión:** 2026-08-18 (Sesión 18 — corrección de tags de vinculación + estructura de 3 ejes en página de Vinculación)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 
 ---
@@ -85,6 +85,19 @@
 - ✅ Publicaciones `pub_1` y `pub_2` retiradas; nueva `pub_63` agregada: "Transition from Regular English Instruction to Bilingual Education: An Experience Using Gamification" (Piloso-Cedeño & Villafuerte-Holguín, regional)
 - ✅ Fix: logo del Hero (256px) se solapaba con el texto del nav (`Inicio`, `Acerca de`, `Equipo`...) en pantallas PC de poca altura (~768px) — `Hero.tsx` ahora usa `pt-24 md:pt-28` para reservar espacio bajo el header; `Header.tsx` cambia `bg-transparent` por degradado translúcido (`from-uleam-blue/70...to-transparent backdrop-blur-sm`) y ajusta breakpoints del nombre/nav para que no se encimen en anchos medianos
 - ✅ PDF "Informe Mensual Comisión Mayo" agregado a `public/admin-assets/`
+
+---
+
+## Cambios Recientes (Sesión 18 — 2026-08-18)
+
+### Corrección de tags mal asignados + estructura de 3 ejes en Vinculación
+
+- ✅ **5 videos con tag `vinculacion` incorrecto → cambiados a `investigacion`:** `video_4` (Cursos vacacionales), `video_6` (PsicoEducarte | Rol del Psicólogo Educativo), `video_15`/`video_17`/`video_20` (serie Más Allá del Lienzo). No correspondían a vinculación con la sociedad sino a colaboración interdisciplinaria/reflexión académica del proyecto. Quedan 8 videos con tag `vinculacion` (todos con mención explícita de vinculación en su descripción).
+- ✅ Página `/vinculacion/dinamicas-linguisticas` reestructurada en **3 ejes** (a pedido explícito — el proyecto de vinculación se compone de estas 3 líneas):
+  1. **Club de Inglés en Escenarios Locales** — nuevo componente `EnglishClubSection.tsx`, lee de un array nuevo `vinculacionEnglishClubPhotos` en `lib/data.ts` (tipo `VinculacionEnglishClubPhoto` en `types/index.ts`). A diferencia de `activities[]` (que **siempre** pertenece a la carrera completa, ver comentario en `types/index.ts`), este array es específico del proyecto de vinculación — se irá ampliando con más fotos/actividades del club a futuro. Primera foto: `public/images/ClubIngles-EscenariosLocales-Agosto2026.jpeg` (movida desde la raíz del repo, donde había quedado por auto-commit).
+  2. **Podcasts y Estrategias de Difusión** — sin cambios, `TaggedVideoSection` (tag `vinculacion`).
+  3. **Procesos de Investigación Educativa** — nuevo componente `VinculacionResearchSection.tsx`: muestra `pub_3` (libro "Innovaciones Educativas: Experiencias de vinculación social...") y `news_10` (capacitación de transferencia a la carrera de Pedagogía de Lengua y Literatura) como evidencia existente de investigación producida en el marco de la vinculación. Se buscó entre publicaciones/noticias ya existentes en `lib/data.ts` — no se inventó contenido nuevo.
+- ℹ️ `activity_13` ("Actividades de Investigación Educativa — 5to Semestre PINE", trabajo de campo en el Gimnasio) **no** se movió a Vinculación: es una actividad de cátedra (5to semestre PINE), no de vinculación con la sociedad, y las actividades de `activities[]` no se filtran por proyecto por diseño.
 
 ---
 

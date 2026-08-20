@@ -1,4 +1,4 @@
-import type { Member, Publication, VideoCategory, Video, News, Activity, SiteSettings } from '@/types';
+import type { Member, Publication, VideoCategory, Video, News, Activity, SiteSettings, VinculacionEnglishClubPhoto } from '@/types';
 
 // ============================================================================
 // STATIC DATABASE - Edit this file to update data
@@ -921,6 +921,18 @@ export const activities: Activity[] = [
     category: 'estrategia',
     created: '2026-08-14T00:00:00Z',
     updated: '2026-08-14T00:00:00Z',
+  },
+];
+
+// Fotos del Club de Inglés — proyecto de Vinculación "Dinámicas Lingüísticas en Contextos Locales".
+// A diferencia de `activities` (que pertenece siempre a la carrera completa), este array es específico
+// del proyecto de vinculación y se irá ampliando con nuevas fotos/actividades del club.
+export const vinculacionEnglishClubPhotos: VinculacionEnglishClubPhoto[] = [
+  {
+    id: 'club_ingles_1',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
   },
 ];
 

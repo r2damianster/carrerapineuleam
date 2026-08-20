@@ -2,7 +2,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
+import EnglishClubSection from '@/components/EnglishClubSection';
 import TaggedVideoSection from '@/components/TaggedVideoSection';
+import VinculacionResearchSection from '@/components/VinculacionResearchSection';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -18,7 +20,9 @@ export default function VinculacionProjectPage() {
       <main>
         <ProjectHero projectKey="vinculacionProject" />
         <ProjectIntegrationNote projectKey="vinculacionProject" />
+        <EnglishClubSection />
         <TaggedVideoSection tag="vinculacion" projectKey="vinculacionProject" />
+        <VinculacionResearchSection />
         <Contact />
       </main>
       <Footer />
