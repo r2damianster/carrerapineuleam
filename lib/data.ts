@@ -934,6 +934,18 @@ export const vinculacionEnglishClubPhotos: VinculacionEnglishClubPhoto[] = [
     caption: 'Club de Inglés desarrollado en escenarios locales',
     event_date: '2026-08-18',
   },
+  {
+    id: 'club_ingles_2',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026-2.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
+  },
+  {
+    id: 'club_ingles_3',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026-3.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
+  },
 ];
 
 export const siteSettings: SiteSettings[] = [
