@@ -39,7 +39,8 @@ export default function AttendanceForm() {
       setEstudiantes(estudiantesRes);
       setEspacios(espaciosRes);
       setBeneficiarios(beneficiariosRes);
-    } catch {
+    } catch (err) {
+      console.error('PocketBase connection error:', err);
       setConnectionError(true);
     } finally {
       setLoading(false);
