@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { pb, Estudiante, Espacio, Beneficiario } from '@/lib/pocketbase';
+import { Estudiante, Espacio, Beneficiario } from '@/lib/neon';
 import { useLanguage } from '@/lib/i18n';
 
 export default function AttendanceForm() {
@@ -31,16 +31,14 @@ export default function AttendanceForm() {
     setLoading(true);
     setConnectionError(false);
     try {
-      const [estudiantesRes, espaciosRes, beneficiariosRes] = await Promise.all([
-        pb.collection('estudiantes').getFullList<Estudiante>({ filter: "modalidad = 'club_ingles'" }),
-        pb.collection('espacios').getFullList<Espacio>(),
-        pb.collection('beneficiarios').getFullList<Beneficiario>(),
-      ]);
-      setEstudiantes(estudiantesRes);
-      setEspacios(espaciosRes);
-      setBeneficiarios(beneficiariosRes);
+      const res = await fetch('/api/vinculacion/roster?modalidad=club_ingles');
+      if (!res.ok) throw new Error(`roster fetch failed: ${res.status}`);
+      const data = await res.json();
+      setEstudiantes(data.estudiantes);
+      setEspacios(data.espacios);
+      setBeneficiarios(data.beneficiarios);
     } catch (err) {
-      console.error('PocketBase connection error:', err);
+      console.error('Neon connection error:', err);
       setConnectionError(true);
     } finally {
       setLoading(false);
@@ -65,10 +63,15 @@ export default function AttendanceForm() {
 
   async function handleAddBeneficiario() {
     if (!newBeneficiarioNombre.trim()) return;
-    const created = await pb.collection('beneficiarios').create<Beneficiario>({
-      nombre: newBeneficiarioNombre.trim(),
-      contacto: newBeneficiarioContacto.trim(),
+    const res = await fetch('/api/vinculacion/beneficiarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: newBeneficiarioNombre.trim(),
+        contacto: newBeneficiarioContacto.trim(),
+      }),
     });
+    const created: Beneficiario = await res.json();
     setBeneficiarios((prev) => [...prev, created]);
     setBeneficiariosPresentes((prev) => [...prev, created.id]);
     setNewBeneficiarioNombre('');
@@ -85,18 +88,24 @@ export default function AttendanceForm() {
     setSubmitting(true);
     setSubmitStatus('idle');
     try {
-      await pb.collection('bitacora_asistencia').create({
-        estudiantes_presentes: estudiantesPresentes,
-        espacio: espacioId,
-        fecha,
-        beneficiarios_presentes: beneficiariosPresentes,
-        observaciones,
+      const res = await fetch('/api/vinculacion/bitacora', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estudiantes_presentes: estudiantesPresentes,
+          espacio_id: espacioId,
+          fecha,
+          beneficiarios_presentes: beneficiariosPresentes,
+          observaciones,
+        }),
       });
+      if (!res.ok) throw new Error(`bitacora submit failed: ${res.status}`);
       setSubmitStatus('success');
       setEstudiantesPresentes([]);
       setBeneficiariosPresentes([]);
       setObservaciones('');
-    } catch {
+    } catch (err) {
+      console.error('bitacora submit error:', err);
       setSubmitStatus('error');
     } finally {
       setSubmitting(false);
