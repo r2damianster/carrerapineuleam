@@ -57,17 +57,6 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
       ] 
     },
     { label: t.nav.vinculacion, children: [{ href: '/vinculacion/dinamicas-linguisticas', label: t.vinculacionProject.navLabel }] },
-    {
-      label: 'Portal',
-      children: [
-        { href: '/login', label: 'Ingresar' },
-        { href: '/docencia', label: 'Gestión Docente' },
-        { href: '/pine-dashboard', label: 'Dashboard PINE' },
-        { href: '/vinculacion/difusion', label: 'Difusión' },
-        { href: '/vinculacion/test-mcer', label: 'Test MCER' },
-        { href: '/vinculacion/encuesta', label: 'Encuestas' },
-      ],
-    },
   ];
 
   const handleAdminClick = (e: React.MouseEvent) => {
