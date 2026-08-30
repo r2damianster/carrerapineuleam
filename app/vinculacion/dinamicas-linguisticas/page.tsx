@@ -23,7 +23,7 @@ export default function VinculacionProjectPage() {
         <EnglishClubSection />
         <TaggedVideoSection tag="vinculacion" projectKey="vinculacionProject" />
         <VinculacionResearchSection />
-        <Contact />
+        <Contact projectKey="vinculacionProject" />
       </main>
       <Footer />
     </>

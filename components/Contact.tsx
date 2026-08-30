@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 
 const CONTACT_EMAIL = 'arturo.rodriguez@uleam.edu.ec';
 
-export default function Contact() {
+export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' } = {}) {
   const { t, lang } = useLanguage();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
 
@@ -22,20 +22,54 @@ export default function Contact() {
     window.open(buildMailUrl(provider), '_blank', 'noopener,noreferrer');
   };
 
-  const teamContacts = [
-    {
-      name: 'Arturo Rodríguez',
-      role: t.contact.leader,
-      email: 'arturo.rodriguez@uleam.edu.ec',
-      orcid: '0000-0002-7017-9443',
-    },
-    {
-      name: 'Jhonny Villafuerte',
-      role: t.contact.coleader,
-      email: 'jhonny.villafuerte@uleam.edu.ec',
-      orcid: '0000-0001-6053-6307',
-    },
-  ];
+  let teamContacts = [];
+  
+  if (projectKey === 'vinculacionProject') {
+    teamContacts = [
+      {
+        name: 'Mg. Cynthia Zambrano Zambrano',
+        role: t.contact.leader,
+        email: 'cynthia.zambrano@uleam.edu.ec', // placeholder as email not provided, update if necessary
+        orcid: '0000-0002-0129-9134',
+      },
+      {
+        name: 'Dr. Arturo Rodríguez',
+        role: t.contact.coleader,
+        email: 'arturo.rodriguez@uleam.edu.ec',
+        orcid: '0000-0002-7017-9443',
+      }
+    ];
+  } else if (projectKey === 'desarrolloProject') {
+    teamContacts = [
+      {
+        name: 'Dr. German Carrera Moreno, PhD.',
+        role: t.contact.leader,
+        email: 'german.carrera@uleam.edu.ec',
+        orcid: '0000-0002-4974-5615',
+      },
+      {
+        name: 'Mg. Cristina Basantes',
+        role: t.contact.coleader,
+        email: '',
+        orcid: '0000-0001-5184-9643',
+      }
+    ];
+  } else {
+    teamContacts = [
+      {
+        name: 'Dr. Arturo Rodríguez',
+        role: t.contact.leader,
+        email: 'arturo.rodriguez@uleam.edu.ec',
+        orcid: '0000-0002-7017-9443',
+      },
+      {
+        name: 'Dr. Jhonny Villafuerte',
+        role: t.contact.coleader,
+        email: 'jhonny.villafuerte@uleam.edu.ec',
+        orcid: '0000-0001-6053-6307',
+      },
+    ];
+  }
 
   const socialLinks = [
     {

@@ -12,7 +12,7 @@ interface HeaderProps {
   logoAlt?: string;
 }
 
-type NavChild = { href: string; label: string };
+type NavChild = { href?: string; label: string; isHeader?: boolean };
 type NavItem = { href: string; label: string; children?: undefined } | { label: string; children: NavChild[]; href?: undefined };
 
 export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
@@ -44,9 +44,17 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
 
   const navLinks: NavItem[] = [
     { href: '/', label: 'Inicio' },
-    { href: '/redlea', label: 'Redes (RED LEA)' },
     { label: t.nav.docencia, children: [{ href: '/docencia/docencia-innovadora', label: t.docenciaProject.navLabel }] },
-    { label: t.nav.investigacion, children: [{ href: '/investigacion/proyecto-innovacion', label: t.hub.pineCard.title }] },
+    { 
+      label: t.nav.investigacion, 
+      children: [
+        { label: 'REDES', isHeader: true },
+        { href: '/redlea', label: 'RED LEA' },
+        { label: 'PROYECTOS', isHeader: true },
+        { href: '/investigacion/proyecto-innovacion', label: 'Innovaciones Pedagógicas' },
+        { href: '/investigacion/desarrollo-habilidades', label: 'Desarrollo de las habilidades lingüísticas' }
+      ] 
+    },
     { label: t.nav.vinculacion, children: [{ href: '/vinculacion/dinamicas-linguisticas', label: t.vinculacionProject.navLabel }] },
   ];
 
@@ -111,15 +119,21 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
                   </button>
                   {openDropdown === link.label && (
                     <ul className="absolute left-0 mt-2 min-w-[260px] bg-white rounded-lg shadow-xl py-2 z-50">
-                      {link.children.map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className="block px-4 py-2 text-sm text-uleam-blue hover:bg-gray-100 transition"
-                            onClick={() => setOpenDropdown(null)}
-                          >
-                            {child.label}
-                          </Link>
+                      {link.children.map((child, i) => (
+                        <li key={child.href || i}>
+                          {child.isHeader ? (
+                            <span className="block px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-1 first:mt-0">
+                              {child.label}
+                            </span>
+                          ) : (
+                            <Link
+                              href={child.href!}
+                              className="block px-4 py-2 text-sm text-uleam-blue hover:bg-gray-100 transition"
+                              onClick={() => setOpenDropdown(null)}
+                            >
+                              {child.label}
+                            </Link>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -203,18 +217,24 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
                   </button>
                   {openMobileDropdown === link.label && (
                     <ul className="pl-4">
-                      {link.children.map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className="block py-2 px-4 text-sm text-uleam-blue hover:bg-gray-100 rounded"
-                            onClick={() => {
-                              setIsMenuOpen(false);
-                              setOpenMobileDropdown(null);
-                            }}
-                          >
-                            {child.label}
-                          </Link>
+                      {link.children.map((child, i) => (
+                        <li key={child.href || i}>
+                          {child.isHeader ? (
+                            <span className="block py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mt-1 first:mt-0">
+                              {child.label}
+                            </span>
+                          ) : (
+                            <Link
+                              href={child.href!}
+                              className="block py-2 px-4 text-sm text-uleam-blue hover:bg-gray-100 rounded ml-2"
+                              onClick={() => {
+                                setIsMenuOpen(false);
+                                setOpenMobileDropdown(null);
+                              }}
+                            >
+                              {child.label}
+                            </Link>
+                          )}
                         </li>
                       ))}
                     </ul>
