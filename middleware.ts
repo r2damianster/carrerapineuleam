@@ -29,9 +29,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // RBAC: Verificación simple de roles por módulo si se desea
-    if (pathname.startsWith('/docencia') && !session.modulos_acceso.includes('admin') && !session.modulos_acceso.includes('investigacion')) {
-       // Si intenta entrar a docencia sin permisos, se le expulsa al dashboard
+    // /docencia: profesor/admin ven Crear Espacios + Asignar; estudiante solo Asignar
+    // (la pagina y el API ya filtran el detalle segun session.rol).
+    if (pathname.startsWith('/docencia') && !['profesor', 'admin', 'estudiante'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

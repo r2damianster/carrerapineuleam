@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getUserSessionFromCookies } from '@/lib/userSession';
+import { cookies } from 'next/headers';
+import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 
 export async function GET() {
-  const usuario = await getUserSessionFromCookies();
+  const cookieStore = await cookies();
+  const usuario = await verifySessionCookieValue(cookieStore.get(SESSION_COOKIE.name)?.value);
   if (!usuario) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }

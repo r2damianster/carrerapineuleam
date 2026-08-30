@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { getUserSessionFromCookies } from '@/lib/userSession';
+import { getAppSessionFromCookies } from '@/lib/session';
 
 export async function GET() {
   try {
-    const usuario = await getUserSessionFromCookies();
+    const usuario = await getAppSessionFromCookies();
     if (!usuario) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }

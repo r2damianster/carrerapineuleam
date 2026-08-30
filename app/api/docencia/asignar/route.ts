@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { getUserSessionFromCookies } from '@/lib/userSession';
+import { getAppSessionFromCookies } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
-    const usuario = await getUserSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    const usuario = await getAppSessionFromCookies();
+    if (!usuario || !['profesor', 'admin', 'estudiante'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -32,8 +32,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const usuario = await getUserSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    const usuario = await getAppSessionFromCookies();
+    if (!usuario || !['profesor', 'admin', 'estudiante'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

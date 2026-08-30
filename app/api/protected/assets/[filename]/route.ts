@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
-import { verifyAdminSessionCookieValue, ADMIN_SESSION_COOKIE } from '@/lib/adminSession';
-import { isAdminAuthorized } from '@/lib/db';
+import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 
 export async function GET(
   request: NextRequest,
@@ -11,9 +10,9 @@ export async function GET(
 ) {
   try {
     // Check authentication
-    const session = await verifyAdminSessionCookieValue(request.cookies.get(ADMIN_SESSION_COOKIE.name)?.value);
+    const session = await verifySessionCookieValue(request.cookies.get(SESSION_COOKIE.name)?.value);
 
-    if (!session || !isAdminAuthorized(session.email)) {
+    if (!session || !session.modulos_acceso.includes('admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

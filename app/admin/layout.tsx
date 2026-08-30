@@ -24,8 +24,8 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   const handleLogout = async () => {
-    await fetch('/api/admin/auth/logout', { method: 'POST' });
-    window.location.href = '/admin/login';
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/portal/login';
   };
 
   return (

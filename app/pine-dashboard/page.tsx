@@ -46,16 +46,6 @@ export default function PineDashboard() {
             </div>
           </div>
 
-          {/* Tarjeta 2: Docencia - Aprobados */}
-          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500">
-            <h3 className="text-lg font-semibold text-gray-700">Aprobados con {'>='} 4.0</h3>
-            <p className="text-4xl font-bold text-green-600 my-2">{stats.aprobados} / 25</p>
-            <p className="text-sm text-gray-500">Beneficiarios por ciclo que superan el promedio mínimo.</p>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4">
-              <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${Math.min((stats.aprobados / 25) * 100, 100)}%` }}></div>
-            </div>
-          </div>
-
           {/* Tarjeta 3: Calidad - Encuestas */}
           <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500">
             <h3 className="text-lg font-semibold text-gray-700">Satisfacción Promedio</h3>

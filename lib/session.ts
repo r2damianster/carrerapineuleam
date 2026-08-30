@@ -74,6 +74,11 @@ export const SESSION_COOKIE = {
   maxAge: SESSION_MAX_AGE_SECONDS,
 };
 
+export async function getAppSessionFromCookies(): Promise<AppSession | null> {
+  const cookieStore = await import('next/headers').then(m => m.cookies());
+  return verifySessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+}
+
 export interface EstudianteSession {
   id: string;
   nombre: string;

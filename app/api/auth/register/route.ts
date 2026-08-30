@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
-import { createUserSessionCookieValue, USER_SESSION_COOKIE, UsuarioSession } from '@/lib/userSession';
-import { profesoresAutorizados } from '@/lib/data';
+import { createSessionCookieValue, SESSION_COOKIE, AppSession } from '@/lib/session';
+import { profesoresAutorizados, profesorModulos } from '@/lib/data';
 
 const PUBLIC_ROLES = ['profesor', 'estudiante', 'beneficiario'];
 
@@ -45,13 +45,15 @@ export async function POST(request: Request) {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
+    const modulosAcceso = rol === 'profesor' ? (profesorModulos[email] ?? []) : [];
+
     // Insertar usuario
     const userResult = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol)
-      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol})
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso)
+      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso})
       RETURNING id
     `;
-    
+
     const userId = userResult[0].id;
 
     // Insertar perfil dependiendo del rol
@@ -67,15 +69,15 @@ export async function POST(request: Request) {
       `;
     }
 
-    const session: UsuarioSession = { id: userId, nombres, apellidos, email, rol };
-    const cookieValue = createUserSessionCookieValue(session);
+    const session: AppSession = { id: String(userId), nombres: `${nombres} ${apellidos}`, email, rol, modulos_acceso: modulosAcceso };
+    const cookieValue = await createSessionCookieValue(session);
     const response = NextResponse.json({ success: true, message: 'Usuario registrado exitosamente', usuario: session });
-    response.cookies.set(USER_SESSION_COOKIE.name, cookieValue, {
+    response.cookies.set(SESSION_COOKIE.name, cookieValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: USER_SESSION_COOKIE.maxAge,
+      maxAge: SESSION_COOKIE.maxAge,
     });
     return response;
   } catch (error: any) {

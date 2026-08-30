@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
-import { getUserSessionFromCookies } from '@/lib/userSession';
+import { getAppSessionFromCookies } from '@/lib/session';
 
 // Configurar Cloudinary usando las variables de entorno
 cloudinary.config({
@@ -13,7 +13,7 @@ const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
-    const usuario = await getUserSessionFromCookies();
+    const usuario = await getAppSessionFromCookies();
     if (!usuario) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }

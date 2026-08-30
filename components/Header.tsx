@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import AdminLoginModal from './AdminLoginModal';
 import { useLanguage } from '@/lib/i18n';
 
 interface HeaderProps {
@@ -18,7 +17,6 @@ type NavItem = { href: string; label: string; children?: undefined } | { label: 
 export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showAdminModal, setShowAdminModal] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
   const { lang, t, toggle } = useLanguage();
@@ -58,12 +56,6 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
     },
     { label: t.nav.vinculacion, children: [{ href: '/vinculacion/dinamicas-linguisticas', label: t.vinculacionProject.navLabel }] },
   ];
-
-  const handleAdminClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowAdminModal(true);
-    setIsMenuOpen(false);
-  };
 
   const toggleDropdown = (label: string) => {
     setOpenDropdown((current) => (current === label ? null : label));

@@ -1075,3 +1075,16 @@ export const profesoresAutorizados = [
   'johanna.bello@uleam.edu.ec', // Johana Bello
   'veronica.chavez@uleam.edu.ec', // Verónica Chávez
 ];
+
+// Módulos que se asignan automáticamente a cada profesor autorizado al
+// autoregistrarse en /registro. 'vinculacion' = ve Difusión/Test MCER/Encuestas
+// y (cuando exista) la vista de Vinculación en /docencia. 'investigacion' = ve
+// /docencia (Crear Espacios). 'admin' = ve /admin (gestión del sitio estático).
+export const profesorModulos: Record<string, string[]> = {
+  'arturo.rodriguez@uleam.edu.ec': ['admin', 'investigacion', 'vinculacion'],
+  'jhonny.villafuerte@uleam.edu.ec': ['admin', 'investigacion'],
+  'german.carrera@uleam.edu.ec': ['admin', 'investigacion'],
+  'maria.basantes@uleam.edu.ec': ['investigacion'], // Cristina Basantes
+  'johanna.bello@uleam.edu.ec': ['investigacion'], // Johana Bello
+  'veronica.chavez@uleam.edu.ec': ['admin'], // Verónica Chávez
+};

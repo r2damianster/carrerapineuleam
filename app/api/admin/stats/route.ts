@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { getUserSessionFromCookies } from '@/lib/userSession';
+import { getAppSessionFromCookies } from '@/lib/session';
 
 export async function GET() {
   try {
-    const usuario = await getUserSessionFromCookies();
+    const usuario = await getAppSessionFromCookies();
     if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -18,14 +18,7 @@ export async function GET() {
       WHERE titulo_investigacion IS NOT NULL AND titulo_investigacion != ''
     `;
 
-    // 2. Beneficiarios aprobados con nota >= 4.0 (Meta: 25 por ciclo)
-    const aprobados = await sql`
-      SELECT COUNT(*) as total 
-      FROM calificaciones_ciclo 
-      WHERE nota_promedio >= 4.0
-    `;
-
-    // 3. Satisfacción de beneficiarios (Meta: 70% o > 3.5/5.0)
+    // 2. Satisfacción de beneficiarios (Meta: 70% o > 3.5/5.0)
     const encuestas = await sql`
       SELECT AVG(nivel_satisfaccion) as promedio, COUNT(*) as total_encuestas 
       FROM encuestas_satisfaccion
@@ -49,7 +42,6 @@ export async function GET() {
       success: true, 
       data: {
         investigadores: parseInt(investigadores[0].total),
-        aprobados: parseInt(aprobados[0].total),
         satisfaccionPromedio: encuestas[0].promedio ? parseFloat(encuestas[0].promedio).toFixed(1) : 0,
         totalEncuestas: parseInt(encuestas[0].total_encuestas),
         audiencia: difusion[0].total_audiencia ? parseInt(difusion[0].total_audiencia) : 0,
