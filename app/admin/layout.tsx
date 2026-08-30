@@ -23,9 +23,8 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    // Clear auth cookie
-    document.cookie = 'pb_auth=; path=/; max-age=0';
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth/logout', { method: 'POST' });
     window.location.href = '/admin/login';
   };
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { authenticateAdmin, isAdminAuthorized } from '@/lib/db';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -22,17 +21,15 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
     setLoading(true);
 
     try {
-      const authData = await authenticateAdmin(email, password);
-
-      if (!isAdminAuthorized(email)) {
-        throw new Error('No autorizado. Solo el líder y colíder pueden acceder.');
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión');
       }
-
-      // Store in session storage (clears when browser closes)
-      sessionStorage.setItem('admin_auth', JSON.stringify(authData));
-
-      // Also set cookie for middleware
-      document.cookie = `admin_session=${JSON.stringify(authData)}; path=/; max-age=${5 * 24 * 60 * 60}; samesite=strict`;
 
       // Open admin in new tab
       window.open('/admin/dashboard', '_blank');

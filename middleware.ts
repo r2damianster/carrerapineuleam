@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifyAdminSessionCookieValue, ADMIN_SESSION_COOKIE } from '@/lib/adminSession';
+import { isAdminAuthorized } from '@/lib/db';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect all /admin routes
@@ -11,59 +13,20 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Check for admin session cookie
-    const adminSession = request.cookies.get('admin_session')?.value;
+    const session = await verifyAdminSessionCookieValue(request.cookies.get(ADMIN_SESSION_COOKIE.name)?.value);
 
-    if (!adminSession) {
-      // Redirect to login if not authenticated
+    if (!session || !isAdminAuthorized(session.email)) {
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Verify session is valid
-    try {
-      const sessionData = JSON.parse(adminSession);
-      if (!sessionData.email) {
-        const loginUrl = new URL('/admin/login', request.url);
-        return NextResponse.redirect(loginUrl);
-      }
-
-      // Check if user is authorized
-      const authorizedEmails = [
-        'arturo.rodriguez@uleam.edu.ec',
-        'jhonny.villafuerte@uleam.edu.ec'
-      ];
-
-      if (!authorizedEmails.includes(sessionData.email)) {
-        const loginUrl = new URL('/admin/login', request.url);
-        return NextResponse.redirect(loginUrl);
-      }
-    } catch {
-      const loginUrl = new URL('/admin/login', request.url);
       return NextResponse.redirect(loginUrl);
     }
   }
 
   // Protect /admin-assets folder (static files)
   if (pathname.startsWith('/admin-assets')) {
-    const adminSession = request.cookies.get('admin_session')?.value;
+    const session = await verifyAdminSessionCookieValue(request.cookies.get(ADMIN_SESSION_COOKIE.name)?.value);
 
-    if (!adminSession) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    try {
-      const sessionData = JSON.parse(adminSession);
-      const authorizedEmails = [
-        'arturo.rodriguez@uleam.edu.ec',
-        'jhonny.villafuerte@uleam.edu.ec'
-      ];
-
-      if (!sessionData.email || !authorizedEmails.includes(sessionData.email)) {
-        return new NextResponse('Unauthorized', { status: 401 });
-      }
-    } catch {
+    if (!session || !isAdminAuthorized(session.email)) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
   }

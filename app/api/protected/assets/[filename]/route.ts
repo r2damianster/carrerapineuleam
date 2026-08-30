@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import { verifyAdminSessionCookieValue, ADMIN_SESSION_COOKIE } from '@/lib/adminSession';
+import { isAdminAuthorized } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -9,30 +11,10 @@ export async function GET(
 ) {
   try {
     // Check authentication
-    const adminSession = request.cookies.get('admin_session')?.value;
+    const session = await verifyAdminSessionCookieValue(request.cookies.get(ADMIN_SESSION_COOKIE.name)?.value);
 
-    if (!adminSession) {
+    if (!session || !isAdminAuthorized(session.email)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify session
-    try {
-      const sessionData = JSON.parse(adminSession);
-      if (!sessionData.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      // Check if user is authorized
-      const authorizedEmails = [
-        'arturo.rodriguez@uleam.edu.ec',
-        'jhonny.villafuerte@uleam.edu.ec'
-      ];
-
-      if (!authorizedEmails.includes(sessionData.email)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
     // Get filename from params

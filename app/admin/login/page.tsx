@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authenticateAdmin, isAdminAuthorized } from '@/lib/db';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -13,36 +12,24 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/admin/dashboard';
 
-  useEffect(() => {
-    // Check if already logged in (session-based)
-    const session = sessionStorage.getItem('admin_auth');
-    if (session) {
-      const auth = JSON.parse(session);
-      if (isAdminAuthorized(auth.email)) {
-        router.push('/admin/dashboard');
-      }
-    }
-  }, [router]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const authData = await authenticateAdmin(email, password);
-
-      if (!isAdminAuthorized(email)) {
-        throw new Error('No autorizado. Solo el líder y colíder pueden acceder.');
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión');
       }
 
-      // Store in session storage (clears when browser closes)
-      sessionStorage.setItem('admin_auth', JSON.stringify(authData));
-      
-      // Also set cookie for middleware
-      document.cookie = `admin_session=${JSON.stringify(authData)}; path=/; max-age=${5 * 24 * 60 * 60}; samesite=strict`;
-
       router.push(redirect);
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
     } finally {
