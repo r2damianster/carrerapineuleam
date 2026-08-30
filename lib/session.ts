@@ -10,7 +10,8 @@ const SESSION_COOKIE_NAME = 'pine_app_session';
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 function getSecret(): string {
-  const secret = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET || 'fallback_secret_pine_2026';
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET no está configurado');
   return secret;
 }
 
