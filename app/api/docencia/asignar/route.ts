@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function GET(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const espacio_id = searchParams.get('espacio_id');
-    
+
     const sql = neon(process.env.DATABASE_URL!);
     
     if (espacio_id) {
@@ -26,8 +32,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { espacio_id, beneficiarios_ids } = await request.json();
-    
+
     if (!espacio_id || !beneficiarios_ids || beneficiarios_ids.length === 0) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }

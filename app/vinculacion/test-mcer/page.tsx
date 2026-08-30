@@ -9,10 +9,7 @@ export default function TestMcerPage() {
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  
-  // En un sistema real, este ID viene de la sesión del estudiante (JWT, NextAuth, etc.)
-  // Por ahora lo simularemos con un input para no bloquearnos sin sistema de login
-  const [estudianteId, setEstudianteId] = useState('');
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const [formData, setFormData] = useState({
     beneficiario_id: '',
@@ -22,14 +19,18 @@ export default function TestMcerPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    // Fetch beneficiarios
-    fetch('/api/beneficiarios')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setBeneficiarios(data.data);
+    fetch('/api/auth/me')
+      .then(res => res.ok ? Promise.resolve() : Promise.reject())
+      .then(() => {
+        setCheckingSession(false);
+        return fetch('/api/beneficiarios')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) setBeneficiarios(data.data);
+          });
       })
-      .catch(err => console.error("Error loading beneficiarios:", err));
-  }, []);
+      .catch(() => router.push('/login?redirect=/vinculacion/test-mcer'));
+  }, [router]);
 
   const [file, setFile] = useState<File | null>(null);
 
@@ -56,10 +57,6 @@ export default function TestMcerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!estudianteId) {
-      setMessage('Error: Ingresa tu ID de estudiante evaluador (simulación)');
-      return;
-    }
     if (!formData.beneficiario_id) {
       setMessage('Error: Selecciona un beneficiario');
       return;
@@ -105,7 +102,6 @@ export default function TestMcerPage() {
 
       const payload = {
         beneficiario_id: parseInt(formData.beneficiario_id),
-        estudiante_evaluador_id: parseInt(estudianteId),
         tipo: formData.tipo,
         puntaje_obtenido: score,
         nivel_asignado: level,
@@ -138,6 +134,10 @@ export default function TestMcerPage() {
     }
   };
 
+  if (checkingSession) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
@@ -161,11 +161,7 @@ export default function TestMcerPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-blue-900">Tu ID de Estudiante</label>
-              <input type="number" required value={estudianteId} onChange={(e) => setEstudianteId(e.target.value)} placeholder="Ej: 1" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-            </div>
+          <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-bold text-blue-900">Beneficiario Evaluado</label>
               <select name="beneficiario_id" required value={formData.beneficiario_id} onChange={handleSelectChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">

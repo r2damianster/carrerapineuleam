@@ -1,14 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function DifusionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  
-  const [estudianteId, setEstudianteId] = useState('');
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.ok ? setCheckingSession(false) : Promise.reject())
+      .catch(() => router.push('/login?redirect=/vinculacion/difusion'));
+  }, [router]);
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -31,10 +36,6 @@ export default function DifusionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!estudianteId) {
-      setMessage('Error: Ingresa tu ID de estudiante (simulación)');
-      return;
-    }
     if (!file) {
       setMessage('Error: Es obligatorio subir una evidencia gráfica');
       return;
@@ -64,7 +65,6 @@ export default function DifusionPage() {
       // 2. Registrar en base de datos
       const payload = {
         ...formData,
-        registrador_id: parseInt(estudianteId),
         audiencia_alcanzada: parseInt(formData.audiencia_alcanzada),
         evidencia_url
       };
@@ -92,6 +92,10 @@ export default function DifusionPage() {
     }
   };
 
+  if (checkingSession) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
@@ -106,11 +110,6 @@ export default function DifusionPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-            <label className="block text-sm font-bold text-indigo-900">Tu ID de Estudiante (Simulado)</label>
-            <input type="number" required value={estudianteId} onChange={(e) => setEstudianteId(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">Título del Evento / Podcast</label>

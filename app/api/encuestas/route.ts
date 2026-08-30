@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function POST(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { beneficiario_id, ciclo_id, nivel_satisfaccion, comentarios } = data;
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 // Configurar Cloudinary usando las variables de entorno
 cloudinary.config({
@@ -8,13 +9,26 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+
 export async function POST(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 });
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "El archivo supera el límite de 8MB" }, { status: 400 });
     }
 
     // Convertir el archivo a un buffer y luego a base64

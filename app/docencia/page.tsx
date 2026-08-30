@@ -1,35 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function DocenciaDashboard() {
+  const router = useRouter();
   const [tab, setTab] = useState<'espacios' | 'asignar' | 'notas'>('espacios');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [usuario, setUsuario] = useState<{ nombres: string; apellidos: string } | null>(null);
+
   // Data states
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [espacios, setEspacios] = useState<any[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [inscritos, setInscritos] = useState<any[]>([]);
-  
-  // Form states
-  const [profesorId, setProfesorId] = useState(''); // Simulado
-  
+
   // Tab 1: Espacios
   const [espacioForm, setEspacioForm] = useState({ nombre: '', tipo: 'aula', ciclo_id: '' });
-  
+
   // Tab 2: Asignar
   const [asignarForm, setAsignarForm] = useState({ espacio_id: '' });
   const [selectedBens, setSelectedBens] = useState<number[]>([]);
-  
+
   // Tab 3: Notas
   const [notasForm, setNotasForm] = useState({ ciclo_id: '', espacio_id: '' });
   const [calificaciones, setCalificaciones] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetch('/api/auth/me')
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        if (!['profesor', 'admin'].includes(data.usuario.rol)) {
+          router.push('/');
+          return;
+        }
+        setUsuario(data.usuario);
+        setCheckingSession(false);
+        fetchData();
+      })
+      .catch(() => router.push('/login?redirect=/docencia'));
+  }, [router]);
 
   const fetchData = async () => {
     try {
@@ -41,7 +53,7 @@ export default function DocenciaDashboard() {
       const [dataCiclos, dataEspacios, dataBens] = await Promise.all([
         resCiclos.json(), resEspacios.json(), resBens.json()
       ]);
-      
+
       if (dataCiclos.success) setCiclos(dataCiclos.data);
       if (dataEspacios.success) setEspacios(dataEspacios.data);
       if (dataBens.success) setBeneficiarios(dataBens.data);
@@ -58,7 +70,7 @@ export default function DocenciaDashboard() {
       const res = await fetch('/api/docencia/espacios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...espacioForm, profesor_id: profesorId })
+        body: JSON.stringify(espacioForm)
       });
       if (!res.ok) throw new Error('Error creando espacio');
       setMessage('Espacio creado');
@@ -130,14 +142,16 @@ export default function DocenciaDashboard() {
     }
   };
 
+  if (checkingSession) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Panel Docente</h1>
-        
-        <div className="mb-6">
-          <label className="font-semibold mr-2">Tu ID Profesor (Simulado):</label>
-          <input type="number" className="border p-1 rounded w-24" value={profesorId} onChange={e => setProfesorId(e.target.value)} />
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Panel Docente</h1>
+          {usuario && <span className="text-sm text-gray-600">{usuario.nombres} {usuario.apellidos}</span>}
         </div>
 
         {message && (
@@ -163,7 +177,7 @@ export default function DocenciaDashboard() {
                 <option value="">Selecciona Ciclo</option>
                 {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
-              <button disabled={!profesorId || loading} className="w-full bg-blue-600 text-white p-2 rounded">Crear Espacio</button>
+              <button disabled={loading} className="w-full bg-blue-600 text-white p-2 rounded">Crear Espacio</button>
             </form>
             
             <div>

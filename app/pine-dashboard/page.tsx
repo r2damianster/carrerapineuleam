@@ -1,25 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function PineDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/stats')
-      .then(res => res.json())
+    fetch('/api/auth/me')
+      .then(res => res.ok ? res.json() : Promise.reject())
       .then(data => {
-        if (data.success) {
-          setStats(data.data);
+        if (!['profesor', 'admin'].includes(data.usuario.rol)) {
+          router.push('/');
+          return;
         }
-        setLoading(false);
+        return fetch('/api/admin/stats')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) setStats(data.data);
+            setLoading(false);
+          });
       })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+      .catch(() => router.push('/login?redirect=/pine-dashboard'));
+  }, [router]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando indicadores...</div>;
   if (!stats) return <div className="p-8 text-center text-red-500">Error cargando dashboard</div>;

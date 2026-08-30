@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function POST(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { ciclo_id, calificaciones } = await request.json();
-    
+
     if (!ciclo_id || !calificaciones || !Array.isArray(calificaciones)) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }

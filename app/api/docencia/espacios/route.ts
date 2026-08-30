@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function GET() {
   try {
@@ -20,14 +21,19 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { nombre, tipo, ciclo_id, profesor_id } = await request.json();
-    if (!nombre || !tipo || !ciclo_id || !profesor_id) {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { nombre, tipo, ciclo_id } = await request.json();
+    if (!nombre || !tipo || !ciclo_id) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO espacios_enseñanza (nombre, tipo, ciclo_id, profesor_id) 
-      VALUES (${nombre}, ${tipo}, ${ciclo_id}, ${profesor_id})
+      INSERT INTO espacios_enseñanza (nombre, tipo, ciclo_id, profesor_id)
+      VALUES (${nombre}, ${tipo}, ${ciclo_id}, ${usuario.id})
     `;
     return NextResponse.json({ success: true, message: 'Espacio creado exitosamente' });
   } catch (error: any) {

@@ -7,10 +7,11 @@ export default function EncuestaPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  
+  const [checkingSession, setCheckingSession] = useState(true);
+
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
-  
+
   const [formData, setFormData] = useState({
     beneficiario_id: '',
     ciclo_id: '',
@@ -19,15 +20,20 @@ export default function EncuestaPage() {
   });
 
   useEffect(() => {
-    // Fetch ciclos y beneficiarios
-    Promise.all([
-      fetch('/api/docencia/ciclos').then(r => r.json()),
-      fetch('/api/beneficiarios').then(r => r.json())
-    ]).then(([ciclosData, benData]) => {
-      if (ciclosData.success) setCiclos(ciclosData.data);
-      if (benData.success) setBeneficiarios(benData.data);
-    }).catch(err => console.error(err));
-  }, []);
+    fetch('/api/auth/me')
+      .then(res => res.ok ? Promise.resolve() : Promise.reject())
+      .then(() => {
+        setCheckingSession(false);
+        return Promise.all([
+          fetch('/api/docencia/ciclos').then(r => r.json()),
+          fetch('/api/beneficiarios').then(r => r.json())
+        ]).then(([ciclosData, benData]) => {
+          if (ciclosData.success) setCiclos(ciclosData.data);
+          if (benData.success) setBeneficiarios(benData.data);
+        });
+      })
+      .catch(() => router.push('/login?redirect=/vinculacion/encuesta'));
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -77,6 +83,10 @@ export default function EncuestaPage() {
     }
   };
 
+  if (checkingSession) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md border-t-4 border-yellow-400">
@@ -92,7 +102,7 @@ export default function EncuestaPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-gray-700">Tu Perfil (Simulado)</label>
+              <label className="block text-sm font-bold text-gray-700">Tu nombre</label>
               <select name="beneficiario_id" required value={formData.beneficiario_id} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                 <option value="">Selecciona tu nombre...</option>
                 {beneficiarios.map(b => (

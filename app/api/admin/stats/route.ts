@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function GET() {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const sql = neon(process.env.DATABASE_URL!);
     
     // 1. Estudiantes de investigación (Meta: 6 en 2 años)

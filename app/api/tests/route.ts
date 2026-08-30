@@ -1,20 +1,26 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { getUserSessionFromCookies } from '@/lib/userSession';
 
 export async function POST(request: Request) {
   try {
+    const usuario = await getUserSessionFromCookies();
+    if (!usuario) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const data = await request.json();
-    const { 
-      beneficiario_id, 
-      estudiante_evaluador_id, 
+    const {
+      beneficiario_id,
       tipo, // 'inicial' o 'final'
-      puntaje_obtenido, 
-      nivel_asignado, 
+      puntaje_obtenido,
+      nivel_asignado,
       respuestas_json,
       evidencia_url
     } = data;
+    const estudiante_evaluador_id = usuario.id;
 
-    if (!beneficiario_id || !estudiante_evaluador_id || !tipo || puntaje_obtenido === undefined) {
+    if (!beneficiario_id || !tipo || puntaje_obtenido === undefined) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 

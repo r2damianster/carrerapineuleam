@@ -1,24 +1,32 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
+import { createUserSessionCookieValue, USER_SESSION_COOKIE, UsuarioSession } from '@/lib/userSession';
+
+const PUBLIC_ROLES = ['profesor', 'estudiante', 'beneficiario'];
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { 
-      nombres, apellidos, email, password, rol,
+    const {
+      nombres, apellidos, password, rol,
       // Campos de estudiante
       carrera, modalidad, titulo_investigacion,
       // Campos de beneficiario
       contacto, situacion_laboral
     } = data;
+    const email = String(data.email ?? '').trim().toLowerCase();
 
     if (!nombres || !apellidos || !email || !password || !rol) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
+    if (!PUBLIC_ROLES.includes(rol)) {
+      return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
+    }
+
     const sql = neon(process.env.DATABASE_URL!);
-    
+
     // Verificar si el email ya existe
     const existingUser = await sql`SELECT id FROM usuarios WHERE email = ${email}`;
     if (existingUser.length > 0) {
@@ -51,7 +59,17 @@ export async function POST(request: Request) {
       `;
     }
 
-    return NextResponse.json({ success: true, message: 'Usuario registrado exitosamente', userId });
+    const session: UsuarioSession = { id: userId, nombres, apellidos, email, rol };
+    const cookieValue = createUserSessionCookieValue(session);
+    const response = NextResponse.json({ success: true, message: 'Usuario registrado exitosamente', usuario: session });
+    response.cookies.set(USER_SESSION_COOKIE.name, cookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: USER_SESSION_COOKIE.maxAge,
+    });
+    return response;
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(
