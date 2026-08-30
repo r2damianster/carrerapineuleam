@@ -1,0 +1,256 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function DocenciaDashboard() {
+  const [tab, setTab] = useState<'espacios' | 'asignar' | 'notas'>('espacios');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  
+  // Data states
+  const [ciclos, setCiclos] = useState<any[]>([]);
+  const [espacios, setEspacios] = useState<any[]>([]);
+  const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
+  const [inscritos, setInscritos] = useState<any[]>([]);
+  
+  // Form states
+  const [profesorId, setProfesorId] = useState(''); // Simulado
+  
+  // Tab 1: Espacios
+  const [espacioForm, setEspacioForm] = useState({ nombre: '', tipo: 'aula', ciclo_id: '' });
+  
+  // Tab 2: Asignar
+  const [asignarForm, setAsignarForm] = useState({ espacio_id: '' });
+  const [selectedBens, setSelectedBens] = useState<number[]>([]);
+  
+  // Tab 3: Notas
+  const [notasForm, setNotasForm] = useState({ ciclo_id: '', espacio_id: '' });
+  const [calificaciones, setCalificaciones] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [resCiclos, resEspacios, resBens] = await Promise.all([
+        fetch('/api/docencia/ciclos'),
+        fetch('/api/docencia/espacios'),
+        fetch('/api/beneficiarios')
+      ]);
+      const [dataCiclos, dataEspacios, dataBens] = await Promise.all([
+        resCiclos.json(), resEspacios.json(), resBens.json()
+      ]);
+      
+      if (dataCiclos.success) setCiclos(dataCiclos.data);
+      if (dataEspacios.success) setEspacios(dataEspacios.data);
+      if (dataBens.success) setBeneficiarios(dataBens.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateEspacio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/docencia/espacios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...espacioForm, profesor_id: profesorId })
+      });
+      if (!res.ok) throw new Error('Error creando espacio');
+      setMessage('Espacio creado');
+      fetchData();
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAsignar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/docencia/asignar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          espacio_id: asignarForm.espacio_id,
+          beneficiarios_ids: selectedBens
+        })
+      });
+      if (!res.ok) throw new Error('Error asignando beneficiarios');
+      setMessage('Beneficiarios asignados correctamente');
+      setSelectedBens([]);
+      fetchData();
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadInscritos = async (espacioId: string) => {
+    setNotasForm({ ...notasForm, espacio_id: espacioId });
+    if (!espacioId) return;
+    const res = await fetch(`/api/docencia/asignar?espacio_id=${espacioId}`);
+    const data = await res.json();
+    if (data.success) {
+      setInscritos(data.data);
+    }
+  };
+
+  const handleSaveNotas = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const payload = Object.keys(calificaciones).map(bId => ({
+        beneficiario_id: parseInt(bId),
+        nota: calificaciones[parseInt(bId)]
+      }));
+
+      const res = await fetch('/api/docencia/calificaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ciclo_id: notasForm.ciclo_id,
+          calificaciones: payload
+        })
+      });
+      if (!res.ok) throw new Error('Error guardando notas');
+      setMessage('Calificaciones guardadas exitosamente');
+      setCalificaciones({});
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Panel Docente</h1>
+        
+        <div className="mb-6">
+          <label className="font-semibold mr-2">Tu ID Profesor (Simulado):</label>
+          <input type="number" className="border p-1 rounded w-24" value={profesorId} onChange={e => setProfesorId(e.target.value)} />
+        </div>
+
+        {message && (
+          <div className="p-4 mb-4 bg-blue-100 text-blue-800 rounded">{message}</div>
+        )}
+
+        <div className="flex space-x-4 mb-6 border-b">
+          <button onClick={() => setTab('espacios')} className={`pb-2 px-4 ${tab === 'espacios' ? 'border-b-2 border-blue-600 font-bold' : ''}`}>1. Crear Espacios</button>
+          <button onClick={() => setTab('asignar')} className={`pb-2 px-4 ${tab === 'asignar' ? 'border-b-2 border-blue-600 font-bold' : ''}`}>2. Asignar Beneficiarios</button>
+          <button onClick={() => setTab('notas')} className={`pb-2 px-4 ${tab === 'notas' ? 'border-b-2 border-blue-600 font-bold' : ''}`}>3. Calificaciones</button>
+        </div>
+
+        {tab === 'espacios' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={handleCreateEspacio} className="space-y-4 border p-4 rounded bg-gray-50">
+              <h3 className="font-bold text-lg">Nuevo Espacio de Enseñanza</h3>
+              <input required placeholder="Nombre (Ej. Nivel 1 A)" className="w-full border p-2 rounded" value={espacioForm.nombre} onChange={e => setEspacioForm({...espacioForm, nombre: e.target.value})} />
+              <select required className="w-full border p-2 rounded" value={espacioForm.tipo} onChange={e => setEspacioForm({...espacioForm, tipo: e.target.value})}>
+                <option value="aula">Aula Virtual/Física</option>
+                <option value="comunidad">Encuentro Comunitario</option>
+              </select>
+              <select required className="w-full border p-2 rounded" value={espacioForm.ciclo_id} onChange={e => setEspacioForm({...espacioForm, ciclo_id: e.target.value})}>
+                <option value="">Selecciona Ciclo</option>
+                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+              <button disabled={!profesorId || loading} className="w-full bg-blue-600 text-white p-2 rounded">Crear Espacio</button>
+            </form>
+            
+            <div>
+              <h3 className="font-bold text-lg mb-2">Espacios Actuales</h3>
+              <ul className="space-y-2">
+                {espacios.map(e => (
+                  <li key={e.id} className="p-3 border rounded shadow-sm">
+                    <strong>{e.nombre}</strong> ({e.tipo}) - Ciclo: {e.ciclo_nombre} <br/>
+                    <span className="text-sm text-gray-500">{e.inscritos} alumnos inscritos</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {tab === 'asignar' && (
+          <form onSubmit={handleAsignar} className="space-y-6">
+            <h3 className="font-bold text-lg">Inscribir Beneficiarios a un Espacio</h3>
+            <select required className="w-full border p-2 rounded" value={asignarForm.espacio_id} onChange={e => setAsignarForm({espacio_id: e.target.value})}>
+              <option value="">Seleccione el Espacio...</option>
+              {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+            
+            <div className="border p-4 rounded h-64 overflow-y-auto">
+              <p className="font-semibold mb-2">Selecciona los alumnos:</p>
+              {beneficiarios.map(b => (
+                <label key={b.id} className="flex items-center space-x-2 p-1 hover:bg-gray-100">
+                  <input type="checkbox" 
+                    checked={selectedBens.includes(b.id)}
+                    onChange={(e) => {
+                      if(e.target.checked) setSelectedBens([...selectedBens, b.id]);
+                      else setSelectedBens(selectedBens.filter(id => id !== b.id));
+                    }}
+                  />
+                  <span>{b.nombres} {b.apellidos}</span>
+                </label>
+              ))}
+            </div>
+            <button disabled={loading || selectedBens.length === 0} className="w-full bg-blue-600 text-white p-2 rounded">Inscribir Seleccionados</button>
+          </form>
+        )}
+
+        {tab === 'notas' && (
+          <form onSubmit={handleSaveNotas} className="space-y-6">
+            <h3 className="font-bold text-lg">Registrar Notas (Fin de Ciclo)</h3>
+            <div className="flex space-x-4">
+              <select required className="flex-1 border p-2 rounded" value={notasForm.ciclo_id} onChange={e => setNotasForm({...notasForm, ciclo_id: e.target.value})}>
+                <option value="">Seleccione el Ciclo a calificar...</option>
+                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+              <select required className="flex-1 border p-2 rounded" value={notasForm.espacio_id} onChange={e => loadInscritos(e.target.value)}>
+                <option value="">Seleccione el Espacio (Filtro)...</option>
+                {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </div>
+
+            {inscritos.length > 0 && (
+              <div className="border rounded">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-3">Alumno</th>
+                      <th className="p-3 w-48">Nota (0.0 - 5.0)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inscritos.map(ins => (
+                      <tr key={ins.id} className="border-t">
+                        <td className="p-3">{ins.nombres} {ins.apellidos}</td>
+                        <td className="p-3">
+                          <input type="number" step="0.1" min="0" max="5" required
+                            className="border p-1 rounded w-full"
+                            value={calificaciones[ins.id] || ''}
+                            onChange={e => setCalificaciones({...calificaciones, [ins.id]: e.target.value})}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <button disabled={loading || inscritos.length === 0} className="w-full bg-blue-600 text-white p-2 rounded">Guardar Calificaciones</button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

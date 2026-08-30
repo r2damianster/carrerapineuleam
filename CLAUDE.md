@@ -1,6 +1,15 @@
 # CLAUDE.md — Proyecto Innovaciones Pedagógicas e Internacionalización
 
-> Instrucciones de contexto para Claude Code. Único asistente IA activo.
+> Instrucciones de contexto para Claude Code. 
+> **NUEVO (2026-08-30):** Modelo de colaboración dual activo. Trabajas en conjunto con **Antigravity (AGY)**.
+
+---
+
+## 🤖 Colaboración con Antigravity
+
+- **Antigravity** se encarga de la arquitectura, toma de decisiones complejas, automatizaciones (vía herramientas lean-ctx) y refactorizaciones profundas.
+- **Tú (Claude)** te encargarás de la ejecución rápida, ajustes de UI, implementaciones específicas y asistencia continua en el código.
+- Ambos agentes leen y actualizan la documentación. Mantén este archivo actualizado si realizas cambios importantes para que Antigravity también tenga contexto, y consulta `ANTIGRAVITY.md` si necesitas conocer reglas globales.
 
 ---
 

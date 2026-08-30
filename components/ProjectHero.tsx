@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 
 interface ProjectHeroProps {
-  projectKey: 'docenciaProject' | 'vinculacionProject';
+  projectKey: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject';
 }
 
 const EYEBROW_NAV_KEY = {
   docenciaProject: 'docencia',
   vinculacionProject: 'vinculacion',
+  desarrolloProject: 'investigacion',
 } as const;
 
 export default function ProjectHero({ projectKey }: ProjectHeroProps) {

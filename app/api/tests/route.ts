@@ -1,0 +1,38 @@
+import { NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
+
+export async function POST(request: Request) {
+  try {
+    const data = await request.json();
+    const { 
+      beneficiario_id, 
+      estudiante_evaluador_id, 
+      tipo, // 'inicial' o 'final'
+      puntaje_obtenido, 
+      nivel_asignado, 
+      respuestas_json,
+      evidencia_url
+    } = data;
+
+    if (!beneficiario_id || !estudiante_evaluador_id || !tipo || puntaje_obtenido === undefined) {
+      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    const sql = neon(process.env.DATABASE_URL!);
+    
+    await sql`
+      INSERT INTO evaluaciones_mcer 
+        (beneficiario_id, estudiante_evaluador_id, tipo, puntaje_obtenido, nivel_asignado, respuestas_json, evidencia_url)
+      VALUES 
+        (${beneficiario_id}, ${estudiante_evaluador_id}, ${tipo}, ${puntaje_obtenido}, ${nivel_asignado}, ${JSON.stringify(respuestas_json)}, ${evidencia_url || null})
+    `;
+
+    return NextResponse.json({ success: true, message: 'Evaluación registrada exitosamente' });
+  } catch (error: any) {
+    console.error('Test save error:', error);
+    return NextResponse.json(
+      { error: 'Error guardando la evaluación', details: error.message },
+      { status: 500 }
+    );
+  }
+}
