@@ -421,7 +421,8 @@ export const getNewsletters = async (): Promise<Newsletter[]> => {
 // ============================================================================
 
 export const authenticateAdmin = async (email: string, password: string): Promise<{ id: string; email: string; role: string }> => {
-  const user = adminUsers.find(u => u.email === email && u.password === password);
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = adminUsers.find(u => u.email.toLowerCase() === normalizedEmail && u.password === password);
   
   if (!user) {
     throw new Error('Invalid credentials');
