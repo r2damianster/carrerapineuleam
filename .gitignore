@@ -44,3 +44,5 @@ coverage/
 .turbo/
 
 graphify-out/
+.vercel
+.env*
