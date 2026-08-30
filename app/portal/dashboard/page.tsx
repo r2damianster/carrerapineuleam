@@ -13,7 +13,8 @@ export default async function PortalDashboard() {
     redirect('/portal/login');
   }
 
-  const { modulos_acceso, nombres } = session;
+  const { modulos_acceso, nombres, rol } = session;
+  const esDocente = rol === 'profesor' || rol === 'admin';
 
   return (
     <>
@@ -26,28 +27,40 @@ export default async function PortalDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             {/* Módulo: Vinculación */}
             {modulos_acceso.includes('vinculacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Gestiona los test MCER, encuestas y reportes de difusión (podcasts/eventos).</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Vinculación</h3>
+                <p className="text-gray-600 mb-4 text-sm">Espacios (clubes/aulas), beneficiarios, test MCER, encuestas y asistencia.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/test-mcer" className="text-blue-600 hover:underline">» Tests MCER</Link>
-                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Difusión / Audiencias</Link>
-                  <Link href="/vinculacion/encuesta" className="text-blue-600 hover:underline">» Encuestas de Satisfacción</Link>
+                  <Link href="/vinculacion/espacios" className="text-blue-600 hover:underline">» Espacios</Link>
+                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Difusión / Evento</Link>
+                  {esDocente && (
+                    <Link href="/registro" className="text-blue-600 hover:underline">» Registrar Nuevos Perfiles</Link>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Módulo: Gestión de Espacios (Investigación y/o Vinculación) */}
-            {(modulos_acceso.includes('investigacion') || modulos_acceso.includes('vinculacion')) && (
+            {/* Módulo: Investigación */}
+            {modulos_acceso.includes('investigacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Espacios</h3>
-                <p className="text-gray-600 mb-4 text-sm">Creación de ciclos y espacios (aulas, clubes o encuentros comunitarios) y asignación de beneficiarios.</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Investigación</h3>
+                <p className="text-gray-600 mb-4 text-sm">Espacios de investigación. Próximamente: artículos científicos.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/docencia" className="text-green-600 hover:underline">» Panel de Gestión Docente</Link>
-                  <Link href="/registro" className="text-green-600 hover:underline">» Registrar Nuevos Perfiles</Link>
+                  <Link href="/investigacion/espacios" className="text-green-600 hover:underline">» Espacios</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Gestión de Carrera: cualquier docente, sin importar el módulo */}
+            {esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Carrera</h3>
+                <p className="text-gray-600 mb-4 text-sm">Registro de eventos y difusión a nivel de carrera (investigación, vinculación o asignatura).</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento</Link>
                 </div>
               </div>
             )}

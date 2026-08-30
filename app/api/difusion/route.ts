@@ -14,23 +14,31 @@ export async function POST(request: Request) {
       titulo,
       tipo,
       fecha,
+      hora,
       ciclo_id,
       audiencia_alcanzada,
-      evidencia_url
+      evidencia_url,
+      categoria, // 'investigacion' | 'vinculacion' | 'asignatura'
+      proyecto,
+      asignatura,
+      descripcion,
+      observaciones,
     } = data;
     const registrador_id = usuario.id;
 
-    if (!titulo || !tipo || !fecha || !audiencia_alcanzada || !evidencia_url) {
+    if (!titulo || !tipo || !fecha || !audiencia_alcanzada) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
     const sql = neon(process.env.DATABASE_URL!);
-    
+
     await sql`
-      INSERT INTO actividades_difusion 
-        (titulo, tipo, fecha, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url)
-      VALUES 
-        (${titulo}, ${tipo}, ${fecha}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url})
+      INSERT INTO actividades_difusion
+        (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url,
+         categoria, proyecto, asignatura, descripcion, observaciones)
+      VALUES
+        (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null},
+         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null})
     `;
 
     return NextResponse.json({ success: true, message: 'Actividad registrada exitosamente' });

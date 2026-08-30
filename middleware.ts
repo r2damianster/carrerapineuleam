@@ -11,9 +11,10 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = [
     '/portal/dashboard',
     '/vinculacion/dinamicas-linguisticas/asistencia',
+    '/vinculacion/espacios',
     '/vinculacion/difusion',
-    '/vinculacion/encuesta',
-    '/vinculacion/test-mcer',
+    '/investigacion/espacios',
+    '/gestion-carrera',
     '/docencia',
     '/pine-dashboard',
   ];
@@ -29,9 +30,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // /docencia: profesor/admin ven Crear Espacios + Asignar; estudiante solo Asignar
-    // (la pagina y el API ya filtran el detalle segun session.rol).
-    if (pathname.startsWith('/docencia') && !['profesor', 'admin', 'estudiante'].includes(session.rol)) {
+    if (pathname.startsWith('/vinculacion/espacios') && !['profesor', 'admin', 'estudiante'].includes(session.rol)) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (pathname.startsWith('/investigacion/espacios') && !session.modulos_acceso.includes('investigacion')) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (pathname.startsWith('/gestion-carrera') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
