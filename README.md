@@ -209,26 +209,24 @@ npm run start
 
 | Archivo | Descripción |
 |---------|-------------|
-| [CLAUDE.md](./CLAUDE.md) | Contexto completo para Claude Code |
-| [QWEN.md](./QWEN.md) | Contexto completo para Qwen Code |
+| [ANTIGRAVITY.md](./ANTIGRAVITY.md) | Contexto y reglas para Antigravity (Arquitectura) |
+| [CLAUDE.md](./CLAUDE.md) | Contexto completo para Claude Code (Implementación) |
 | [CHANGELOG.md](./CHANGELOG.md) | Historial de versiones |
-| [POCKETBASE_SETUP.md](./POCKETBASE_SETUP.md) | Guía paso a paso de PocketBase |
 | [RESUMEN.md](./RESUMEN.md) | Resumen ejecutivo del proyecto |
 | [README.md](./README.md) | Este archivo |
 
 ---
 
-## 🤖 Asistentes IA Compatibles
+## 🤖 Asistentes IA Compatibles (Modelo Dual)
 
-Este proyecto está configurado para trabajar con múltiples asistentes IA:
+Este proyecto está configurado para un flujo de trabajo colaborativo entre dos asistentes de IA:
 
-| Asistente | Archivo de contexto | Cómo iniciar |
+| Asistente | Archivo de contexto | Cómo iniciar / Rol |
 |-----------|--------------------|----|
-| **Claude Code** | `CLAUDE.md` | `claude` en la terminal del proyecto |
-| **Qwen Code** | `QWEN.md` | Qwen carga este archivo automáticamente |
+| **Antigravity** | `ANTIGRAVITY.md` | Orquestador principal, arquitectura, decisiones de alto nivel, refactorizaciones. |
+| **Claude Code** | `CLAUDE.md` | `claude` en la terminal. Ejecución rápida, ajustes UI, implementaciones directas. |
 
-Ambos archivos contienen el mismo contexto del proyecto y deben mantenerse sincronizados.
-Al iniciar sesión con cualquier IA, lee primero el archivo correspondiente para retomar el trabajo exactamente donde quedó.
+Ambos archivos contienen un marco de trabajo compartido y deben mantenerse sincronizados si hay cambios estructurales. Al iniciar sesión, las IA leen su archivo correspondiente para retomar el trabajo sincronizado.
 
 ---
 

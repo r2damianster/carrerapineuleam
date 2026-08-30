@@ -172,6 +172,16 @@ const translations = {
       researchSectionTitle: 'Procesos de Investigación Educativa',
       researchSectionSubtitle: 'Investigación generada en el marco de la vinculación con la sociedad de la carrera PINE',
     },
+    desarrolloProject: {
+      navLabel: 'Desarrollo de habilidades lingüísticas',
+      heroTitle1: 'Desarrollo de las',
+      heroTitle2: 'Habilidades Lingüísticas',
+      heroSubtitle: 'Proyecto de Investigación — Carrera PINE, ULEAM',
+      heroDescription: 'Desarrollo de las habilidades lingüísticas del idioma inglés de los estudiantes de la Educación Superior.',
+      integrationTitle: 'Integración con el Proyecto de Investigación Principal',
+      integrationText: 'Este proyecto de investigación se enmarca y articula con las estrategias generales del grupo de investigación y la carrera de Pedagogía de los Idiomas Nacionales y Extranjeros.',
+      viewProjectCta: 'Ver Proyecto de Innovaciones Pedagógicas',
+    },
     attendanceForm: {
       pageTitle: 'Registrar Asistencia — Club de Inglés',
       spaceLabel: 'Espacio',
@@ -362,6 +372,16 @@ const translations = {
       englishClubComingSoon: 'New photos and club activities will be added as they take place.',
       researchSectionTitle: 'Educational Research Processes',
       researchSectionSubtitle: 'Research generated within the PINE degree program\'s community outreach work',
+    },
+    desarrolloProject: {
+      navLabel: 'Development of linguistic skills',
+      heroTitle1: 'Development of',
+      heroTitle2: 'Linguistic Skills',
+      heroSubtitle: 'Research Project — PINE Degree Program, ULEAM',
+      heroDescription: 'Development of English language linguistic skills in Higher Education students.',
+      integrationTitle: 'Integration with the Main Research Project',
+      integrationText: 'This research project is framed and articulated with the general strategies of the research group and the National and Foreign Languages Pedagogy degree program.',
+      viewProjectCta: 'View Pedagogical Innovations Project',
     },
     attendanceForm: {
       pageTitle: 'Register Attendance — English Club',
