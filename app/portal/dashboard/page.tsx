@@ -40,11 +40,11 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Módulo: Investigación / Docencia */}
-            {modulos_acceso.includes('investigacion') && (
+            {/* Módulo: Gestión de Espacios (Investigación y/o Vinculación) */}
+            {(modulos_acceso.includes('investigacion') || modulos_acceso.includes('vinculacion')) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Docencia e Investigación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Creación de ciclos, asignación de aulas y carga de calificaciones PINE.</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Espacios</h3>
+                <p className="text-gray-600 mb-4 text-sm">Creación de ciclos y espacios (aulas, clubes o encuentros comunitarios) y asignación de beneficiarios.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/docencia" className="text-green-600 hover:underline">» Panel de Gestión Docente</Link>
                   <Link href="/registro" className="text-green-600 hover:underline">» Registrar Nuevos Perfiles</Link>
