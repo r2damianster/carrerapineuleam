@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/neon';
+import { getSessionFromCookies } from '@/lib/session';
 
 export async function POST(request: Request) {
+  const session = await getSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+
   const body = await request.json();
   const nombre = (body.nombre ?? '').trim();
   const contacto = (body.contacto ?? '').trim();

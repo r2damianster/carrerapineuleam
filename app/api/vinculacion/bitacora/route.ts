@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
+import { getSessionFromCookies } from '@/lib/session';
 
 export async function POST(request: Request) {
+  const session = await getSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+
   const body = await request.json();
   const { espacio_id, fecha, estudiantes_presentes, beneficiarios_presentes, observaciones } = body;
 

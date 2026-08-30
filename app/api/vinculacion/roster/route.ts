@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/neon';
+import { getSessionFromCookies } from '@/lib/session';
 
 export async function GET(request: Request) {
+  const session = await getSessionFromCookies();
+  if (!session) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const modalidad = searchParams.get('modalidad') ?? 'club_ingles';
 

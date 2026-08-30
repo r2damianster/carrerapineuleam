@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Estudiante, Espacio, Beneficiario } from '@/lib/neon';
+import { EstudianteSession } from '@/lib/session';
 import { useLanguage } from '@/lib/i18n';
 
-export default function AttendanceForm() {
+export default function AttendanceForm({ estudianteSesion }: { estudianteSesion: EstudianteSession }) {
   const { t } = useLanguage();
   const f = t.attendanceForm;
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
@@ -16,7 +19,7 @@ export default function AttendanceForm() {
 
   const [espacioId, setEspacioId] = useState('');
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [estudiantesPresentes, setEstudiantesPresentes] = useState<string[]>([]);
+  const [estudiantesPresentes, setEstudiantesPresentes] = useState<string[]>([estudianteSesion.id]);
   const [beneficiariosPresentes, setBeneficiariosPresentes] = useState<string[]>([]);
   const [observaciones, setObservaciones] = useState('');
 
@@ -31,7 +34,7 @@ export default function AttendanceForm() {
     setLoading(true);
     setConnectionError(false);
     try {
-      const res = await fetch('/api/vinculacion/roster?modalidad=club_ingles');
+      const res = await fetch(`/api/vinculacion/roster?modalidad=${estudianteSesion.modalidad ?? 'club_ingles'}`);
       if (!res.ok) throw new Error(`roster fetch failed: ${res.status}`);
       const data = await res.json();
       setEstudiantes(data.estudiantes);
@@ -48,6 +51,12 @@ export default function AttendanceForm() {
   useEffect(() => {
     loadData();
   }, []);
+
+  async function handleLogout() {
+    await fetch('/api/vinculacion/auth/logout', { method: 'POST' });
+    router.push('/vinculacion/dinamicas-linguisticas/login');
+    router.refresh();
+  }
 
   function toggleEstudiante(id: string) {
     setEstudiantesPresentes((prev) =>
@@ -122,6 +131,12 @@ export default function AttendanceForm() {
 
   return (
     <>
+    <div className="max-w-2xl mx-auto flex items-center justify-between mb-4 text-sm text-gray-600">
+      <span>{f.sessionLabel}: <strong className="text-uleam-blue">{estudianteSesion.nombre}</strong></span>
+      <button type="button" onClick={handleLogout} className="text-uleam-blue hover:underline font-semibold">
+        {f.logoutButton}
+      </button>
+    </div>
     <h1 className="text-3xl md:text-4xl font-bold text-uleam-blue text-center mb-10">{f.pageTitle}</h1>
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-gray-50 rounded-lg p-6 md:p-8 space-y-6">
       <div>
