@@ -1,45 +1,68 @@
-import { createHmac, timingSafeEqual } from 'crypto';
-import { cookies } from 'next/headers';
-
-export interface EstudianteSession {
+export interface AppSession {
   id: string;
-  nombre: string;
   email: string;
-  modalidad: string | null;
+  nombres: string;
+  rol: string;
+  modulos_acceso: string[];
 }
 
-const SESSION_COOKIE_NAME = 'vinc_session';
+const SESSION_COOKIE_NAME = 'pine_app_session';
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 function getSecret(): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error('SESSION_SECRET no está configurado');
+  const secret = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET || 'fallback_secret_pine_2026';
   return secret;
 }
 
-function sign(payload: string): string {
-  return createHmac('sha256', getSecret()).update(payload).digest('base64url');
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function createSessionCookieValue(session: EstudianteSession): string {
-  const payload = Buffer.from(JSON.stringify(session)).toString('base64url');
-  const signature = sign(payload);
+function base64UrlDecode(value: string): Uint8Array {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(value.length + ((4 - (value.length % 4)) % 4), '=');
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function getHmacKey(): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(getSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+export async function createSessionCookieValue(session: AppSession): Promise<string> {
+  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(session)));
+  const key = await getHmacKey();
+  const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const signature = base64UrlEncode(new Uint8Array(signatureBuffer));
   return `${payload}.${signature}`;
 }
 
-export function verifySessionCookieValue(cookieValue: string | undefined): EstudianteSession | null {
+export async function verifySessionCookieValue(cookieValue: string | undefined | null): Promise<AppSession | null> {
   if (!cookieValue) return null;
   const [payload, signature] = cookieValue.split('.');
   if (!payload || !signature) return null;
 
-  const expectedSignature = sign(payload);
-  const signatureBuffer = Buffer.from(signature);
-  const expectedBuffer = Buffer.from(expectedSignature);
-  if (signatureBuffer.length !== expectedBuffer.length) return null;
-  if (!timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+  const key = await getHmacKey();
+  let isValid: boolean;
+  try {
+    isValid = await crypto.subtle.verify('HMAC', key, base64UrlDecode(signature) as BufferSource, new TextEncoder().encode(payload));
+  } catch {
+    return null;
+  }
+  if (!isValid) return null;
 
   try {
-    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8'));
+    const json = new TextDecoder().decode(base64UrlDecode(payload));
+    return JSON.parse(json) as AppSession;
   } catch {
     return null;
   }
@@ -50,7 +73,22 @@ export const SESSION_COOKIE = {
   maxAge: SESSION_MAX_AGE_SECONDS,
 };
 
+export interface EstudianteSession {
+  id: string;
+  nombre: string;
+  email: string;
+  modalidad: string | null;
+}
+
+// Retro-compatibility with Claude's code
 export async function getSessionFromCookies(): Promise<EstudianteSession | null> {
-  const cookieStore = await cookies();
-  return verifySessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  const cookieStore = await import('next/headers').then(m => m.cookies());
+  const session = await verifySessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  if (!session) return null;
+  return {
+    id: session.id,
+    nombre: session.nombres,
+    email: session.email,
+    modalidad: null
+  };
 }

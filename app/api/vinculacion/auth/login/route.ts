@@ -21,11 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
   }
 
-  const cookieValue = createSessionCookieValue({
+  const cookieValue = await createSessionCookieValue({
     id: estudiante.id,
-    nombre: estudiante.nombre,
+    nombres: estudiante.nombre,
     email: estudiante.email,
-    modalidad: estudiante.modalidad,
+    rol: 'estudiante',
+    modulos_acceso: ['vinculacion']
   });
 
   const response = NextResponse.json({ estudiante });

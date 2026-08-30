@@ -177,16 +177,16 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
               </button>
             </li>
             <li>
-              <button
-                onClick={handleAdminClick}
+              <Link
+                href="/portal/login"
                 className={`px-4 py-2 rounded-md font-medium transition ${
                   scrolled
                     ? 'bg-uleam-blue text-white hover:bg-uleam-blue/90'
                     : 'bg-white text-uleam-blue hover:bg-white/90'
                 }`}
               >
-                Admin
-              </button>
+                Portal PINE
+              </Link>
             </li>
           </ul>
 
@@ -273,17 +273,17 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
               </button>
             </li>
             <li>
-              <button
-                onClick={handleAdminClick}
-                className="w-full text-left py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded font-medium"
+              <Link
+                href="/portal/login"
+                className="block w-full text-left py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded font-medium"
+                onClick={() => setIsMenuOpen(false)}
               >
-                Admin
-              </button>
+                Portal PINE
+              </Link>
             </li>
           </ul>
         )}
       </nav>
-      <AdminLoginModal isOpen={showAdminModal} onClose={() => setShowAdminModal(false)} />
     </header>
   );
 }
