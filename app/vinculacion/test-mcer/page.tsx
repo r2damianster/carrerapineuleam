@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { mcerQuestions } from '@/lib/questions';
 
@@ -141,6 +142,11 @@ export default function TestMcerPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
+        <div className="mb-4">
+          <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+            &larr; Volver al Portal PINE
+          </Link>
+        </div>
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-2">Test de Nivelación MCER</h2>
         <div className="flex flex-col md:flex-row items-center justify-between mb-8">
           <p className="text-gray-600">Aplicado por estudiantes a beneficiarios del programa</p>

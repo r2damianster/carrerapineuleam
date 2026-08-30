@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function PineDashboard() {
@@ -32,6 +33,11 @@ export default function PineDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        <div className="mb-4">
+          <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+            &larr; Volver al Portal PINE
+          </Link>
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard de Indicadores PINE</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

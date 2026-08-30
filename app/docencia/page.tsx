@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function DocenciaDashboard() {
@@ -112,6 +113,11 @@ export default function DocenciaDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow">
+        <div className="mb-4">
+          <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+            &larr; Volver al Portal PINE
+          </Link>
+        </div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Panel Docente</h1>
           {usuario && <span className="text-sm text-gray-600">{usuario.nombres}</span>}

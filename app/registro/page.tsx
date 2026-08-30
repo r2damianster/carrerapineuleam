@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function RegistroPage() {
@@ -63,6 +64,11 @@ export default function RegistroPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md">
+        <div className="mb-4">
+          <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+            &larr; Volver al Portal PINE
+          </Link>
+        </div>
         <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Registro en el Sistema</h2>
         
         {message && (
