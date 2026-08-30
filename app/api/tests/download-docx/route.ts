@@ -52,7 +52,7 @@ export async function GET() {
 
     const buffer = await Packer.toBuffer(doc);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Disposition': `attachment; filename="Test_MCER_PINE.docx"`,
