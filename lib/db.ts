@@ -435,9 +435,5 @@ export const authenticateAdmin = async (email: string, password: string): Promis
 };
 
 export const isAdminAuthorized = (email: string): boolean => {
-  const authorizedEmails = [
-    'arturo.rodriguez@uleam.edu.ec',
-    'jhonny.villafuerte@uleam.edu.ec',
-  ];
-  return authorizedEmails.includes(email);
+  return adminUsers.some(u => u.email === email);
 };

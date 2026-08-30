@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { createUserSessionCookieValue, USER_SESSION_COOKIE, UsuarioSession } from '@/lib/userSession';
+import { profesoresAutorizados } from '@/lib/data';
 
 const PUBLIC_ROLES = ['profesor', 'estudiante', 'beneficiario'];
 
@@ -23,6 +24,13 @@ export async function POST(request: Request) {
 
     if (!PUBLIC_ROLES.includes(rol)) {
       return NextResponse.json({ error: 'Rol no válido' }, { status: 400 });
+    }
+
+    if (rol === 'profesor' && !profesoresAutorizados.includes(email)) {
+      return NextResponse.json(
+        { error: 'Este correo no está autorizado para registrarse como profesor. Contacta al administrador del proyecto.' },
+        { status: 403 }
+      );
     }
 
     const sql = neon(process.env.DATABASE_URL!);

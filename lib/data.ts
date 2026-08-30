@@ -1050,3 +1050,16 @@ export const adminUsers = [
     role: 'admin' as const,
   },
 ];
+
+// Lista fija de docentes autorizados a registrarse con rol "profesor" en /registro
+// (panel /docencia, /pine-dashboard — tabla usuarios en Neon). No es autoregistro
+// abierto: solo estos correos pueden tomar ese rol. Agregar aquí antes de que
+// alguien nuevo pueda entrar como profesor.
+export const profesoresAutorizados = [
+  'arturo.rodriguez@uleam.edu.ec',
+  'jhonny.villafuerte@uleam.edu.ec',
+  'german.carrera@uleam.edu.ec',
+  'maria.basantes@uleam.edu.ec', // Cristina Basantes
+  'johanna.bello@uleam.edu.ec', // Johana Bello
+  'veronica.chavez@uleam.edu.ec', // Verónica Chávez
+];
