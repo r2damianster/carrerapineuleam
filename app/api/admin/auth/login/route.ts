@@ -5,7 +5,7 @@ import { createAdminSessionCookieValue, ADMIN_SESSION_COOKIE } from '@/lib/admin
 export async function POST(request: Request) {
   const body = await request.json();
   const email = (body.email ?? '').trim();
-  const password = body.password ?? '';
+  const password = (body.password ?? '').trim();
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 });
