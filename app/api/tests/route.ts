@@ -25,12 +25,12 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!);
-    
+
     await sql`
-      INSERT INTO evaluaciones_mcer 
-        (beneficiario_id, estudiante_evaluador_id, tipo, puntaje_obtenido, nivel_asignado, respuestas_json, evidencia_url)
-      VALUES 
-        (${beneficiario_id}, ${estudiante_evaluador_id}, ${tipo}, ${puntaje_obtenido}, ${nivel_asignado}, ${JSON.stringify(respuestas_json)}, ${evidencia_url || null})
+      INSERT INTO evaluaciones_mcer
+        (beneficiario_id, estudiante_evaluador_id, tipo, nota, subnivel_actual, respuestas_json, evidencia_url, fecha_evaluacion)
+      VALUES
+        (${beneficiario_id}, ${estudiante_evaluador_id}, ${tipo}, ${puntaje_obtenido}, ${nivel_asignado}, ${JSON.stringify(respuestas_json)}, ${evidencia_url || null}, CURRENT_DATE)
     `;
 
     return NextResponse.json({ success: true, message: 'Evaluación registrada exitosamente' });
