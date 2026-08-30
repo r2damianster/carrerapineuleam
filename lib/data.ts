@@ -8,7 +8,7 @@ export const members: Member[] = [
   {
     id: 'member_1',
     name: 'Dr. Arturo Rodríguez',
-    role: 'Líder del Proyecto',
+    role: 'Líder de Internacionalización y Miembro de Vinculación',
     orcid: '0000-0002-7017-9443',
     email: 'arturo.rodriguez@uleam.edu.ec',
     photo: '/images/members/lider_arturo_rodriguez.jpg',
@@ -32,7 +32,7 @@ export const members: Member[] = [
   {
     id: 'member_3',
     name: 'Mg. Cristina Basantes',
-    role: 'Coordinadora de Productos Educomunicacionales',
+    role: 'Miembro de Investigación y Colaboradora de Internacionalización (Podcast)',
     orcid: '0000-0001-5184-9643',
     email: '',
     photo: '/images/members/Cristina_CoordinadorPODCAST.jpeg',
@@ -44,7 +44,7 @@ export const members: Member[] = [
   {
     id: 'member_4',
     name: 'Psi. Johana Bello, Mg.',
-    role: 'Coordinadora de Internacionalización',
+    role: 'Colaboradora en Investigación y Directora de Psicología Educativa',
     orcid: '0000-0002-0882-1060',
     email: '',
     photo: '/images/members/JohanaBello.jpeg',
@@ -136,6 +136,18 @@ export const members: Member[] = [
     order: 9,
     created: '2026-07-21T00:00:00Z',
     updated: '2026-07-21T00:00:00Z',
+  },
+  {
+    id: 'member_12',
+    name: 'Mg. Veronika Vera',
+    role: 'Responsable de Comisión Académica y Líder de Proyecto (Mentoría Lingüística)',
+    orcid: '',
+    email: 'veronika@uleam.edu.ec',
+    photo: '',
+    is_leader: true,
+    order: 12,
+    created: '2026-08-30T00:00:00Z',
+    updated: '2026-08-30T00:00:00Z',
   },
 ];
 
