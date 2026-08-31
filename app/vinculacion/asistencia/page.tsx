@@ -43,8 +43,12 @@ export default function AsistenciaPage() {
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
       .then(r => r.json())
-      .then(d => { if (d.success) setBeneficiarios(d.data); });
-    setPresentes([]);
+      .then(d => {
+        if (d.success) {
+          setBeneficiarios(d.data);
+          setPresentes(d.data.map((b: any) => b.id));
+        }
+      });
   }, [espacioId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
