@@ -95,7 +95,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene funcion
 | Módulo | Estado | % |
 |--------|--------|---|
 | Sitio público (landing + páginas de proyecto) | ✅ Completo | 100% |
-| Admin Panel legacy (CRUD sitio estático) | ✅ Completo — ahora gateado por `modulos_acceso: admin` (Neon), ya no por `Pine2026` | 100% |
+| Admin Panel legacy (CRUD sitio estático) | ✅ Completo — gateado por `modulos_acceso: contenido_sitio` (solo Arturo+Jhonny), ya no por `Pine2026` ni por `admin` genérico | 100% |
 | Portal PINE — Auth unificada | ✅ Completo (Sesión 19) | 100% |
 | Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
 | Portal PINE — Investigación | ⏳ Solo creación de espacios; artículos científicos pendiente de definir | 30% |
@@ -123,6 +123,8 @@ Sesión larga, trabajo en paralelo con Antigravity en el mismo repo (varios push
 - ✅ `evaluaciones_mcer.beneficiario_id` corregido de UUID (apuntando a la tabla vieja) a entero contra `usuarios.id` — el guardado del test MCER estaba roto de origen.
 - ℹ️ **Cabo suelto, sin resolver:** 4 tablas en Neon (`avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`+`eventos_estudiantes`, `encuesta_satisfaccion` singular) creadas fuera de git, el usuario no las reconoce — quedan sin usar, a coordinar con Antigravity.
 - ✅ Bug de paso: `isAdminAuthorized` solo dejaba pasar a 2 de los 4 `adminUsers` (German y Verónica tenían password válido pero quedaban bloqueados) — corregido para derivar de la misma lista. (Nota: este `adminUsers`/`lib/db.ts:authenticateAdmin` del panel legacy quedó como código muerto tras la migración a Neon — nada lo llama ya; candidato a limpieza futura.)
+- ✅ **`/admin` restringido a Arturo+Jhonny:** el panel de contenido del sitio (10 secciones) se había quedado sin ningún link visible tras quitar el botón "Admin" del Header. Al restaurar el acceso, decisión explícita del usuario: no reutilizar el módulo `admin` genérico (lo tenían también German y Verónica, líderes de otros proyectos) — nuevo módulo `contenido_sitio`, solo para líder/colíder de este proyecto específico. Nueva tarjeta separada "Gestión del Sitio" en `/portal/dashboard` (no fusionada con "Indicadores"). Importante: el cambio en `profesorModulos` **no** actualiza retroactivamente cuentas ya registradas en Neon — hubo que hacer `UPDATE usuarios SET modulos_acceso = array_append(...)` a mano para la cuenta de Arturo.
+- ⚠️ **Identidad fabricada encontrada y eliminada:** "Mg. Veronika Vera" (`member_12`, líder de un supuesto proyecto "Mentoría Lingüística", email `veronika@uleam.edu.ec`) resultó ser inventada por Antigravity — el usuario confirmó que solo `veronica.chavez@uleam.edu.ec` es real. Se eliminó la entrada en `members`, la página pública `/investigacion/mentoria-linguistica` (copia literal de `desarrollo-habilidades` con el texto cambiado) y el link del Header. Mismo patrón de fondo que los emails adivinados de Cristina/Johana corregidos antes en esta sesión — **Antigravity ha inventado datos de personas reales más de una vez sin decirlo**, verificar siempre antes de confiar en un nombre/email/proyecto que aparezca sin que el usuario lo haya mencionado primero.
 
 ---
 
@@ -273,7 +275,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │
 ├── app/
 │   ├── page.tsx, layout.tsx       # Landing pública
-│   ├── admin/                     # Panel legacy CRUD sitio estático (gateado por modulos_acceso:admin)
+│   ├── admin/                     # Panel legacy CRUD sitio estático (gateado por modulos_acceso:contenido_sitio — solo Arturo+Jhonny)
 │   ├── portal/{login,dashboard}/  # Entrada única del Portal PINE
 │   ├── registro/                  # Autoregistro (profesor whitelist / estudiante / beneficiario)
 │   ├── vinculacion/
@@ -282,7 +284,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   │   └── dinamicas-linguisticas/ # Página pública de contenido (NO confundir con /espacios)
 │   ├── investigacion/
 │   │   ├── espacios/              # Crear/listar espacios de investigación
-│   │   └── proyecto-innovacion/, desarrollo-habilidades/, mentoria-linguistica/  # Páginas públicas de proyecto
+│   │   └── proyecto-innovacion/, desarrollo-habilidades/  # Páginas públicas de proyecto
 │   ├── gestion-carrera/           # Registro de eventos, cualquier docente
 │   ├── pine-dashboard/            # KPIs, solo modulos_acceso:admin
 │   ├── docencia/, login/          # Redirects a las rutas nuevas (compat)
@@ -325,15 +327,19 @@ carreraPINE/                       ← RAÍZ = Next.js app
 
 | ID | Nombre | Rol | Orden |
 |----|--------|-----|-------|
-| member_1 | Dr. Arturo Rodríguez | Líder del Proyecto | 1 |
+| member_1 | Dr. Arturo Rodríguez | Líder de Internacionalización y Miembro de Vinculación | 1 |
 | member_2 | Dr. Jhonny Villafuerte | Colíder del Proyecto | 2 |
-| member_3 | Mg. Cristina Basantes | Coordinadora de Productos Educomunicacionales | 3 |
-| member_4 | Psi. Johana Bello, Mg. | Coordinadora de Internacionalización | 4 |
+| member_3 | Mg. Cristina Basantes | Miembro de Investigación y Colaboradora de Internacionalización (Podcast) | 3 |
+| member_4 | Psi. Johana Bello, Mg. | Colaboradora en Investigación y Directora de Psicología Educativa | 4 |
 | member_5 | Andy Castillo | Estudiante Investigador | 5 |
 | member_6 | Josselyn Mera Rivas | Estudiante Investigadora / Equipo de Podcast | 6 |
 | member_8 | Ailys Jordana Bailón Borja | Estudiante Investigadora / Equipo de Podcast | 7 |
 | member_7 | Doménica Valeska Vélez Bravo | Equipo de Podcast | 8 |
 | member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | 9 |
+| member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — proyecto propio, ver `/investigacion/desarrollo-habilidades` | 10 |
+| member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) | 11 |
+
+⚠️ Hubo un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó en Sesión 19 junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. Ver "Cambios Recientes (Sesión 19)" abajo — regla de oro: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
 
 ---
 
@@ -441,7 +447,8 @@ carreraPINE/                       ← RAÍZ = Next.js app
 
 ## Autenticación Admin (panel legacy)
 
-> ⚠️ **Obsoleto:** ya NO hay password fijo `Pine2026` ni lista de emails hardcodeada en middleware. Ver `## Portal PINE` arriba — el panel `/admin` ahora se accede vía `/portal/login` con la cuenta de cada quien (email real + password que ellos mismos eligieron al registrarse), y requiere `modulos_acceso` incluya `admin`. Los 4 emails que antes tenían acceso (`arturo.rodriguez`, `jhonny.villafuerte`, `german.carrera`, `veronica.chavez`, todos `@uleam.edu.ec`) siguen siendo los mismos, en `lib/data.ts:adminUsers` — pero ese array y `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` son código muerto ahora (nada los llama), sobreviven solo como referencia de quién tiene el módulo `admin` en `profesorModulos`.
+> ⚠️ **Obsoleto:** ya NO hay password fijo `Pine2026` ni lista de emails hardcodeada en middleware. El panel `/admin` se accede vía `/portal/login` con la cuenta de cada quien, y requiere `modulos_acceso` incluya **`contenido_sitio`** — **no** `admin` (son módulos distintos, ver `## Portal PINE`). `contenido_sitio` está restringido, por decisión explícita del usuario, solo a `arturo.rodriguez@uleam.edu.ec` y `jhonny.villafuerte@uleam.edu.ec` (líder/colíder de este proyecto específico) — German y Verónica tienen `admin` (ven `/pine-dashboard`) pero no `contenido_sitio`.
+> `lib/data.ts:adminUsers` (los 4 emails con password `Pine2026`) y `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` son **código muerto** — nada los llama desde la migración a Neon. Candidato a limpieza futura, no borrado por si algo externo los referencia todavía.
 - **Middleware:** `middleware.ts` protege `/admin/*`, `/portal/dashboard`, `/vinculacion/espacios*`, `/investigacion/espacios*`, `/gestion-carrera`, `/pine-dashboard`.
 
 ---
