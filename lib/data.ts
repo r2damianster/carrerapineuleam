@@ -1062,7 +1062,7 @@ export const profesoresAutorizados = [
   'maria.basantes@uleam.edu.ec', // Cristina Basantes
   'johanna.bello@uleam.edu.ec', // Johana Bello
   'veronica.chavez@uleam.edu.ec', // Verónica Chávez
-  'chynthia.zambrano@uleam.edu.ec', // Cynthia Zambrano
+  'cintya.zambrano@uleam.edu.ec', // Cynthia Zambrano
 ];
 
 // Módulos que se asignan automáticamente a cada profesor autorizado al
@@ -1079,5 +1079,5 @@ export const profesorModulos: Record<string, string[]> = {
   'maria.basantes@uleam.edu.ec': ['investigacion'], // Cristina Basantes
   'johanna.bello@uleam.edu.ec': ['investigacion'], // Johana Bello
   'veronica.chavez@uleam.edu.ec': ['admin'], // Verónica Chávez
-  'chynthia.zambrano@uleam.edu.ec': ['vinculacion'], // Cynthia Zambrano — solo Vinculación
+  'cintya.zambrano@uleam.edu.ec': ['vinculacion'], // Cynthia Zambrano — solo Vinculación
 };
