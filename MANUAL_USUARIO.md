@@ -1,81 +1,98 @@
-# 📖 Manual de Usuario - Plataforma PINE
+# 📖 Manual de Usuario - Portal PINE
 
-Bienvenido al manual de uso del sistema de **Innovaciones Pedagógicas e Internacionalización (PINE)** de la ULEAM. Este sistema está diseñado para facilitar el trabajo colaborativo y la recolección de indicadores (MCER, audiencias, satisfacción, calificaciones).
+Bienvenido al manual de uso del **Portal PINE** (Innovaciones Pedagógicas e Internacionalización), ULEAM. Sistema para gestionar el trabajo de campo de Vinculación (Club de Inglés y otros espacios), Investigación, y el registro de indicadores (MCER, asistencia, encuestas, difusión).
 
-**🌐 Acceso a la plataforma:** [https://carrerapineuleam.vercel.app/](https://carrerapineuleam.vercel.app/)
+**🌐 Acceso a la plataforma:** [https://carrerapineuleam.vercel.app/portal/login](https://carrerapineuleam.vercel.app/portal/login)
 
-El sistema cuenta con tres tipos de perfiles, cada uno con accesos y funciones específicas. A continuación, selecciona el rol que te corresponde:
-
----
-
-## 👨‍🏫 1. Perfil: Profesores y Administradores (Ej. Arturo, Cynthia)
-Como administrador del proyecto PINE, tu labor principal es monitorear el progreso de los indicadores macro y gestionar el ciclo académico del programa de inglés.
-
-### A. Monitoreo de Indicadores (Dashboard)
-1. Ingresa a la sección **📊 PINE Dashboard**: [https://carrerapineuleam.vercel.app/pine-dashboard](https://carrerapineuleam.vercel.app/pine-dashboard)
-2. En esta pantalla gerencial verás tarjetas en tiempo real con las métricas del proyecto:
-   - Cuántos beneficiarios han mejorado su nivel MCER (Meta: 100).
-   - Cuántos han sido aprobados con notas iguales o mayores a 4.0.
-   - Nivel de Satisfacción Promedio de las encuestas.
-   - Audiencia de difusión alcanzada en Podcasts.
-
-### B. Panel de Gestión Docente
-Accede al panel de docentes en: [https://carrerapineuleam.vercel.app/docencia](https://carrerapineuleam.vercel.app/docencia)
-
-Este módulo se divide en 3 pestañas fundamentales para operar las clases:
-
-*   **Pestaña 1: Crear Espacios**
-    *   Aquí puedes crear las *Aulas Virtuales* o *Encuentros Físicos* para un Semestre o Ciclo en particular (Ej. "Nivel 1 A").
-*   **Pestaña 2: Asignar Beneficiarios**
-    *   Selecciona en el menú desplegable el aula que acabas de crear.
-    *   Te aparecerá una lista con todos los beneficiarios registrados. Usa las casillas (checkboxes) para seleccionar a los alumnos que pertenecen a esa aula y haz clic en "Inscribir Seleccionados".
-*   **Pestaña 3: Calificaciones**
-    *   Al final del ciclo, entra aquí y filtra por el aula deseada.
-    *   Te aparecerá una tabla (estilo Excel) con los alumnos de esa clase.
-    *   Digita la nota final (0.0 a 5.0) y guarda. Automáticamente el sistema sabrá quiénes aprobaron la meta de 4.0.
+> Esta es distinta de la página pública del proyecto (`/investigacion/proyecto-innovacion`, etc.) — el Portal es solo para quienes tienen cuenta.
 
 ---
 
-## 👩‍🎓 2. Perfil: Estudiantes de Vinculación
-Como estudiante, eres el motor operativo del proyecto. Te encargas de aplicar las pruebas, hacer investigación y difundir el proyecto.
+## Primer ingreso: crear tu cuenta
 
-### A. Registro Inicial
-1. Ingresa a **Registro**: [https://carrerapineuleam.vercel.app/registro](https://carrerapineuleam.vercel.app/registro)
-2. Llena tus datos personales y selecciona el rol **Estudiante Universitario**.
-3. **Importante:** Llena con precisión el campo *Título de Investigación*, ya que esto alimenta el indicador de "Estudiantes vinculados a la investigación".
+1. Ve a **Registro**: [https://carrerapineuleam.vercel.app/registro](https://carrerapineuleam.vercel.app/registro)
+2. Llena tus datos y elige tu rol:
+   - **Profesor** — solo si tu email está en la lista autorizada del proyecto (contacta al líder si te sale "correo no autorizado").
+   - **Estudiante Universitario** — cualquiera puede autoregistrarse. Indica tu carrera y modalidad (Club de Inglés, Podcast, Investigación, Otro).
+   - **Beneficiario / Participante** — para quien recibe el programa (ej. asistente al Club de Inglés).
+3. La contraseña la eliges tú — nadie más la sabe, ni el equipo de soporte.
+4. Al registrarte, entras automáticamente. Para volver a entrar después: [https://carrerapineuleam.vercel.app/portal/login](https://carrerapineuleam.vercel.app/portal/login)
 
-### B. Aplicación del Test MCER
-Accede al panel de test en: [https://carrerapineuleam.vercel.app/vinculacion/test-mcer](https://carrerapineuleam.vercel.app/vinculacion/test-mcer)
-
-Tú eres el responsable de tomar el test (inicial y final) a los beneficiarios del programa.
-1. **Paso 1 (Descarga):** Haz clic en el botón verde superior **"📄 Descargar Test en Word"**. Imprímelo y dáselo al beneficiario para que lo resuelva.
-2. **Paso 2 (Digitación):** Selecciona el nombre del beneficiario en el sistema, indica si es el test *Pre* o *Post*, y transcribe las respuestas que el beneficiario marcó en el papel.
-3. **Paso 3 (Evidencia):** Tómale una foto al test físico resuelto y súbela en el botón "Foto / Evidencia Física".
-4. Al enviar, el sistema calculará solo si sacó A1, A2, B1 o B2.
-
-### C. Registro de Difusión (Podcasts y Eventos)
-Accede al panel de difusión en: [https://carrerapineuleam.vercel.app/vinculacion/difusion](https://carrerapineuleam.vercel.app/vinculacion/difusion)
-
-Cada vez que participes o lances un Podcast del proyecto:
-1. Entra al formulario.
-2. Ponle un título y selecciona el tipo (Podcast, Encuentro, etc.).
-3. Digita el número de **Audiencia Alcanzada** (cuántas vistas/oyentes tuvo).
-4. **Evidencia:** Sube una captura de pantalla de las estadísticas del podcast (ej. YouTube/Spotify) o una foto del evento.
+Tras entrar llegas a `/portal/dashboard`, donde ves solo las tarjetas que te corresponden según tu rol.
 
 ---
 
-## 🙋‍♂️ 3. Perfil: Beneficiarios / Participantes
-Como participante del programa de inglés, tu interacción con el sistema es rápida y orientada a evaluar la calidad del programa.
+## 👨‍🏫 Perfil: Profesor de Vinculación (hoy: Arturo, Cynthia)
 
-### A. Registro
-Al iniciar tu programa, un profesor o estudiante te pedirá que te registres. 
-1. Ingresa a: [https://carrerapineuleam.vercel.app/registro](https://carrerapineuleam.vercel.app/registro)
-2. Selecciona el rol **Beneficiario** e ingresa tus datos de contacto y situación laboral inicial.
+Tarjeta **"Gestionar Vinculación"** en el Portal.
 
-### B. Encuesta de Satisfacción
-Al finalizar tu semestre o ciclo en el programa de inglés, deberás evaluar la calidad del mismo.
-1. Ingresa a la sección **Encuestas**: [https://carrerapineuleam.vercel.app/vinculacion/encuesta](https://carrerapineuleam.vercel.app/vinculacion/encuesta)
-2. Selecciona tu nombre y el Ciclo que acabas de cursar.
-3. **Califica con estrellas:** Presiona de 1 a 5 estrellas según tu nivel de satisfacción.
-4. (Opcional) Déjanos tus comentarios sobre qué te gustó o qué podemos mejorar.
-5. Haz clic en "Enviar". ¡Tu retroalimentación nos ayuda a llegar a la meta del 70% de calidad!
+### A. Crear un Espacio
+`» Espacios` → formulario "Nuevo Espacio de Vinculación". Un espacio es un club, aula o encuentro comunitario (ej. "Club de Inglés A"), asociado a un ciclo/semestre.
+
+### B. Asignar Instructores
+Entra al espacio que creaste (clic en su nombre) → tab **Instructores**. Elige de la lista de estudiantes registrados quiénes van a operar ese espacio. Solo el profesor hace esto.
+
+### C. Respaldo operativo
+El profesor también puede hacer todo lo que hace un estudiante-instructor (ver abajo) en **cualquier** espacio de vinculación, no solo en los que él mismo creó — es respaldo, no reemplazo del instructor.
+
+### D. Registrar Nuevos Perfiles
+Enlace directo a `/registro`, para invitar gente nueva.
+
+---
+
+## 👩‍🎓 Perfil: Estudiante Instructor de Vinculación
+
+Después de que un profesor te asigna a un espacio, entras a `/portal/dashboard` → **"Gestionar Vinculación"** → `» Espacios` → clic en tu espacio asignado (solo ves los tuyos). Ahí tienes 4 pestañas:
+
+### Beneficiarios
+Selecciona de la lista general quiénes participan en tu espacio y haz clic en "Inscribir Seleccionados".
+
+### Test MCER
+1. Botón **"📄 Descargar Test en Word"** — imprímelo y dáselo al beneficiario en papel.
+2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio), indica si es *Pre* o *Post*, transcribe sus respuestas.
+3. Sube una foto del test físico resuelto (opcional).
+4. El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
+
+### Encuesta
+Selecciona beneficiario + ciclo, calificación de 1 a 5 estrellas, comentarios opcionales.
+
+### Asistencia
+Fecha + selecciona quiénes de tu espacio estuvieron presentes + observaciones opcionales.
+
+> Todo lo de arriba solo funciona **dentro de tu espacio asignado** — si intentas entrar a un espacio donde no eres instructor, el sistema te lo bloquea.
+
+### Difusión / Evento
+Aparte del espacio, cualquier estudiante puede registrar un podcast/evento en `/vinculacion/difusion`: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto).
+
+---
+
+## 🔬 Perfil: Investigación (hoy: Jhonny, German, Cristina, Johana)
+
+Tarjeta **"Gestionar Investigación"** → `» Espacios`. Por ahora solo permite crear y listar espacios de investigación (cohortes, por ejemplo) — sin ninguna otra función todavía. El equipo tiene planeado agregar gestión de artículos científicos más adelante.
+
+---
+
+## 🎤 Perfil: Cualquier Docente — Gestión de Carrera
+
+Tarjeta **"Gestión de Carrera"**, visible a cualquier profesor sin importar su área. `/gestion-carrera` — registro de eventos generales de la carrera, distinto del formulario simple de Difusión que usa el estudiante-instructor:
+
+- **Categoría**: Investigación (indica el proyecto) / Vinculación / Asignatura (indica el nombre de la materia).
+- Tipo de evento, número de asistentes, descripción, fecha, hora, observaciones (opcional), foto (opcional).
+
+---
+
+## 📊 Perfil: Gerencia — Dashboard de Indicadores
+
+Solo para quien tiene el módulo `admin`. Tarjeta **"Indicadores (Gerencia)"** → `/pine-dashboard`: mejora de nivel MCER, satisfacción promedio de encuestas, audiencia de difusión, investigadores vinculados — en tiempo real desde la base de datos.
+
+---
+
+## 🛠️ Panel de administración del sitio (contenido público)
+
+Distinto de todo lo anterior — es para editar el contenido de la página pública (miembros del equipo, publicaciones, videos, noticias). `/admin`, requiere el mismo login del Portal (`/portal/login`) con el módulo `admin`.
+
+---
+
+## Nota para quien ya tenía cuenta antes de agosto 2026
+
+El sistema de asistencia viejo (con cuentas de Andy Castillo, Josselyn Mera y Ailys Bailón) fue reemplazado — esas cuentas quedaron huérfanas y sus contraseñas no se pueden recuperar. Si eras parte de ese grupo, **regístrate de nuevo** en `/registro`.

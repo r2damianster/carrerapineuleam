@@ -19,9 +19,10 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.9.1
-**Última sesión:** 2026-08-18 (Sesión 18 — corrección de tags de vinculación + estructura de 3 ejes en página de Vinculación)
+**Versión actual:** 0.10.0
+**Última sesión:** 2026-08-30 (Sesión 19 — overhaul completo del sistema Portal PINE: auth unificada, Neon Postgres, áreas Vinculación/Investigación, Gestión de Carrera. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
+**Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
 ---
 
@@ -29,11 +30,15 @@
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Next.js 14 (App Router) + TypeScript estricto |
+| Frontend | Next.js 14 (App Router) + TypeScript |
 | Estilos | TailwindCSS personalizado (colores ULEAM) |
-| Base de datos | Estática en `/lib/data.ts` (in-memory vía `/lib/db.ts`) |
-| Auth | Credenciales hardcodeadas + middleware Next.js cookies |
-| Deploy | Vercel — Next.js en raíz del repo |
+| Sitio público (contenido) | Estático en `/lib/data.ts` (in-memory vía `/lib/db.ts`) — miembros, publicaciones, videos, noticias, actividades |
+| **Portal PINE** (docencia/vinculación/investigación) | **Neon Postgres** — ver `## Portal PINE` abajo |
+| Auth | Cookie httpOnly firmada (HMAC, Web Crypto) — `lib/session.ts`, unificada para todo (admin legacy + Portal) |
+| Uploads (fotos/evidencias) | Cloudinary (`app/api/upload`) |
+| Deploy | Vercel — Next.js en raíz del repo, auto-deploy on push a `main` |
+
+**Dependencias clave (`package.json`):** `@neondatabase/serverless`, `bcryptjs` (hash de passwords del Portal), `cloudinary`, `docx`+`jszip` (generación de certificados y test MCER descargable).
 
 ### Colores ULEAM
 - Azul institucional: `#003366`
@@ -41,24 +46,83 @@
 
 ---
 
-## Estado Actual (2026-06-07)
+## Portal PINE (Neon Postgres) — Sistema Operativo
+
+> **Distinto del sitio público estático.** El sitio público (landing, `/investigacion/proyecto-innovacion`, etc.) sigue siendo 100% `lib/data.ts`. El "Portal PINE" es un sistema aparte con base de datos real (Neon), para las funciones operativas: registrar clubes/aulas, tomar asistencia, evaluar MCER, encuestas, difusión de eventos.
+
+### Auth unificada
+- **Una sola cookie httpOnly firmada** (`pine_app_session`, HMAC-SHA256 vía Web Crypto) para *todo* — Portal Y panel `/admin` legacy. Implementada en `lib/session.ts` (`createSessionCookieValue`/`verifySessionCookieValue`/`getAppSessionFromCookies`). Requiere `SESSION_SECRET` en las env vars — **sin fallback hardcodeado** (existió brevemente, se removió por seguridad).
+- **NO existen ya**: `lib/adminSession.ts`, `lib/userSession.ts`, el panel `/admin` con password `Pine2026` hardcodeado, ni el módulo viejo `/vinculacion/dinamicas-linguisticas/asistencia` (UUID). Todo fue consolidado/retirado en Sesión 19 — si encuentras referencias a esto en código o docs viejos, están obsoletas.
+- **Login:** `/portal/login` → `POST /api/auth/portal-login`. **Registro:** `/registro` → `POST /api/auth/register` (autologuea).
+- **Roles** (`usuarios.rol`): `admin` | `profesor` | `estudiante` | `beneficiario`. Autoregistro público solo permite `profesor`/`estudiante`/`beneficiario` — `admin` nunca es autoasignable.
+- **`profesor` es de lista fija**, no autoregistro abierto: `lib/data.ts` → `profesoresAutorizados` (array de emails permitidos) + `profesorModulos` (qué `modulos_acceso` recibe cada uno al registrarse). Agregar gente nueva ahí, con su email real confirmado — **nunca adivinar el email**.
+- **`modulos_acceso`** (`text[]` en `usuarios`, valores: `admin`/`investigacion`/`vinculacion`): controla qué ve cada quien en `/portal/dashboard` y qué rutas puede pisar (`middleware.ts`). Una persona puede tener 1, 2 o los 3.
+- **Permisos por espacio** (no globales): `lib/permisos-espacio.ts` → `puedeOperarEspacio(usuario, espacio_id)`. Un `profesor` con módulo `vinculacion` opera cualquier espacio; un `estudiante` **solo** los espacios donde está en `espacio_instructores` (asignado por el profesor). Se usa en `/api/espacios/asignar`, `/api/tests` (MCER), `/api/encuestas`, `/api/espacios/asistencia`.
+
+### Flujo real de Vinculación (confirmado con el usuario, Sesión 19)
+Profesor de vinculación (hoy: Arturo, Cynthia) crea un **espacio** (`/vinculacion/espacios`, ej. "Club de Inglés A") → asigna **estudiantes** como instructores de ese espacio (tab "Instructores") → esos estudiantes (o el profesor, de respaldo) entran a `/vinculacion/espacios/[id]` y ahí: asignan beneficiarios, aplican el Test MCER, la Encuesta de satisfacción, y toman asistencia — todo scopeado a ESE espacio, no a la lista global.
+
+Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene funciones propias más allá de crear espacios (`/investigacion/espacios`) — el usuario planea agregar gestión de artículos científicos ahí a futuro.
+
+**Gestión de Carrera** (`/gestion-carrera`) es aparte: cualquier docente (investigación o vinculación) registra ahí eventos generales de difusión, categorizados como Investigación (¿qué proyecto?) / Vinculación / Asignatura (texto libre) — no reemplaza el formulario simple de Difusión que ya usa el estudiante-instructor dentro de su espacio.
+
+### Tablas Neon (esquema real, no siempre igual a `scripts/migrate.js` — hubo drift por cambios hechos fuera de git)
+| Tabla | Para qué | Notas |
+|---|---|---|
+| `usuarios` | Personas del Portal (todos los roles) | Fuente de verdad de "quién es quién" en el sistema nuevo |
+| `perfiles_estudiantes` / `perfiles_beneficiarios` | Datos extra según rol | carrera/modalidad, contacto/situación laboral |
+| `espacios_enseñanza` | Clubes/aulas/cohortes | Columna `area`: `vinculacion`\|`investigacion` |
+| `espacio_instructores` | Qué estudiante es instructor de qué espacio | Base del control de acceso por espacio |
+| `inscripciones_espacio` | Beneficiarios asignados a un espacio | |
+| `ciclos_academicos` | Semestres | Compartido entre áreas, no se etiqueta |
+| `evaluaciones_mcer` | Resultados del test MCER | `beneficiario_id` es **entero** → `usuarios.id` (se corrigió en Sesión 19, antes era UUID roto contra la tabla vieja `beneficiarios`) |
+| `encuestas_satisfaccion` | Encuestas de satisfacción | |
+| `actividades_difusion` | Eventos/podcasts (Difusión + Gestión de Carrera) | `categoria`/`proyecto`/`asignatura`/`descripcion`/`hora`/`observaciones` |
+| `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
+| `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
+
+**⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
+
+**⚠️ Tablas sin usar en ningún lado del código, creadas fuera de git (probablemente por Antigravity vía consola de Neon), sin confirmar con el usuario:** `avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`, `eventos_estudiantes`, `encuesta_satisfaccion` (singular, distinta de `encuestas_satisfaccion`). Apuntan al esquema UUID viejo. **No construir nada sobre ellas sin antes preguntar** — probablemente son la base pensada para expandir Investigación/Vinculación, pero no hay contexto documentado de su diseño.
+
+### Variables de entorno requeridas (Neon/Portal)
+`DATABASE_URL` (Neon), `SESSION_SECRET` (firma de `pine_app_session`), `CLOUDINARY_CLOUD_NAME`/`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` (uploads). Todas ya están en Vercel Production — ver `.env.local.example` para desarrollo local.
+
+---
+
+## Estado Actual (2026-08-30)
 
 | Módulo | Estado | % |
 |--------|--------|---|
-| Landing Page | ✅ Completo + scroll animations | 100% |
-| Admin Panel (CRUD) | ✅ Completo | 100% |
-| Middleware / Auth | ✅ Completo | 100% |
-| TypeScript Types | ✅ Completo | 100% |
-| Base de datos estática | ✅ data.ts + db.ts in-memory | 100% |
-| Miembros del equipo | ✅ 9 miembros (incluye equipo Podcast) | 100% |
-| Publicaciones | ✅ 7 publicaciones (2 libros + 5 artículos) | 100% |
-| Videos / Podcast | ✅ 10 videos (Educa PINE + Voces Fuera del Aula + PsicoEducarte + Más Allá del Lienzo) | 100% |
-| Actividades | ✅ 14 actividades (docencia innovadora e interdisciplinaria) | 100% |
-| Compartir vía QR | ✅ QRFloatingButton + QRModal + QRPromoModal | 100% |
-| Estructura del repo | ✅ Limpia — sin legacy | 100% |
-| **Deploy Vercel** | ⏳ Pendiente confirmar en dashboard | 90% |
+| Sitio público (landing + páginas de proyecto) | ✅ Completo | 100% |
+| Admin Panel legacy (CRUD sitio estático) | ✅ Completo — ahora gateado por `modulos_acceso: admin` (Neon), ya no por `Pine2026` | 100% |
+| Portal PINE — Auth unificada | ✅ Completo (Sesión 19) | 100% |
+| Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
+| Portal PINE — Investigación | ⏳ Solo creación de espacios; artículos científicos pendiente de definir | 30% |
+| Gestión de Carrera (eventos multi-área) | ✅ Completo (Sesión 19) | 100% |
+| Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
-**Progreso general: ~99%**
+**Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 19 — 2026-08-30)
+
+### Construcción completa del Portal PINE (Neon Postgres) + hardening de seguridad
+
+Sesión larga, trabajo en paralelo con Antigravity en el mismo repo (varios push directos a `main` sin coordinación previa) — buena parte del trabajo fue reconciliar/corregir lo que Antigravity introdujo, no solo construir features nuevas. Ver `## Portal PINE` arriba para el estado final del sistema; aquí el resumen de lo que pasó:
+
+- ✅ **Fix de seguridad crítico:** el panel `/admin` original usaba una cookie (`admin_session`) sin firmar, seteada por JS del cliente — cualquiera podía forjarla desde la consola del navegador y entrar sin password. Reemplazado por sesión HMAC firmada.
+- ⚠️ **Antigravity introdujo el esqueleto de Neon** (`usuarios`, tablas de docencia/vinculación) con varios problemas que se corrigieron en el camino: contraseña compartida (`pineadmin2026`) sembrada para 5 cuentas con emails no confirmados/incorrectos (eliminadas), un secreto de sesión con fallback hardcodeado en el código fuente (`'fallback_secret_pine_2026'`, removido), `/admin/*` bloqueado sin condición para todos incluido el admin real (corregido), la página pública de Vinculación y `/registro` quedaron accidentalmente detrás de login (corregido).
+- ✅ **Consolidación de sesión:** existían 3 cookies de sesión distintas y sin relación entre sí (`admin_session`, `usuario_session`, `pine_app_session`) — todo unificado en una sola (`pine_app_session` / `lib/session.ts`).
+- ✅ **`profesoresAutorizados`** (lista fija de emails, no autoregistro abierto) + **`profesorModulos`** (asignación automática de `modulos_acceso` al registrarse) — decisión explícita del usuario: el rol `profesor` no es autoservicio libre.
+- ✅ **Rediseño del flujo de Vinculación** siguiendo la cadena real descrita por el usuario (profesor crea espacio → asigna instructores → instructores operan su espacio) — antes cualquiera con sesión podía tocar cualquier espacio global. Ver `lib/permisos-espacio.ts`.
+- ✅ **Área Investigación separada de Vinculación** (`espacios_enseñanza.area`) — antes compartían un solo panel confuso ("Docencia").
+- ✅ **Gestión de Carrera** — registro de eventos abierto a cualquier docente, con categoría (investigación/vinculación/asignatura).
+- ✅ **Eliminado:** tab "Calificaciones" del panel docente (decisión del usuario: el test MCER es la única evaluación real, esa nota manual no correspondía a nada), módulo viejo de asistencia UUID (`estudiantes`/`espacios`/`beneficiarios`/`bitacora_*`, reemplazado por el esquema nuevo sobre `usuarios`), scripts inseguros (`seed-roles.js`, `alter.js` con emails adivinados).
+- ✅ `evaluaciones_mcer.beneficiario_id` corregido de UUID (apuntando a la tabla vieja) a entero contra `usuarios.id` — el guardado del test MCER estaba roto de origen.
+- ℹ️ **Cabo suelto, sin resolver:** 4 tablas en Neon (`avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`+`eventos_estudiantes`, `encuesta_satisfaccion` singular) creadas fuera de git, el usuario no las reconoce — quedan sin usar, a coordinar con Antigravity.
+- ✅ Bug de paso: `isAdminAuthorized` solo dejaba pasar a 2 de los 4 `adminUsers` (German y Verónica tenían password válido pero quedaban bloqueados) — corregido para derivar de la misma lista. (Nota: este `adminUsers`/`lib/db.ts:authenticateAdmin` del panel legacy quedó como código muerto tras la migración a Neon — nada lo llama ya; candidato a limpieza futura.)
 
 ---
 
@@ -198,45 +262,61 @@
 ## Estructura de Archivos
 
 ```
-proyecto-innovacion-e-internacionalizacion/   ← RAÍZ = Next.js app
-├── CHANGELOG.md
-├── CLAUDE.md                      # Este archivo
-├── DEPLOY_GUIDE.md
-├── README.md
-├── RESUMEN.md
+carreraPINE/                       ← RAÍZ = Next.js app
+├── CLAUDE.md                      # Este archivo (instrucciones para Claude)
+├── ANTIGRAVITY.md                 # Instrucciones equivalentes para Antigravity
+├── MANUAL_USUARIO.md              # Manual del Portal PINE, por rol
+├── CHANGELOG.md / README.md / RESUMEN.md / DEPLOY_GUIDE.md   # ⚠️ obsoletos, de la era pre-PocketBase-removal — no confiar, no se actualizan
 ├── package.json
-├── next.config.js
-├── middleware.ts                  # Protección rutas /admin/*
-├── tailwind.config.ts
-├── tsconfig.json
-├── postcss.config.cjs
-├── vercel.json
+├── middleware.ts                  # Protege /admin/*, /portal/*, /vinculacion/espacios*, /investigacion/espacios*, /gestion-carrera, /pine-dashboard
 ├── .env.local.example
 │
-├── app/                           # Next.js App Router
-│   ├── layout.tsx
-│   ├── page.tsx                   # Landing page
-│   ├── globals.css
-│   └── admin/                     # Panel admin (11 páginas)
+├── app/
+│   ├── page.tsx, layout.tsx       # Landing pública
+│   ├── admin/                     # Panel legacy CRUD sitio estático (gateado por modulos_acceso:admin)
+│   ├── portal/{login,dashboard}/  # Entrada única del Portal PINE
+│   ├── registro/                  # Autoregistro (profesor whitelist / estudiante / beneficiario)
+│   ├── vinculacion/
+│   │   ├── espacios/[page,[id]/page.tsx]   # Lista + workspace por espacio (Beneficiarios/MCER/Encuesta/Asistencia/Instructores)
+│   │   ├── difusion/              # Formulario simple, estudiante-instructor
+│   │   └── dinamicas-linguisticas/ # Página pública de contenido (NO confundir con /espacios)
+│   ├── investigacion/
+│   │   ├── espacios/              # Crear/listar espacios de investigación
+│   │   └── proyecto-innovacion/, desarrollo-habilidades/, mentoria-linguistica/  # Páginas públicas de proyecto
+│   ├── gestion-carrera/           # Registro de eventos, cualquier docente
+│   ├── pine-dashboard/            # KPIs, solo modulos_acceso:admin
+│   ├── docencia/, login/          # Redirects a las rutas nuevas (compat)
+│   └── api/
+│       ├── auth/{portal-login,register,logout,me}/
+│       ├── espacios/{route,asignar,instructores,asistencia}/
+│       ├── beneficiarios/, estudiantes/, tests/, encuestas/, difusion/, upload/
+│       ├── admin/stats/           # KPIs para /pine-dashboard
+│       └── protected/assets/[filename]/   # PDFs privados de public/admin-assets
 │
-├── components/                    # Componentes React
+├── components/                    # Componentes React del sitio público
 │   └── admin/DataTable.tsx
 │
 ├── lib/
-│   ├── data.ts                    # ← FUENTE DE VERDAD (editar aquí)
-│   └── db.ts                      # In-memory CRUD
+│   ├── data.ts                    # Fuente de verdad del sitio ESTÁTICO (miembros, publicaciones, etc.) — incluye profesoresAutorizados/profesorModulos
+│   ├── db.ts                      # In-memory CRUD sobre data.ts (solo panel admin legacy)
+│   ├── session.ts                 # Auth unificada del Portal (Neon) — pine_app_session
+│   ├── permisos-espacio.ts        # puedeOperarEspacio() — permisos por espacio
+│   ├── neon.ts                    # Tipos del esquema viejo (estudiantes/espacios/beneficiarios) — huérfano
+│   ├── questions.ts                # Banco de preguntas del Test MCER
+│   └── certificateDocx.ts          # Generación de certificados .docx
 │
-├── types/index.ts                 # Interfaces TypeScript
+├── scripts/                       # Migraciones Neon (una sola ejecución cada una, con node --env-file=.env.local)
+│   ├── migrate.js                 # Schema original (desactualizado vs realidad, ver ## Portal PINE)
+│   ├── migrate-espacios-v2.js     # area, espacio_instructores, asistencia_*, columnas de difusión
+│   └── fix-mcer-schema.js         # Fix puntual de evaluaciones_mcer
+│
+├── types/index.ts                 # Interfaces TypeScript del sitio estático
 │
 ├── public/
-│   ├── images/                    # Fotos del equipo + logos
-│   └── files/                     # PDFs descargables
+│   ├── images/, files/            # Públicos
+│   └── admin-assets/              # Privados, requiere sesión admin
 │
 └── docs/                          # Documentos Word de referencia
-    ├── contactos.docx
-    ├── contenidoYoube.docx
-    ├── publicaciones.docx
-    └── Proyecto_Innovaciones_Pedagógicas 2025.docx
 ```
 
 ---
@@ -282,9 +362,9 @@ proyecto-innovacion-e-internacionalizacion/   ← RAÍZ = Next.js app
 
 ---
 
-## Base de Datos Estática
+## Base de Datos Estática (sitio público — distinta del Portal PINE/Neon)
 
-> La fuente de verdad es `/lib/data.ts`. El admin panel NO es persistente (usa db.ts en memoria).
+> La fuente de verdad es `/lib/data.ts`. El admin panel legacy NO es persistente (usa db.ts en memoria). Para la base de datos real del Portal PINE (Neon Postgres), ver `## Portal PINE` arriba.
 
 ### Entidades disponibles
 
@@ -359,11 +439,10 @@ proyecto-innovacion-e-internacionalizacion/   ← RAÍZ = Next.js app
 
 ---
 
-## Autenticación Admin
+## Autenticación Admin (panel legacy)
 
-- **Emails autorizados:** `arturo.rodriguez@uleam.edu.ec` | `jhonny.villafuerte@uleam.edu.ec` | `german.carrera@uleam.edu.ec` | `veronica.chavez@uleam.edu.ec`
-- **Password:** `Pine2026`
-- **Middleware:** `middleware.ts` protege todas las rutas `/admin/*`
+> ⚠️ **Obsoleto:** ya NO hay password fijo `Pine2026` ni lista de emails hardcodeada en middleware. Ver `## Portal PINE` arriba — el panel `/admin` ahora se accede vía `/portal/login` con la cuenta de cada quien (email real + password que ellos mismos eligieron al registrarse), y requiere `modulos_acceso` incluya `admin`. Los 4 emails que antes tenían acceso (`arturo.rodriguez`, `jhonny.villafuerte`, `german.carrera`, `veronica.chavez`, todos `@uleam.edu.ec`) siguen siendo los mismos, en `lib/data.ts:adminUsers` — pero ese array y `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` son código muerto ahora (nada los llama), sobreviven solo como referencia de quién tiene el módulo `admin` en `profesorModulos`.
+- **Middleware:** `middleware.ts` protege `/admin/*`, `/portal/dashboard`, `/vinculacion/espacios*`, `/investigacion/espacios*`, `/gestion-carrera`, `/pine-dashboard`.
 
 ---
 
@@ -390,12 +469,14 @@ git push
 
 1. **Lee este archivo primero** para entender el contexto completo
 2. **App Router de Next.js 14** — no usar `pages/`
-3. **TypeScript estricto** — sin `any`
+3. **`tsconfig.json` tiene `strict: true`**, pero `any` explícito se usa libremente en el código del Portal (fetch de APIs, formularios) — no es un objetivo real del proyecto, no lo trates como regla a cumplir
 4. **TailwindCSS** — no añadir CSS inline salvo excepciones
 5. **Colores ULEAM:** clases definidas en `tailwind.config.ts`
-6. **No tocar `middleware.ts`** sin entender la lógica de auth
-7. **La fuente de verdad es `lib/data.ts`** — editar ahí para cambios permanentes
-8. **Actualizar este CLAUDE.md** cuando cambien el equipo, publicaciones o estructura
+6. **No tocar `middleware.ts`** sin entender la lógica de auth — ahora protege bastante más que `/admin/*` (ver `## Portal PINE`)
+7. **Dos fuentes de verdad distintas:** `lib/data.ts` (sitio público estático) vs Neon Postgres (Portal PINE, operativo) — no confundirlas
+8. **Antes de tocar el esquema de Neon:** correr una consulta de auditoría (`information_schema.tables`/`columns`) primero — hay historial de cambios hechos fuera de git que desincronizan `scripts/migrate.js` de la realidad
+9. **Actualizar este CLAUDE.md** cuando cambien el equipo, publicaciones, estructura, o el esquema/flujo del Portal PINE
+10. **Trabajo en paralelo con Antigravity:** revisar `git log origin/main..HEAD` y `git fetch` antes de asumir que el repo está como lo dejaste — Antigravity pushea directo a `main` sin avisar
 
 ### Convenciones de código
 - Componentes: PascalCase (`TeamSection.tsx`)
@@ -405,6 +486,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-06-07 (Sesión 10)
-**Versión:** 0.7.0
-**Estado:** App funcional ✅ — Repo limpio ✅ — Pusheado ✅ — Deploy Vercel pendiente confirmar
+**Última actualización:** 2026-08-30 (Sesión 19)
+**Versión:** 0.10.0
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅
