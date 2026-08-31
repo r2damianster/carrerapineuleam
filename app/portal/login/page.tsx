@@ -98,6 +98,10 @@ export default function PortalLogin() {
                 </button>
               </div>
             </form>
+
+            <p className="mt-6 text-center text-sm text-gray-600">
+              ¿No tienes cuenta? <a href="/registro" className="text-uleam-blue font-medium hover:underline">Regístrate</a>
+            </p>
           </div>
         </div>
       </div>
