@@ -28,17 +28,30 @@ export default async function PortalDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {/* Módulo: Vinculación */}
+            {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor */}
             {modulos_acceso.includes('vinculacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Espacios (clubes/aulas), beneficiarios, test MCER, encuestas y asistencia.</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Registros de Vinculación</h3>
+                <p className="text-gray-600 mb-4 text-sm">Asistencia, beneficiarios, test MCER, encuestas y difusión de tu espacio.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/espacios" className="text-blue-600 hover:underline">» Espacios</Link>
+                  <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Registrar Asistencia</Link>
+                  <Link href="/vinculacion/beneficiarios" className="text-blue-600 hover:underline">» Registrar Beneficiarios</Link>
+                  <Link href="/vinculacion/test-mcer" className="text-blue-600 hover:underline">» Test MCER</Link>
+                  <Link href="/vinculacion/encuesta" className="text-blue-600 hover:underline">» Encuesta</Link>
                   <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Difusión / Evento</Link>
-                  {esDocente && (
-                    <Link href="/registro" className="text-blue-600 hover:underline">» Registrar Nuevos Perfiles</Link>
-                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Vinculación — Gestión: solo profesor/admin */}
+            {modulos_acceso.includes('vinculacion') && esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Vinculación</h3>
+                <p className="text-gray-600 mb-4 text-sm">Crear espacios, asignar instructores y supervisar el programa.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
+                  <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
+                  <Link href="/registro" className="text-purple-600 hover:underline">» Registrar Nuevos Perfiles</Link>
                 </div>
               </div>
             )}

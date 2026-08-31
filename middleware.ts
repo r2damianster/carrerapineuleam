@@ -12,6 +12,9 @@ export async function middleware(request: NextRequest) {
     '/portal/dashboard',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
+    '/vinculacion/asistencia',
+    '/vinculacion/beneficiarios',
+    '/vinculacion/pasantes',
     '/vinculacion/difusion',
     '/investigacion/espacios',
     '/gestion-carrera',
@@ -30,7 +33,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (pathname.startsWith('/vinculacion/espacios') && !['profesor', 'admin', 'estudiante'].includes(session.rol)) {
+    if (
+      (pathname.startsWith('/vinculacion/espacios') ||
+       pathname.startsWith('/vinculacion/asistencia') ||
+       pathname.startsWith('/vinculacion/beneficiarios')) &&
+      !['profesor', 'admin', 'estudiante'].includes(session.rol)
+    ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (pathname.startsWith('/vinculacion/pasantes') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
