@@ -4,15 +4,16 @@ import bcrypt from 'bcryptjs';
 import { createSessionCookieValue, SESSION_COOKIE, AppSession } from '@/lib/session';
 import { profesoresAutorizados, profesorModulos } from '@/lib/data';
 
-const PUBLIC_ROLES = ['profesor', 'estudiante', 'beneficiario'];
+// 'estudiante' no es autoregistro — se maneja desde Administrar Pasantes
+// (el profesor pre-crea el email, el pasante activa su cuenta al hacer login
+// la primera vez). Ver app/api/estudiantes/route.ts.
+const PUBLIC_ROLES = ['profesor', 'beneficiario'];
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
     const {
       nombres, apellidos, password, rol,
-      // Campos de estudiante
-      carrera, modalidad, titulo_investigacion,
       // Campos de beneficiario
       contacto, situacion_laboral
     } = data;
@@ -57,12 +58,7 @@ export async function POST(request: Request) {
     const userId = userResult[0].id;
 
     // Insertar perfil dependiendo del rol
-    if (rol === 'estudiante') {
-      await sql`
-        INSERT INTO perfiles_estudiantes (usuario_id, carrera, modalidad, titulo_investigacion)
-        VALUES (${userId}, ${carrera || null}, ${modalidad || null}, ${titulo_investigacion || null})
-      `;
-    } else if (rol === 'beneficiario') {
+    if (rol === 'beneficiario') {
       await sql`
         INSERT INTO perfiles_beneficiarios (usuario_id, contacto, situacion_laboral)
         VALUES (${userId}, ${contacto || null}, ${situacion_laboral || null})

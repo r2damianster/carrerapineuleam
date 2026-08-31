@@ -12,11 +12,11 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!);
-    
+
     // Find user
     const users = await sql`
-      SELECT id, nombres, apellidos, email, password_hash, rol, modulos_acceso 
-      FROM usuarios 
+      SELECT id, nombres, apellidos, email, password_hash, rol, modulos_acceso, activado
+      FROM usuarios
       WHERE email = ${email}
     `;
 
@@ -25,11 +25,22 @@ export async function POST(request: Request) {
     }
 
     const user = users[0];
-    
-    // Validate password
-    const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+
+    if (!user.activado) {
+      // Primer ingreso: el pasante fue pre-registrado por su profesor (solo
+      // nombres/apellidos/email, sin password). Lo que escribe aquí se guarda
+      // como su clave definitiva.
+      if (password.length < 6) {
+        return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+      }
+      const nuevoHash = await bcrypt.hash(password, 10);
+      await sql`UPDATE usuarios SET password_hash = ${nuevoHash}, activado = true WHERE id = ${user.id}`;
+    } else {
+      // Validate password
+      const isValid = await bcrypt.compare(password, user.password_hash);
+      if (!isValid) {
+        return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+      }
     }
 
     // Create session

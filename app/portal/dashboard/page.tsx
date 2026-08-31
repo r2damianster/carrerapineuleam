@@ -51,7 +51,6 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
-                  <Link href="/registro" className="text-purple-600 hover:underline">» Registrar Nuevos Perfiles</Link>
                 </div>
               </div>
             )}
@@ -60,9 +59,9 @@ export default async function PortalDashboard() {
             {modulos_acceso.includes('investigacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Investigación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Espacios de investigación. Próximamente: artículos científicos.</p>
+                <p className="text-gray-600 mb-4 text-sm">Próximamente: artículos científicos y publicaciones.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/investigacion/espacios" className="text-green-600 hover:underline">» Espacios</Link>
+                  <span className="text-gray-400 text-sm italic">Sin opciones disponibles todavía</span>
                 </div>
               </div>
             )}

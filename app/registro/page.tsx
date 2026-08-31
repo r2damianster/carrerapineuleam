@@ -12,10 +12,7 @@ export default function RegistroPage() {
     apellidos: '',
     email: '',
     password: '',
-    rol: 'estudiante',
-    carrera: '',
-    modalidad: '',
-    titulo_investigacion: '',
+    rol: 'beneficiario',
     contacto: '',
     situacion_laboral: ''
   });
@@ -102,36 +99,11 @@ export default function RegistroPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700">Rol</label>
             <select name="rol" value={formData.rol} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-              <option value="estudiante">Estudiante Universitario</option>
               <option value="beneficiario">Beneficiario / Participante</option>
               <option value="profesor">Profesor</option>
             </select>
+            <p className="mt-1 text-xs text-gray-500">¿Eres estudiante de vinculación? Tu profesor debe registrarte primero desde Administrar Pasantes — luego entra directo en /portal/login con el correo que te dio.</p>
           </div>
-
-          {/* Campos condicionales para Estudiante */}
-          {formData.rol === 'estudiante' && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-md border">
-              <h3 className="text-sm font-semibold text-gray-900">Datos de Estudiante</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Carrera</label>
-                <input type="text" name="carrera" onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Modalidad de Vinculación</label>
-                <select name="modalidad" onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  <option value="">Seleccione...</option>
-                  <option value="club_ingles">Club de Inglés</option>
-                  <option value="podcast">Podcast</option>
-                  <option value="investigacion">Investigación</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Título de Investigación (Si aplica)</label>
-                <input type="text" name="titulo_investigacion" onChange={handleChange} placeholder="Ej. Prácticas pedagógicas en..." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-              </div>
-            </div>
-          )}
 
           {/* Campos condicionales para Beneficiario */}
           {formData.rol === 'beneficiario' && (
