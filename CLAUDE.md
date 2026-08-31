@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.1
-**Última sesión:** 2026-08-31 (Sesión 20 — carga masiva de pasantes por Excel + agrupación de KPIs por área. Ver detalle abajo)
+**Versión actual:** 0.10.2
+**Última sesión:** 2026-08-31 (Sesión 21 — datos extendidos de beneficiarios: edad, discapacidad, situación ocupacional condicional. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -78,7 +78,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Tabla | Para qué | Notas |
 |---|---|---|
 | `usuarios` | Personas del Portal (todos los roles) | Fuente de verdad de "quién es quién" en el sistema nuevo |
-| `perfiles_estudiantes` / `perfiles_beneficiarios` | Datos extra según rol | carrera/modalidad, contacto/situación laboral |
+| `perfiles_estudiantes` / `perfiles_beneficiarios` | Datos extra según rol | perfiles_estudiantes: carrera/modalidad. perfiles_beneficiarios (Sesión 21): contacto, edad, tiene_discapacidad/tipo_discapacidad, situacion_ocupacional (solo_estudia\|estudia_trabaja\|solo_trabaja\|desempleado_no_estudia) + condicionales rol_laboral / nivel_educativo (universidad\|colegio\|escuela) / carrera / curso — reemplaza la antigua columna situacion_laboral (texto libre) |
 | `espacios_enseñanza` | Clubes/aulas/cohortes | Columna `area`: `vinculacion`\|`investigacion` |
 | `espacio_instructores` | Qué estudiante es instructor de qué espacio | Base del control de acceso por espacio |
 | `inscripciones_espacio` | Beneficiarios asignados a un espacio | |
@@ -111,6 +111,12 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 21 — 2026-08-31)
+
+- ✅ **Datos extendidos de beneficiarios** (`/vinculacion/beneficiarios`, modo "Registrar nuevo"): agregados edad y discapacidad (checkbox + campo "¿cuál?"). Reemplazado el campo libre "Situación laboral" por un flujo condicional: select Situación ocupacional (solo estudia / estudia y trabaja / solo trabaja / desempleado y no estudia) → si trabaja pide rol; si estudia pide nivel educativo (universidad/colegio/escuela) → si es universidad pide carrera + curso. `perfiles_beneficiarios.situacion_laboral` (texto libre) eliminada de la tabla (estaba vacía en producción, sin riesgo de pérdida de datos) — ver `scripts/migrate-beneficiarios-perfil.js`. `POST /api/beneficiarios` actualizado para insertar las columnas nuevas.
 
 ---
 
@@ -513,6 +519,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-08-31 (Sesión 20)
-**Versión:** 0.10.1
+**Última actualización:** 2026-08-31 (Sesión 21)
+**Versión:** 0.10.2
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅

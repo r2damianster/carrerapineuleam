@@ -62,7 +62,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombres, apellidos, contacto, situacion_laboral, email, espacio_id } = await request.json();
+    const {
+      nombres, apellidos, contacto, email, espacio_id,
+      edad, tiene_discapacidad, tipo_discapacidad,
+      situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
+    } = await request.json();
 
     if (!nombres || !apellidos || !espacio_id) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -86,8 +90,14 @@ export async function POST(request: Request) {
     `;
 
     await sql`
-      INSERT INTO perfiles_beneficiarios (usuario_id, contacto, situacion_laboral)
-      VALUES (${nuevoUsuario.id}, ${contacto || null}, ${situacion_laboral || null})
+      INSERT INTO perfiles_beneficiarios (
+        usuario_id, contacto, edad, tiene_discapacidad, tipo_discapacidad,
+        situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso
+      )
+      VALUES (
+        ${nuevoUsuario.id}, ${contacto || null}, ${edad || null}, ${!!tiene_discapacidad}, ${tipo_discapacidad || null},
+        ${situacion_ocupacional || null}, ${rol_laboral || null}, ${nivel_educativo || null}, ${carrera || null}, ${curso || null}
+      )
     `;
 
     await sql`

@@ -17,7 +17,14 @@ export default function BeneficiariosPage() {
   const [todosBeneficiarios, setTodosBeneficiarios] = useState<any[]>([]);
   const [selectedBens, setSelectedBens] = useState<number[]>([]);
 
-  const [nuevoForm, setNuevoForm] = useState({ nombres: '', apellidos: '', contacto: '', situacion_laboral: '', email: '' });
+  const [nuevoForm, setNuevoForm] = useState({
+    nombres: '', apellidos: '', contacto: '', email: '',
+    edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
+    situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
+  });
+
+  const trabaja = ['estudia_trabaja', 'solo_trabaja'].includes(nuevoForm.situacion_ocupacional);
+  const estudia = ['solo_estudia', 'estudia_trabaja'].includes(nuevoForm.situacion_ocupacional);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -95,7 +102,11 @@ export default function BeneficiariosPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage(`Beneficiario "${data.data.nombres} ${data.data.apellidos}" registrado y asignado`);
-      setNuevoForm({ nombres: '', apellidos: '', contacto: '', situacion_laboral: '', email: '' });
+      setNuevoForm({
+        nombres: '', apellidos: '', contacto: '', email: '',
+        edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
+        situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
+      });
       fetch(`/api/beneficiarios?espacio_id=${espacioId}`).then(r => r.json()).then(d => { if (d.success) setInscritos(d.data); });
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -168,8 +179,59 @@ export default function BeneficiariosPage() {
               <input required placeholder="Apellidos" value={nuevoForm.apellidos} onChange={e => setNuevoForm({ ...nuevoForm, apellidos: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
             </div>
             <input placeholder="Contacto (teléfono)" value={nuevoForm.contacto} onChange={e => setNuevoForm({ ...nuevoForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-            <input placeholder="Situación laboral inicial" value={nuevoForm.situacion_laboral} onChange={e => setNuevoForm({ ...nuevoForm, situacion_laboral: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
             <input type="email" placeholder="Email (opcional)" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+
+            <input type="number" min="0" placeholder="Edad" value={nuevoForm.edad} onChange={e => setNuevoForm({ ...nuevoForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+
+            <label className="flex items-center gap-3 px-1 cursor-pointer">
+              <input type="checkbox" checked={nuevoForm.tiene_discapacidad} onChange={e => setNuevoForm({ ...nuevoForm, tiene_discapacidad: e.target.checked, tipo_discapacidad: e.target.checked ? nuevoForm.tipo_discapacidad : '' })} className="w-5 h-5 accent-uleam-blue" />
+              <span className="text-gray-700">Tiene discapacidad</span>
+            </label>
+            {nuevoForm.tiene_discapacidad && (
+              <input placeholder="¿Cuál?" value={nuevoForm.tipo_discapacidad} onChange={e => setNuevoForm({ ...nuevoForm, tipo_discapacidad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Situación ocupacional</label>
+              <select
+                value={nuevoForm.situacion_ocupacional}
+                onChange={e => setNuevoForm({ ...nuevoForm, situacion_ocupacional: e.target.value, rol_laboral: '', nivel_educativo: '', carrera: '', curso: '' })}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
+              >
+                <option value="">Selecciona...</option>
+                <option value="solo_estudia">Solo estudia</option>
+                <option value="estudia_trabaja">Estudia y trabaja</option>
+                <option value="solo_trabaja">Solo trabaja</option>
+                <option value="desempleado_no_estudia">Desempleado y no estudia</option>
+              </select>
+            </div>
+
+            {trabaja && (
+              <input placeholder="Rol que ejerce" value={nuevoForm.rol_laboral} onChange={e => setNuevoForm({ ...nuevoForm, rol_laboral: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            )}
+
+            {estudia && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nivel educativo</label>
+                <select
+                  value={nuevoForm.nivel_educativo}
+                  onChange={e => setNuevoForm({ ...nuevoForm, nivel_educativo: e.target.value, carrera: '', curso: '' })}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
+                >
+                  <option value="">Selecciona...</option>
+                  <option value="universidad">Universidad</option>
+                  <option value="colegio">Colegio</option>
+                  <option value="escuela">Escuela</option>
+                </select>
+              </div>
+            )}
+
+            {estudia && nuevoForm.nivel_educativo === 'universidad' && (
+              <>
+                <input placeholder="Carrera (ej. Carrera PINE, u otra)" value={nuevoForm.carrera} onChange={e => setNuevoForm({ ...nuevoForm, carrera: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                <input placeholder="Curso/semestre" value={nuevoForm.curso} onChange={e => setNuevoForm({ ...nuevoForm, curso: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+              </>
+            )}
             <p className="text-xs text-gray-500">El beneficiario no inicia sesión en el sistema — este registro es solo para llevar sus datos y evaluarlo.</p>
             <button disabled={loading} className="w-full px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition disabled:opacity-50">
               {loading ? 'Registrando...' : 'Registrar y Asignar a este Espacio'}
