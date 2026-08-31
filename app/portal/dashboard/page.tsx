@@ -80,7 +80,7 @@ export default async function PortalDashboard() {
             {/* Módulo: Dashboard Estadístico (Admin) */}
             {modulos_acceso.includes('admin') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Indicadores (Gerencia)</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Indicadores</h3>
                 <p className="text-gray-600 mb-4 text-sm">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/pine-dashboard" className="text-yellow-600 hover:underline">» Ver Dashboard PINE</Link>

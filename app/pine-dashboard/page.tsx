@@ -39,9 +39,10 @@ export default function PineDashboard() {
           </Link>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard de Indicadores PINE</h1>
-        
+
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Vinculación</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
+
           {/* Tarjeta 1: Propósito - Nivel Inglés */}
           <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
             <h3 className="text-lg font-semibold text-gray-700">Mejora de Nivel MCER</h3>
@@ -72,7 +73,7 @@ export default function PineDashboard() {
             </div>
           </div>
 
-          {/* Tarjeta 5: Investigación */}
+          {/* Tarjeta 5: Investigadores vinculados */}
           <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500">
             <h3 className="text-lg font-semibold text-gray-700">Investigadores Vinculados</h3>
             <p className="text-4xl font-bold text-indigo-600 my-2">{stats.investigadores} / 6</p>
@@ -83,6 +84,8 @@ export default function PineDashboard() {
           </div>
 
         </div>
+
+        {/* Próximas secciones: Investigación, Docencia, etc. — agregar un h2 + grid nuevo aquí */}
       </div>
     </div>
   );
