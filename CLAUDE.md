@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.0
-**Última sesión:** 2026-08-30 (Sesión 19 — overhaul completo del sistema Portal PINE: auth unificada, Neon Postgres, áreas Vinculación/Investigación, Gestión de Carrera. Ver detalle abajo)
+**Versión actual:** 0.10.1
+**Última sesión:** 2026-08-31 (Sesión 20 — carga masiva de pasantes por Excel + agrupación de KPIs por área. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -68,6 +68,8 @@ Dos conceptos separados, **no anidados uno dentro del otro**:
 ### Pasantes (estudiantes-instructores) — alta por el profesor, activación en el primer login
 `/vinculacion/pasantes` (solo profesor/admin con módulo `vinculacion`) es un **CRUD completo** — crear, editar, eliminar. Crear un pasante nuevo solo pide nombres/apellidos/email (`POST /api/estudiantes`); queda con `usuarios.activado = false` y un `password_hash` placeholder inutilizable. **No hay pantalla de registro para el pasante** — la primera vez que intenta entrar en `/portal/login` con ese email, `app/api/auth/portal-login/route.ts` detecta `activado = false` y guarda lo que escribió en el campo de password como su clave definitiva (`activado` pasa a `true`), en vez de compararla contra una existente. De ahí en adelante el login es el de siempre (`bcrypt.compare`). Esto es la implementación real del "estudiante debe tener lista fija" que quedaba pendiente — ya no es un array hardcodeado, es una fila en `usuarios` con `activado=false`.
 
+**Carga masiva por Excel (Sesión 20):** en la misma página, sección "Carga Masiva por Excel" — botón descarga plantilla `.xlsx` (columnas Nombres/Apellidos/Email, generada client-side con `xlsx`/SheetJS), input de archivo parsea el `.xlsx` subido en el navegador (`XLSX.read` + `sheet_to_json`, columnas detectadas sin importar mayúsculas) y llama `POST /api/estudiantes/bulk` con `dryRun:true` → tabla de vista previa con estado por fila (✅ OK / ❌ motivo: campos faltantes, email inválido, duplicado en el archivo, o ya existente en `usuarios`). Nada se guarda hasta pulsar "Confirmar y Crear", que reenvía solo las filas válidas con `dryRun:false` — mismo endpoint hace el insert real (misma lógica de placeholder `password_hash` + `activado=false` que el alta individual). El alta uno-por-uno original no cambió, es una sección aparte en la misma página.
+
 Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna función propia — la tarjeta "Gestionar Investigación" del Portal no tiene links, solo un texto "Próximamente" (se quitó el link a `/investigacion/espacios` porque no tenía nada real detrás; la página sigue en el código, sin enlazar).
 
 **Gestión de Carrera** (`/gestion-carrera`) es aparte: cualquier docente (investigación o vinculación) registra ahí eventos generales de difusión, categorizados como Investigación (¿qué proyecto?) / Vinculación / Asignatura (texto libre) — no reemplaza el formulario simple de Difusión que ya usa el estudiante-instructor dentro de su espacio.
@@ -109,6 +111,14 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 20 — 2026-08-31)
+
+- ✅ **Carga masiva de pasantes por Excel** — nueva dependencia `xlsx` (SheetJS) `^0.18.5`. Endpoint nuevo `POST /api/estudiantes/bulk` (dos modos vía `dryRun`, ver detalle en `## Portal PINE` → sección Pasantes). UI en `/vinculacion/pasantes`: plantilla descargable + input de archivo + tabla de vista previa + confirmación. Alta uno-por-uno y CRUD existentes de esa página no se tocaron.
+- ✅ Dashboard PINE (`/pine-dashboard`): las 4 tarjetas de KPI existentes agrupadas bajo `<h2>Vinculación</h2>` (preparado para sumar otras áreas a futuro).
+- ✅ Portal (`/portal/dashboard`): tarjeta "Indicadores (Gerencia)" → "Indicadores".
 
 ---
 
@@ -503,6 +513,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-08-30 (Sesión 19)
-**Versión:** 0.10.0
+**Última actualización:** 2026-08-31 (Sesión 20)
+**Versión:** 0.10.1
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅
