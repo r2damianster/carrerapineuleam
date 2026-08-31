@@ -50,9 +50,8 @@ export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM',
         { href: '/redlea', label: 'RED LEA' },
         { label: 'PROYECTOS', isHeader: true },
         { href: '/investigacion/proyecto-innovacion', label: 'Innovaciones Pedagógicas' },
-        { href: '/investigacion/desarrollo-habilidades', label: 'Desarrollo de las habilidades lingüísticas' },
-        { href: '/investigacion/mentoria-linguistica', label: 'Mentoría en el Desarrollo Lingüístico' }
-      ] 
+        { href: '/investigacion/desarrollo-habilidades', label: 'Desarrollo de las habilidades lingüísticas' }
+      ]
     },
     { label: t.nav.vinculacion, children: [{ href: '/vinculacion/dinamicas-linguisticas', label: t.vinculacionProject.navLabel }] },
   ];

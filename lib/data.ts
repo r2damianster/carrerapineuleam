@@ -137,18 +137,6 @@ export const members: Member[] = [
     created: '2026-07-21T00:00:00Z',
     updated: '2026-07-21T00:00:00Z',
   },
-  {
-    id: 'member_12',
-    name: 'Mg. Veronika Vera',
-    role: 'Responsable de Comisión Académica y Líder de Proyecto (Mentoría Lingüística)',
-    orcid: '',
-    email: 'veronika@uleam.edu.ec',
-    photo: '',
-    is_leader: true,
-    order: 12,
-    created: '2026-08-30T00:00:00Z',
-    updated: '2026-08-30T00:00:00Z',
-  },
 ];
 
 export const publications: Publication[] = [
