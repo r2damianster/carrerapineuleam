@@ -1082,8 +1082,11 @@ export const profesoresAutorizados = [
 // y (cuando exista) la vista de Vinculación en /docencia. 'investigacion' = ve
 // /docencia (Crear Espacios). 'admin' = ve /admin (gestión del sitio estático).
 export const profesorModulos: Record<string, string[]> = {
-  'arturo.rodriguez@uleam.edu.ec': ['admin', 'investigacion', 'vinculacion'],
-  'jhonny.villafuerte@uleam.edu.ec': ['admin', 'investigacion'],
+  // 'contenido_sitio' = gestión del contenido estático del proyecto (/admin, 10
+  // secciones CRUD in-memory) — restringido a lider/colider de ESTE proyecto,
+  // no confundir con 'admin' (que solo controla /pine-dashboard).
+  'arturo.rodriguez@uleam.edu.ec': ['admin', 'investigacion', 'vinculacion', 'contenido_sitio'],
+  'jhonny.villafuerte@uleam.edu.ec': ['admin', 'investigacion', 'contenido_sitio'],
   'german.carrera@uleam.edu.ec': ['admin', 'investigacion'],
   'maria.basantes@uleam.edu.ec': ['investigacion'], // Cristina Basantes
   'johanna.bello@uleam.edu.ec': ['investigacion'], // Johana Bello

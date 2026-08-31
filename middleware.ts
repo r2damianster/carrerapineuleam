@@ -48,10 +48,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Panel admin legacy (gestion de contenido estatico del sitio) — ahora vive
-  // bajo la misma sesion unificada del Portal, requiere modulo 'admin'.
+  // bajo la misma sesion unificada del Portal, requiere modulo 'contenido_sitio'
+  // (distinto de 'admin', que solo controla /pine-dashboard). Restringido a
+  // lider/colider de este proyecto especifico.
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     const session = await verifySessionCookieValue(request.cookies.get(SESSION_COOKIE.name)?.value);
-    if (!session || !session.modulos_acceso.includes('admin')) {
+    if (!session || !session.modulos_acceso.includes('contenido_sitio')) {
       const loginUrl = new URL('/portal/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);

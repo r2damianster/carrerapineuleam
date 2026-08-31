@@ -12,7 +12,7 @@ export async function GET(
     // Check authentication
     const session = await verifySessionCookieValue(request.cookies.get(SESSION_COOKIE.name)?.value);
 
-    if (!session || !session.modulos_acceso.includes('admin')) {
+    if (!session || !session.modulos_acceso.includes('contenido_sitio')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
