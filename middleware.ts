@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
-    if (pathname.startsWith('/pine-dashboard') && !session.modulos_acceso.includes('admin')) {
+    if (pathname.startsWith('/pine-dashboard') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
@@ -70,8 +70,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Utilidades: generadores de documentos (Acta Técnica, Oficios, Convocatorias,
-    // PAT Maestría, Pares Lectores) — mismo módulo que la tarjeta del dashboard.
-    if (pathname.startsWith('/utilidades') && !session.modulos_acceso.includes('utilidades')) {
+    // PAT Maestría, Pares Lectores) — abierto a cualquier docente, no ligado a modulos_acceso.
+    if (pathname.startsWith('/utilidades') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
   }

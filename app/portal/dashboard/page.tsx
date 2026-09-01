@@ -68,19 +68,23 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Gestión de Carrera: cualquier docente, sin importar el módulo */}
+            {/* Contribuciones Académicas: registro de artículos/libros/eventos y difusión — cualquier docente registra, solo admin ve el listado */}
             {esDocente && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Aportar a la Carrera</h3>
-                <p className="text-gray-600 mb-4 text-sm">Registro de eventos y difusión a nivel de carrera (investigación, vinculación o asignatura).</p>
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-pink-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Contribuciones Académicas</h3>
+                <p className="text-gray-600 mb-4 text-sm">Registra tus artículos, libros, capítulos, ponencias, propiedad intelectual y eventos de difusión (investigación, vinculación o asignatura).</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento</Link>
+                  <Link href="/contribuciones/new" className="text-pink-600 hover:underline">» Registrar Contribución</Link>
+                  <Link href="/gestion-carrera" className="text-pink-600 hover:underline">» Registrar Evento</Link>
+                  {modulos_acceso.includes('admin') && (
+                    <Link href="/contribuciones" className="text-pink-600 hover:underline">» Ver Contribuciones Registradas</Link>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Módulo: Dashboard Estadístico (Admin) */}
-            {(modulos_acceso.includes('admin') || modulos_acceso.includes('indicadores')) && (
+            {/* Módulo: Dashboard Estadístico — cualquier docente */}
+            {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Indicadores</h3>
                 <p className="text-gray-600 mb-4 text-sm">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
@@ -89,8 +93,8 @@ export default async function PortalDashboard() {
                 </div>
               </div>
             )}
-            {/* Utilidades – future toolbox */}
-            {modulos_acceso.includes('utilidades') && (
+            {/* Utilidades — cualquier docente */}
+            {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Utilidades</h3>
                 <p className="text-gray-600 mb-4 text-sm">
@@ -100,19 +104,6 @@ export default async function PortalDashboard() {
                   <Link href="/utilidades" className="text-teal-600 hover:underline">
                     » Ver Utilidades
                   </Link>
-                </div>
-              </div>
-            )}
-            {/* Contribuciones académicas: cualquier docente registra, solo admin ve el listado */}
-            {esDocente && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-pink-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Contribuciones Académicas</h3>
-                <p className="text-gray-600 mb-4 text-sm">Registra tus artículos, libros, capítulos, ponencias y propiedad intelectual.</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/contribuciones/new" className="text-pink-600 hover:underline">» Registrar Contribución</Link>
-                  {modulos_acceso.includes('admin') && (
-                    <Link href="/contribuciones" className="text-pink-600 hover:underline">» Ver Contribuciones Registradas</Link>
-                  )}
                 </div>
               </div>
             )}
