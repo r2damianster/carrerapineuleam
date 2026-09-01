@@ -1175,59 +1175,10 @@ export const vinculacionEnglishClubPhotos: VinculacionEnglishClubPhoto[] = [
   },
 ];
 
-export const siteSettings: SiteSettings[] = [
-  {
-    id: 'setting_1',
-    key: 'facebook_url',
-    value: 'https://facebook.com/uleam',
-    section: 'social',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-  {
-    id: 'setting_2',
-    key: 'twitter_url',
-    value: 'https://twitter.com/uleam',
-    section: 'social',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-  {
-    id: 'setting_3',
-    key: 'instagram_url',
-    value: 'https://instagram.com/uleam',
-    section: 'social',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-  {
-    id: 'setting_4',
-    key: 'youtube_url',
-    value: 'https://youtube.com/@uleam',
-    section: 'social',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-  {
-    id: 'setting_5',
-    key: 'contact_email',
-    value: 'innovacion@uleam.edu.ec',
-    section: 'contact',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-  {
-    id: 'setting_6',
-    key: 'institution_name',
-    value: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM)',
-    section: 'general',
-    created: '2025-01-01T00:00:00Z',
-    updated: '2025-01-01T00:00:00Z',
-  },
-];
 
 
-];
+
+
 
 // Lista fija de docentes autorizados a registrarse con rol "profesor" en /registro
 // (panel /docencia, /pine-dashboard — tabla usuarios en Neon). No es autoregistro
