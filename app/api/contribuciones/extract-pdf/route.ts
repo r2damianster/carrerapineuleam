@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppSessionFromCookies } from "@/lib/session";
 import { extraerTexto } from "@/app/utilidades/_lib/extraerTexto";
-import { precargarDesdeTexto } from "@/app/contribuciones/_lib/extraerContribucion";
+import { precargarDesdeTexto, marcarAutoresDeCarrera } from "@/app/contribuciones/_lib/extraerContribucion";
 
 export const runtime = "nodejs";
 
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const texto = await extraerTexto(archivo.name, buffer);
     const [datos, error] = await precargarDesdeTexto(texto);
     if (error) return NextResponse.json({ error }, { status: 500 });
+    datos!.authors = await marcarAutoresDeCarrera(datos!.authors);
     return NextResponse.json(datos);
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : String(error);

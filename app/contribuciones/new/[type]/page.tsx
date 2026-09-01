@@ -144,7 +144,8 @@ export default function NewContributionPage({ params }: { params: { type: string
       <div className="bg-gray-50 border rounded p-4 mb-6 space-y-3">
         <h2 className="font-medium text-gray-800">Autocompletar (opcional)</h2>
         <p className="text-sm text-gray-500">
-          Busca por DOI o sube el PDF del artículo — la IA precarga los campos, revísalos antes de guardar.
+          Busca por DOI o sube el PDF del artículo — la IA precarga los campos y marca como "Carrera" a
+          los autores que coincidan con un docente registrado. Revisa todo antes de guardar.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input

@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless";
 import { pedirCompletionIA, formatearErrorIA } from "../../utilidades/_lib/groq";
 
 export interface AutorExtraido {
@@ -132,4 +133,54 @@ export async function precargarDesdeDoi(doiOTexto: string): Promise<[DatosContri
     },
     null,
   ];
+}
+
+function normalizarNombre(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .trim();
+}
+
+function tokensSignificativos(texto: string): string[] {
+  return normalizarNombre(texto)
+    .split(/\s+/)
+    .filter(token => token.length >= 3);
+}
+
+/**
+ * Marca isCarreraAuthor=true en los autores extraídos cuyo nombre coincida con un docente
+ * registrado (usuarios.rol='profesor'). Comparación por tokens (nombres+apellidos, sin acentos)
+ * para tolerar orden distinto ("Nombre Apellido" vs "Apellido, Nombre") y variantes menores.
+ * Es una sugerencia — el docente sigue pudiendo des/marcar cada autor manualmente en el wizard.
+ */
+export async function marcarAutoresDeCarrera(authors: AutorExtraido[]): Promise<AutorExtraido[]> {
+  if (!authors.length || !process.env.DATABASE_URL) return authors;
+
+  let docentes: { id: number; nombres: string; apellidos: string }[];
+  try {
+    const sql = neon(process.env.DATABASE_URL);
+    docentes = (await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol = 'profesor'`) as any;
+  } catch {
+    return authors; // si falla la consulta, se deja la sugerencia por defecto (sin marcar)
+  }
+
+  const docentesConTokens = docentes
+    .map(d => ({ tokens: tokensSignificativos(`${d.nombres} ${d.apellidos}`) }))
+    .filter(d => d.tokens.length > 0);
+
+  return authors.map(autor => {
+    const tokensAutor = new Set(tokensSignificativos(autor.authorName));
+    if (tokensAutor.size === 0) return autor;
+
+    const coincide = docentesConTokens.some(docente => {
+      const coincidencias = docente.tokens.filter(t => tokensAutor.has(t)).length;
+      const minimoRequerido = docente.tokens.length <= 2 ? docente.tokens.length : 2;
+      return coincidencias >= minimoRequerido;
+    });
+
+    return coincide ? { ...autor, isCarreraAuthor: true } : autor;
+  });
 }
