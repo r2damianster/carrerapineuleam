@@ -48,6 +48,7 @@ const baseSchema = z.object({
       authorName: z.string(),
       order: z.number().int().min(1).max(5),
       isCarreraAuthor: z.boolean(),
+      esEstudiante: z.boolean().optional().default(false),
     })
   ),
 });
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
           authorName: a.authorName,
           order: a.order,
           isCarreraAuthor: a.isCarreraAuthor,
+          esEstudiante: a.esEstudiante,
         })),
       },
     },

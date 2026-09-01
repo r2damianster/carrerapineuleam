@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppSessionFromCookies } from "@/lib/session";
-import { precargarDesdeDoi, marcarAutoresDeCarrera } from "@/app/contribuciones/_lib/extraerContribucion";
+import { precargarDesdeDoi } from "@/app/contribuciones/_lib/extraerContribucion";
 
 export async function POST(request: NextRequest) {
   const usuario = await getAppSessionFromCookies();
@@ -16,6 +16,5 @@ export async function POST(request: NextRequest) {
 
   const [datos, error] = await precargarDesdeDoi(doi);
   if (error) return NextResponse.json({ error }, { status: 400 });
-  datos!.authors = await marcarAutoresDeCarrera(datos!.authors);
   return NextResponse.json(datos);
 }

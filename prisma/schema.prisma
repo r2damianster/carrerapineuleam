@@ -70,4 +70,5 @@ model ContributionAuthor {
   authorName       String
   order            Int      // 1..5
   isCarreraAuthor  Boolean
+  esEstudiante     Boolean  @default(false) // solo aplica si isCarreraAuthor=true; docente vs estudiante de la carrera
 }

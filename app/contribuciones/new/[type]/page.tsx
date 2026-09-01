@@ -32,6 +32,7 @@ const schema = yup.object({
         authorName: yup.string().required(),
         order: yup.number().integer().min(1).max(5).required(),
         isCarreraAuthor: yup.boolean().required(),
+        esEstudiante: yup.boolean().required(),
       })
     )
     .min(1)
@@ -48,12 +49,13 @@ export default function NewContributionPage({ params }: { params: { type: string
     control,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: yupResolver(schema),
     defaultValues: {
       tipoPublicacion: params.type as TipoPublicacion,
-      authors: [{ authorName: '', order: 1, isCarreraAuthor: true }],
+      authors: [{ authorName: '', order: 1, isCarreraAuthor: true, esEstudiante: false }],
     },
   })
 
@@ -68,13 +70,15 @@ export default function NewContributionPage({ params }: { params: { type: string
     fechaPublicacion?: string
     campoDetallado?: string
     estado?: 'PUBLICADO' | 'ACEPTADO' | 'OTRO'
-    authors?: { authorName: string; order: number; isCarreraAuthor: boolean }[]
+    authors?: { authorName: string; order: number; isCarreraAuthor: boolean; esEstudiante?: boolean }[]
   }) => {
     if (datos.titulo) setValue('titulo', datos.titulo)
     if (datos.fechaPublicacion) setValue('fechaPublicacion', datos.fechaPublicacion)
     if (datos.campoDetallado) setValue('campoDetallado', datos.campoDetallado)
     if (datos.estado) setValue('estado', datos.estado)
-    if (datos.authors && datos.authors.length > 0) replaceAuthors(datos.authors)
+    if (datos.authors && datos.authors.length > 0) {
+      replaceAuthors(datos.authors.map(a => ({ ...a, esEstudiante: a.esEstudiante ?? false })))
+    }
   }
 
   const buscarPorDoi = async () => {
@@ -133,7 +137,7 @@ export default function NewContributionPage({ params }: { params: { type: string
 
   const addAuthor = () => {
     if (authorFields.length < 5) {
-      appendAuthor({ authorName: '', order: authorFields.length + 1, isCarreraAuthor: false })
+      appendAuthor({ authorName: '', order: authorFields.length + 1, isCarreraAuthor: true, esEstudiante: false })
     }
   }
 
@@ -144,8 +148,9 @@ export default function NewContributionPage({ params }: { params: { type: string
       <div className="bg-gray-50 border rounded p-4 mb-6 space-y-3">
         <h2 className="font-medium text-gray-800">Autocompletar (opcional)</h2>
         <p className="text-sm text-gray-500">
-          Busca por DOI o sube el PDF del artículo — la IA precarga los campos y marca como "Carrera" a
-          los autores que coincidan con un docente registrado. Revisa todo antes de guardar.
+          Busca por DOI o sube el PDF del artículo — la IA precarga los campos. Todos los autores quedan
+          marcados como "Carrera" por defecto (desmarca los que sean externos), y puedes indicar cuáles
+          son estudiantes. Revisa todo antes de guardar.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -236,28 +241,40 @@ export default function NewContributionPage({ params }: { params: { type: string
         {/* Autores */}
         <div>
           <label className="block font-medium mb-2">Autores (máx 5)</label>
-          {authorFields.map((author, index) => (
-            <div key={author.id} className="grid grid-cols-4 gap-2 mb-2">
-              <input
-                type="text"
-                placeholder="Nombre"
-                {...register(`authors.${index}.authorName` as const)}
-                className="col-span-2 border rounded p-1"
-              />
-              <input
-                type="number"
-                placeholder="#"
-                min={1}
-                max={5}
-                {...register(`authors.${index}.order` as const, { valueAsNumber: true })}
-                className="border rounded p-1"
-              />
-              <label className="flex items-center">
-                <input type="checkbox" {...register(`authors.${index}.isCarreraAuthor` as const)} className="mr-1" />
-                Carrera
-              </label>
-            </div>
-          ))}
+          {authorFields.map((author, index) => {
+            const esDeCarrera = watch(`authors.${index}.isCarreraAuthor`)
+            return (
+              <div key={author.id} className="grid grid-cols-5 gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  {...register(`authors.${index}.authorName` as const)}
+                  className="col-span-2 border rounded p-1"
+                />
+                <input
+                  type="number"
+                  placeholder="#"
+                  min={1}
+                  max={5}
+                  {...register(`authors.${index}.order` as const, { valueAsNumber: true })}
+                  className="border rounded p-1"
+                />
+                <label className="flex items-center">
+                  <input type="checkbox" {...register(`authors.${index}.isCarreraAuthor` as const)} className="mr-1" />
+                  Carrera
+                </label>
+                <label className={`flex items-center ${esDeCarrera ? '' : 'text-gray-300'}`}>
+                  <input
+                    type="checkbox"
+                    disabled={!esDeCarrera}
+                    {...register(`authors.${index}.esEstudiante` as const)}
+                    className="mr-1"
+                  />
+                  Estudiante
+                </label>
+              </div>
+            )
+          })}
           {errors.authors && <p className="text-red-600">{(errors.authors as any).message}</p>}
           {authorFields.length < 5 && (
             <button type="button" onClick={addAuthor} className="mt-2 px-3 py-1 bg-blue-600 text-white rounded">
