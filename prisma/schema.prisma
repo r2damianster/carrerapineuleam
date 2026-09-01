@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoPublicacion {
+  ARTICULO_REGIONAL
+  ARTICULO_ALTO_IMPACTO
+  LIBRO
+  CAPITULO_LIBRO
+  MEMORIA_EVENTO
+  PROPIEDAD_INTELECTUAL
+}
+
+enum CategoriaDocente {
+  AUXILIAR_I
+  AUXILIAR_II
+  AGREGADO_I
+  AGREGADO_II
+  PRINCIPAL_I
+  PRINCIPAL_II
+}
+
+model Contribution {
+  id                     String   @id @default(cuid())
+  codigo_ies             String   @default("ULEAM")
+  facultad               String
+  carrera                String
+  tipoPublicacion        TipoPublicacion
+  tipoArticulo           String?   // solo para artículos
+  codigoPublicacion      String?
+  proyecto               String?
+  titulo                 String
+  tituloLibro            String?   // para libros y capítulos
+  nombreRevista          String?   // para artículos
+  issn                   String?
+  isbn                   String?
+  fechaPublicacion       DateTime
+  campoDetallado         String
+  estado                 String
+  linkPublicacion        String?
+  linkRevista            String?
+  filiacion              String?
+  identificacionParticipante String?
+  categoria              CategoriaDocente?
+  participacion          String?
+  cuartil                String?
+  lineaInvestigacion    String
+  intercultural          String?
+  fechaSubida            DateTime @default(now())
+  validadoPor            String?   // id del admin que valida
+  fechaValidacion        DateTime?
+  authors                ContributionAuthor[]
+}
+
+model ContributionAuthor {
+  id               String   @id @default(cuid())
+  contributionId   String
+  contribution     Contribution @relation(fields: [contributionId], references: [id])
+  authorName       String
+  order            Int      // 1..5
+  isCarreraAuthor  Boolean
+}
