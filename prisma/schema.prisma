@@ -57,6 +57,7 @@ model Contribution {
   participacion          String?
   cuartil                String?
   lineaInvestigacion    String
+  periodoAcademico      String
   intercultural          String?
   baseDatosIndexada     String?   // artículos regionales/alto impacto
   revisadoPares         Boolean  @default(true) // libros
