@@ -1226,32 +1226,7 @@ export const siteSettings: SiteSettings[] = [
   },
 ];
 
-// Admin users configuration
-export const adminUsers = [
-  {
-    id: 'admin_1',
-    email: 'arturo.rodriguez@uleam.edu.ec',
-    password: 'Pine2026',
-    role: 'admin' as const,
-  },
-  {
-    id: 'admin_2',
-    email: 'jhonny.villafuerte@uleam.edu.ec',
-    password: 'Pine2026',
-    role: 'admin' as const,
-  },
-  {
-    id: 'admin_3',
-    email: 'german.carrera@uleam.edu.ec',
-    password: 'Pine2026',
-    role: 'admin' as const,
-  },
-  {
-    id: 'admin_4',
-    email: 'veronica.chavez@uleam.edu.ec',
-    password: 'Pine2026',
-    role: 'admin' as const,
-  },
+
 ];
 
 // Lista fija de docentes autorizados a registrarse con rol "profesor" en /registro
