@@ -34,11 +34,6 @@ const PARTICIPACIONES = ['Autor', 'Coautor', 'Traductor', 'Otro'] as const
 
 const FILIACION_DEFAULT = 'Universidad Laica Eloy Alfaro de Manabí'
 
-const TIPO_ARTICULO_LABEL: Record<string, string> = {
-  ARTICULO_REGIONAL: 'Artículo Regional',
-  ARTICULO_ALTO_IMPACTO: 'Artículo de Alto Impacto',
-}
-
 // Esquema de validación: campos comunes obligatorios, específicos por tipo opcionales
 const schema = yup.object({
   tipoPublicacion: yup.string().oneOf(TIPOS_PUBLICACION).required(),
@@ -173,7 +168,6 @@ export default function NewContributionPage({ params }: { params: { type: string
     resolver: yupResolver(schema) as any,
     defaultValues: {
       tipoPublicacion: tipo,
-      tipoArticulo: TIPO_ARTICULO_LABEL[tipo] ?? undefined,
       lineaInvestigacion: LINEA_INVESTIGACION_DEFAULT,
       filiacion: FILIACION_DEFAULT,
       revisadoPares: true,
@@ -392,11 +386,11 @@ export default function NewContributionPage({ params }: { params: { type: string
             <h3 className="font-medium text-gray-700">Datos específicos del artículo</h3>
             <div>
               <label className="block text-sm">Tipo de artículo</label>
-              <input type="text" readOnly {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2 bg-gray-100" />
+              <input type="text" placeholder="ej: Revista, Investigación" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
             </div>
             <div>
-              <label className="block text-sm">Código de publicación</label>
-              <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
+              <label className="block text-sm">Código de publicación (DOI)</label>
+              <input type="text" placeholder="https://doi.org/…" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
             </div>
             <ProyectoField register={register} />
             <div>

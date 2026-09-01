@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const buffer = renderizarPlantilla("Convocatoria_Docentes.docx", {
       ...contexto,
       docentes: datosDocentesParaLista(docentes),
-      firmasPares: datosDocentesParaFirmas(docentes),
+      firmantes: datosDocentesParaFirmas(docentes),
     });
 
     return respuestaDocx(buffer, "Convocatoria_Docentes.docx");

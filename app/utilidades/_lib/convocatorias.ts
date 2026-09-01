@@ -80,25 +80,16 @@ export async function procesarExcelEstudiantes(archivos: File[]): Promise<string
 /** Contexto docxtemplater para la tabla de asistencia de docentes (loop {{#docentes}}). */
 export function datosDocentesParaLista(docentes: Docente[]) {
   return docentes.map((d, idx) => ({
-    numero: idx + 1,
-    cargo: d.cargo,
-    nombreCompleto: `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`,
+    NUM: idx + 1,
+    CARGO_DOCENTE: d.cargo,
+    NOMBRE_DOCENTE: `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`,
   }));
 }
 
-/** Contexto docxtemplater para la tabla de firmas de docentes (2 por fila, loop {{#firmasPares}}). */
+/** Contexto docxtemplater para el bloque de firmas de docentes (1 por fila, loop {{#firmantes}}). */
 export function datosDocentesParaFirmas(docentes: Docente[]) {
-  const nombreCompleto = (d: Docente) => `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`;
-  const pares: Array<{ izq_nombre: string; izq_cargo: string; der_nombre: string; der_cargo: string }> = [];
-  for (let i = 0; i < docentes.length; i += 2) {
-    const izq = docentes[i];
-    const der = docentes[i + 1];
-    pares.push({
-      izq_nombre: nombreCompleto(izq),
-      izq_cargo: izq.cargo,
-      der_nombre: der ? nombreCompleto(der) : "",
-      der_cargo: der ? der.cargo : "",
-    });
-  }
-  return pares;
+  return docentes.map((d) => ({
+    FIRMA_NOMBRE: `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`,
+    FIRMA_CARGO: d.cargo,
+  }));
 }

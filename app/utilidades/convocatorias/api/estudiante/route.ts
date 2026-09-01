@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const buffer = renderizarPlantilla("Convocatoria_Estudiantes.docx", {
       ...contexto,
-      estudiantes,
+      estudiantes: estudiantes.map((nombre) => ({ nombre })),
     });
 
     return respuestaDocx(buffer, "Convocatoria_Estudiantes.docx");
