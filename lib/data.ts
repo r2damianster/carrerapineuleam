@@ -1060,7 +1060,7 @@ export const profesorModulos: Record<string, string[]> = {
   'jorge.corral@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
 };
 export const activities: Activity[] = [
-    id: 'activity_6',
+    { id: 'activity_6',
     title: 'Capacitación en Clasificación de Artículos Científicos — Carrera de Pedagogía de Lengua y Literatura',
     description: 'Actividad de transferencia realizada el 3 de junio de 2026. Capacitación dirigida a estudiantes y docentes de la carrera de Pedagogía de Lengua y Literatura sobre metodologías y criterios para la clasificación y evaluación de artículos científicos. Contribución del proyecto PINE al fortalecimiento de competencias en investigación.',
     photos: [],
