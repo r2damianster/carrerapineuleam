@@ -20,6 +20,7 @@ export async function middleware(request: NextRequest) {
     '/gestion-carrera',
     '/docencia',
     '/pine-dashboard',
+    '/contribuciones',
   ];
 
   const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
@@ -55,6 +56,15 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith('/pine-dashboard') && !session.modulos_acceso.includes('admin')) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Listado de contribuciones: solo admin. El wizard de registro
+    // (/contribuciones/new/*) queda abierto a cualquier docente autenticado.
+    if (pathname === '/contribuciones' && !session.modulos_acceso.includes('admin')) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+    if (pathname.startsWith('/contribuciones/new') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
   }

@@ -1,7 +1,7 @@
 "use client"
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, useFieldArray } from 'react-hook-form'
 import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
 
@@ -17,50 +17,18 @@ const TIPOS_PUBLICACION = [
 
 type TipoPublicacion = typeof TIPOS_PUBLICACION[number]
 
-interface AuthorForm {
-  authorName: string
-  order: number
-  isCarreraAuthor: boolean
-}
-
-interface FormValues {
-  // campos comunes
-  tipoPublicacion: TipoPublicacion
-  titulo: string
-  lineaInvestigacion: string
-  fechaPublicacion: string
-  campoDetallado: string
-  estado: 'PUBLICADO' | 'ACEPTADO' | 'OTRO'
-  // opcionales
-  codigoPublicacion?: string
-  proyecto?: string
-  nombreRevista?: string
-  issn?: string
-  isbn?: string
-  linkPublicacion?: string
-  linkRevista?: string
-  filiacion?: string
-  identificacionParticipante?: string
-  categoria?: string
-  participacion?: string
-  cuartil?: string
-  intercultural?: string
-  // autores
-  authors: AuthorForm[]
-}
-
 // Esquema de validación básico (puedes ampliarlo según tipo)
-const schema = yup.object().shape({
-  tipoPublicacion: yup.string().oneOf(TIPOS_PUBLICACION as any).required(),
+const schema = yup.object({
+  tipoPublicacion: yup.string().oneOf(TIPOS_PUBLICACION).required(),
   titulo: yup.string().required(),
   lineaInvestigacion: yup.string().required(),
-  fechaPublicacion: yup.date().required(),
+  fechaPublicacion: yup.string().required(),
   campoDetallado: yup.string().required(),
-  estado: yup.mixed().oneOf(['PUBLICADO', 'ACEPTADO', 'OTRO']).required(),
+  estado: yup.string().oneOf(['PUBLICADO', 'ACEPTADO', 'OTRO'] as const).required(),
   authors: yup
     .array()
     .of(
-      yup.object().shape({
+      yup.object({
         authorName: yup.string().required(),
         order: yup.number().integer().min(1).max(5).required(),
         isCarreraAuthor: yup.boolean().required(),
@@ -70,6 +38,8 @@ const schema = yup.object().shape({
     .required(),
 })
 
+type FormValues = yup.InferType<typeof schema>
+
 export default function NewContributionPage({ params }: { params: { type: string } }) {
   const router = useRouter()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -77,7 +47,6 @@ export default function NewContributionPage({ params }: { params: { type: string
     register,
     control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: yupResolver(schema),
@@ -86,6 +55,8 @@ export default function NewContributionPage({ params }: { params: { type: string
       authors: [{ authorName: '', order: 1, isCarreraAuthor: true }],
     },
   })
+
+  const { fields: authorFields, append: appendAuthor } = useFieldArray({ control, name: 'authors' })
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -98,17 +69,15 @@ export default function NewContributionPage({ params }: { params: { type: string
         const err = await res.json()
         throw new Error(err.error || 'Error al registrar')
       }
-      router.push('/contribuciones')
+      router.push('/portal/dashboard?contribucion=registrada')
     } catch (e: any) {
       setErrorMsg(e.message)
     }
   }
 
   const addAuthor = () => {
-    const fields = watch('authors') as AuthorForm[]
-    if (fields.length < 5) {
-      // @ts-ignore
-      control.append('authors', { authorName: '', order: fields.length + 1, isCarreraAuthor: false })
+    if (authorFields.length < 5) {
+      appendAuthor({ authorName: '', order: authorFields.length + 1, isCarreraAuthor: false })
     }
   }
 
@@ -169,8 +138,8 @@ export default function NewContributionPage({ params }: { params: { type: string
         {/* Autores */}
         <div>
           <label className="block font-medium mb-2">Autores (máx 5)</label>
-          {watch('authors')?.map((author, index) => (
-            <div key={index} className="grid grid-cols-4 gap-2 mb-2">
+          {authorFields.map((author, index) => (
+            <div key={author.id} className="grid grid-cols-4 gap-2 mb-2">
               <input
                 type="text"
                 placeholder="Nombre"
@@ -182,7 +151,7 @@ export default function NewContributionPage({ params }: { params: { type: string
                 placeholder="#"
                 min={1}
                 max={5}
-                {...register(`authors.${index}.order` as const)}
+                {...register(`authors.${index}.order` as const, { valueAsNumber: true })}
                 className="border rounded p-1"
               />
               <label className="flex items-center">
@@ -192,7 +161,7 @@ export default function NewContributionPage({ params }: { params: { type: string
             </div>
           ))}
           {errors.authors && <p className="text-red-600">{(errors.authors as any).message}</p>}
-          {watch('authors')?.length < 5 && (
+          {authorFields.length < 5 && (
             <button type="button" onClick={addAuthor} className="mt-2 px-3 py-1 bg-blue-600 text-white rounded">
               Añadir autor
             </button>

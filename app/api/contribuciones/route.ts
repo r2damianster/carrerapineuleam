@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { getAppSessionFromCookies } from '@/lib/session';
 
 // Esquema de validación usando Zod – los campos dependen del tipo de publicación
 const baseSchema = z.object({
@@ -51,14 +52,9 @@ const baseSchema = z.object({
   ),
 });
 
-/** Helper to extract role from request headers (set by auth middleware) */
-function getUserRole(request: Request): string | null {
-  return request.headers.get('x-user-role');
-}
-
-export async function GET(request: Request) {
-  const role = getUserRole(request);
-  if (role !== 'admin') {
+export async function GET() {
+  const usuario = await getAppSessionFromCookies();
+  if (!usuario || !usuario.modulos_acceso.includes('admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const contributions = await prisma.contribution.findMany({
@@ -69,9 +65,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const role = getUserRole(request);
-  if (!role) {
-    return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  const usuario = await getAppSessionFromCookies();
+  if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
   const body = await request.json();
   const parseResult = baseSchema.safeParse(body);
@@ -124,8 +120,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const role = getUserRole(request);
-  if (role !== 'admin') {
+  const usuario = await getAppSessionFromCookies();
+  if (!usuario || !usuario.modulos_acceso.includes('admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(request.url);

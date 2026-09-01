@@ -103,6 +103,20 @@ export default async function PortalDashboard() {
                 </div>
               </div>
             )}
+            {/* Contribuciones académicas: cualquier docente registra, solo admin ve el listado */}
+            {esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-pink-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Contribuciones Académicas</h3>
+                <p className="text-gray-600 mb-4 text-sm">Registra tus artículos, libros, capítulos, ponencias y propiedad intelectual.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/contribuciones/new" className="text-pink-600 hover:underline">» Registrar Contribución</Link>
+                  {modulos_acceso.includes('admin') && (
+                    <Link href="/contribuciones" className="text-pink-600 hover:underline">» Ver Contribuciones Registradas</Link>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Módulo: Gestión de MI PROYECTO — solo líder/colider de este proyecto */}
             {modulos_acceso.includes('contenido_sitio') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500 hover:shadow-lg transition">

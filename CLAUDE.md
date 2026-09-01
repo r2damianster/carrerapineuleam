@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.3
-**Última sesión:** 2026-09-01 (Sesión 23 — profesor(es) responsable(s) en actividades_difusion. Ver detalle abajo)
+**Versión actual:** 0.10.4
+**Última sesión:** 2026-09-01 (Sesión 24 — módulo Contribuciones Académicas: reparado build roto en Vercel + auth nunca conectada. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -33,12 +33,17 @@
 | Frontend | Next.js 14 (App Router) + TypeScript |
 | Estilos | TailwindCSS personalizado (colores ULEAM) |
 | Sitio público (contenido) | Estático en `/lib/data.ts` (in-memory vía `/lib/db.ts`) — miembros, publicaciones, videos, noticias, actividades |
-| **Portal PINE** (docencia/vinculación/investigación) | **Neon Postgres** — ver `## Portal PINE` abajo |
+| **Portal PINE** (docencia/vinculación/investigación) | **Neon Postgres** vía `@neondatabase/serverless` (SQL crudo) — ver `## Portal PINE` abajo |
+| **Contribuciones Académicas** (módulo aparte) | **Mismo Neon**, pero acceso vía **Prisma ORM** (`lib/prisma.ts`, `prisma/schema.prisma`) — único módulo del repo que no usa SQL crudo. Ver `## Portal PINE` → sección Contribuciones |
 | Auth | Cookie httpOnly firmada (HMAC, Web Crypto) — `lib/session.ts`, unificada para todo (admin legacy + Portal) |
 | Uploads (fotos/evidencias) | Cloudinary (`app/api/upload`) |
 | Deploy | Vercel — Next.js en raíz del repo, auto-deploy on push a `main` |
 
-**Dependencias clave (`package.json`):** `@neondatabase/serverless`, `bcryptjs` (hash de passwords del Portal), `cloudinary`, `docx`+`jszip` (generación de certificados y test MCER descargable).
+**Dependencias clave (`package.json`):** `@neondatabase/serverless`, `bcryptjs` (hash de passwords del Portal), `cloudinary`, `docx`+`jszip` (generación de certificados y test MCER descargable), `@prisma/client`+`prisma` (módulo Contribuciones, ver nota abajo), `react-hook-form`+`yup`+`@hookform/resolvers` (formulario del wizard de Contribuciones), `zod` (validación de `POST /api/contribuciones`).
+
+> ⚠️ **Prisma en este repo está fijado a `^6.19.3`, no actualizar a 7.x sin revisar.** Prisma 7 rompió el datasource clásico `url = env("DATABASE_URL")` del schema (exige migrar a `prisma.config.ts` + driver adapters) — el schema actual usa el patrón viejo y no compila contra Prisma 7 (Sesión 24).
+>
+> ⚠️ **Nunca correr `prisma db push` / `prisma migrate` contra este Neon.** `schema.prisma` solo modela `Contribution`/`ContributionAuthor`; el resto de tablas del Portal (`usuarios`, `estudiantes`, `espacios`, etc.) vive fuera del schema de Prisma. Ambos comandos comparan el schema contra **toda** la base y ofrecen **borrar** las tablas que no conocen — confirmado en Sesión 24 (`db push` listó 9 tablas con datos reales para drop, incluida `usuarios`). Para cambios futuros al schema de Contribuciones, escribir el `ALTER`/`CREATE TABLE` a mano (ver `scripts/migrate-contribuciones.js` como plantilla), igual que el resto de migraciones del proyecto.
 
 ### Colores ULEAM
 - Azul institucional: `#003366`
@@ -88,6 +93,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | `actividades_difusion` | Eventos/podcasts (Difusión + Gestión de Carrera) | `categoria`/`proyecto`/`asignatura`/`descripcion`/`hora`/`observaciones` + `profesores_responsables integer[]` (Sesión 23, ver abajo) |
 | `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
 | `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
+| `Contribution` / `ContributionAuthor` | Contribuciones académicas de docentes (artículos, libros, capítulos, memorias de evento, propiedad intelectual) | **Nombres con mayúscula, sin snake_case** — a diferencia de todo el resto del esquema, porque se manejan vía Prisma (`prisma/schema.prisma`) sin `@@map`, no SQL crudo. Creadas a mano en Sesión 24 con `scripts/migrate-contribuciones.js` (no con `prisma db push`, ver advertencia en `## Stack Técnico`). Visibilidad: `GET`/`DELETE /api/contribuciones` solo `modulos_acceso: admin`; `POST` cualquier docente (`rol: profesor\|admin`) autenticado. |
 
 **⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
 
@@ -98,7 +104,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
-## Estado Actual (2026-08-30)
+## Estado Actual (2026-09-01)
 
 | Módulo | Estado | % |
 |--------|--------|---|
@@ -108,9 +114,29 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
 | Portal PINE — Investigación | ⏳ Solo creación de espacios; artículos científicos pendiente de definir | 30% |
 | Gestión de Carrera (eventos multi-área) | ✅ Completo (Sesión 19) | 100% |
+| Contribuciones Académicas | ✅ Reparado y funcional (Sesión 24) — ⏳ solo campos comunes, faltan ~15 campos específicos por tipo, exportación CSV y tests (ver plan original) | 60% |
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 24 — 2026-09-01)
+
+### Módulo Contribuciones Académicas: implementación previa estaba rota de punta a punta, reparada
+
+Antigravity había construido el módulo siguiendo `implementation_plan_es.md` (commits `f432452`/`09fb41a`/`57b31d6`), pero **nunca llegó a producción** ni funcionaba localmente. Auditoría (a pedido del usuario, "verifica que se implementaron los cambios en Vercel") encontró 6 problemas independientes:
+
+1. **Build roto en Vercel — 3 deploys seguidos en `ERROR`.** El wizard (`app/contribuciones/new/[type]/page.tsx`) y la API (`app/api/contribuciones/route.ts`) importan `react-hook-form`, `yup`, `@hookform/resolvers` y `zod`, ninguno estaba en `package.json`. Producción seguía sirviendo el commit anterior a todo esto (`c96a370`) — el módulo nunca estuvo visible para nadie.
+2. **Auth de la API nunca conectada.** `GET`/`POST`/`DELETE /api/contribuciones` leían el rol de `request.headers.get('x-user-role')`, header que nada seteaba: `app/api/_middleware.ts` (el que lo intentaba) es **código muerto** — Next 14 App Router no soporta `_middleware.ts` por carpeta (convención de Pages Router, removida) — y el `middleware.ts` raíz real excluye `/api` de su `matcher`. Resultado: `GET`/`DELETE` siempre 403, `POST` siempre 401, para cualquiera incluido el admin real. Reescrito para usar `getAppSessionFromCookies()` (mismo patrón que `api/difusion/route.ts` y el resto del Portal).
+3. **Página `/contribuciones` sin control de acceso.** No estaba en `protectedRoutes` de `middleware.ts` ni tenía chequeo client-side — cualquiera podía cargarla pese a que el plan pedía "solo admin". Agregada a `middleware.ts`: `/contribuciones` (listado) exige `modulos_acceso: admin`, `/contribuciones/new*` (wizard) exige sesión con `rol: profesor\|admin`.
+4. **Tablas `Contribution`/`ContributionAuthor` nunca migradas a Neon.** No existía `prisma/migrations/`. Al intentar `prisma db push` para crearlas: Prisma comparó el schema (que solo modela estas 2 tablas) contra **toda** la base y pidió confirmación para **borrar 9 tablas con datos reales** (`usuarios`, `estudiantes`, `espacios`, etc. — no están en `schema.prisma`). Abortado sin `--accept-data-loss`. Tablas creadas a mano con SQL crudo (`scripts/migrate-contribuciones.js`, mismo patrón que el resto de `scripts/migrate-*.js`) — **ver advertencia permanente en `## Stack Técnico`: no volver a intentar `prisma db push`/`migrate` en este proyecto.**
+5. **Prisma 7 no compila con el schema tal como está.** `package.json` traía `prisma@^8.0.0-rc.12` + `@prisma/client@^7.10.0` (versiones ni siquiera entre sí compatibles). Prisma 7 removió el datasource clásico `url = env("DATABASE_URL")` (exige `prisma.config.ts` + driver adapters). Downgrade a `^6.19.3` en ambos paquetes — compila igual que el schema original sin reescribir nada. `@prisma/client` movido de `devDependencies` a `dependencies` (se usa en runtime); agregado `"postinstall": "prisma generate"` a `package.json` (si no, Vercel no genera el client).
+6. **Wizard con bug de runtime + paso 1 del flujo faltante.** `addAuthor()` llamaba `control.append(...)`, método que no existe en `control` de react-hook-form (es de `useFieldArray`) — el botón "Añadir autor" tiraba `TypeError` en cuanto se clickeaba. Corregido con `useFieldArray`. Además el input de orden de autor no coercionaba a número (`valueAsNumber: true`, si no yup lo rechazaba por ser string). El plan pedía un Paso 1 "Selección de tipo (tarjetas)" antes del formulario — nunca se construyó `app/contribuciones/new/page.tsx`, así que no había ninguna forma de llegar al wizard (`/contribuciones/new/[type]` no tenía ningún link apuntándole). Creada esa página (6 tarjetas, una por tipo de contribución) + tarjeta nueva "Contribuciones Académicas" en `/portal/dashboard` (visible a todo docente, con link extra al listado solo si `modulos_acceso` incluye `admin`) — sin esto el feature seguía siendo inalcanzable aunque todo lo demás funcionara.
+
+Verificado tras los fixes: `npx tsc --noEmit` limpio, `npm run build` genera las 3 rutas nuevas (`/contribuciones`, `/contribuciones/new`, `/contribuciones/new/[type]`, `/api/contribuciones`) sin error. Pendiente de este mismo turno: commit + push (deploy automático a Vercel vía hook).
+
+⚠️ **Alcance no cubierto en esta sesión, no confundir con "ya está completo":** el wizard solo captura los campos comunes (título, línea de investigación, fecha, campo detallado, estado, autores) — los ~15 campos específicos por tipo que detalla `implementation_plan_es.md` (ISSN/ISBN, cuartil, filiación, editor/compilador, país/ciudad del evento, etc.) no están en el formulario. Tampoco hay exportación CSV ni tests (Jest/Cypress) — ambos quedaron como "pendiente" en el plan original y siguen pendientes.
 
 ---
 
@@ -331,12 +357,16 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   │   ├── espacios/              # Crear/listar espacios de investigación
 │   │   └── proyecto-innovacion/, desarrollo-habilidades/  # Páginas públicas de proyecto
 │   ├── gestion-carrera/           # Registro de eventos, cualquier docente
+│   ├── contribuciones/            # Contribuciones académicas (Sesión 24) — listado (solo admin) + wizard (docentes)
+│   │   ├── page.tsx                # Listado, protegido por middleware (modulos_acceso:admin)
+│   │   └── new/{page.tsx,[type]/page.tsx}  # Paso 1 (elegir tipo) + Paso 2 (formulario)
 │   ├── pine-dashboard/            # KPIs, solo modulos_acceso:admin
 │   ├── docencia/, login/          # Redirects a las rutas nuevas (compat)
 │   └── api/
 │       ├── auth/{portal-login,register,logout,me}/
 │       ├── espacios/{route,asignar,instructores,asistencia}/
 │       ├── beneficiarios/, estudiantes/, tests/, encuestas/, difusion/, upload/
+│       ├── contribuciones/         # GET/DELETE solo admin, POST cualquier docente — vía Prisma, no SQL crudo
 │       ├── admin/stats/           # KPIs para /pine-dashboard
 │       └── protected/assets/[filename]/   # PDFs privados de public/admin-assets
 │
@@ -349,12 +379,16 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   ├── session.ts                 # Auth unificada del Portal (Neon) — pine_app_session
 │   ├── permisos-espacio.ts        # puedeOperarEspacio() — permisos por espacio
 │   ├── neon.ts                    # Tipos del esquema viejo (estudiantes/espacios/beneficiarios) — huérfano
+│   ├── prisma.ts                  # Cliente Prisma (singleton) — solo lo usa el módulo Contribuciones
 │   ├── questions.ts                # Banco de preguntas del Test MCER
 │   └── certificateDocx.ts          # Generación de certificados .docx
+│
+├── prisma/schema.prisma           # Solo modela Contribution/ContributionAuthor — NO ejecutar db push/migrate (ver ## Stack Técnico)
 │
 ├── scripts/                       # Migraciones Neon (una sola ejecución cada una, con node --env-file=.env.local)
 │   ├── migrate.js                 # Schema original (desactualizado vs realidad, ver ## Portal PINE)
 │   ├── migrate-espacios-v2.js     # area, espacio_instructores, asistencia_*, columnas de difusión
+│   ├── migrate-contribuciones.js  # CREATE TABLE a mano de Contribution/ContributionAuthor (Sesión 24)
 │   └── fix-mcer-schema.js         # Fix puntual de evaluaciones_mcer
 │
 ├── types/index.ts                 # Interfaces TypeScript del sitio estático
