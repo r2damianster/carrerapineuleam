@@ -1,9 +1,9 @@
 import {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  HeadingLevel, AlignmentType, ImageRun, WidthType, BorderStyle, PageBreak,
+  Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun,
 } from "docx";
 import { pedirCompletionIA, formatearErrorIA } from "./groq";
 import { formatearFechaLarga } from "./fechas";
+import { renderizarPlantilla, fusionarDocx } from "./docxtemplater";
 
 interface Participante {
   nombre: string;
@@ -87,28 +87,23 @@ export async function generarTextoIA(tipo: "aspectos" | "desarrollo" | "compromi
   }
 }
 
-function celdaEtiqueta(texto: string): TableCell {
-  return new TableCell({
-    width: { size: 30, type: WidthType.PERCENTAGE },
-    children: [new Paragraph({ children: [new TextRun({ text: texto, bold: true })] })],
+/** Construye una página adicional solo con las fotos de evidencia (la plantilla oficial no tiene tag para imágenes, solo un rótulo de sección). Se fusiona después del acta con fusionarDocx. */
+async function crearDocxEvidencias(fotos: Array<{ buffer: Buffer; tipo: "png" | "jpg" }>): Promise<Buffer> {
+  const children: Paragraph[] = [
+    new Paragraph({ children: [new TextRun({ text: "EVIDENCIAS FOTOGRÁFICAS", bold: true, size: 24 })] }),
+  ];
+  fotos.forEach((foto, i) => {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({ type: foto.tipo, data: foto.buffer, transformation: { width: 500, height: 350 } })],
+      }),
+      new Paragraph({ alignment: AlignmentType.CENTER, text: `Figura ${i + 1}` })
+    );
   });
+  const doc = new Document({ sections: [{ children }] });
+  return Packer.toBuffer(doc);
 }
-
-function celdaValor(lineas: string[]): TableCell {
-  return new TableCell({
-    width: { size: 70, type: WidthType.PERCENTAGE },
-    children: lineas.map((linea) => new Paragraph(linea)),
-  });
-}
-
-const SIN_BORDES = {
-  top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-  bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-  left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-  right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-  insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-  insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-};
 
 export async function crearDocxActa(datos: DatosActa, fotos: Array<{ buffer: Buffer; tipo: "png" | "jpg" }>): Promise<Buffer> {
   const firmantes: Firmante[] = [
@@ -117,92 +112,34 @@ export async function crearDocxActa(datos: DatosActa, fotos: Array<{ buffer: Buf
   ];
   while (firmantes.length < 10) firmantes.push({ nombre: "", cargo: "" });
 
-  const children: Array<Paragraph | Table> = [
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      heading: HeadingLevel.TITLE,
-      children: [new TextRun({ text: "UNIVERSIDAD LAICA ELOY ALFARO DE MANABÍ", bold: true, size: 20 })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 300 },
-      children: [new TextRun({ text: "ACTA TÉCNICA", bold: true, size: 32 })],
-    }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({ children: [celdaEtiqueta("N.º Acta:"), celdaValor([datos.numeroActa || "S/N"])] }),
-        new TableRow({ children: [celdaEtiqueta("Fecha:"), celdaValor([datos.fechaLarga])] }),
-        new TableRow({ children: [celdaEtiqueta("Lugar:"), celdaValor([datos.lugar])] }),
-        new TableRow({ children: [celdaEtiqueta("Hora de inicio:"), celdaValor([datos.horaInicio])] }),
-        new TableRow({ children: [celdaEtiqueta("Hora de finalización:"), celdaValor([datos.horaFin])] }),
-        new TableRow({ children: [celdaEtiqueta("Convocado por:"), celdaValor([datos.convocanteNombre, datos.convocanteCargo])] }),
-      ],
-    }),
-    new Paragraph({ spacing: { before: 300, after: 150 }, children: [new TextRun({ text: "PARTICIPANTES", bold: true, size: 24 })] }),
-    ...(datos.participantes.length > 0
-      ? datos.participantes.map((p) => new Paragraph(`${p.nombre} — ${p.cargo}`))
-      : [new Paragraph("Sin participantes registrados.")]),
-    new Paragraph({ spacing: { before: 300, after: 150 }, children: [new TextRun({ text: "DESARROLLO DE LA REUNIÓN", bold: true, size: 24 })] }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: SIN_BORDES,
-      rows: [
-        new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Puntos del orden del día:", bold: true })] })] })] }),
-        new TableRow({ children: [new TableCell({ children: datos.aspectosIA.split("\n").map((l) => new Paragraph(l)) })] }),
-        new TableRow({ children: [new TableCell({ children: datos.desarrolloIA.split("\n").map((l) => new Paragraph(l)) })] }),
-      ],
-    }),
-    new Paragraph({ spacing: { before: 300, after: 150 }, children: [new TextRun({ text: "COMPROMISOS Y ACUERDOS", bold: true, size: 24 })] }),
-    ...datos.compromisosIA.split("\n").map((l) => new Paragraph(l)),
-  ];
+  const contexto: Record<string, string> = {
+    numero_acta: datos.numeroActa || "S/N",
+    fecha_larga: datos.fechaLarga,
+    lugar: datos.lugar,
+    hora_inicio: datos.horaInicio,
+    hora_fin: datos.horaFin,
+    convocante_nombre: datos.convocanteNombre,
+    convocante_cargo: datos.convocanteCargo,
+    tabla_participantes:
+      datos.participantes.length > 0
+        ? datos.participantes.map((p) => `${p.nombre} — ${p.cargo}`).join("\n")
+        : "Sin participantes registrados.",
+    aspectos_ia: datos.aspectosIA,
+    desarrollo_ia: datos.desarrolloIA,
+    compromisos_ia: datos.compromisosIA,
+    elaborado_titulo: datos.elaboradoTitulo,
+    elaborado_nombre: datos.elaboradoNombre,
+  };
+  firmantes.forEach((f, i) => {
+    contexto[`firmante_${i + 1}_nombre`] = f.nombre;
+    contexto[`firmante_${i + 1}_cargo`] = f.cargo;
+  });
 
-  if (fotos.length > 0) {
-    children.push(
-      new Paragraph({ children: [new PageBreak()] }),
-      new Paragraph({ children: [new TextRun({ text: "EVIDENCIAS FOTOGRÁFICAS", bold: true, size: 24 })] })
-    );
-    fotos.forEach((foto, i) => {
-      children.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new ImageRun({ type: foto.tipo, data: foto.buffer, transformation: { width: 500, height: 350 } })],
-        }),
-        new Paragraph({ alignment: AlignmentType.CENTER, text: `Figura ${i + 1}` })
-      );
-    });
-  }
+  const actaBuffer = renderizarPlantilla("Acta_Tecnica.docx", contexto);
+  if (fotos.length === 0) return actaBuffer;
 
-  children.push(
-    new Paragraph({ spacing: { before: 300, after: 150 }, children: [new TextRun({ text: "FIRMANTES", bold: true, size: 24 })] }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "NOMBRE Y CARGO", bold: true })] })] }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "FIRMA", bold: true })] })] }),
-          ],
-        }),
-        ...firmantes.map(
-          (f) =>
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph(f.nombre), new Paragraph(f.cargo)] }),
-                new TableCell({ children: [new Paragraph("")] }),
-              ],
-            })
-        ),
-      ],
-    }),
-    new Paragraph({
-      spacing: { before: 300 },
-      children: [new TextRun(`Elaborado por: ${datos.elaboradoTitulo} ${datos.elaboradoNombre}`)],
-    })
-  );
-
-  const doc = new Document({ sections: [{ children }] });
-  return Packer.toBuffer(doc);
+  const evidenciasBuffer = await crearDocxEvidencias(fotos);
+  return fusionarDocx([actaBuffer, evidenciasBuffer]);
 }
 
 export function formatearFechaActa(fecha: string): string {
