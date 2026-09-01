@@ -7,7 +7,7 @@ export interface AppSession {
 }
 
 const SESSION_COOKIE_NAME = 'pine_app_session';
-const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const SESSION_MAX_AGE_SECONDS = 4 * 60 * 60; // 4 hours
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;

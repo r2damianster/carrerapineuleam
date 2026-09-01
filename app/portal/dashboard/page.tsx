@@ -88,10 +88,10 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Módulo: Gestión del Sitio — solo lider/colider de este proyecto */}
+            {/* Módulo: Gestión de MI PROYECTO — solo líder/colider de este proyecto */}
             {modulos_acceso.includes('contenido_sitio') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión del Sitio</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de MI PROYECTO</h3>
                 <p className="text-gray-600 mb-4 text-sm">Contenido del proyecto Innovaciones Pedagógicas e Internacionalización (2026-2028): miembros, publicaciones, videos, noticias, documentos.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/admin" className="text-red-600 hover:underline">» Panel de Contenido</Link>

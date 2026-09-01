@@ -31,7 +31,7 @@ export const members: Member[] = [
   },
   {
     id: 'member_3',
-    name: 'Mg. Cristina Basantes',
+    name: 'Mg. Cristina Basantes Robalino',
     role: 'Miembro de Investigación y Colaboradora de Internacionalización (Podcast)',
     orcid: '0000-0001-5184-9643',
     email: '',
@@ -1050,6 +1050,201 @@ export const adminUsers = [
     role: 'admin' as const,
   },
 ];
+},
+  {
+    id: 'activity_6',
+    title: 'Capacitación en Clasificación de Artículos Científicos — Carrera de Pedagogía de Lengua y Literatura',
+    description: 'Actividad de transferencia realizada el 3 de junio de 2026. Capacitación dirigida a estudiantes y docentes de la carrera de Pedagogía de Lengua y Literatura sobre metodologías y criterios para la clasificación y evaluación de artículos científicos. Contribución del proyecto PINE al fortalecimiento de competencias en investigación.',
+    photos: [],
+    event_date: '2026-06-03',
+    category: 'transferencia',
+    created: '2026-08-03T00:00:00Z',
+    updated: '2026-08-03T00:00:00Z',
+  },
+  {
+    id: 'activity_7',
+    title: 'Presentación de Trabajos Finales — Mandiles para Enseñanza de Vocabulario en Inglés',
+    description: 'Presentación de trabajos finales de mandiles como recurso didáctico para enseñar vocabulario en inglés en nivel de educación inicial y básica. Estudiantes de 4to semestre PINE (Pedagogía de Idiomas) participaron en esta actividad de innovación educativa.',
+    photos: ['/images/activities/Mandiles-Vocabulario-Ingles-Julio2026.jpeg'],
+    event_date: '2026-07-15',
+    category: 'docencia',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_8',
+    title: 'Feria de Proyectos STEAM',
+    description: 'Feria de proyectos STEAM con participación de estudiantes de 9no semestre de la carrera de Pedagogía de Idiomas. Evento de innovación educativa interdisciplinaria realizado en junio de 2026.',
+    photos: ['/images/activities/Feria-Proyectos-STEAM-Junio2026.jpeg'],
+    event_date: '2026-06-15',
+    category: 'feria',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_9',
+    title: 'Educación Inclusiva en el Aula de Inglés — TDAH y TES',
+    description: 'Actividad sobre educación inclusiva en el aula de inglés, abordando temas de Trastorno por Déficit de Atención e Hiperactividad (TDAH) y Trastornos Específicos del Lenguaje (TES). Estrategias de enseñanza innovadora para la inclusión de estudiantes con necesidades educativas especiales.',
+    photos: ['/images/activities/Educacion-Inclusiva-Ingles-TDAH-TES.jpeg'],
+    event_date: '2026-08-14',
+    category: 'inclusiva',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_10',
+    title: 'Feria: Estrategias de Motivación a la Lectura de Cuentos Infantiles en el Aula de Inglés',
+    description: 'Feria de estrategias de motivación a la lectura de cuentos infantiles en el aula de inglés. Participación de estudiantes de 4to semestre PINE (Pedagogía de Idiomas). Evento que promueve la innovación educativa mediante la integración de literatura infantil en la enseñanza de idiomas.',
+    photos: ['/images/activities/Feria-Estrategias-Lectura-Cuentos-4toSemestrePINE.jpeg'],
+    event_date: '2026-08-14',
+    category: 'feria',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_11',
+    title: 'Práctica: Gestión de Emociones de Padres y Madres de Familia y Teachers',
+    description: 'Práctica sobre la gestión de emociones dirigida a padres, madres de familia y docentes. Actividad que fortalece competencias socio-emocionales en la comunidad educativa de PINE y contribuye a la innovación en prácticas pedagógicas inclusivas.',
+    photos: ['/images/activities/Practica-Gestion-Emociones-Padres-Teachers.jpeg'],
+    event_date: '2026-08-14',
+    category: 'practica',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_12',
+    title: 'Estrategia: Diseño de Juegos de Mesa para la Práctica del Inglés',
+    description: 'Estrategia de innovación educativa: diseño de juegos de mesa para la práctica del inglés en niños y jóvenes. Actividad realizada en mayo de 2026 que promueve aprendizaje lúdico y colaborativo en la enseñanza de idiomas extranjeros.',
+    photos: ['/images/activities/Estrategia-Juegos-Mesa-Ingles-Mayo2026.jpeg'],
+    event_date: '2026-05-20',
+    category: 'estrategia',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_13',
+    title: 'Actividades de Investigación Educativa — 5to Semestre PINE',
+    description: 'Actividades de investigación educativa: trabajo de campo para la recolección de datos mediante entrevista y observación en el Gimnasio de ULEAM. Tema del proyecto: salud de los estudiantes universitarios y el entrenamiento físico. Participación de estudiantes de 5to semestre de Pedagogía de Idiomas.',
+    photos: ['/images/activities/Investigacion-Educativa-5toSemestrePINE-Gimnasio.jpeg'],
+    event_date: '2026-08-14',
+    category: 'investigacion',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+  {
+    id: 'activity_14',
+    title: 'Estrategia: Museo y Enseñanza de Inglés',
+    description: 'Estrategia de innovación educativa: integración de museos como espacios de enseñanza de inglés. Actividad de 5to semestre PINE realizada en mayo de 2026. Promueve aprendizaje contextualizado y experiencial del idioma extranjero.',
+    photos: ['/images/activities/Estrategia-Museo-Ingles-5toSemestreMayo2026.jpeg'],
+    event_date: '2026-05-20',
+    category: 'estrategia',
+    created: '2026-08-14T00:00:00Z',
+    updated: '2026-08-14T00:00:00Z',
+  },
+];
+
+// Fotos del Club de Inglés — proyecto de Vinculación "Dinámicas Lingüísticas en Contextos Locales".
+// A diferencia de `activities` (que pertenece siempre a la carrera completa), este array es específico
+// del proyecto de vinculación y se irá ampliando con nuevas fotos/actividades del club.
+export const vinculacionEnglishClubPhotos: VinculacionEnglishClubPhoto[] = [
+  {
+    id: 'club_ingles_1',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
+  },
+  {
+    id: 'club_ingles_2',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026-2.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
+  },
+  {
+    id: 'club_ingles_3',
+    image: '/images/ClubIngles-EscenariosLocales-Agosto2026-3.jpeg',
+    caption: 'Club de Inglés desarrollado en escenarios locales',
+    event_date: '2026-08-18',
+  },
+];
+
+export const siteSettings: SiteSettings[] = [
+  {
+    id: 'setting_1',
+    key: 'facebook_url',
+    value: 'https://facebook.com/uleam',
+    section: 'social',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'setting_2',
+    key: 'twitter_url',
+    value: 'https://twitter.com/uleam',
+    section: 'social',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'setting_3',
+    key: 'instagram_url',
+    value: 'https://instagram.com/uleam',
+    section: 'social',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'setting_4',
+    key: 'youtube_url',
+    value: 'https://youtube.com/@uleam',
+    section: 'social',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'setting_5',
+    key: 'contact_email',
+    value: 'innovacion@uleam.edu.ec',
+    section: 'contact',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'setting_6',
+    key: 'institution_name',
+    value: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM)',
+    section: 'general',
+    created: '2025-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
+  },
+];
+
+// Admin users configuration
+export const adminUsers = [
+  {
+    id: 'admin_1',
+    email: 'arturo.rodriguez@uleam.edu.ec',
+    password: 'Pine2026',
+    role: 'admin' as const,
+  },
+  {
+    id: 'admin_2',
+    email: 'jhonny.villafuerte@uleam.edu.ec',
+    password: 'Pine2026',
+    role: 'admin' as const,
+  },
+  {
+    id: 'admin_3',
+    email: 'german.carrera@uleam.edu.ec',
+    password: 'Pine2026',
+    role: 'admin' as const,
+  },
+  {
+    id: 'admin_4',
+    email: 'veronica.chavez@uleam.edu.ec',
+    password: 'Pine2026',
+    role: 'admin' as const,
+  },
+];
 
 // Lista fija de docentes autorizados a registrarse con rol "profesor" en /registro
 // (panel /docencia, /pine-dashboard — tabla usuarios en Neon). No es autoregistro
@@ -1061,23 +1256,6 @@ export const profesoresAutorizados = [
   'german.carrera@uleam.edu.ec',
   'maria.basantes@uleam.edu.ec', // Cristina Basantes
   'johanna.bello@uleam.edu.ec', // Johana Bello
-  'veronica.chavez@uleam.edu.ec', // Verónica Chávez
-  'cintya.zambrano@uleam.edu.ec', // Cynthia Zambrano
+  'ulbio.farfan@uleam.edu.ec',
+  'jorge.corral@uleam.edu.ec',
 ];
-
-// Módulos que se asignan automáticamente a cada profesor autorizado al
-// autoregistrarse en /registro. 'vinculacion' = ve Difusión/Test MCER/Encuestas
-// y (cuando exista) la vista de Vinculación en /docencia. 'investigacion' = ve
-// /docencia (Crear Espacios). 'admin' = ve /admin (gestión del sitio estático).
-export const profesorModulos: Record<string, string[]> = {
-  // 'contenido_sitio' = gestión del contenido estático del proyecto (/admin, 10
-  // secciones CRUD in-memory) — restringido a lider/colider de ESTE proyecto,
-  // no confundir con 'admin' (que solo controla /pine-dashboard).
-  'arturo.rodriguez@uleam.edu.ec': ['admin', 'investigacion', 'vinculacion', 'contenido_sitio'],
-  'jhonny.villafuerte@uleam.edu.ec': ['admin', 'investigacion', 'contenido_sitio'],
-  'german.carrera@uleam.edu.ec': ['admin', 'investigacion'],
-  'maria.basantes@uleam.edu.ec': ['investigacion'], // Cristina Basantes
-  'johanna.bello@uleam.edu.ec': ['investigacion'], // Johana Bello
-  'veronica.chavez@uleam.edu.ec': ['admin'], // Verónica Chávez
-  'cintya.zambrano@uleam.edu.ec': ['vinculacion'], // Cynthia Zambrano — solo Vinculación
-};
