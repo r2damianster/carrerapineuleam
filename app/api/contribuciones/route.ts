@@ -36,6 +36,7 @@ const baseSchema = z.object({
     'AUXILIAR_II',
     'AGREGADO_I',
     'AGREGADO_II',
+    'AGREGADO_III',
     'PRINCIPAL_I',
     'PRINCIPAL_II',
   ]).optional(),

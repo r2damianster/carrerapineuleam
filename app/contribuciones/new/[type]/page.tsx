@@ -17,17 +17,17 @@ const TIPOS_PUBLICACION = [
 
 type TipoPublicacion = typeof TIPOS_PUBLICACION[number]
 
-const CATEGORIAS_DOCENTE = ['AUXILIAR_I', 'AUXILIAR_II', 'AGREGADO_I', 'AGREGADO_II', 'PRINCIPAL_I', 'PRINCIPAL_II'] as const
+const CATEGORIAS_DOCENTE = ['AUXILIAR_I', 'AUXILIAR_II', 'AGREGADO_I', 'AGREGADO_II', 'AGREGADO_III', 'PRINCIPAL_I', 'PRINCIPAL_II'] as const
 
 const LINEA_INVESTIGACION_DEFAULT = 'Educación y Nuevos Escenarios de la Formación Profesional'
 
-// Proyectos del grupo de investigación (lib/data.ts: liderProyectoPropio + el proyecto
-// PINE/Internacionalización de Arturo+Jhonny, que no tiene entrada propia ahí).
+// Nombres oficiales de los 4 proyectos del grupo de investigación (confirmados por el
+// usuario, Sesión 24 — no son etiquetas cortas, van tal cual en los documentos PAT).
 const PROYECTOS = [
-  'Innovaciones Pedagógicas e Internacionalización',
-  'Desarrollo de Habilidades Lingüísticas',
+  'Lograr la innovación pedagógica e internacionalización del proceso de formación inicial y continua de docentes para el desarrollo humano y sostenible.',
+  'Desarrollo de las habilidades lingüísticas del idioma inglés en estudiantes de educación superior en Ecuador.',
   'Dinámicas Lingüísticas en Contextos Locales',
-  'Mentoring',
+  'Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional',
 ] as const
 
 const PARTICIPACIONES = ['Autor', 'Coautor', 'Traductor', 'Otro'] as const
