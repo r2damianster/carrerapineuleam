@@ -1018,6 +1018,7 @@ export const profesorModulos: Record<string, string[]> = {
   'arturo.rodriguez@uleam.edu.ec': ['admin','investigacion','vinculacion','contenido_sitio','Proyecto_Internacionalizacion','indicadores','utilidades'],
   'jhonny.villafuerte@uleam.edu.ec': ['admin','investigacion','contenido_sitio','Proyecto_Internacionalizacion','indicadores','utilidades'],
   'german.carrera@uleam.edu.ec': ['admin','investigacion','indicadores','utilidades'],
+  'veronica.chavez@uleam.edu.ec': ['admin','investigacion','indicadores','utilidades'],
   'maria.basantes@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Cristina Basantes
   'johanna.bello@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Johana Bello
   'ulbio.farfan@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
@@ -1033,8 +1034,18 @@ export const profesoresAutorizados = [
   'arturo.rodriguez@uleam.edu.ec',
   'jhonny.villafuerte@uleam.edu.ec',
   'german.carrera@uleam.edu.ec',
+  'veronica.chavez@uleam.edu.ec',
   'maria.basantes@uleam.edu.ec', // Cristina Basantes
   'johanna.bello@uleam.edu.ec', // Johana Bello
   'ulbio.farfan@uleam.edu.ec',
   'jorge.corral@uleam.edu.ec',
 ];
+
+// Nombre del proyecto propio de cada líder (distinto del proyecto PINE/Internacionalización
+// de Arturo+Jhonny, que ya tiene su propia tarjeta "Gestión de MI PROYECTO"). Usado para
+// mostrar "Gestionar {proyecto}" en /portal/dashboard según quién esté logueado — sin link
+// todavía, no existe panel de edición por proyecto individual.
+export const liderProyectoPropio: Record<string, string> = {
+  'german.carrera@uleam.edu.ec': 'Desarrollo de Habilidades Lingüísticas',
+  'veronica.chavez@uleam.edu.ec': 'Mentoring',
+};

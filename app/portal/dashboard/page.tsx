@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
+import { liderProyectoPropio } from '@/lib/data';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -13,8 +14,9 @@ export default async function PortalDashboard() {
     redirect('/portal/login');
   }
 
-  const { modulos_acceso, nombres, rol } = session;
+  const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = rol === 'profesor' || rol === 'admin';
+  const proyectoPropio = liderProyectoPropio[email];
 
   return (
     <>
@@ -51,6 +53,17 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Proyecto propio del líder (German, Verónica) — sin link todavía, no hay panel de edición por proyecto */}
+            {proyectoPropio && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar {proyectoPropio}</h3>
+                <p className="text-gray-600 mb-4 text-sm">Tu proyecto dentro de la carrera.</p>
+                <div className="flex flex-col gap-2">
+                  <span className="text-gray-400 text-sm italic">Próximamente</span>
                 </div>
               </div>
             )}
