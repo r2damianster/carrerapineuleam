@@ -55,17 +55,6 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Módulo: Investigación */}
-            {modulos_acceso.includes('investigacion') && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Investigación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Próximamente: artículos científicos y publicaciones.</p>
-                <div className="flex flex-col gap-2">
-                  <span className="text-gray-400 text-sm italic">Sin opciones disponibles todavía</span>
-                </div>
-              </div>
-            )}
-
             {/* Gestión de Carrera: cualquier docente, sin importar el módulo */}
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
