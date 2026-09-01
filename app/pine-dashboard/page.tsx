@@ -85,7 +85,51 @@ export default function PineDashboard() {
 
         </div>
 
-        {/* Próximas secciones: Investigación, Docencia, etc. — agregar un h2 + grid nuevo aquí */}
+        <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Investigación — Contribuciones Académicas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-pink-500">
+            <h3 className="text-lg font-semibold text-gray-700">Artículos Regionales</h3>
+            <p className="text-4xl font-bold text-pink-600 my-2">{stats.contribuciones.articulosRegionales}</p>
+            <p className="text-sm text-gray-500">Indexados en Latindex, Dialnet, etc.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500">
+            <h3 className="text-lg font-semibold text-gray-700">Artículos de Alto Impacto</h3>
+            <p className="text-4xl font-bold text-red-600 my-2">{stats.contribuciones.articulosAltoImpacto}</p>
+            <p className="text-sm text-gray-500">Indexados en ErihPlus, Scopus, WoS, etc.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-orange-500">
+            <h3 className="text-lg font-semibold text-gray-700">Libros</h3>
+            <p className="text-4xl font-bold text-orange-600 my-2">{stats.contribuciones.libros}</p>
+            <p className="text-sm text-gray-500">Libros publicados por docentes de la carrera.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500">
+            <h3 className="text-lg font-semibold text-gray-700">Capítulos de Libro</h3>
+            <p className="text-4xl font-bold text-amber-600 my-2">{stats.contribuciones.capitulosLibro}</p>
+            <p className="text-sm text-gray-500">Capítulos publicados en obras colectivas.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500">
+            <h3 className="text-lg font-semibold text-gray-700">Memorias de Evento</h3>
+            <p className="text-4xl font-bold text-teal-600 my-2">{stats.contribuciones.memoriasEvento}</p>
+            <p className="text-sm text-gray-500">Ponencias y memorias de congresos/eventos.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-cyan-500">
+            <h3 className="text-lg font-semibold text-gray-700">Propiedad Intelectual</h3>
+            <p className="text-4xl font-bold text-cyan-600 my-2">{stats.contribuciones.propiedadIntelectual}</p>
+            <p className="text-sm text-gray-500">Registros de propiedad intelectual.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-gray-700 md:col-span-2 lg:col-span-3">
+            <h3 className="text-lg font-semibold text-gray-700">Total de Contribuciones Registradas</h3>
+            <p className="text-4xl font-bold text-gray-800 my-2">{stats.contribuciones.total}</p>
+          </div>
+
+        </div>
       </div>
     </div>
   );
