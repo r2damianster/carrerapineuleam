@@ -7,7 +7,6 @@ import {
   news as initialNews,
   activities as initialActivities,
   siteSettings as initialSiteSettings,
-  adminUsers,
 } from '@/lib/data';
 
 // ============================================================================
@@ -416,25 +415,3 @@ export const getNewsletters = async (): Promise<Newsletter[]> => {
   return newsletters;
 };
 
-// ============================================================================
-// AUTHENTICATION
-// ============================================================================
-
-export const authenticateAdmin = async (email: string, password: string): Promise<{ id: string; email: string; role: string }> => {
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = adminUsers.find(u => u.email.toLowerCase() === normalizedEmail && u.password === password);
-  
-  if (!user) {
-    throw new Error('Invalid credentials');
-  }
-  
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
-};
-
-export const isAdminAuthorized = (email: string): boolean => {
-  return adminUsers.some(u => u.email === email);
-};
