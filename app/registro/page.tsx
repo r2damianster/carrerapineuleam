@@ -12,9 +12,7 @@ export default function RegistroPage() {
     apellidos: '',
     email: '',
     password: '',
-    rol: 'beneficiario',
-    contacto: '',
-    situacion_laboral: ''
+    rol: 'profesor',
   });
   const [message, setMessage] = useState('');
 
@@ -66,8 +64,11 @@ export default function RegistroPage() {
             &larr; Volver al Portal PINE
           </Link>
         </div>
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Registro en el Sistema</h2>
-        
+        <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Registro de Profesor</h2>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Solo para docentes con correo autorizado por el proyecto. ¿Eres estudiante de vinculación? Tu profesor debe registrarte desde Administrar Pasantes — luego entra directo en <Link href="/portal/login" className="text-blue-600 hover:underline">/portal/login</Link> con el correo que te dio. Los beneficiarios/participantes no crean cuenta — los registra su instructor.
+        </p>
+
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
             {message}
@@ -96,31 +97,7 @@ export default function RegistroPage() {
             <input type="password" name="password" required onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Rol</label>
-            <select name="rol" value={formData.rol} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-              <option value="beneficiario">Beneficiario / Participante</option>
-              <option value="profesor">Profesor</option>
-            </select>
-            <p className="mt-1 text-xs text-gray-500">¿Eres estudiante de vinculación? Tu profesor debe registrarte primero desde Administrar Pasantes — luego entra directo en /portal/login con el correo que te dio.</p>
-          </div>
-
-          {/* Campos condicionales para Beneficiario */}
-          {formData.rol === 'beneficiario' && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-md border">
-              <h3 className="text-sm font-semibold text-gray-900">Datos de Beneficiario</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Contacto (Teléfono)</label>
-                <input type="text" name="contacto" onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Situación Laboral Inicial</label>
-                <input type="text" name="situacion_laboral" onChange={handleChange} placeholder="Ej. Estudiante de colegio, Empleado, etc." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-              </div>
-            </div>
-          )}
-
-          <button 
+          <button
             type="submit" 
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"

@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.2
-**Última sesión:** 2026-08-31 (Sesión 21 — datos extendidos de beneficiarios: edad, discapacidad, situación ocupacional condicional. Ver detalle abajo)
+**Versión actual:** 0.10.3
+**Última sesión:** 2026-09-01 (Sesión 22 — fix de /registro roto por el cambio de esquema de beneficiarios + manual de usuario reescrito. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -53,7 +53,7 @@
 ### Auth unificada
 - **Una sola cookie httpOnly firmada** (`pine_app_session`, HMAC-SHA256 vía Web Crypto) para *todo* — Portal Y panel `/admin` legacy. Implementada en `lib/session.ts` (`createSessionCookieValue`/`verifySessionCookieValue`/`getAppSessionFromCookies`). Requiere `SESSION_SECRET` en las env vars — **sin fallback hardcodeado** (existió brevemente, se removió por seguridad).
 - **NO existen ya**: `lib/adminSession.ts`, `lib/userSession.ts`, el panel `/admin` con password `Pine2026` hardcodeado, ni el módulo viejo `/vinculacion/dinamicas-linguisticas/asistencia` (UUID). Todo fue consolidado/retirado en Sesión 19 — si encuentras referencias a esto en código o docs viejos, están obsoletas.
-- **Login:** `/portal/login` → `POST /api/auth/portal-login`. **Registro:** `/registro` → `POST /api/auth/register` (autologuea).
+- **Login:** `/portal/login` → `POST /api/auth/portal-login`. **Registro:** `/registro` → `POST /api/auth/register` (autologuea). Desde Sesión 22, `PUBLIC_ROLES = ['profesor']` — es el único rol que se autoregistra; `estudiante` y `beneficiario` fueron retirados del todo del selector (antes `beneficiario` seguía ahí como opción viva y rompía porque insertaba en una columna ya eliminada, ver changelog Sesión 22).
 - **Roles** (`usuarios.rol`): `admin` | `profesor` | `estudiante` | `beneficiario`. Autoregistro público solo permite `profesor`/`estudiante`/`beneficiario` — `admin` nunca es autoasignable.
 - **`profesor` es de lista fija**, no autoregistro abierto: `lib/data.ts` → `profesoresAutorizados` (array de emails permitidos) + `profesorModulos` (qué `modulos_acceso` recibe cada uno al registrarse). Agregar gente nueva ahí, con su email real confirmado — **nunca adivinar el email**.
 - **`modulos_acceso`** (`text[]` en `usuarios`, valores: `admin`/`investigacion`/`vinculacion`/`contenido_sitio`): controla qué ve cada quien en `/portal/dashboard` y qué rutas puede pisar (`middleware.ts`). Una persona puede tener varios. `admin` controla solo `/pine-dashboard` (indicadores). `contenido_sitio` es un módulo **distinto**, restringido solo a `arturo.rodriguez` y `jhonny.villafuerte` (líder/colíder de este proyecto) — controla `/admin/*` (las 10 secciones CRUD del contenido estático) y `/api/protected/assets` (PDFs confidenciales). German y Verónica tienen `admin` pero NO `contenido_sitio` — ven el dashboard de indicadores pero no el panel de contenido.
@@ -63,7 +63,7 @@
 Dos conceptos separados, **no anidados uno dentro del otro**:
 - **"Espacio" = Gestión, solo profesor** (hoy: Arturo, Cynthia). `/vinculacion/espacios` crea/lista espacios (ej. "Club de Inglés A"); `/vinculacion/espacios/[id]` asigna estudiantes como instructores de ese espacio (única función que queda ahí).
 - **"Registro" = tarea diaria, estudiante-instructor o profesor de respaldo.** Cuatro páginas propias, cada una con su propio selector de espacio (un estudiante puede tener varios asignados): `/vinculacion/asistencia`, `/vinculacion/beneficiarios` (asignar existente + registrar uno nuevo), `/vinculacion/test-mcer`, `/vinculacion/encuesta`. Todas reusan las mismas APIs (`/api/espacios/asignar`, `/api/tests`, `/api/encuestas`, `/api/espacios/asistencia`) — el cambio fue solo de UI (páginas planas en vez de tabs dentro del espacio), la lógica de permisos (`puedeOperarEspacio`) no cambió.
-- **Beneficiario nunca tiene cuenta.** `POST /api/beneficiarios` los crea sin password real (email/password_hash autogenerados, inutilizables — `usuarios.email`/`password_hash` son `NOT NULL`+`UNIQUE` en Neon) y los asigna al espacio en el mismo paso. Esto reemplazó el plan original de usar `/registro?rol=beneficiario` (que sí les daba cuenta/password) — descartado a propósito.
+- **Beneficiario nunca tiene cuenta.** `POST /api/beneficiarios` los crea sin password real (email/password_hash autogenerados, inutilizables — `usuarios.email`/`password_hash` son `NOT NULL`+`UNIQUE` en Neon) y los asigna al espacio en el mismo paso. Esto reemplazó el plan original de usar `/registro?rol=beneficiario` (que sí les daba cuenta/password) — descartado a propósito, y desde Sesión 22 esa opción ya no existe ni en el código.
 
 ### Pasantes (estudiantes-instructores) — alta por el profesor, activación en el primer login
 `/vinculacion/pasantes` (solo profesor/admin con módulo `vinculacion`) es un **CRUD completo** — crear, editar, eliminar. Crear un pasante nuevo solo pide nombres/apellidos/email (`POST /api/estudiantes`); queda con `usuarios.activado = false` y un `password_hash` placeholder inutilizable. **No hay pantalla de registro para el pasante** — la primera vez que intenta entrar en `/portal/login` con ese email, `app/api/auth/portal-login/route.ts` detecta `activado = false` y guarda lo que escribió en el campo de password como su clave definitiva (`activado` pasa a `true`), en vez de compararla contra una existente. De ahí en adelante el login es el de siempre (`bcrypt.compare`). Esto es la implementación real del "estudiante debe tener lista fija" que quedaba pendiente — ya no es un array hardcodeado, es una fila en `usuarios` con `activado=false`.
@@ -111,6 +111,14 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 22 — 2026-09-01)
+
+- ⚠️ **Bug fix crítico:** `/registro` todavía ofrecía autoregistrarse como `beneficiario` y usaba la columna `perfiles_beneficiarios.situacion_laboral`, eliminada en la Sesión 21 — cualquiera que se registrara así habría recibido un error 500. Corregido eliminando la opción `beneficiario` de `PUBLIC_ROLES` en `app/api/auth/register/route.ts` (ahora solo `['profesor']`, consistente con "beneficiario nunca tiene cuenta" documentado desde Sesión 19) y simplificando `app/registro/page.tsx` (ya no hay selector de rol, es directamente registro de profesor). **Lección:** al hacer un cambio de esquema, buscar *todos* los endpoints que tocan esa tabla, no solo el que se está modificando — este caso no se detectó en la verificación de Sesión 21 porque solo se probó `POST /api/beneficiarios`, no `POST /api/auth/register`.
+- ✅ `MANUAL_USUARIO.md` reescrito completo para reflejar Sesiones 19-21: tabla de "quién crea tu cuenta" por rol, Registros vs Gestión de Vinculación como tarjetas separadas, páginas planas de Registros (no tabs anidados en espacio), carga masiva de pasantes por Excel, campos extendidos de beneficiarios, asistencia con checks preseleccionados, nombres correctos de tarjetas del Portal ("Indicadores", "Gestión del Sitio").
+- ✅ `ANTIGRAVITY.md` sincronizado con Sesiones 20-21 (ver más abajo).
 
 ---
 
@@ -301,7 +309,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   ├── page.tsx, layout.tsx       # Landing pública
 │   ├── admin/                     # Panel legacy CRUD sitio estático (gateado por modulos_acceso:contenido_sitio — solo Arturo+Jhonny)
 │   ├── portal/{login,dashboard}/  # Entrada única del Portal PINE
-│   ├── registro/                  # Autoregistro (profesor whitelist / estudiante / beneficiario)
+│   ├── registro/                  # Autoregistro — solo profesor (whitelist), único rol público desde Sesión 22
 │   ├── vinculacion/                # Gestión (profesor) vs Registro (estudiante+profesor) — ver ## Portal PINE
 │   │   ├── espacios/               # Gestión: crear/listar espacios; [id] = asignar instructores (única función que queda ahí)
 │   │   ├── pasantes/               # Gestión: vista agregada de estudiantes-instructores, solo profesor/admin
@@ -519,6 +527,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-08-31 (Sesión 21)
-**Versión:** 0.10.2
+**Última actualización:** 2026-09-01 (Sesión 22)
+**Versión:** 0.10.3
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅

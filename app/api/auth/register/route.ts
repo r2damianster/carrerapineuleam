@@ -7,16 +7,14 @@ import { profesoresAutorizados, profesorModulos } from '@/lib/data';
 // 'estudiante' no es autoregistro — se maneja desde Administrar Pasantes
 // (el profesor pre-crea el email, el pasante activa su cuenta al hacer login
 // la primera vez). Ver app/api/estudiantes/route.ts.
-const PUBLIC_ROLES = ['profesor', 'beneficiario'];
+// 'beneficiario' tampoco — nunca tiene cuenta, lo crea el instructor/profesor
+// desde /vinculacion/beneficiarios (POST /api/beneficiarios).
+const PUBLIC_ROLES = ['profesor'];
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const {
-      nombres, apellidos, password, rol,
-      // Campos de beneficiario
-      contacto, situacion_laboral
-    } = data;
+    const { nombres, apellidos, password, rol } = data;
     const email = String(data.email ?? '').trim().toLowerCase();
 
     if (!nombres || !apellidos || !email || !password || !rol) {
@@ -56,14 +54,6 @@ export async function POST(request: Request) {
     `;
 
     const userId = userResult[0].id;
-
-    // Insertar perfil dependiendo del rol
-    if (rol === 'beneficiario') {
-      await sql`
-        INSERT INTO perfiles_beneficiarios (usuario_id, contacto, situacion_laboral)
-        VALUES (${userId}, ${contacto || null}, ${situacion_laboral || null})
-      `;
-    }
 
     const session: AppSession = { id: String(userId), nombres: `${nombres} ${apellidos}`, email, rol, modulos_acceso: modulosAcceso };
     const cookieValue = await createSessionCookieValue(session);
