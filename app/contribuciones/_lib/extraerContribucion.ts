@@ -13,6 +13,8 @@ export interface DatosContribucionExtraidos {
   campoDetallado: string;
   estado: "PUBLICADO" | "ACEPTADO" | "OTRO";
   authors: AutorExtraido[];
+  nombreRevista?: string;
+  issn?: string;
 }
 
 const CAMPOS_VACIOS: DatosContribucionExtraidos = {
@@ -137,6 +139,8 @@ export async function precargarDesdeDoi(doiOTexto: string): Promise<[DatosContri
       campoDetallado: item.abstract ? limpiarHtml(item.abstract) : "",
       estado: "PUBLICADO",
       authors: normalizarAutores(nombresAutores),
+      nombreRevista: Array.isArray(item["container-title"]) ? item["container-title"][0] || "" : "",
+      issn: Array.isArray(item.ISSN) ? item.ISSN[0] || "" : "",
     },
     null,
   ];

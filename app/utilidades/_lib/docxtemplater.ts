@@ -3,7 +3,7 @@ import path from "node:path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 
-const TEMPLATES_DIR = path.join(process.cwd(), "app", "herramientas", "_templates");
+const TEMPLATES_DIR = path.join(process.cwd(), "app", "utilidades", "_templates");
 
 export type PlantillaDatos = Record<string, unknown>;
 

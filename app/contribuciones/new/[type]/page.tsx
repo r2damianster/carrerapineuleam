@@ -21,6 +21,24 @@ const CATEGORIAS_DOCENTE = ['AUXILIAR_I', 'AUXILIAR_II', 'AGREGADO_I', 'AGREGADO
 
 const LINEA_INVESTIGACION_DEFAULT = 'Educación y Nuevos Escenarios de la Formación Profesional'
 
+// Proyectos del grupo de investigación (lib/data.ts: liderProyectoPropio + el proyecto
+// PINE/Internacionalización de Arturo+Jhonny, que no tiene entrada propia ahí).
+const PROYECTOS = [
+  'Innovaciones Pedagógicas e Internacionalización',
+  'Desarrollo de Habilidades Lingüísticas',
+  'Dinámicas Lingüísticas en Contextos Locales',
+  'Mentoring',
+] as const
+
+const PARTICIPACIONES = ['Autor', 'Coautor', 'Traductor', 'Otro'] as const
+
+const FILIACION_DEFAULT = 'Universidad Laica Eloy Alfaro de Manabí'
+
+const TIPO_ARTICULO_LABEL: Record<string, string> = {
+  ARTICULO_REGIONAL: 'Artículo Regional',
+  ARTICULO_ALTO_IMPACTO: 'Artículo de Alto Impacto',
+}
+
 // Esquema de validación: campos comunes obligatorios, específicos por tipo opcionales
 const schema = yup.object({
   tipoPublicacion: yup.string().oneOf(TIPOS_PUBLICACION).required(),
@@ -42,6 +60,8 @@ const schema = yup.object({
   linkPublicacion: yup.string().optional(),
   linkRevista: yup.string().optional(),
   filiacion: yup.string().optional(),
+  filiacionOtro: yup.string().optional(),
+  participacionOtro: yup.string().optional(),
   identificacionParticipante: yup.string().optional(),
   // Libros
   isbn: yup.string().optional(),
@@ -83,6 +103,61 @@ const schema = yup.object({
 
 type FormValues = yup.InferType<typeof schema>
 
+function ProyectoField({ register }: { register: any }) {
+  return (
+    <div>
+      <label className="block text-sm">Proyecto</label>
+      <select {...register('proyecto')} className="mt-1 block w-full border rounded p-2">
+        <option value="">Selecciona</option>
+        {PROYECTOS.map(p => <option key={p} value={p}>{p}</option>)}
+        <option value="No aplica">No aplica</option>
+      </select>
+    </div>
+  )
+}
+
+function ParticipacionField({ register, watch }: { register: any; watch: any }) {
+  const valor = watch('participacion')
+  return (
+    <div>
+      <label className="block text-sm">Participación</label>
+      <select {...register('participacion')} className="mt-1 block w-full border rounded p-2">
+        <option value="">Selecciona</option>
+        {PARTICIPACIONES.map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
+      {valor === 'Otro' && (
+        <input
+          type="text"
+          placeholder="¿Cuál?"
+          {...register('participacionOtro')}
+          className="mt-2 block w-full border rounded p-2"
+        />
+      )}
+    </div>
+  )
+}
+
+function FiliacionField({ register, watch }: { register: any; watch: any }) {
+  const valor = watch('filiacion')
+  return (
+    <div>
+      <label className="block text-sm">Filiación</label>
+      <select {...register('filiacion')} className="mt-1 block w-full border rounded p-2">
+        <option value={FILIACION_DEFAULT}>{FILIACION_DEFAULT}</option>
+        <option value="Otro">Otro</option>
+      </select>
+      {valor === 'Otro' && (
+        <input
+          type="text"
+          placeholder="¿Cuál?"
+          {...register('filiacionOtro')}
+          className="mt-2 block w-full border rounded p-2"
+        />
+      )}
+    </div>
+  )
+}
+
 export default function NewContributionPage({ params }: { params: { type: string } }) {
   const router = useRouter()
   const tipo = params.type as TipoPublicacion
@@ -98,7 +173,9 @@ export default function NewContributionPage({ params }: { params: { type: string
     resolver: yupResolver(schema) as any,
     defaultValues: {
       tipoPublicacion: tipo,
+      tipoArticulo: TIPO_ARTICULO_LABEL[tipo] ?? undefined,
       lineaInvestigacion: LINEA_INVESTIGACION_DEFAULT,
+      filiacion: FILIACION_DEFAULT,
       revisadoPares: true,
       authors: [{ authorName: '', order: 1, isCarreraAuthor: true, esEstudiante: false }],
     },
@@ -116,11 +193,15 @@ export default function NewContributionPage({ params }: { params: { type: string
     campoDetallado?: string
     estado?: 'PUBLICADO' | 'ACEPTADO' | 'OTRO'
     authors?: { authorName: string; order: number; isCarreraAuthor: boolean; esEstudiante?: boolean }[]
+    nombreRevista?: string
+    issn?: string
   }) => {
     if (datos.titulo) setValue('titulo', datos.titulo)
     if (datos.fechaPublicacion) setValue('fechaPublicacion', datos.fechaPublicacion)
     if (datos.campoDetallado) setValue('campoDetallado', datos.campoDetallado)
     if (datos.estado) setValue('estado', datos.estado)
+    if (datos.nombreRevista) setValue('nombreRevista', datos.nombreRevista)
+    if (datos.issn) setValue('issn', datos.issn)
     if (datos.authors && datos.authors.length > 0) {
       replaceAuthors(datos.authors.map(a => ({ ...a, esEstudiante: a.esEstudiante ?? false })))
     }
@@ -171,6 +252,10 @@ export default function NewContributionPage({ params }: { params: { type: string
       if (tipo === 'LIBRO' || tipo === 'CAPITULO_LIBRO') {
         payload.tituloLibro = data.titulo
       }
+      if (payload.filiacion === 'Otro' && payload.filiacionOtro) payload.filiacion = payload.filiacionOtro
+      if (payload.participacion === 'Otro' && payload.participacionOtro) payload.participacion = payload.participacionOtro
+      delete payload.filiacionOtro
+      delete payload.participacionOtro
       const res = await fetch('/api/contribuciones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -307,16 +392,13 @@ export default function NewContributionPage({ params }: { params: { type: string
             <h3 className="font-medium text-gray-700">Datos específicos del artículo</h3>
             <div>
               <label className="block text-sm">Tipo de artículo</label>
-              <input type="text" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
+              <input type="text" readOnly {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2 bg-gray-100" />
             </div>
             <div>
               <label className="block text-sm">Código de publicación</label>
               <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Proyecto</label>
-              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ProyectoField register={register} />
             <div>
               <label className="block text-sm">Base de datos indexada</label>
               <input type="text" {...register('baseDatosIndexada')} placeholder="ErihPlus, Scopus, Latindex, Dialnet…" className="mt-1 block w-full border rounded p-2" />
@@ -340,10 +422,7 @@ export default function NewContributionPage({ params }: { params: { type: string
                 {CATEGORIAS_DOCENTE.map(c => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-sm">Participación</label>
-              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ParticipacionField register={register} watch={watch} />
             <div>
               <label className="block text-sm">Link de la publicación</label>
               <input type="text" {...register('linkPublicacion')} className="mt-1 block w-full border rounded p-2" />
@@ -352,10 +431,7 @@ export default function NewContributionPage({ params }: { params: { type: string
               <label className="block text-sm">Link de la revista</label>
               <input type="text" {...register('linkRevista')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Filiación</label>
-              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <FiliacionField register={register} watch={watch} />
             <div>
               <label className="block text-sm">Identificación del participante</label>
               <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
@@ -370,10 +446,7 @@ export default function NewContributionPage({ params }: { params: { type: string
               <label className="block text-sm">Código de publicación</label>
               <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Proyecto</label>
-              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ProyectoField register={register} />
             <div>
               <label className="block text-sm">Código ISBN</label>
               <input type="text" {...register('isbn')} className="mt-1 block w-full border rounded p-2" />
@@ -382,18 +455,12 @@ export default function NewContributionPage({ params }: { params: { type: string
               <input type="checkbox" {...register('revisadoPares')} className="mr-1" />
               Revisado por pares
             </label>
-            <div>
-              <label className="block text-sm">Filiación</label>
-              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <FiliacionField register={register} watch={watch} />
             <div>
               <label className="block text-sm">Identificación del participante</label>
               <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Participación</label>
-              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ParticipacionField register={register} watch={watch} />
           </div>
         )}
 
@@ -404,10 +471,7 @@ export default function NewContributionPage({ params }: { params: { type: string
               <label className="block text-sm">Código de publicación</label>
               <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Proyecto</label>
-              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ProyectoField register={register} />
             <div>
               <label className="block text-sm">Código ISBN</label>
               <input type="text" {...register('isbn')} className="mt-1 block w-full border rounded p-2" />
@@ -424,18 +488,12 @@ export default function NewContributionPage({ params }: { params: { type: string
               <label className="block text-sm">Total de capítulos del libro</label>
               <input type="number" {...register('totalCapituloLibro', { valueAsNumber: true })} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Filiación</label>
-              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <FiliacionField register={register} watch={watch} />
             <div>
               <label className="block text-sm">Identificación del participante</label>
               <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Participación</label>
-              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ParticipacionField register={register} watch={watch} />
           </div>
         )}
 
@@ -482,10 +540,7 @@ export default function NewContributionPage({ params }: { params: { type: string
               <label className="block text-sm">Identificación del participante</label>
               <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
             </div>
-            <div>
-              <label className="block text-sm">Participación</label>
-              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
-            </div>
+            <ParticipacionField register={register} watch={watch} />
           </div>
         )}
 
