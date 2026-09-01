@@ -69,7 +69,7 @@ export default async function PortalDashboard() {
             {/* Gestión de Carrera: cualquier docente, sin importar el módulo */}
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Carrera</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Aportar a la Carrera</h3>
                 <p className="text-gray-600 mb-4 text-sm">Registro de eventos y difusión a nivel de carrera (investigación, vinculación o asignatura).</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento</Link>
@@ -78,7 +78,7 @@ export default async function PortalDashboard() {
             )}
 
             {/* Módulo: Dashboard Estadístico (Admin) */}
-            {modulos_acceso.includes('admin') && (
+            {(modulos_acceso.includes('admin') || modulos_acceso.includes('indicadores')) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Indicadores</h3>
                 <p className="text-gray-600 mb-4 text-sm">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
@@ -87,7 +87,20 @@ export default async function PortalDashboard() {
                 </div>
               </div>
             )}
-
+            {/* Utilidades – future toolbox */}
+            {modulos_acceso.includes('utilidades') && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Utilidades</h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Herramientas y recursos adicionales que se irán incorporando poco a poco.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/utilidades" className="text-teal-600 hover:underline">
+                    » Ver Utilidades
+                  </Link>
+                </div>
+              </div>
+            )}
             {/* Módulo: Gestión de MI PROYECTO — solo líder/colider de este proyecto */}
             {modulos_acceso.includes('contenido_sitio') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500 hover:shadow-lg transition">

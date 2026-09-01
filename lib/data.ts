@@ -1050,8 +1050,16 @@ export const adminUsers = [
     role: 'admin' as const,
   },
 ];
-},
-  {
+export const profesorModulos: Record<string, string[]> = {
+  'arturo.rodriguez@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
+  'jhonny.villafuerte@uleam.edu.ec': ['admin','investigacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
+  'german.carrera@uleam.edu.ec': ['admin','investigacion','indicadores','utilidades'],
+  'maria.basantes@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Cristina Basantes
+  'johanna.bello@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Johana Bello
+  'ulbio.farfan@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
+  'jorge.corral@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
+};
+export const activities: Activity[] = [
     id: 'activity_6',
     title: 'Capacitación en Clasificación de Artículos Científicos — Carrera de Pedagogía de Lengua y Literatura',
     description: 'Actividad de transferencia realizada el 3 de junio de 2026. Capacitación dirigida a estudiantes y docentes de la carrera de Pedagogía de Lengua y Literatura sobre metodologías y criterios para la clasificación y evaluación de artículos científicos. Contribución del proyecto PINE al fortalecimiento de competencias en investigación.',
