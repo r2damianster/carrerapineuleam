@@ -5,8 +5,8 @@ import { z } from 'zod';
 // Esquema de validación usando Zod – los campos dependen del tipo de publicación
 const baseSchema = z.object({
   codigo_ies: z.string().optional(), // será fijado a 'ULEAM'
-  facultad: z.string(),
-  carrera: z.string(),
+  facultad: z.string().optional(),
+  carrera: z.string().optional(),
   tipoPublicacion: z.enum([
     'ARTICULO_REGIONAL',
     'ARTICULO_ALTO_IMPACTO',
@@ -25,7 +25,7 @@ const baseSchema = z.object({
   isbn: z.string().optional(),
   fechaPublicacion: z.string().refine(v => !isNaN(Date.parse(v)), { message: 'Invalid date' }),
   campoDetallado: z.string(),
-  estado: z.string(),
+  estado: z.enum(['PUBLICADO', 'ACEPTADO', 'OTRO']),
   linkPublicacion: z.string().optional(),
   linkRevista: z.string().optional(),
   filiacion: z.string().optional(),
@@ -51,8 +51,13 @@ const baseSchema = z.object({
   ),
 });
 
+/** Helper to extract role from request headers (set by auth middleware) */
+function getUserRole(request: Request): string | null {
+  return request.headers.get('x-user-role');
+}
+
 export async function GET(request: Request) {
-  const role = request.headers.get('x-user-role'); // middleware debe añadir este header
+  const role = getUserRole(request);
   if (role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -64,7 +69,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const role = request.headers.get('x-user-role');
+  const role = getUserRole(request);
   if (!role) {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   }
@@ -74,8 +79,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parseResult.error.errors }, { status: 400 });
   }
   const data = parseResult.data;
-  // Forzar CODIGO_IES a ULEAM
+  // Forzar CODIGO_IES a ULEAM y defaults de facultad/carrera
   data.codigo_ies = 'ULEAM';
+  if (!data.facultad) data.facultad = 'Facultad de Educación y Turismo';
+  if (!data.carrera) data.carrera = 'Pedagogía de los Idiomas Nacionales y Extranjeros';
   const fechaPub = new Date(data.fechaPublicacion);
   const contribution = await prisma.contribution.create({
     data: {
@@ -93,7 +100,7 @@ export async function POST(request: Request) {
       isbn: data.isbn,
       fechaPublicacion: fechaPub,
       campoDetallado: data.campoDetallado,
-      estado: data.estado,
+      estado: data.estado as any,
       linkPublicacion: data.linkPublicacion,
       linkRevista: data.linkRevista,
       filiacion: data.filiacion,
@@ -114,4 +121,22 @@ export async function POST(request: Request) {
     include: { authors: true },
   });
   return NextResponse.json(contribution, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  const role = getUserRole(request);
+  if (role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  }
+  try {
+    await prisma.contribution.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 }

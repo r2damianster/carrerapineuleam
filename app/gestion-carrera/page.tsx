@@ -10,6 +10,8 @@ export default function GestionCarreraPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [responsables, setResponsables] = useState<number[]>([]);
 
   const [form, setForm] = useState({
     titulo: '',
@@ -33,9 +35,21 @@ export default function GestionCarreraPage() {
           return;
         }
         setCheckingSession(false);
+        if (data.usuario.rol === 'profesor') {
+          setResponsables([parseInt(data.usuario.id, 10)]);
+        }
       })
       .catch(() => router.push('/login?redirect=/gestion-carrera'));
+
+    fetch('/api/profesores')
+      .then(res => res.ok ? res.json() : { profesores: [] })
+      .then(data => setProfesores(data.profesores || []))
+      .catch(() => setProfesores([]));
   }, [router]);
+
+  const toggleResponsable = (id: number) => {
+    setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -43,6 +57,10 @@ export default function GestionCarreraPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (responsables.length === 0) {
+      setMessage('Error: Debe seleccionar al menos un profesor responsable');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
@@ -63,6 +81,7 @@ export default function GestionCarreraPage() {
           ...form,
           audiencia_alcanzada: parseInt(form.audiencia_alcanzada),
           evidencia_url,
+          profesores_responsables: responsables,
         }),
       });
       const data = await res.json();
@@ -151,6 +170,26 @@ export default function GestionCarreraPage() {
               <label className="block text-sm font-medium text-gray-700">N° Asistentes</label>
               <input type="number" name="audiencia_alcanzada" min="0" required value={form.audiencia_alcanzada} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Profesor(es) Responsable(s)</label>
+            <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto space-y-1">
+              {profesores.length === 0 && (
+                <p className="text-sm text-gray-400">Cargando profesores...</p>
+              )}
+              {profesores.map(profesor => (
+                <label key={profesor.id} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={responsables.includes(profesor.id)}
+                    onChange={() => toggleResponsable(profesor.id)}
+                  />
+                  {profesor.nombres} {profesor.apellidos}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">Puede seleccionar más de un profesor responsable.</p>
           </div>
 
           <div>

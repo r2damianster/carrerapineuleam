@@ -9,12 +9,23 @@ export default function DifusionPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [checkingSession, setCheckingSession] = useState(true);
+  const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [responsables, setResponsables] = useState<number[]>([]);
 
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.ok ? setCheckingSession(false) : Promise.reject())
       .catch(() => router.push('/login?redirect=/vinculacion/difusion'));
+
+    fetch('/api/profesores')
+      .then(res => res.ok ? res.json() : { profesores: [] })
+      .then(data => setProfesores(data.profesores || []))
+      .catch(() => setProfesores([]));
   }, [router]);
+
+  const toggleResponsable = (id: number) => {
+    setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -39,6 +50,10 @@ export default function DifusionPage() {
     e.preventDefault();
     if (!file) {
       setMessage('Error: Es obligatorio subir una evidencia gráfica');
+      return;
+    }
+    if (responsables.length === 0) {
+      setMessage('Error: Debe seleccionar al menos un profesor responsable');
       return;
     }
 
@@ -67,7 +82,8 @@ export default function DifusionPage() {
       const payload = {
         ...formData,
         audiencia_alcanzada: parseInt(formData.audiencia_alcanzada),
-        evidencia_url
+        evidencia_url,
+        profesores_responsables: responsables
       };
 
       const res = await fetch('/api/difusion', {
@@ -141,6 +157,26 @@ export default function DifusionPage() {
               <label className="block text-sm font-medium text-gray-700">Audiencia Alcanzada (N° Personas)</label>
               <input type="number" name="audiencia_alcanzada" min="1" required onChange={handleChange} placeholder="Ej: 150" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
             </div>
+          </div>
+
+          <div className="pt-4 border-t">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Profesor(es) Responsable(s)</label>
+            <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto space-y-1">
+              {profesores.length === 0 && (
+                <p className="text-sm text-gray-400">Cargando profesores...</p>
+              )}
+              {profesores.map(profesor => (
+                <label key={profesor.id} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={responsables.includes(profesor.id)}
+                    onChange={() => toggleResponsable(profesor.id)}
+                  />
+                  {profesor.nombres} {profesor.apellidos}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">Puede seleccionar más de un profesor responsable.</p>
           </div>
 
           <div className="pt-4 border-t">

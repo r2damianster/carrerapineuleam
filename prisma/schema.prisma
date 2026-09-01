@@ -25,14 +25,20 @@ enum CategoriaDocente {
   PRINCIPAL_II
 }
 
+enum EstadoPublicacion {
+  PUBLICADO
+  ACEPTADO
+  OTRO
+}
+
 model Contribution {
   id                     String   @id @default(cuid())
   codigo_ies             String   @default("ULEAM")
-  facultad               String
-  carrera                String
+  facultad               String   @default("Facultad de Educación y Turismo")
+  carrera                String   @default("Pedagogía de los Idiomas Nacionales y Extranjeros")
   tipoPublicacion        TipoPublicacion
   tipoArticulo           String?   // solo para artículos
-  codigoPublicacion      String?
+  codigoPublicacion      String?   // opcional
   proyecto               String?
   titulo                 String
   tituloLibro            String?   // para libros y capítulos
@@ -41,9 +47,9 @@ model Contribution {
   isbn                   String?
   fechaPublicacion       DateTime
   campoDetallado         String
-  estado                 String
-  linkPublicacion        String?
-  linkRevista            String?
+  estado                 EstadoPublicacion
+  linkPublicacion        String?   // opcional
+  linkRevista            String?   // opcional
   filiacion              String?
   identificacionParticipante String?
   categoria              CategoriaDocente?

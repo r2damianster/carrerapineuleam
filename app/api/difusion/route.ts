@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       asignatura,
       descripcion,
       observaciones,
+      profesores_responsables,
     } = data;
     const registrador_id = usuario.id;
 
@@ -30,15 +31,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
+    const responsablesIds = Array.isArray(profesores_responsables)
+      ? profesores_responsables.map((id: any) => parseInt(id, 10)).filter((id: number) => !isNaN(id))
+      : [];
+
+    if (responsablesIds.length === 0) {
+      return NextResponse.json({ error: 'Debe seleccionar al menos un profesor responsable' }, { status: 400 });
+    }
+
     const sql = neon(process.env.DATABASE_URL!);
+
+    const profesoresValidos = await sql`
+      SELECT id FROM usuarios WHERE id = ANY(${responsablesIds}) AND rol = 'profesor'
+    `;
+    if (profesoresValidos.length !== responsablesIds.length) {
+      return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos' }, { status: 400 });
+    }
 
     await sql`
       INSERT INTO actividades_difusion
         (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url,
-         categoria, proyecto, asignatura, descripcion, observaciones)
+         categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables)
       VALUES
         (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null},
-         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null})
+         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds})
     `;
 
     return NextResponse.json({ success: true, message: 'Actividad registrada exitosamente' });

@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.3
-**Última sesión:** 2026-09-01 (Sesión 22 — fix de /registro roto por el cambio de esquema de beneficiarios + manual de usuario reescrito. Ver detalle abajo)
+**Última sesión:** 2026-09-01 (Sesión 23 — profesor(es) responsable(s) en actividades_difusion. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -85,7 +85,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | `ciclos_academicos` | Semestres | Compartido entre áreas, no se etiqueta |
 | `evaluaciones_mcer` | Resultados del test MCER | `beneficiario_id` es **entero** → `usuarios.id` (se corrigió en Sesión 19, antes era UUID roto contra la tabla vieja `beneficiarios`) |
 | `encuestas_satisfaccion` | Encuestas de satisfacción | |
-| `actividades_difusion` | Eventos/podcasts (Difusión + Gestión de Carrera) | `categoria`/`proyecto`/`asignatura`/`descripcion`/`hora`/`observaciones` |
+| `actividades_difusion` | Eventos/podcasts (Difusión + Gestión de Carrera) | `categoria`/`proyecto`/`asignatura`/`descripcion`/`hora`/`observaciones` + `profesores_responsables integer[]` (Sesión 23, ver abajo) |
 | `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
 | `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
 
@@ -111,6 +111,17 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 23 — 2026-09-01)
+
+- ✅ **Profesor(es) responsable(s) en eventos/podcasts.** Confirmado que estudiante (`/vinculacion/difusion`) y profesor (`/gestion-carrera`) escriben a la **misma tabla** `actividades_difusion` vía el **mismo endpoint** `POST /api/difusion` — solo cambia el formulario, no la fuente de datos. Antes solo se guardaba `registrador_id` (quien llena el form); no había forma de saber qué profesor(es) respaldan el evento.
+  - Columna nueva `actividades_difusion.profesores_responsables INTEGER[]` (`scripts/migrate-responsables-difusion.js`, default `'{}'`) — array, no tabla puente, mismo patrón que `usuarios.modulos_acceso`. Soporta 1 o más responsables.
+  - Endpoint nuevo `GET /api/profesores` → lista `{id, nombres, apellidos}` de `usuarios WHERE rol='profesor'`, para poblar el selector.
+  - `POST /api/difusion` ahora exige `profesores_responsables` (mínimo 1) y valida contra Neon (`id = ANY(...) AND rol='profesor'`) antes de insertar — el responsable **siempre** se elige de la lista real, nunca texto libre.
+  - UI: multi-select por checkboxes en ambos formularios (`/vinculacion/difusion` y `/gestion-carrera`). En `/gestion-carrera`, si quien registra es `profesor` se autoselecciona a sí mismo (editable, puede agregar co-responsables); en `/vinculacion/difusion` (estudiante) no hay autoselección, el estudiante-instructor no es profesor.
+  - Podcast (`tipo='podcast'`) no tuvo tratamiento especial — hereda el campo automáticamente al pasar por el mismo form/tabla.
 
 ---
 
