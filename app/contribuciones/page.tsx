@@ -117,6 +117,7 @@ export default function ContributionsPage() {
               <th className="p-2 border"></th>
               <th className="p-2 border">Tipo</th>
               <th className="p-2 border">Título</th>
+              <th className="p-2 border">Periodo</th>
               <th className="p-2 border">Línea de investigación</th>
               <th className="p-2 border">Fecha subida</th>
               <th className="p-2 border">Autores</th>
@@ -141,6 +142,7 @@ export default function ContributionsPage() {
                     </td>
                     <td className="p-2 border">{c.tipoPublicacion}</td>
                     <td className="p-2 border">{c.titulo}</td>
+                    <td className="p-2 border">{c.periodoAcademico}</td>
                     <td className="p-2 border">{c.lineaInvestigacion}</td>
                     <td className="p-2 border">{new Date(c.fechaSubida).toLocaleString()}</td>
                     <td className="p-2 border">
@@ -160,7 +162,7 @@ export default function ContributionsPage() {
                   {abierto && (
                     <tr>
                       <td></td>
-                      <td colSpan={6} className="p-3 border bg-gray-50">
+                      <td colSpan={7} className="p-3 border bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                           <div><span className="font-medium">Campo detallado:</span> {formatearValor(c.campoDetallado)}</div>
                           <div><span className="font-medium">Estado:</span> {formatearValor(c.estado)}</div>

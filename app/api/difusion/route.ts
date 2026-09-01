@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 
 export async function POST(request: Request) {
   try {
@@ -48,13 +49,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos' }, { status: 400 });
     }
 
+    const periodo_academico = calcularPeriodoAcademico(new Date(fecha));
+
     await sql`
       INSERT INTO actividades_difusion
         (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url,
-         categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables)
+         categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables, periodo_academico)
       VALUES
         (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null},
-         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds})
+         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds}, ${periodo_academico})
     `;
 
     return NextResponse.json({ success: true, message: 'Actividad registrada exitosamente' });

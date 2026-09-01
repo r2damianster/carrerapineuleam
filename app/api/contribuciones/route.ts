@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 
 // Esquema de validación usando Zod – los campos dependen del tipo de publicación
 const baseSchema = z.object({
@@ -100,9 +101,11 @@ export async function POST(request: Request) {
   if (!data.facultad) data.facultad = 'Facultad de Educación y Turismo';
   if (!data.carrera) data.carrera = 'Pedagogía de los Idiomas Nacionales y Extranjeros';
   const fechaPub = new Date(data.fechaPublicacion);
+  const periodoAcademico = calcularPeriodoAcademico(fechaPub);
   const contribution = await prisma.contribution.create({
     data: {
       codigo_ies: data.codigo_ies,
+      periodoAcademico,
       facultad: data.facultad,
       carrera: data.carrera,
       tipoPublicacion: data.tipoPublicacion as any,
