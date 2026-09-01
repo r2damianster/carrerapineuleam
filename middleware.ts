@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
     '/docencia',
     '/pine-dashboard',
     '/contribuciones',
+    '/utilidades',
   ];
 
   const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
@@ -65,6 +66,12 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
     if (pathname.startsWith('/contribuciones/new') && !['profesor', 'admin'].includes(session.rol)) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Utilidades: generadores de documentos (Acta Técnica, Oficios, Convocatorias,
+    // PAT Maestría, Pares Lectores) — mismo módulo que la tarjeta del dashboard.
+    if (pathname.startsWith('/utilidades') && !session.modulos_acceso.includes('utilidades')) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
   }
