@@ -49,7 +49,10 @@ export default function ConvocatoriasPage() {
   const [docentes, setDocentes] = useState<Docente[]>([]);
 
   useEffect(() => {
-    fetch("/utilidades/api/docentes").then((r) => r.json()).then(setDocentes);
+    fetch("/utilidades/api/docentes")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setDocentes(Array.isArray(data) ? data : []))
+      .catch(() => setDocentes([]));
   }, []);
 
   const carreras = useMemo(() => Array.from(new Set(docentes.map((d) => d.carrera))), [docentes]);

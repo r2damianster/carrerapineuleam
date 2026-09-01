@@ -57,6 +57,24 @@ model Contribution {
   cuartil                String?
   lineaInvestigacion    String
   intercultural          String?
+  baseDatosIndexada     String?   // artículos regionales/alto impacto
+  revisadoPares         Boolean  @default(true) // libros
+  tituloCapitulo        String?   // capítulos
+  editorCompilador      String?   // capítulos
+  paginas               String?   // capítulos
+  totalCapituloLibro    Int?      // capítulos
+  nombrePonencia        String?   // memoria de eventos
+  nombreEvento          String?   // memoria de eventos
+  edicionEvento         String?   // memoria de eventos
+  organizadorEvento     String?   // memoria de eventos
+  comiteOrganizador     String?   // memoria de eventos
+  pais                  String?   // memoria de eventos
+  ciudad                String?   // memoria de eventos
+  certificadoN          String?   // propiedad intelectual
+  solicitudN            String?   // propiedad intelectual
+  claseDeObra           String?   // propiedad intelectual
+  tituloObra            String?   // propiedad intelectual
+  lugar                 String?   // propiedad intelectual
   fechaSubida            DateTime @default(now())
   validadoPor            String?   // id del admin que valida
   fechaValidacion        DateTime?

@@ -58,7 +58,10 @@ export default function ParesLectoresPage() {
   const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
-    fetch("/utilidades/pares-lectores/api/modalidades").then((r) => r.json()).then(setModalidades);
+    fetch("/utilidades/pares-lectores/api/modalidades")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setModalidades(Array.isArray(data) ? data : []))
+      .catch(() => setModalidades([]));
   }, []);
 
   async function precargarDesdeMemo(archivo: File) {

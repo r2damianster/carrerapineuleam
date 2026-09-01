@@ -59,8 +59,9 @@ export default function OficiosPage() {
 
   useEffect(() => {
     fetch("/utilidades/oficios/api/carreras")
-      .then((r) => r.json())
-      .then(setCarreras);
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setCarreras(Array.isArray(data) ? data : []))
+      .catch(() => setCarreras([]));
   }, []);
 
   useEffect(() => {
@@ -68,8 +69,9 @@ export default function OficiosPage() {
       ? `/utilidades/oficios/api/destinatarios?carrera=${encodeURIComponent(carreraFiltro)}`
       : "/utilidades/oficios/api/destinatarios";
     fetch(url)
-      .then((r) => r.json())
-      .then(setDocentes);
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setDocentes(Array.isArray(data) ? data : []))
+      .catch(() => setDocentes([]));
   }, [carreraFiltro]);
 
   function agregarDestinatario(id: string) {

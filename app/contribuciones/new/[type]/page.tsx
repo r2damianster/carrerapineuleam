@@ -17,7 +17,11 @@ const TIPOS_PUBLICACION = [
 
 type TipoPublicacion = typeof TIPOS_PUBLICACION[number]
 
-// Esquema de validación básico (puedes ampliarlo según tipo)
+const CATEGORIAS_DOCENTE = ['AUXILIAR_I', 'AUXILIAR_II', 'AGREGADO_I', 'AGREGADO_II', 'PRINCIPAL_I', 'PRINCIPAL_II'] as const
+
+const LINEA_INVESTIGACION_DEFAULT = 'Educación y Nuevos Escenarios de la Formación Profesional'
+
+// Esquema de validación: campos comunes obligatorios, específicos por tipo opcionales
 const schema = yup.object({
   tipoPublicacion: yup.string().oneOf(TIPOS_PUBLICACION).required(),
   titulo: yup.string().required(),
@@ -25,6 +29,44 @@ const schema = yup.object({
   fechaPublicacion: yup.string().required(),
   campoDetallado: yup.string().required(),
   estado: yup.string().oneOf(['PUBLICADO', 'ACEPTADO', 'OTRO'] as const).required(),
+  // Artículos (regional / alto impacto)
+  tipoArticulo: yup.string().optional(),
+  codigoPublicacion: yup.string().optional(),
+  proyecto: yup.string().optional(),
+  baseDatosIndexada: yup.string().optional(),
+  issn: yup.string().optional(),
+  nombreRevista: yup.string().optional(),
+  cuartil: yup.string().optional(),
+  categoria: yup.string().oneOf([...CATEGORIAS_DOCENTE, '']).optional(),
+  participacion: yup.string().optional(),
+  linkPublicacion: yup.string().optional(),
+  linkRevista: yup.string().optional(),
+  filiacion: yup.string().optional(),
+  identificacionParticipante: yup.string().optional(),
+  // Libros
+  isbn: yup.string().optional(),
+  revisadoPares: yup.boolean().optional(),
+  // Capítulos
+  tituloCapitulo: yup.string().optional(),
+  editorCompilador: yup.string().optional(),
+  paginas: yup.string().optional(),
+  totalCapituloLibro: yup.number().integer().optional().nullable(),
+  // Memoria de eventos
+  nombrePonencia: yup.string().optional(),
+  nombreEvento: yup.string().optional(),
+  edicionEvento: yup.string().optional(),
+  organizadorEvento: yup.string().optional(),
+  comiteOrganizador: yup.string().optional(),
+  pais: yup.string().optional(),
+  ciudad: yup.string().optional(),
+  // Propiedad intelectual
+  certificadoN: yup.string().optional(),
+  solicitudN: yup.string().optional(),
+  claseDeObra: yup.string().optional(),
+  tituloObra: yup.string().optional(),
+  lugar: yup.string().optional(),
+  // Común opcional
+  intercultural: yup.string().optional(),
   authors: yup
     .array()
     .of(
@@ -43,6 +85,7 @@ type FormValues = yup.InferType<typeof schema>
 
 export default function NewContributionPage({ params }: { params: { type: string } }) {
   const router = useRouter()
+  const tipo = params.type as TipoPublicacion
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const {
     register,
@@ -52,9 +95,11 @@ export default function NewContributionPage({ params }: { params: { type: string
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
-      tipoPublicacion: params.type as TipoPublicacion,
+      tipoPublicacion: tipo,
+      lineaInvestigacion: LINEA_INVESTIGACION_DEFAULT,
+      revisadoPares: true,
       authors: [{ authorName: '', order: 1, isCarreraAuthor: true, esEstudiante: false }],
     },
   })
@@ -120,10 +165,16 @@ export default function NewContributionPage({ params }: { params: { type: string
 
   const onSubmit = async (data: FormValues) => {
     try {
+      const payload: any = { ...data }
+      // El input "Título" representa el título del libro en estos dos tipos —
+      // se copia a tituloLibro para que quede en el campo correcto de la BD.
+      if (tipo === 'LIBRO' || tipo === 'CAPITULO_LIBRO') {
+        payload.tituloLibro = data.titulo
+      }
       const res = await fetch('/api/contribuciones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -141,6 +192,9 @@ export default function NewContributionPage({ params }: { params: { type: string
     }
   }
 
+  const esArticulo = tipo === 'ARTICULO_REGIONAL' || tipo === 'ARTICULO_ALTO_IMPACTO'
+  const tituloLabel = tipo === 'LIBRO' || tipo === 'CAPITULO_LIBRO' ? 'Título del libro *' : 'Título *'
+
   return (
     <div className="max-w-3xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Nuevo registro de contribución</h1>
@@ -148,9 +202,10 @@ export default function NewContributionPage({ params }: { params: { type: string
       <div className="bg-gray-50 border rounded p-4 mb-6 space-y-3">
         <h2 className="font-medium text-gray-800">Autocompletar (opcional)</h2>
         <p className="text-sm text-gray-500">
-          Busca por DOI o sube el PDF del artículo — la IA precarga los campos. Todos los autores quedan
-          marcados como "Carrera" por defecto (desmarca los que sean externos), y puedes indicar cuáles
-          son estudiantes. Revisa todo antes de guardar.
+          Busca por DOI o sube el PDF del artículo — la IA precarga los campos comunes. Todos los autores
+          quedan marcados como "Carrera" por defecto (desmarca los que sean externos), y puedes indicar
+          cuáles son estudiantes. Los campos específicos de este tipo se completan a mano. Revisa todo
+          antes de guardar.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -201,14 +256,21 @@ export default function NewContributionPage({ params }: { params: { type: string
         </div>
         {/* Campos comunes */}
         <div>
-          <label className="block font-medium">Título *</label>
+          <label className="block font-medium">{tituloLabel}</label>
           <input type="text" {...register('titulo')} className="mt-1 block w-full border rounded p-2" />
           {errors.titulo && <p className="text-red-600">{errors.titulo.message}</p>}
         </div>
+
+        {tipo === 'CAPITULO_LIBRO' && (
+          <div>
+            <label className="block font-medium">Título del capítulo</label>
+            <input type="text" {...register('tituloCapitulo')} className="mt-1 block w-full border rounded p-2" />
+          </div>
+        )}
+
         <div>
           <label className="block font-medium">Línea de investigación *</label>
           <select {...register('lineaInvestigacion')} className="mt-1 block w-full border rounded p-2">
-            <option value="">Selecciona</option>
             <option value="Educación y Nuevos Escenarios de la Formación Profesional">Educación y Nuevos Escenarios de la Formación Profesional</option>
             <option value="Cultura Física y Desarrollo Humano">Cultura Física y Desarrollo Humano</option>
             <option value="Economía y Administración para el Desarrollo Sostenible">Economía y Administración para el Desarrollo Sostenible</option>
@@ -238,6 +300,226 @@ export default function NewContributionPage({ params }: { params: { type: string
             <option value="OTRO">Otro</option>
           </select>
         </div>
+
+        {/* Campos específicos por tipo */}
+        {esArticulo && (
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-gray-700">Datos específicos del artículo</h3>
+            <div>
+              <label className="block text-sm">Tipo de artículo</label>
+              <input type="text" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Código de publicación</label>
+              <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Proyecto</label>
+              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Base de datos indexada</label>
+              <input type="text" {...register('baseDatosIndexada')} placeholder="ErihPlus, Scopus, Latindex, Dialnet…" className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Nombre de la revista</label>
+              <input type="text" {...register('nombreRevista')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Código ISSN</label>
+              <input type="text" {...register('issn')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Cuartil</label>
+              <input type="text" {...register('cuartil')} placeholder="Q1, Q2…" className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Categoría docente</label>
+              <select {...register('categoria')} className="mt-1 block w-full border rounded p-2">
+                <option value="">Selecciona</option>
+                {CATEGORIAS_DOCENTE.map(c => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm">Participación</label>
+              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Link de la publicación</label>
+              <input type="text" {...register('linkPublicacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Link de la revista</label>
+              <input type="text" {...register('linkRevista')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Filiación</label>
+              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Identificación del participante</label>
+              <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+          </div>
+        )}
+
+        {tipo === 'LIBRO' && (
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-gray-700">Datos específicos del libro</h3>
+            <div>
+              <label className="block text-sm">Código de publicación</label>
+              <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Proyecto</label>
+              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Código ISBN</label>
+              <input type="text" {...register('isbn')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <label className="flex items-center">
+              <input type="checkbox" {...register('revisadoPares')} className="mr-1" />
+              Revisado por pares
+            </label>
+            <div>
+              <label className="block text-sm">Filiación</label>
+              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Identificación del participante</label>
+              <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Participación</label>
+              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+          </div>
+        )}
+
+        {tipo === 'CAPITULO_LIBRO' && (
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-gray-700">Datos específicos del capítulo</h3>
+            <div>
+              <label className="block text-sm">Código de publicación</label>
+              <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Proyecto</label>
+              <input type="text" {...register('proyecto')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Código ISBN</label>
+              <input type="text" {...register('isbn')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Editor / compilador</label>
+              <input type="text" {...register('editorCompilador')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Páginas</label>
+              <input type="text" {...register('paginas')} placeholder="ej: 45-60" className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Total de capítulos del libro</label>
+              <input type="number" {...register('totalCapituloLibro', { valueAsNumber: true })} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Filiación</label>
+              <input type="text" {...register('filiacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Identificación del participante</label>
+              <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Participación</label>
+              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+          </div>
+        )}
+
+        {tipo === 'MEMORIA_EVENTO' && (
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-gray-700">Datos específicos de la memoria de evento</h3>
+            <div>
+              <label className="block text-sm">Tipo de artículo</label>
+              <input type="text" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Código de publicación</label>
+              <input type="text" {...register('codigoPublicacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Nombre de la ponencia</label>
+              <input type="text" {...register('nombrePonencia')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Nombre del evento</label>
+              <input type="text" {...register('nombreEvento')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Edición del evento</label>
+              <input type="text" {...register('edicionEvento')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Organizador del evento</label>
+              <input type="text" {...register('organizadorEvento')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Comité organizador</label>
+              <input type="text" {...register('comiteOrganizador')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">País</label>
+              <input type="text" {...register('pais')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Ciudad</label>
+              <input type="text" {...register('ciudad')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Identificación del participante</label>
+              <input type="text" {...register('identificacionParticipante')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Participación</label>
+              <input type="text" {...register('participacion')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+          </div>
+        )}
+
+        {tipo === 'PROPIEDAD_INTELECTUAL' && (
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-gray-700">Datos específicos de propiedad intelectual</h3>
+            <div>
+              <label className="block text-sm">N° de certificado</label>
+              <input type="text" {...register('certificadoN')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">N° de solicitud</label>
+              <input type="text" {...register('solicitudN')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Clase de obra</label>
+              <input type="text" {...register('claseDeObra')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Título de la obra</label>
+              <input type="text" {...register('tituloObra')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm">Lugar</label>
+              <input type="text" {...register('lugar')} className="mt-1 block w-full border rounded p-2" />
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm">Intercultural (opcional)</label>
+          <input type="text" {...register('intercultural')} className="mt-1 block w-full border rounded p-2" />
+        </div>
+
         {/* Autores */}
         <div>
           <label className="block font-medium mb-2">Autores (máx 5)</label>
