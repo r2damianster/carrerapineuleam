@@ -54,7 +54,7 @@ export async function getPrimaryKeyColumn(table: string): Promise<string | null>
     SELECT a.attname AS column_name
     FROM pg_index i
     JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-    WHERE i.indrelid = ${table}::regclass AND i.indisprimary
+    WHERE i.indrelid = quote_ident(${table})::regclass AND i.indisprimary
     LIMIT 1
   `;
   return (rows[0] as any)?.column_name ?? null;
