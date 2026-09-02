@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.4
-**Última sesión:** 2026-09-02 (Sesión 25 — migración completa del sitio público de `lib/data.ts` estático a Neon Postgres, borrado el código estático. Ver detalle abajo)
+**Versión actual:** 0.10.5
+**Última sesión:** 2026-09-02 (Sesión 26 — navegación del panel, footer/equipo contextuales por proyecto, página nueva de Mentoring, reorganización de secciones landing/docencia, internacionalización ES/EN completa. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -104,11 +104,11 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
-## Estado Actual (2026-09-01)
+## Estado Actual (2026-09-02, Sesión 26)
 
 | Módulo | Estado | % |
 |--------|--------|---|
-| Sitio público (landing + páginas de proyecto) | ✅ Completo — contenido en Neon Postgres (migrado desde `lib/data.ts` estático, Sesión 25) | 100% |
+| Sitio público (landing + páginas de proyecto) | ✅ Completo — contenido en Neon Postgres (migrado desde `lib/data.ts` estático, Sesión 25), footer/equipo/hub/RED LEA contextuales por proyecto, i18n ES/EN completo (Sesión 26) | 100% |
 | Admin Panel (CRUD contenido del sitio) | ✅ Completo — gateado por `modulos_acceso: contenido_sitio` (solo Arturo+Jhonny), ya no por `Pine2026` ni por `admin` genérico. Persiste en Neon (ya no "legacy"/in-memory) | 100% |
 | Portal PINE — Auth unificada | ✅ Completo (Sesión 19) | 100% |
 | Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
@@ -134,7 +134,14 @@ Sesión de reparación y coherencia de contenido a pedido explícito del usuario
 5. **Nombres oficiales completos visibles en el Hero de cada proyecto** (antes solo documentados en este CLAUDE.md, no mostrados en el sitio) — `heroDescription` actualizado en `lib/i18n.tsx` para Internacionalización, Desarrollo de Habilidades y el nuevo Mentoring con el texto exacto de `### Proyectos del grupo — nombres oficiales`. Dinámicas Lingüísticas (Cynthia) no necesitó cambio, su nombre corto ya es el oficial.
 6. **Bloque "About" del footer también contextual.** El título+descripción fijos ("Innovaciones Pedagógicas e Internacionalización" + su descripción) que mostraba el footer en las 10 páginas quedó igual de hardcodeado que el resto hasta este punto — `FooterContext` ahora incluye `title`/`description` por contexto, reutilizando el `heroDescription` de cada proyecto donde existe.
 7. **Formulario "Envíanos un mensaje" apunta al correo institucional.** `components/Contact.tsx:CONTACT_EMAIL` estaba fijo a `arturo.rodriguez@uleam.edu.ec` para el envío por Gmail/Outlook en las 5 páginas de proyecto que usan este formulario — corregido a `c.pinextranjeros@uleam.edu.ec`.
-8. **Alianzas/Noticias/Actividades exportadas de Internacionalización a la página principal (`/`).** Eran contenido general de la carrera (alianzas institucionales, noticias, galería de actividades — ninguno filtrado por proyecto en su fetch) mal ubicado bajo el proyecto de Internacionalización específicamente. `ConnectionsSection` ("Alianzas y Apoyo") ahora acepta prop `compact` (logos más chicos, sin texto descriptivo) usada en `/`; `ActivityGallery` acepta prop `limit` (la galería en Internacionalización mostraba **todas** las fotos sin límite, demasiadas — en `/` se usa `limit={8}`); `NewsSection` se movió tal cual, sin cambios de props. Los 3 componentes se quitaron de `/investigacion/proyecto-innovacion` y se agregaron a `app/page.tsx`. `footerContexts.default.quickLinks` ("Noticias") ahora apunta a `/#noticias` en vez de un anchor local que ya no existe; `footerContexts.landing.quickLinks` ganó los anchors `#actividades`/`#noticias`/`#alianzas`.
+8. **Alianzas/Noticias/Actividades exportadas de Internacionalización a la página principal (`/`).** Eran contenido general de la carrera (alianzas institucionales, noticias, galería de actividades — ninguno filtrado por proyecto en su fetch) mal ubicado bajo el proyecto de Internacionalización específicamente. `ConnectionsSection` ("Alianzas y Apoyo") ahora acepta prop `compact` (logos más chicos, sin texto descriptivo) usada en `/`; `ActivityGallery` acepta prop `limit`; `NewsSection` se movió tal cual, sin cambios de props. Los 3 componentes se quitaron de `/investigacion/proyecto-innovacion` y se agregaron a `app/page.tsx`.
+9. **Galería de Actividades reubicada de nuevo, esta vez a Docencia Innovadora.** El paso 8 la había puesto en `/` con `limit={8}`, pero el usuario pidió moverla a `/docencia/docencia-innovadora` (mejor encaje: son fotos de aula/cátedra, no contenido general de la carrera) — ahí queda sin límite. `footerContexts.landing.quickLinks` perdió el anchor `#actividades`; `footerContexts.docencia` pasó de compartir `projectPageQuickLinks` a tener su propio array con `#actividades`.
+10. **Hub principal (`HubProjectsSection`) reducido a solo Boletines.** Tenía 3 tarjetas (PINE/Grupo de Investigación, RED LEA, Boletines) — las primeras 2 se quitaron por ser redundantes con el dropdown "Investigación" del Header (ya accesibles ahí). La tarjeta de Boletines usaba el mismo label `t.hub.groupName` ("Grupo de Investigación") que la de PINE — incorrecto, los boletines son de la Carrera. Nueva key `t.hub.careerLabel` ("Carrera") usada en su lugar.
+11. **Ajustes en la página de Vinculación, a pedido explícito del usuario:** `VinculacionResearchSection` ya no muestra la noticia de capacitación (`news_10`) junto al libro — solo queda el libro (`pub_3`). Arturo Rodríguez pasa de "Colíder del Proyecto" a **"Supervisor"** en el formulario de contacto (`Contact.tsx`, nueva key `t.contact.supervisor`) — Cynthia es la única líder ahí. Arturo también se agregó al **Equipo** de Vinculación (`members.projects` de `member_1` ahora incluye `'vinculacion'` además de `'internacionalizacion'`) con el mismo badge "Supervisor" — `TeamSection`/`TeamCard` ganaron `ROLE_BADGE_OVERRIDES` (por proyecto + member_id) para estos casos de alguien con rol distinto según la página donde aparece.
+12. **Subtítulo del equipo contextual.** "Investigadores dedicados a transformar la educación" estaba fijo en `TeamSection` para las 4 páginas de proyecto — incorrecto en Vinculación (no es un equipo de investigadores). `t.team.subtitles` por proyecto.
+13. **Crédito de desarrollador en el footer, en las 10 páginas.** La línea de copyright ya no dice "Innovaciones Pedagógicas" (era específico de ese proyecto); debajo, muy sutil (`text-xs`, gris apagado), dice "Desarrollador responsable de la web: Arturo Rodríguez".
+14. **Nombre de la carrera consistente en el Header de todas las páginas.** El texto junto al logo (enlaza siempre a `/`) decía "Innovaciones Pedagógicas - ULEAM" por defecto en las páginas que no pasaban `siteName` explícito — nombre del proyecto de Internacionalización, no de la carrera. Unificado a **"Pedagogía de los Idiomas Nacionales y Extranjeros"** (`t.nav.siteName`) como default de `Header.tsx`; landing y boletines ya no pasan su propio `siteName` custom.
+15. **Auditoría e internacionalización completa ES/EN.** El toggle EN/ES del Header cambiaba el estado de idioma correctamente, pero la mayoría del contenido nunca pasaba por `t.xxx` — 6 componentes con **cero** soporte i18n (los 5 de RED LEA + `SubstantiveFunctionsSection`, más `QRModal`/`QRFloatingButton`/`VideoCard`), y ~11 componentes más con texto **mixto** (`TeamSection`, `ActivityGallery`, `NewsSection`, `Contact`, `PublicationsSection`, `VideoGallery`, `TaggedVideoSection`, `Header`), más los bloques "Información del Proyecto" hardcodeados directo en `app/investigacion/desarrollo-habilidades/page.tsx` y `.../mentoring/page.tsx` (movidos a nuevo componente cliente `components/ProjectInfoPlaceholder.tsx`, ya que esas páginas son Server Components sin acceso a `useLanguage()`). Todo el contenido institucional extenso de RED LEA (bio, testimonios de 6 personas, logros, proyecciones) se trasladó a `lib/i18n.tsx` bajo `t.redlea.*` con traducción real al inglés. Fechas que usaban `toLocaleDateString('es-EC', ...)` fijo ahora usan `es-EC`/`en-US` según el idioma activo (`VideoCard`, `NewsSection`, `PublicationsSection`). `ConnectionsSection`, `HubProjectsSection`, `About`, `EnglishClubSection` y `VinculacionResearchSection` ya estaban completos, confirmado por auditoría. Único texto en español que queda fijo fuera del panel admin: captions de fotos en datos (`vinculacionEnglishClubPhotos`, `member.role`) — contenido real, no copy de interfaz.
 
 Migración Neon de `members.projects` (punto 3): ejecutada directamente por Claude vía MCP de Neon (Project ID `dark-feather-21824720`, obtenido del usuario) en esta misma sesión — no fue necesario que el usuario corriera el script localmente. `scripts/migrate-members-projects.js` queda como referencia idéntica al cambio ya aplicado en producción.
 
@@ -628,6 +635,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-01 (Sesión 22)
-**Versión:** 0.10.3
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-02 (Sesión 26)
+**Versión:** 0.10.5
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Repo sincronizado con origin ✅
