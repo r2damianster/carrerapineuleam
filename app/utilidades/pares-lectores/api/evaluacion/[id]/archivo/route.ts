@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extraerTexto } from "../../../../../_lib/extraerTexto";
 import { EXTENSIONES_PERMITIDAS, guardarTextoExtraido } from "../../../../../_lib/titulacionLogic";
+import { requireDocenteApi } from "../../../../../_lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,9 @@ export const runtime = "nodejs";
  * en la evaluación. El archivo en sí nunca se persiste — solo el texto extraído.
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const form = await request.formData();
     const tipo = form.get("tipo")?.toString();

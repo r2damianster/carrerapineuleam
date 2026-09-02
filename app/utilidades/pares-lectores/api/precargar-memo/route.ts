@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extraerTexto } from "../../../_lib/extraerTexto";
 import { precargarDatosMemo } from "../../../_lib/titulacionIa";
+import { requireDocenteApi } from "../../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const form = await request.formData();
     const archivo = form.get("archivo");

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { crearEvaluacion, obtenerEvaluacion } from "../../../_lib/titulacionLogic";
+import { requireDocenteApi } from "../../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const datos = await request.json();
     const evaluacionId = await crearEvaluacion(datos);
