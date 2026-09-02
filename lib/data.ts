@@ -82,8 +82,9 @@ export const profesorModulos: Record<string, string[]> = {
   'johanna.bello@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Johana Bello
   'ulbio.farfan@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
   'jorge.corral@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
-  'laura.mena@uleam.edu.ec': ['vinculacion','investigacion','Proyecto_Internacionalizacion','utilidades'], // Laura Mena — Prácticas Preprofesionales (vinculación) + equipo investigación Internacionalización
-  'marisol.yanez@uleam.edu.ec': ['vinculacion'], // Bety Marisol Yañez García — supervisora de vinculación
+  'laura.mena@uleam.edu.ec': ['vinculacion','investigacion','Proyecto_Internacionalizacion','indicadores','utilidades'], // Laura Mena — Prácticas Preprofesionales (vinculación) + equipo investigación Internacionalización
+  'marisol.yanez@uleam.edu.ec': ['vinculacion','indicadores','utilidades'], // Bety Marisol Yañez García — supervisora de vinculación
+  'yazmin.bermudez@uleam.edu.ec': ['indicadores','utilidades'], // Yasmín Bermúdez — Secretaria de Carrera
 };
 
 
@@ -102,6 +103,7 @@ export const profesoresAutorizados = [
   'jorge.corral@uleam.edu.ec',
   'laura.mena@uleam.edu.ec',
   'marisol.yanez@uleam.edu.ec',
+  'yazmin.bermudez@uleam.edu.ec',
 ];
 
 // Nombre del proyecto propio de cada líder (distinto del proyecto PINE/Internacionalización
