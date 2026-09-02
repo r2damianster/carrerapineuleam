@@ -2,21 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/admin/DataTable';
-import { getNews, createNews, updateNews, deleteNews } from '@/lib/db';
-import type { News } from '@/types';
+
+interface NewsRow {
+  id: string;
+  titulo: string;
+  descripcion?: string;
+  fecha: string;
+  is_featured: boolean;
+  slug?: string;
+  photos: string[];
+}
 
 export default function AdminNewsPage() {
-  const [news, setNews] = useState<News[]>([]);
+  const [news, setNews] = useState<NewsRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingNews, setEditingNews] = useState<News | null>(null);
+  const [editingNews, setEditingNews] = useState<NewsRow | null>(null);
 
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    published_date: new Date().toISOString().split('T')[0],
+    titulo: '',
+    descripcion: '',
+    fecha: new Date().toISOString().split('T')[0],
     is_featured: false,
     slug: '',
+    imagen: '',
   });
 
   useEffect(() => {
@@ -25,8 +34,10 @@ export default function AdminNewsPage() {
 
   const loadNews = async () => {
     try {
-      const records = await getNews();
-      setNews(records as any);
+      const res = await fetch('/api/actividades-difusion?origen=noticia');
+      if (!res.ok) throw new Error('Failed to fetch news');
+      const rows = await res.json();
+      setNews(rows.map((r: any) => ({ ...r, id: String(r.id) })));
     } catch (error) {
       console.error('Error loading news:', error);
       setNews([]);
@@ -37,38 +48,37 @@ export default function AdminNewsPage() {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      content: '',
-      published_date: new Date().toISOString().split('T')[0],
+      titulo: '',
+      descripcion: '',
+      fecha: new Date().toISOString().split('T')[0],
       is_featured: false,
       slug: '',
+      imagen: '',
     });
     setEditingNews(null);
     setShowForm(false);
   };
 
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-  };
+  const generateSlug = (title: string) =>
+    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-  const handleEdit = (item: News) => {
+  const handleEdit = (item: NewsRow) => {
     setEditingNews(item);
     setFormData({
-      title: item.title,
-      content: item.content,
-      published_date: item.published_date,
+      titulo: item.titulo,
+      descripcion: item.descripcion || '',
+      fecha: item.fecha?.slice(0, 10) || '',
       is_featured: item.is_featured,
-      slug: item.slug,
+      slug: item.slug || '',
+      imagen: item.photos?.[0] || '',
     });
     setShowForm(true);
   };
 
-  const handleDelete = async (item: News) => {
+  const handleDelete = async (item: NewsRow) => {
     try {
-      await deleteNews(item.id);
+      const res = await fetch(`/api/actividades-difusion/${item.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
       loadNews();
     } catch (error) {
       console.error('Error deleting news:', error);
@@ -79,15 +89,28 @@ export default function AdminNewsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const slug = formData.slug || generateSlug(formData.title);
+    const slug = formData.slug || generateSlug(formData.titulo);
+    const payload = {
+      origen: 'noticia',
+      titulo: formData.titulo,
+      descripcion: formData.descripcion,
+      fecha: formData.fecha,
+      is_featured: formData.is_featured,
+      slug,
+      photos: formData.imagen ? [formData.imagen] : [],
+    };
 
     try {
-      const data = { ...formData, slug };
-
-      if (editingNews) {
-        await updateNews(editingNews.id, data as any);
-      } else {
-        await createNews(data as any);
+      const url = editingNews ? `/api/actividades-difusion/${editingNews.id}` : '/api/actividades-difusion';
+      const method = editingNews ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
       }
 
       resetForm();
@@ -99,20 +122,20 @@ export default function AdminNewsPage() {
   };
 
   const columns = [
-    { key: 'title', label: 'Título' },
+    { key: 'titulo', label: 'Título' },
     {
-      key: 'published_date',
+      key: 'fecha',
       label: 'Fecha',
-      render: (item: News) => (
+      render: (item: NewsRow) => (
         <span className="text-sm text-gray-600">
-          {new Date(item.published_date).toLocaleDateString('es-EC')}
+          {item.fecha ? new Date(item.fecha).toLocaleDateString('es-EC') : '—'}
         </span>
       ),
     },
     {
       key: 'is_featured',
       label: 'Destacado',
-      render: (item: News) => (
+      render: (item: NewsRow) => (
         <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
           {item.is_featured ? 'Sí' : 'No'}
         </span>
@@ -141,10 +164,10 @@ export default function AdminNewsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
               <input
                 type="text"
-                value={formData.title}
+                value={formData.titulo}
                 onChange={(e) => {
-                  const title = e.target.value;
-                  setFormData({ ...formData, title, slug: generateSlug(title) });
+                  const titulo = e.target.value;
+                  setFormData({ ...formData, titulo, slug: generateSlug(titulo) });
                 }}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
@@ -166,12 +189,23 @@ export default function AdminNewsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Contenido *</label>
               <textarea
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 required
                 rows={8}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none resize-none"
                 placeholder="Escribe el contenido de la noticia aquí..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen destacada (ruta o URL)</label>
+              <input
+                type="text"
+                value={formData.imagen}
+                onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                placeholder="/images/activities/foto.jpeg"
               />
             </div>
 
@@ -180,8 +214,8 @@ export default function AdminNewsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de publicación</label>
                 <input
                   type="date"
-                  value={formData.published_date}
-                  onChange={(e) => setFormData({ ...formData, published_date: e.target.value })}
+                  value={formData.fecha}
+                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 />
               </div>

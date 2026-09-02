@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getActivities } from '@/lib/db';
-import type { Activity } from '@/types';
 import { useLanguage } from '@/lib/i18n';
+
+interface Activity {
+  id: string;
+  title: string;
+  description?: string;
+  photos: string[];
+  event_date: string;
+  category: string;
+}
 
 export default function ActivityGallery() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -15,8 +22,17 @@ export default function ActivityGallery() {
   useEffect(() => {
     const loadActivities = async () => {
       try {
-        const data = await getActivities();
-        setActivities(data as any);
+        const res = await fetch('/api/actividades-difusion?origen=actividad');
+        if (!res.ok) throw new Error('Failed to fetch activities');
+        const rows = await res.json();
+        setActivities(rows.map((r: any) => ({
+          id: String(r.id),
+          title: r.titulo,
+          description: r.descripcion,
+          photos: r.photos || [],
+          event_date: r.fecha,
+          category: r.categoria || '',
+        })));
       } catch (error) {
         // Fallback sample data
         setActivities([
@@ -27,8 +43,6 @@ export default function ActivityGallery() {
             photos: ['/images/activities/actividad_previa_podcast.jpeg'],
             event_date: '2025-01-10',
             category: 'podcast',
-            created: '',
-            updated: '',
           },
           {
             id: '2',
@@ -37,8 +51,6 @@ export default function ActivityGallery() {
             photos: ['/images/activities/Actividad_Podcast.jpeg'],
             event_date: '2025-02-15',
             category: 'podcast',
-            created: '',
-            updated: '',
           },
         ]);
       } finally {

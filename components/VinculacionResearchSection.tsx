@@ -1,16 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPublicationById, getNewsById } from '@/lib/db';
-import type { Publication, News } from '@/types';
+import { getPublicationById } from '@/lib/db';
+import type { Publication } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
 const RESEARCH_PUBLICATION_ID = 'pub_3';
-const RESEARCH_NEWS_ID = 'news_10';
+const RESEARCH_NEWS_LEGACY_ID = 'news_10';
+
+interface NewsItem {
+  title: string;
+  content: string;
+}
 
 export default function VinculacionResearchSection() {
   const [publication, setPublication] = useState<Publication | undefined>();
-  const [news, setNews] = useState<News | undefined>();
+  const [news, setNews] = useState<NewsItem | undefined>();
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   const p = t.vinculacionProject;
@@ -18,12 +23,16 @@ export default function VinculacionResearchSection() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [pub, newsItem] = await Promise.all([
+        const [pub, newsRes] = await Promise.all([
           getPublicationById(RESEARCH_PUBLICATION_ID),
-          getNewsById(RESEARCH_NEWS_ID),
+          fetch('/api/actividades-difusion?origen=noticia'),
         ]);
         setPublication(pub);
-        setNews(newsItem);
+        if (newsRes.ok) {
+          const rows = await newsRes.json();
+          const item = rows.find((r: any) => r.legacy_id === RESEARCH_NEWS_LEGACY_ID);
+          if (item) setNews({ title: item.titulo, content: item.descripcion || '' });
+        }
       } finally {
         setLoading(false);
       }

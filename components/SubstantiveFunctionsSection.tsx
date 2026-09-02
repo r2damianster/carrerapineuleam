@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPublications, getNews } from '@/lib/db';
-import type { Video, Publication, News } from '@/types';
+import { getPublications } from '@/lib/db';
+import type { Video, Publication } from '@/types';
+
+interface NewsSlug { slug: string }
 
 // Eventos InterClass organizados (clases que integran varias carreras/disciplinas)
 const INTERCLASS_SLUGS = ['mes-de-la-magia', 'fomento-escritura-creativa'];
@@ -62,7 +64,7 @@ const FUNCTIONS: FunctionInfo[] = [
 export default function SubstantiveFunctionsSection() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
-  const [news, setNews] = useState<News[]>([]);
+  const [news, setNews] = useState<NewsSlug[]>([]);
 
   useEffect(() => {
     fetch('/api/videos')
@@ -70,7 +72,10 @@ export default function SubstantiveFunctionsSection() {
       .then((vids) => setVideos(Array.isArray(vids) ? vids : []))
       .catch(() => setVideos([]));
     getPublications().then(setPublications).catch(() => setPublications([]));
-    getNews().then(setNews).catch(() => setNews([]));
+    fetch('/api/actividades-difusion?origen=noticia')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => setNews(rows.map((r: any) => ({ slug: r.slug }))))
+      .catch(() => setNews([]));
   }, []);
 
   const interclassCount = news.filter((n) => INTERCLASS_SLUGS.includes(n.slug)).length;

@@ -364,26 +364,22 @@ export const deleteSiteSetting = async (id: string): Promise<void> => {
 // NEWSLETTERS
 // ============================================================================
 
+// Trae de actividades_difusion (Neon) — noticias+actividades del sitio ya
+// migradas ahí (ver CLAUDE.md Sesión 25), en vez de los arrays estáticos.
 export const getNewsletters = async (): Promise<Newsletter[]> => {
-  const newsItems: NewsletterItem[] = news.map(n => ({
-    id: n.id,
-    type: 'news' as const,
-    title: n.title,
-    date: n.published_date,
-    excerpt: n.content.substring(0, 150),
-    image: n.featured_image,
-  }));
+  const res = await fetch('/api/actividades-difusion');
+  const rows: Array<{ id: number; origen: string; titulo: string; fecha: string; descripcion?: string; photos?: string[] }> = res.ok ? await res.json() : [];
 
-  const activityItems: NewsletterItem[] = activities.map(a => ({
-    id: a.id,
-    type: 'activity' as const,
-    title: a.title,
-    date: a.event_date,
-    excerpt: a.description?.substring(0, 150),
-    image: a.photos && a.photos.length > 0 ? a.photos[0] : undefined,
-  }));
-
-  const allItems = [...newsItems, ...activityItems];
+  const allItems: NewsletterItem[] = rows
+    .filter(r => r.fecha)
+    .map(r => ({
+      id: String(r.id),
+      type: r.origen === 'noticia' ? 'news' as const : 'activity' as const,
+      title: r.titulo,
+      date: String(r.fecha).slice(0, 10),
+      excerpt: r.descripcion?.substring(0, 150),
+      image: r.photos && r.photos.length > 0 ? r.photos[0] : undefined,
+    }));
 
   const grouped = new Map<string, NewsletterItem[]>();
   allItems.forEach(item => {

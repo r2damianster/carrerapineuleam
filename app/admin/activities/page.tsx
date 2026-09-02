@@ -2,33 +2,52 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/admin/DataTable';
-import { getActivities, createActivity, updateActivity, deleteActivity } from '@/lib/db';
-import type { Activity } from '@/types';
 
+interface ActivityRow {
+  id: string;
+  origen: string; // 'noticia' | 'actividad' | 'difusion'
+  titulo: string;
+  descripcion?: string;
+  fecha: string;
+  categoria?: string;
+  photos: string[];
+  aprobado_sitio: boolean;
+}
+
+// Cola de moderación: junta lo pendiente de aprobar (registrado por
+// docentes/estudiantes vía /vinculacion/difusion o /gestion-carrera) con las
+// actividades ya publicadas — fusión News+Activities+Difusión, CLAUDE.md
+// Sesión 25. Las noticias tienen su propia página (/admin/news).
 export default function AdminActivitiesPage() {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [rows, setRows] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editingRow, setEditingRow] = useState<ActivityRow | null>(null);
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    event_date: new Date().toISOString().split('T')[0],
-    category: 'podcast',
+    titulo: '',
+    descripcion: '',
+    fecha: new Date().toISOString().split('T')[0],
+    categoria: 'taller',
+    imagen: '',
   });
 
   useEffect(() => {
-    loadActivities();
+    loadRows();
   }, []);
 
-  const loadActivities = async () => {
+  const loadRows = async () => {
     try {
-      const records = await getActivities();
-      setActivities(records as any);
+      const [pendientesRes, actividadesRes] = await Promise.all([
+        fetch('/api/actividades-difusion?pendientes=true'),
+        fetch('/api/actividades-difusion?origen=actividad'),
+      ]);
+      const pendientes = pendientesRes.ok ? await pendientesRes.json() : [];
+      const actividades = actividadesRes.ok ? await actividadesRes.json() : [];
+      setRows([...pendientes, ...actividades].map((r: any) => ({ ...r, id: String(r.id) })));
     } catch (error) {
       console.error('Error loading activities:', error);
-      setActivities([]);
+      setRows([]);
     } finally {
       setLoading(false);
     }
@@ -36,48 +55,92 @@ export default function AdminActivitiesPage() {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      description: '',
-      event_date: new Date().toISOString().split('T')[0],
-      category: 'podcast',
+      titulo: '',
+      descripcion: '',
+      fecha: new Date().toISOString().split('T')[0],
+      categoria: 'taller',
+      imagen: '',
     });
-    setEditingActivity(null);
+    setEditingRow(null);
     setShowForm(false);
   };
 
-  const handleEdit = (activity: Activity) => {
-    setEditingActivity(activity);
+  const handleEdit = (row: ActivityRow) => {
+    setEditingRow(row);
     setFormData({
-      title: activity.title,
-      description: activity.description || '',
-      event_date: activity.event_date,
-      category: activity.category,
+      titulo: row.titulo,
+      descripcion: row.descripcion || '',
+      fecha: row.fecha?.slice(0, 10) || '',
+      categoria: row.categoria || 'taller',
+      imagen: row.photos?.[0] || '',
     });
     setShowForm(true);
   };
 
-  const handleDelete = async (activity: Activity) => {
+  const handleDelete = async (row: ActivityRow) => {
     try {
-      await deleteActivity(activity.id);
-      loadActivities();
+      const res = await fetch(`/api/actividades-difusion/${row.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      loadRows();
     } catch (error) {
-      console.error('Error deleting activity:', error);
-      alert('Error al eliminar la actividad.');
+      console.error('Error deleting:', error);
+      alert('Error al eliminar');
+    }
+  };
+
+  const handleAprobar = async (row: ActivityRow) => {
+    try {
+      const res = await fetch(`/api/actividades-difusion/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aprobar: true }),
+      });
+      if (!res.ok) throw new Error('Failed to approve');
+      loadRows();
+    } catch (error) {
+      console.error('Error approving:', error);
+      alert('Error al aprobar');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const photos = formData.imagen ? [formData.imagen] : [];
+
     try {
-      if (editingActivity) {
-        await updateActivity(editingActivity.id, formData);
+      if (editingRow) {
+        const res = await fetch(`/api/actividades-difusion/${editingRow.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            titulo: formData.titulo,
+            descripcion: formData.descripcion,
+            fecha: formData.fecha,
+            categoria: formData.categoria,
+            photos,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to save');
       } else {
-        await createActivity(formData as any);
+        // Actividad creada directo por contenido_sitio -> nace ya aprobada.
+        const res = await fetch('/api/actividades-difusion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            origen: 'actividad',
+            titulo: formData.titulo,
+            descripcion: formData.descripcion,
+            fecha: formData.fecha,
+            categoria: formData.categoria,
+            photos,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to save');
       }
 
       resetForm();
-      loadActivities();
+      loadRows();
     } catch (error) {
       console.error('Error saving activity:', error);
       alert('Error al guardar la actividad.');
@@ -85,24 +148,39 @@ export default function AdminActivitiesPage() {
   };
 
   const columns = [
-    { key: 'title', label: 'Título' },
+    { key: 'titulo', label: 'Título' },
     {
-      key: 'category',
-      label: 'Categoría',
-      render: (item: Activity) => (
+      key: 'origen',
+      label: 'Origen',
+      render: (item: ActivityRow) => (
         <span className="px-2 py-1 bg-pink-100 text-pink-700 rounded text-xs font-medium capitalize">
-          {item.category}
+          {item.origen}{item.categoria ? ` · ${item.categoria}` : ''}
         </span>
       ),
     },
     {
-      key: 'event_date',
+      key: 'fecha',
       label: 'Fecha',
-      render: (item: Activity) => (
+      render: (item: ActivityRow) => (
         <span className="text-sm text-gray-600">
-          {new Date(item.event_date).toLocaleDateString('es-EC')}
+          {item.fecha ? new Date(item.fecha).toLocaleDateString('es-EC') : '—'}
         </span>
       ),
+    },
+    {
+      key: 'aprobado_sitio',
+      label: 'Estado',
+      render: (item: ActivityRow) =>
+        item.aprobado_sitio ? (
+          <span className="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">Publicado</span>
+        ) : (
+          <button
+            onClick={() => handleAprobar(item)}
+            className="px-2 py-1 rounded text-xs font-bold bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+          >
+            Pendiente — Aprobar
+          </button>
+        ),
     },
   ];
 
@@ -111,7 +189,7 @@ export default function AdminActivitiesPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-uleam-blue">
-            {editingActivity ? 'Editar Actividad' : 'Nueva Actividad'}
+            {editingRow ? 'Editar / Enriquecer' : 'Nueva Actividad'}
           </h2>
           <button
             onClick={resetForm}
@@ -127,8 +205,8 @@ export default function AdminActivitiesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
               <input
                 type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                value={formData.titulo}
+                onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
               />
@@ -137,10 +215,21 @@ export default function AdminActivitiesPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 rows={3}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Foto (ruta o URL)</label>
+              <input
+                type="text"
+                value={formData.imagen}
+                onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                placeholder="/images/activities/foto.jpeg"
               />
             </div>
 
@@ -149,8 +238,8 @@ export default function AdminActivitiesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fecha del evento</label>
                 <input
                   type="date"
-                  value={formData.event_date}
-                  onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                  value={formData.fecha}
+                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 />
               </div>
@@ -158,13 +247,14 @@ export default function AdminActivitiesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 >
-                  <option value="podcast">Podcast</option>
                   <option value="taller">Taller</option>
                   <option value="evento">Evento</option>
+                  <option value="interclass">InterClass</option>
+                  <option value="feria">Feria</option>
                   <option value="reunion">Reunión</option>
                   <option value="otro">Otro</option>
                 </select>
@@ -177,7 +267,7 @@ export default function AdminActivitiesPage() {
               type="submit"
               className="flex-1 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition"
             >
-              {editingActivity ? 'Actualizar' : 'Crear'}
+              {editingRow ? 'Actualizar' : 'Crear'}
             </button>
             <button
               type="button"
@@ -194,9 +284,9 @@ export default function AdminActivitiesPage() {
 
   return (
     <DataTable
-      title="Actividades"
+      title="Actividades y Difusión"
       columns={columns}
-      data={activities}
+      data={rows}
       loading={loading}
       onAdd={() => setShowForm(true)}
       onEdit={handleEdit}

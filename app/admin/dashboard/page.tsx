@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getPublications, getNews, getActivities } from '@/lib/db';
+import { getPublications } from '@/lib/db';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -23,8 +23,8 @@ export default function AdminDashboardPage() {
           fetch('/api/videos').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/video-categories').then((r) => (r.ok ? r.json() : [])),
           getPublications(),
-          getNews(),
-          getActivities(),
+          fetch('/api/actividades-difusion?origen=noticia').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/actividades-difusion?origen=actividad').then((r) => (r.ok ? r.json() : [])),
         ]);
 
         setStats({
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
     { label: 'Categorías', value: stats.categories, icon: '📁', color: 'bg-purple-500', link: '/admin/categories' },
     { label: 'Publicaciones', value: stats.publications, icon: '📄', color: 'bg-green-500', link: '/admin/publications' },
     { label: 'Noticias', value: stats.news, icon: '📰', color: 'bg-yellow-500', link: '/admin/news' },
-    { label: 'Actividades', value: stats.activities, icon: '📸', color: 'bg-pink-500', link: '/admin/activities' },
+    { label: 'Actividades y Difusión', value: stats.activities, icon: '📸', color: 'bg-pink-500', link: '/admin/activities' },
   ];
 
   if (loading) {
@@ -123,9 +123,10 @@ export default function AdminDashboardPage() {
       <div className="mt-8 bg-gradient-to-r from-uleam-blue to-primary-700 text-white rounded-xl p-6 shadow-md">
         <h3 className="text-xl font-bold mb-2">ℹ️ Información</h3>
         <p className="text-gray-200 text-sm">
-          Migración en curso a base de datos real (Neon). <strong>Miembros, Podcast y Categorías</strong> ya persisten
-          de forma permanente. Publicaciones, Noticias y Actividades siguen en el archivo estático <code className="bg-white/20 px-1 rounded">/lib/data.ts</code> —
-          los cambios ahí se pierden al reiniciar el servidor, hasta que también se migren.
+          Migración en curso a base de datos real (Neon). <strong>Miembros, Podcast, Categorías, Noticias y Actividades</strong> ya
+          persisten de forma permanente (Noticias/Actividades ahora comparten tabla con el registro de Difusión interna — ver
+          &quot;Actividades y Difusión&quot; para aprobar lo pendiente). Solo <strong>Publicaciones</strong> sigue en el archivo estático{' '}
+          <code className="bg-white/20 px-1 rounded">/lib/data.ts</code> — se pierde al reiniciar el servidor, hasta que también se migre.
         </p>
       </div>
     </div>

@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getNews } from '@/lib/db';
-import type { News } from '@/types';
 import { useLanguage } from '@/lib/i18n';
+
+interface News {
+  id: string;
+  title: string;
+  content: string;
+  featured_image?: string;
+  published_date: string;
+  external_link?: string;
+}
 
 export default function NewsSection() {
   const [news, setNews] = useState<News[]>([]);
@@ -14,8 +21,17 @@ export default function NewsSection() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        const data = await getNews();
-        setNews(data as any);
+        const res = await fetch('/api/actividades-difusion?origen=noticia');
+        if (!res.ok) throw new Error('Failed to fetch news');
+        const rows = await res.json();
+        setNews(rows.map((r: any) => ({
+          id: String(r.id),
+          title: r.titulo,
+          content: r.descripcion || '',
+          featured_image: r.photos?.[0],
+          published_date: r.fecha,
+          external_link: r.external_link,
+        })));
       } catch (error) {
         // Fallback sample data
         setNews([
@@ -25,20 +41,12 @@ export default function NewsSection() {
             content: 'Hemos lanzado nuestro más reciente episodio donde exploramos las tendencias de innovación educativa...',
             featured_image: '/images/activities/Actividad_Podcast.jpeg',
             published_date: '2025-03-20',
-            is_featured: true,
-            slug: 'episodio-innovacion-era-digital',
-            created: '',
-            updated: '',
           },
           {
             id: '2',
             title: 'Publicación en revista internacional',
             content: 'Nuestro equipo ha publicado un artículo en una revista indexada sobre internacionalización educativa...',
             published_date: '2025-03-10',
-            is_featured: false,
-            slug: 'publicacion-revista-internacional',
-            created: '',
-            updated: '',
           },
           {
             id: '3',
@@ -46,10 +54,6 @@ export default function NewsSection() {
             content: 'Realizamos exitosamente el taller con la participación de más de 50 docentes de diferentes facultades...',
             featured_image: '/images/activities/actividad_previa_podcast.jpeg',
             published_date: '2025-02-28',
-            is_featured: false,
-            slug: 'taller-innovaciones-pedagogicas',
-            created: '',
-            updated: '',
           },
         ]);
       } finally {
