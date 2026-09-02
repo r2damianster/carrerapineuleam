@@ -4,7 +4,7 @@ const HERRAMIENTAS = [
   { href: "/utilidades/acta-tecnica", icon: "📝", nombre: "Acta Técnica", descripcion: "Genera el acta de una reunión con redacción asistida por IA y fotos de evidencia." },
   { href: "/utilidades/oficios", icon: "📄", nombre: "Generador de Oficios", descripcion: "Oficios formales a docentes/autoridades, con redacción asistida por IA." },
   { href: "/utilidades/convocatorias", icon: "📢", nombre: "Convocatorias", descripcion: "Convocatorias a docentes o estudiantes, con hoja de asistencia." },
-  { href: "/utilidades/pat-maestria", icon: "🎓", nombre: "Docs AT Maestría", descripcion: "Genera el paquete PAT-003 a PAT-006 de acompañamiento de tesis de maestría." },
+  { href: "/utilidades/pat-maestria", icon: "🎓", nombre: "PATs Maestría", descripcion: "Genera el paquete PAT-003 a PAT-006 de acompañamiento de tesis de maestría." },
   { href: "/utilidades/pares-lectores", icon: "📋", nombre: "Pares Lectores", descripcion: "Wizard de evaluación de trabajos de titulación (TEFL / Artículo científico)." },
 ];
 
