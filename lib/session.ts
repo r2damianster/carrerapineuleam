@@ -7,7 +7,11 @@ export interface AppSession {
 }
 
 const SESSION_COOKIE_NAME = 'pine_app_session';
-const SESSION_MAX_AGE_SECONDS = 4 * 60 * 60; // 4 hours
+// Expiración "sliding": el middleware reemite la cookie con este mismo maxAge
+// en cada visita a una ruta protegida (ver middleware.ts) — el usuario se
+// mantiene logueado mientras siga entrando al menos una vez cada 8 horas;
+// solo tras 8 horas seguidas sin ninguna visita expira de verdad.
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60; // 8 hours
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;

@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
+import { verifySessionCookieValue, createSessionCookieValue, SESSION_COOKIE, type AppSession } from '@/lib/session';
+
+// Expiración "sliding": reemite la cookie con maxAge completo (8h, ver
+// lib/session.ts) en cada request autenticado que pasa por el middleware —
+// así el usuario se mantiene logueado mientras siga visitando el Portal al
+// menos una vez cada 8 horas, en vez de expirar a fecha fija desde el login.
+async function conSesionRenovada(response: NextResponse, session: AppSession): Promise<NextResponse> {
+  const cookieValue = await createSessionCookieValue(session);
+  response.cookies.set({
+    name: SESSION_COOKIE.name,
+    value: cookieValue,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_COOKIE.maxAge,
+    path: '/',
+  });
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -74,6 +92,8 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/utilidades') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
+
+    return conSesionRenovada(NextResponse.next(), session);
   }
 
   // Panel admin legacy (gestion de contenido estatico del sitio) — ahora vive
@@ -87,6 +107,7 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
+    return conSesionRenovada(NextResponse.next(), session);
   }
 
   return NextResponse.next();
