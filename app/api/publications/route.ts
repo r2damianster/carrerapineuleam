@@ -2,11 +2,36 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const sql = neon(process.env.DATABASE_URL!);
-    const publications = await sql`SELECT * FROM publications ORDER BY publication_date DESC`;
-    return NextResponse.json(publications);
+    const { searchParams } = new URL(request.url);
+
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : null;
+    const page = searchParams.get('page') ? Math.max(1, parseInt(searchParams.get('page')!, 10)) : 1;
+    const category = searchParams.get('category');
+    const query = searchParams.get('q');
+    const offset = limit ? (page - 1) * limit : 0;
+    const searchPattern = query ? `%${query}%` : null;
+
+    const publications = await sql`
+      SELECT * FROM publications
+      WHERE (${category}::text IS NULL OR category = ${category})
+        AND (${searchPattern}::text IS NULL OR title ILIKE ${searchPattern} OR authors ILIKE ${searchPattern})
+      ORDER BY publication_date DESC
+      ${limit ? sql`LIMIT ${limit} OFFSET ${offset}` : sql``}
+    `;
+
+    const [{ count }] = await sql`
+      SELECT COUNT(*)::int AS count FROM publications
+      WHERE (${category}::text IS NULL OR category = ${category})
+        AND (${searchPattern}::text IS NULL OR title ILIKE ${searchPattern} OR authors ILIKE ${searchPattern})
+    `;
+
+    if (!limit) {
+      return NextResponse.json(publications);
+    }
+    return NextResponse.json({ publications, total: count });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

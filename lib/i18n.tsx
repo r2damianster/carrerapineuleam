@@ -81,6 +81,10 @@ const translations = {
       viewBtn: 'Ver →',
       pdfBtn: 'PDF',
       viewAll: 'Ver Todas las Publicaciones →',
+      searchPlaceholder: 'Buscar por título o autor...',
+      loadMore: 'Cargar más',
+      resultsCount: '{count} de {total} publicaciones',
+      noResults: 'No se encontraron publicaciones con esos criterios',
     },
     news: {
       sectionTitle: 'Últimas Noticias',
@@ -546,6 +550,10 @@ const translations = {
       viewBtn: 'View →',
       pdfBtn: 'PDF',
       viewAll: 'View All Publications →',
+      searchPlaceholder: 'Search by title or author...',
+      loadMore: 'Load more',
+      resultsCount: '{count} of {total} publications',
+      noResults: 'No publications found matching those criteria',
     },
     news: {
       sectionTitle: 'Latest News',

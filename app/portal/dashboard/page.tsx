@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
+import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -115,6 +116,17 @@ export default async function PortalDashboard() {
                 <p className="text-gray-600 mb-4 text-sm">Contenido del proyecto Innovaciones Pedagógicas e Internacionalización (2026-2028): miembros, publicaciones, videos, noticias, documentos.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/admin" className="text-red-600 hover:underline">» Panel de Contenido</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Superadmin — acceso absoluto a la Neon. Atribuido única y exclusivamente a arturo.rodriguez@uleam.edu.ec */}
+            {modulos_acceso.includes('superadmin') && SUPERADMIN_EMAILS.includes(email) && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-gray-800 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Superadmin</h3>
+                <p className="text-gray-600 mb-4 text-sm">Acceso absoluto a la base de datos: explorador de tablas, edición directa y consola SQL.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/superadmin" className="text-gray-800 hover:underline">» Panel Superadmin</Link>
                 </div>
               </div>
             )}

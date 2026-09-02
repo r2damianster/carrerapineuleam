@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import type { Publication } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -16,9 +15,10 @@ export default function PublicationsSection() {
   useEffect(() => {
     const loadPublications = async () => {
       try {
-        const res = await fetch('/api/publications');
+        const res = await fetch('/api/publications?limit=10');
         if (!res.ok) throw new Error('Failed to fetch publications');
-        setPublications(await res.json());
+        const data = await res.json();
+        setPublications(data.publications ?? data);
       } catch (error) {
         // Fallback sample data
         setPublications([
@@ -93,10 +93,6 @@ export default function PublicationsSection() {
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
 
-  const getTypeLabel = (type: string) => {
-    return t.publications.types[type as keyof typeof t.publications.types] || type;
-  };
-
   return (
     <section id="publicaciones" className="py-10 md:py-20 bg-gray-50 overflow-hidden">
       <div className="container mx-auto px-4">
@@ -130,24 +126,16 @@ export default function PublicationsSection() {
 
         {/* Publications with scrolling animation */}
         {filteredPublications.length > 0 ? (
-          <div className="animate-scroll-left flex gap-6 w-fit">
+          <div
+            className="animate-scroll-left flex gap-5 w-fit"
+            style={{ animationDuration: `${filteredPublications.length * 4}s` }}
+          >
             {[...filteredPublications, ...filteredPublications].map((pub, idx) => (
               <div
                 key={`${pub.id}-${idx}`}
-                className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all border-l-4 border-uleam-gold w-96 flex-shrink-0"
+                className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all border-l-4 border-uleam-gold w-72 flex-shrink-0"
               >
-                {/* Cover Image */}
-                {pub.cover_image && (
-                  <div className="relative h-48 bg-gray-100">
-                    <Image
-                      src={pub.cover_image}
-                      alt={pub.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-6">
+                <div className="p-5">
                 {/* Category Badge */}
                 <div className="mb-2">
                   <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getCategoryColor(pub.category)}`}>
@@ -155,30 +143,18 @@ export default function PublicationsSection() {
                   </span>
                 </div>
 
-                {/* Type Badge */}
-                <div className="mb-3">
-                  <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
-                    {getTypeLabel(pub.type)}
-                  </span>
-                </div>
-
                 {/* Title */}
-                <h3 className="text-lg font-bold text-uleam-blue mb-2 line-clamp-2">
+                <h3 className="text-base font-bold text-uleam-blue mb-2 line-clamp-2">
                   {pub.title}
                 </h3>
 
                 {/* Authors */}
-                <p className="text-gray-700 font-medium text-sm mb-2">
+                <p className="text-gray-700 font-medium text-xs mb-3 line-clamp-1">
                   {pub.authors}
                 </p>
 
-                {/* Abstract */}
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {pub.abstract}
-                </p>
-
                 {/* Footer */}
-                <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

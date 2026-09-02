@@ -12,7 +12,7 @@ import { getAppSessionFromCookies, type AppSession } from '@/lib/session';
  * Igual que /utilidades, las API routes de /superadmin no pasan por
  * middleware.ts (su matcher excluye /api) — cada endpoint llama esto directo.
  */
-const SUPERADMIN_EMAILS = ['arturo.rodriguez@uleam.edu.ec'];
+export const SUPERADMIN_EMAILS = ['arturo.rodriguez@uleam.edu.ec'];
 
 export async function requireSuperadmin(): Promise<AppSession | null> {
   const usuario = await getAppSessionFromCookies();
