@@ -29,7 +29,7 @@ export default function PineProjectPage() {
       <main>
         <Hero />
         <About />
-        <TeamSection />
+        <TeamSection project="internacionalizacion" />
         <VideoGallery />
         <SubstantiveFunctionsSection />
         <ConnectionsSection />

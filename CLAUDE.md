@@ -121,6 +121,22 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
+## Cambios Recientes (Sesión 26 — 2026-09-02)
+
+### Navegación del panel + footer contextual + equipo filtrado por proyecto
+
+Sesión de reparación y coherencia de contenido a pedido explícito del usuario, en 3 partes:
+
+1. **Navegación del Portal sin pérdida de sesión.** `/api/auth/portal-login` y `/portal/login` ahora respetan un parámetro `redirect` para volver a la página de origen tras el login (antes forzaba siempre a `/portal/dashboard`); corregidos 13 redirects rotos que apuntaban a `/login?redirect=` en vez de `/portal/login?redirect=`; agregado botón "Volver al Portal PINE" en `/contribuciones` y en el top bar de `/admin` (antes no había forma de retroceder al portal sin cerrar sesión).
+2. **Footer contextual por proyecto/sección.** Antes el footer mostraba siempre a Arturo+Jhonny como contacto y los mismos 5 "Enlaces Rápidos" (`#inicio`/`#equipo`/`#videos`/`#publicaciones`/`#noticias`) en las 10 páginas que lo usan — esos anchors solo existen realmente en `/investigacion/proyecto-innovacion`. `lib/data.ts:footerContexts` (nuevo) define, por contexto, `leader`/`coleader`/`contactEmail` y `quickLinks` reales de esa página; `Footer` ahora acepta `context` como prop. Contextos: `default` (Internacionalización, Arturo+Jhonny), `landing` (solo `c.pinextranjeros@uleam.edu.ec`), `vinculacion` (Cynthia), `linguistica` (German+Cristina), `mentoring` (Verónica), `docencia` (Verónica), `redlea` (Jhonny, coordinador — anchors propios `#sobre`/`#testimonios`/`#galeria`/`#memoria`), y `general` (páginas standalone del sitio principal sin secciones propias: publicaciones, boletines, portal/login, portal/dashboard — mantienen a Arturo+Jhonny pero con navegación real en vez de anchors rotos).
+3. **Equipo (`TeamSection`) filtrado por proyecto.** `members.projects` (`text[]`, nueva columna vía `scripts/migrate-members-projects.js`) reemplaza el listado único sin distinción — antes German y Cynthia (líderes de proyecto propio) aparecían también en el equipo de Internacionalización. `GET /api/members?project=X` filtra; `TeamSection` acepta prop `project`; cada página de proyecto la pasa. German → sale de Internacionalización, queda solo en `/investigacion/desarrollo-habilidades`. Cynthia → sale de Internacionalización, queda solo en `/vinculacion/dinamicas-linguisticas` (ahí se le agregó `TeamSection`, no la tenía). Cristina Basantes es la única excepción con dos proyectos (confirmado explícitamente por el usuario): colídera de Desarrollo de Habilidades + colaboradora de Internacionalización (Podcast). Panel `/admin/members` actualizado con checkboxes para editar `projects`.
+4. **Página nueva: `/investigacion/mentoring` (Verónica Chávez).** No existía ninguna landing para el 4to proyecto propio del grupo — Verónica ni siquiera estaba en la tabla `members` (solo en `profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio`). Creada siguiendo el patrón de `desarrollo-habilidades` (`ProjectHero`+`ProjectIntegrationNote`+`TeamSection`+`Contact`, `Footer context="mentoring"`), agregada al dropdown "Investigación" del Header, entrada `mentoringProject` en `lib/i18n.tsx` (ES+EN). Verónica agregada a `members` como `member_12` — **sin foto todavía** (placeholder, pendiente subir imagen real a `public/images/`). Ver advertencia en `## Equipo actual` para no confundir con el `member_12` fabricado que existió en Sesión 19.
+5. **Nombres oficiales completos visibles en el Hero de cada proyecto** (antes solo documentados en este CLAUDE.md, no mostrados en el sitio) — `heroDescription` actualizado en `lib/i18n.tsx` para Internacionalización, Desarrollo de Habilidades y el nuevo Mentoring con el texto exacto de `### Proyectos del grupo — nombres oficiales`. Dinámicas Lingüísticas (Cynthia) no necesitó cambio, su nombre corto ya es el oficial.
+
+Scripts: `scripts/migrate-members-projects.js` (ALTER TABLE + UPDATE + INSERT Verónica) — **pendiente de ejecutar por el usuario** con `node --env-file=.env.local scripts/migrate-members-projects.js` (Claude no tuvo acceso directo a Neon en este entorno, sin `org_id` para el MCP de Neon).
+
+---
+
 ## Cambios Recientes (Sesión 25 — 2026-09-02)
 
 ### Migración de `lib/data.ts` (estático) a Neon Postgres — completa
@@ -219,7 +235,7 @@ Usados tal cual en el dropdown "Proyecto" del wizard de Contribuciones Académic
 | Arturo Rodríguez / Jhonny Villafuerte | Innovaciones Pedagógicas e Internacionalización | "Lograr la innovación pedagógica e internacionalización del proceso de formación inicial y continua de docentes para el desarrollo humano y sostenible." |
 | German Carrera | Desarrollo de Habilidades Lingüísticas | "Desarrollo de las habilidades lingüísticas del idioma inglés en estudiantes de educación superior en Ecuador." |
 | Cynthia Zambrano | Dinámicas Lingüísticas en Contextos Locales | Dinámicas Lingüísticas en Contextos Locales (mismo nombre, confirmado por el usuario — es el título de la página pública `/vinculacion/dinamicas-linguisticas`) |
-| Verónica Chávez | Mentoring | "Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional" |
+| Verónica Chávez | Mentoring | "Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional" — página pública desde Sesión 26: `/investigacion/mentoring` |
 
 ⚠️ **`CategoriaDocente` ampliado:** el enum solo llegaba hasta `AGREGADO_II` — el escalafón docente ULEAM sí tiene `AGREGADO_III` (confirmado por el usuario, caso real: Jhonny Villafuerte). Agregado a mano en Neon (`scripts/migrate-agregado3.js`, `ALTER TYPE ... ADD VALUE`, no `prisma db push`) + `prisma/schema.prisma` + `app/api/contribuciones/route.ts` (zod) + `CATEGORIAS_DOCENTE` del wizard. Los 3 deben mantenerse sincronizados si se agrega otro valor.
 
@@ -387,7 +403,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   │   └── dinamicas-linguisticas/ # Página PÚBLICA de contenido (no confundir con nada de arriba)
 │   ├── investigacion/
 │   │   ├── espacios/              # Crear/listar espacios de investigación
-│   │   └── proyecto-innovacion/, desarrollo-habilidades/  # Páginas públicas de proyecto
+│   │   └── proyecto-innovacion/, desarrollo-habilidades/, mentoring/  # Páginas públicas de proyecto
 │   ├── gestion-carrera/           # Registro de eventos, cualquier docente
 │   ├── contribuciones/            # Contribuciones académicas (Sesión 24) — listado (solo admin) + wizard (docentes)
 │   │   ├── page.tsx                # Listado, protegido por middleware (modulos_acceso:admin)
@@ -434,23 +450,28 @@ carreraPINE/                       ← RAÍZ = Next.js app
 
 ---
 
-## Equipo actual (`/lib/data.ts` → `members`)
+## Equipo actual (tabla `members` en Neon)
 
-| ID | Nombre | Rol | Orden |
-|----|--------|-----|-------|
-| member_1 | Dr. Arturo Rodríguez | Líder de Internacionalización y Miembro de Vinculación | 1 |
-| member_2 | Dr. Jhonny Villafuerte | Colíder del Proyecto | 2 |
-| member_3 | Mg. Cristina Basantes | Miembro de Investigación y Colaboradora de Internacionalización (Podcast) | 3 |
-| member_4 | Psi. Johana Bello, Mg. | Colaboradora en Investigación y Directora de Psicología Educativa | 4 |
-| member_5 | Andy Castillo | Estudiante Investigador | 5 |
-| member_6 | Josselyn Mera Rivas | Estudiante Investigadora / Equipo de Podcast | 6 |
-| member_8 | Ailys Jordana Bailón Borja | Estudiante Investigadora / Equipo de Podcast | 7 |
-| member_7 | Doménica Valeska Vélez Bravo | Equipo de Podcast | 8 |
-| member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | 9 |
-| member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — proyecto propio, ver `/investigacion/desarrollo-habilidades` | 10 |
-| member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) | 11 |
+Desde la Sesión 26, `members.projects` (`text[]`, migrado con `scripts/migrate-members-projects.js`) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
 
-⚠️ Hubo un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó en Sesión 19 junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. Ver "Cambios Recientes (Sesión 19)" abajo — regla de oro: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
+| ID | Nombre | Rol | Proyectos | Orden |
+|----|--------|-----|-----------|-------|
+| member_1 | Dr. Arturo Rodríguez | Líder de Internacionalización y Miembro de Vinculación | internacionalizacion | 1 |
+| member_2 | Dr. Jhonny Villafuerte | Colíder del Proyecto | internacionalizacion | 2 |
+| member_3 | Mg. Cristina Basantes | Miembro de Investigación y Colaboradora de Internacionalización (Podcast) | desarrollo_habilidades, internacionalizacion | 3 |
+| member_4 | Psi. Johana Bello, Mg. | Colaboradora en Investigación y Directora de Psicología Educativa | internacionalizacion | 4 |
+| member_5 | Andy Castillo | Estudiante Investigador | internacionalizacion | 5 |
+| member_6 | Josselyn Mera Rivas | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 6 |
+| member_8 | Ailys Jordana Bailón Borja | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 7 |
+| member_7 | Doménica Valeska Vélez Bravo | Equipo de Podcast | internacionalizacion | 8 |
+| member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 9 |
+| member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — ver `/investigacion/desarrollo-habilidades` | desarrollo_habilidades | 10 |
+| member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) — ver `/vinculacion/dinamicas-linguisticas` | vinculacion | 11 |
+| member_12 | Mg. Verónica Chávez | Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`, nueva en Sesión 26. Sin foto todavía (placeholder), pendiente subir imagen real. | mentoring | 12 |
+
+Cristina Basantes es el único caso con dos proyectos — confirmado explícitamente por el usuario: colídera de Desarrollo de Habilidades Lingüísticas (con German) y además colaboradora de Internacionalización (coordina el Podcast ahí). No es un ajuste automático ni aplica al resto del equipo.
+
+⚠️ **Distinto del `member_12` fabricado anteriormente:** en Sesión 19 existió un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. El `member_12` actual (Verónica Chávez) es una persona real, ya confirmada desde antes en `profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio` (`lib/data.ts`) — no confundir ambos casos. Regla de oro sigue vigente: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
 
 ---
 

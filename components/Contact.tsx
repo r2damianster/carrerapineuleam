@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 
 const CONTACT_EMAIL = 'arturo.rodriguez@uleam.edu.ec';
 
-export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' } = {}) {
+export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' } = {}) {
   const { t, lang } = useLanguage();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
 
@@ -52,6 +52,15 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
         role: t.contact.coleader,
         email: '',
         orcid: '0000-0001-5184-9643',
+      }
+    ];
+  } else if (projectKey === 'mentoringProject') {
+    teamContacts = [
+      {
+        name: 'Mg. Verónica Chávez',
+        role: t.contact.leader,
+        email: 'veronica.chavez@uleam.edu.ec',
+        orcid: '',
       }
     ];
   } else {

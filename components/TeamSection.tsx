@@ -5,7 +5,11 @@ import Image from 'next/image';
 import type { Member } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
-export default function TeamSection() {
+interface TeamSectionProps {
+  project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
+}
+
+export default function TeamSection({ project }: TeamSectionProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
@@ -14,7 +18,8 @@ export default function TeamSection() {
     // Load members from static data or use sample data
     const loadMembers = async () => {
       try {
-        const res = await fetch('/api/members');
+        const url = project ? `/api/members?project=${encodeURIComponent(project)}` : '/api/members';
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch members');
         const data = await res.json();
         setMembers(Array.isArray(data) ? data : []);
@@ -52,7 +57,7 @@ export default function TeamSection() {
     };
 
     loadMembers();
-  }, []);
+  }, [project]);
 
   if (loading) {
     return (

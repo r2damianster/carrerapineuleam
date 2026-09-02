@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
+import TeamSection from '@/components/TeamSection';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -17,7 +18,8 @@ export default function DesarrolloHabilidadesPage() {
       <main>
         <ProjectHero projectKey="desarrolloProject" />
         <ProjectIntegrationNote projectKey="desarrolloProject" />
-        
+        <TeamSection project="desarrollo_habilidades" />
+
         <section className="py-20 bg-white">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-uleam-blue mb-4">Información del Proyecto</h2>
