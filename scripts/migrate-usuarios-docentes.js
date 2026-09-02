@@ -54,6 +54,9 @@ const DOCENTES_PINE_PENDIENTES_DE_REGISTRO = [
   ['JORGE', 'CORRAL JONIAUX', 'jorge.corral@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, ['admin', 'investigacion', 'vinculacion', 'Proyecto_Internacionalizacion', 'indicadores', 'utilidades']],
   ['GERMÁN', 'CARRERA MORENO', 'german.carrera@uleam.edu.ec', 'Dr.', 'PhD.', 'Coordinador de Carrera', true, ['admin', 'investigacion', 'indicadores', 'utilidades']],
   ['VERÓNICA', 'CHÁVEZ ZAMBRANO', 'veronica.chavez@uleam.edu.ec', 'Lic.', 'Mg.', 'Responsable de Comisión Académica', false, ['admin', 'investigacion', 'indicadores', 'utilidades']],
+  // Agregada después del seed inicial de Sesión 27, mismo mecanismo — no es docente sino personal
+  // administrativo de la carrera, pero participa/firma los mismos documentos de /utilidades.
+  ['YASMÍN', 'BERMÚDEZ VELASCO', 'yazmin.bermudez@uleam.edu.ec', 'Lic.', null, 'Secretaria de Carrera', false, []],
 ];
 
 const AUTORIDADES_EXTERNAS = [
