@@ -514,6 +514,24 @@ carreraPINE/                       ← RAÍZ = Next.js app
 - Para agregar a la sección admin Documentos: copiar a `public/admin-assets/` y agregar entrada en `app/admin/documents/page.tsx`.
 - Las noticias y actividades **no** llevan link de descarga pública — sus documentos van a `public/admin-assets/`.
 
+### Estándar de nombres de archivo (Sesión 26, 2026-09-02)
+
+**Todo archivo nuevo** en `public/images/`, `public/files/` o `public/admin-assets/` — subido por Claude o por Antigravity — debe nombrarse:
+
+```
+YYYY-MM-DD_DescripcionCorta[-signed].ext
+```
+
+- `YYYY-MM-DD`: fecha del **documento/evento** (no la fecha en que se sube). Si el archivo tiene varias fechas (ej. rango de una capacitación), usar la fecha de cierre/emisión del certificado.
+- `DescripcionCorta`: PascalCase o palabras unidas por guiones, **sin espacios, tildes, ñ, mayúsculas sostenidas ni caracteres especiales** (nada de `Informe_sOCIALZACIÓN_dISNEY.pdf`).
+- Sufijo `-signed` solo si el PDF está firmado digitalmente.
+- Extensión en minúsculas (`.pdf`, `.jpeg`, `.png`).
+- Ejemplo real: `2026-08-13_CertificadosCapacitacionAsierRomero-FET-signed.pdf`, `2026-08-13_Capacitacion-AsierRomero-Auditorio.jpeg`.
+
+**Skill `plugin:estandar-archivos` disponible en este repo** (`.claude/skills/estandar-archivos/SKILL.md`) — Claude Code debe invocarlo antes de mover/copiar cualquier archivo nuevo a `public/`. Antigravity no tiene el mecanismo de skills de Claude Code: debe seguir esta misma regla leyéndola aquí directamente.
+
+⚠️ **Archivos ya existentes (previos a Sesión 26) NO siguen este estándar** (`2026_FICHA_PRESUPUESTARIA.pdf`, `Informe_sOCIALZACIÓN_dISNEY-signed.pdf`, `Informe-Ejetutivo-DRP.pdf`, etc.) — no renombrarlos sin querer: varios están referenciados por nombre exacto en `app/admin/documents/page.tsx` y algunos PDFs de `public/files/` podrían estar linkeados desde `publications.pdf_file` en Neon. Renombrarlos requiere actualizar esas referencias en el mismo cambio — es una limpieza aparte, pendiente, no bloqueante.
+
 ---
 
 ## Flujos de Trabajo Recurrentes

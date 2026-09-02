@@ -27,6 +27,7 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Archivos de acceso:**
   - `public/images/` y `public/files/` para recursos públicos.
   - `public/admin-assets/` para recursos privados protegidos.
+  - **Estándar de nombres (Sesión 26, obligatorio para archivos nuevos):** `YYYY-MM-DD_DescripcionCorta[-signed].ext` — fecha del documento/evento (no de subida), sin espacios/tildes/mayúsculas sostenidas, extensión en minúsculas. Ejemplo: `2026-08-13_CertificadosCapacitacionAsierRomero-FET-signed.pdf`. Detalle completo en `CLAUDE.md` → `### Estándar de nombres de archivo`. Archivos previos a esta sesión no lo siguen — no renombrarlos sin coordinar (rompe referencias en `app/admin/documents/page.tsx` y posiblemente `publications.pdf_file` en Neon).
 
 ## 📌 Estado Actual y Tareas
 *(Ver `CLAUDE.md` para el changelog detallado y estado general — es la fuente de verdad más actualizada, léela antes de asumir el estado del repo)*
