@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DataTable from '@/components/admin/DataTable';
-import { getMembers, createMember, updateMember, deleteMember } from '@/lib/db';
 import type { Member } from '@/types';
 
 export default function AdminMembersPage() {
@@ -28,8 +27,10 @@ export default function AdminMembersPage() {
 
   const loadMembers = async () => {
     try {
-      const records = await getMembers();
-      setMembers(records as any);
+      const res = await fetch('/api/members');
+      if (!res.ok) throw new Error('Failed to fetch members');
+      const records = await res.json();
+      setMembers(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error('Error loading members:', error);
       setMembers([]);
@@ -59,7 +60,8 @@ export default function AdminMembersPage() {
 
   const handleDelete = async (member: Member) => {
     try {
-      await deleteMember(member.id);
+      const res = await fetch(`/api/members/${member.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
       loadMembers();
     } catch (error) {
       console.error('Error deleting member:', error);
@@ -71,10 +73,16 @@ export default function AdminMembersPage() {
     e.preventDefault();
 
     try {
-      if (editingMember) {
-        await updateMember(editingMember.id, formData as any);
-      } else {
-        await createMember(formData as any);
+      const url = editingMember ? `/api/members/${editingMember.id}` : '/api/members';
+      const method = editingMember ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
       }
 
       resetForm();

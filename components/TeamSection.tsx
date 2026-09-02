@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getMembers } from '@/lib/db';
 import type { Member } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -15,8 +14,10 @@ export default function TeamSection() {
     // Load members from static data or use sample data
     const loadMembers = async () => {
       try {
-        const data = await getMembers();
-        setMembers(data as any);
+        const res = await fetch('/api/members');
+        if (!res.ok) throw new Error('Failed to fetch members');
+        const data = await res.json();
+        setMembers(Array.isArray(data) ? data : []);
       } catch (error) {
         // Fallback to sample data if static data is not available
         setMembers([
