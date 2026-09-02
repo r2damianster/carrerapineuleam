@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface RubricaResumen { id: number; slug: string; subtipo: string | null }
@@ -242,6 +243,14 @@ export default function ParesLectoresPage() {
 
   return (
     <main className="mx-auto max-w-4xl p-6">
+      <div className="mb-4 flex gap-4">
+        <Link href="/utilidades" className="inline-flex items-center text-[#003366] hover:underline font-medium">
+          &larr; Volver a Utilidades
+        </Link>
+        <Link href="/portal/dashboard" className="inline-flex items-center text-[#003366] hover:underline font-medium">
+          &larr; Volver al Portal PINE
+        </Link>
+      </div>
       <h1 className="mb-2 text-2xl font-bold text-[#003366]">📋 Evaluación de Pares Lectores</h1>
       <p className="mb-6 text-sm text-slate-500">Paso {paso} de 4</p>
 

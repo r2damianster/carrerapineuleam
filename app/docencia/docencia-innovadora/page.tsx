@@ -21,7 +21,7 @@ export default function DocenciaProjectPage() {
         <ProjectIntegrationNote projectKey="docenciaProject" />
         <TaggedVideoSection tag="docencia" projectKey="docenciaProject" />
         <ActivityGallery />
-        <Contact />
+        <Contact projectKey="docenciaProject" />
       </main>
       <Footer context="docencia" />
     </>

@@ -170,6 +170,9 @@ Sesión de reparación y coherencia de contenido a pedido explícito del usuario
 14. **Nombre de la carrera consistente en el Header de todas las páginas.** El texto junto al logo (enlaza siempre a `/`) decía "Innovaciones Pedagógicas - ULEAM" por defecto en las páginas que no pasaban `siteName` explícito — nombre del proyecto de Internacionalización, no de la carrera. Unificado a **"Pedagogía de los Idiomas Nacionales y Extranjeros"** (`t.nav.siteName`) como default de `Header.tsx`; landing y boletines ya no pasan su propio `siteName` custom.
 15. **Auditoría e internacionalización completa ES/EN.** El toggle EN/ES del Header cambiaba el estado de idioma correctamente, pero la mayoría del contenido nunca pasaba por `t.xxx` — 6 componentes con **cero** soporte i18n (los 5 de RED LEA + `SubstantiveFunctionsSection`, más `QRModal`/`QRFloatingButton`/`VideoCard`), y ~11 componentes más con texto **mixto** (`TeamSection`, `ActivityGallery`, `NewsSection`, `Contact`, `PublicationsSection`, `VideoGallery`, `TaggedVideoSection`, `Header`), más los bloques "Información del Proyecto" hardcodeados directo en `app/investigacion/desarrollo-habilidades/page.tsx` y `.../mentoring/page.tsx` (movidos a nuevo componente cliente `components/ProjectInfoPlaceholder.tsx`, ya que esas páginas son Server Components sin acceso a `useLanguage()`). Todo el contenido institucional extenso de RED LEA (bio, testimonios de 6 personas, logros, proyecciones) se trasladó a `lib/i18n.tsx` bajo `t.redlea.*` con traducción real al inglés. Fechas que usaban `toLocaleDateString('es-EC', ...)` fijo ahora usan `es-EC`/`en-US` según el idioma activo (`VideoCard`, `NewsSection`, `PublicationsSection`). `ConnectionsSection`, `HubProjectsSection`, `About`, `EnglishClubSection` y `VinculacionResearchSection` ya estaban completos, confirmado por auditoría. Único texto en español que queda fijo fuera del panel admin: captions de fotos en datos (`vinculacionEnglishClubPhotos`, `member.role`) — contenido real, no copy de interfaz.
 
+16. **Fix: `/docencia/docencia-innovadora` mostraba a Arturo+Jhonny en el formulario de contacto.** Al mover `ActivityGallery`+`Contact` a esta página (punto 9) quedó `<Contact />` sin `projectKey` — cae al branch por defecto de `Contact.tsx` (Arturo líder/Jhonny colíder, el mismo que usa la página de Internacionalización), incorrecto para Docencia. Agregado `projectKey="docenciaProject"` con un solo contacto: Verónica Chávez, rol **"Responsable de Comisión Académica"** (nueva key `t.contact.comisionAcademica`, ES/EN) — no "líder"/"colíder", su rol acá es distinto al de Mentoring.
+17. **Orden del equipo por proyecto, no solo global.** `members.order` es una sola columna global (define el orden en Internacionalización) — pero en Vinculación debía ir Cynthia (líder) antes que Arturo (supervisor), y en Lingüística German (líder) antes que Cristina (colídera), al revés de su `order` global. Columna nueva `members.project_order` (JSONB, ej. `{"vinculacion": 2}`) vía `scripts/migrate-members-project-order.js` — `GET /api/members?project=X` ahora ordena por `COALESCE((project_order->>project)::int, "order")`. De paso, `TeamSection.ROLE_BADGE_OVERRIDES` ganó `desarrollo_habilidades: { member_3: 'coleader' }` — Cristina aparecía con badge "Participante" en la página de Lingüística (fallback por defecto), cuando ahí es colídera; en Internacionalización sigue con su badge normal (sí es solo participante ahí).
+
 Migración Neon de `members.projects` (punto 3): ejecutada directamente por Claude vía MCP de Neon (Project ID `dark-feather-21824720`, obtenido del usuario) en esta misma sesión — no fue necesario que el usuario corriera el script localmente. `scripts/migrate-members-projects.js` queda como referencia idéntica al cambio ya aplicado en producción.
 
 ---
@@ -571,6 +574,24 @@ Cristina Basantes es el único caso con dos proyectos — confirmado explícitam
 - Solo van a `public/files/` los PDFs que el equipo quiere que el público general descargue (artículos científicos, libro del proyecto).
 - Para agregar a la sección admin Documentos: copiar a `public/admin-assets/` y agregar entrada en `app/admin/documents/page.tsx`.
 - Las noticias y actividades **no** llevan link de descarga pública — sus documentos van a `public/admin-assets/`.
+
+### Estándar de nombres de archivo (Sesión 26, 2026-09-02)
+
+**Todo archivo nuevo** en `public/images/`, `public/files/` o `public/admin-assets/` — subido por Claude o por Antigravity — debe nombrarse:
+
+```
+YYYY-MM-DD_DescripcionCorta[-signed].ext
+```
+
+- `YYYY-MM-DD`: fecha del **documento/evento** (no la fecha en que se sube). Si el archivo tiene varias fechas (ej. rango de una capacitación), usar la fecha de cierre/emisión del certificado.
+- `DescripcionCorta`: PascalCase o palabras unidas por guiones, **sin espacios, tildes, ñ, mayúsculas sostenidas ni caracteres especiales** (nada de `Informe_sOCIALZACIÓN_dISNEY.pdf`).
+- Sufijo `-signed` solo si el PDF está firmado digitalmente.
+- Extensión en minúsculas (`.pdf`, `.jpeg`, `.png`).
+- Ejemplo real: `2026-08-13_CertificadosCapacitacionAsierRomero-FET-signed.pdf`, `2026-08-13_Capacitacion-AsierRomero-Auditorio.jpeg`.
+
+**Skill `plugin:estandar-archivos` disponible en este repo** (`.claude/skills/estandar-archivos/SKILL.md`) — Claude Code debe invocarlo antes de mover/copiar cualquier archivo nuevo a `public/`. Antigravity no tiene el mecanismo de skills de Claude Code: debe seguir esta misma regla leyéndola aquí directamente.
+
+⚠️ **Archivos ya existentes (previos a Sesión 26) NO siguen este estándar** (`2026_FICHA_PRESUPUESTARIA.pdf`, `Informe_sOCIALZACIÓN_dISNEY-signed.pdf`, `Informe-Ejetutivo-DRP.pdf`, etc.) — no renombrarlos sin querer: varios están referenciados por nombre exacto en `app/admin/documents/page.tsx` y algunos PDFs de `public/files/` podrían estar linkeados desde `publications.pdf_file` en Neon. Renombrarlos requiere actualizar esas referencias en el mismo cambio — es una limpieza aparte, pendiente, no bloqueante.
 
 ---
 

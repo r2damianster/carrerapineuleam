@@ -9,7 +9,11 @@ export async function GET(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
     const members = project
-      ? await sql`SELECT * FROM members WHERE ${project} = ANY(projects) ORDER BY "order" ASC`
+      ? await sql`
+          SELECT * FROM members
+          WHERE ${project} = ANY(projects)
+          ORDER BY COALESCE((project_order->>${project})::int, "order") ASC
+        `
       : await sql`SELECT * FROM members ORDER BY "order" ASC`;
     return NextResponse.json(members);
   } catch (error: any) {

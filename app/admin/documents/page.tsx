@@ -167,6 +167,24 @@ const documents = {
       date: '2026-07-24',
       period: '2026-1',
     },
+    {
+      id: 'certificados-capacitacion-asier-romero-fet',
+      title: 'Certificados — Capacitación Dr. Asier Romero Andonegi (FET)',
+      filename: '2026-08-13_CertificadosCapacitacionAsierRomero-FET-signed.pdf',
+      description: 'Certificados de la Facultad de Educación y Turismo a 14 docentes por la capacitación internacional dictada por el Dr. Asier Romero Andonegi (Universidad del País Vasco, UPV/EHU) en Manta del 4 al 13 de agosto de 2026: pensamiento crítico y uso pedagógico de la IA, análisis del discurso en español, y mentoría para el desarrollo profesional docente (40 horas académicas). Documento firmado y certificado.',
+      icon: '🎓',
+      date: '2026-08-13',
+      period: '2026-1',
+    },
+    {
+      id: 'certificados-doctorandos-ehu-asier-romero',
+      title: 'Certificados — Doctorandos EHU/RED-LEA, capacitación Dr. Asier Romero',
+      filename: '2026-08-13_CertificadosDoctorandosEHU-AsierRomero-signed.pdf',
+      description: 'Certificados de la Red de Investigación Científica sobre Comprensión Lectora y Escritura Académica y Creativa (RED-LEA) a 4 doctorandos EHU/UPV por la capacitación "Didácticas y uso ético de la Inteligencia Artificial en el contexto universitario", dictada por el Dr. Asier Romero Andonegi en Manta del 4 al 13 de agosto de 2026 (40 horas académicas). Incluye certificado de Arturo Rodríguez Zambrano. Documento firmado y certificado.',
+      icon: '🎓',
+      date: '2026-08-13',
+      period: '2026-1',
+    },
   ],
   informes: [
     {

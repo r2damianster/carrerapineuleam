@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface Docente {
@@ -160,6 +161,14 @@ export default function OficiosPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
+      <div className="mb-4 flex gap-4">
+        <Link href="/utilidades" className="inline-flex items-center text-[#003366] hover:underline font-medium">
+          &larr; Volver a Utilidades
+        </Link>
+        <Link href="/portal/dashboard" className="inline-flex items-center text-[#003366] hover:underline font-medium">
+          &larr; Volver al Portal PINE
+        </Link>
+      </div>
       <h1 className="mb-6 text-2xl font-bold text-[#003366]">📄 Generador de Oficios</h1>
 
       <form onSubmit={generar} className="space-y-6">
