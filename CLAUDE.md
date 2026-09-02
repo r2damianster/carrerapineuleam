@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.5
-**Última sesión:** 2026-09-02 (Sesión 27 — módulo /utilidades conectado a la BD real: se descubrió que la tabla `docentes` nunca existió en producción, unificada dentro de `usuarios`; Acta Técnica ahora selecciona docentes igual que Convocatorias/Oficios; eliminada carpeta duplicada `carrera-herramientas/`. Ver detalle abajo)
+**Última sesión:** 2026-09-02 (Sesión 28 — enlaces/QR públicos sin login para pretest/postest de MCER y encuesta de satisfacción, tabla `enlaces_evaluacion`. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -134,6 +134,26 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 28 — 2026-09-02)
+
+### Enlaces/QR públicos sin login para pretest y postest (MCER + encuesta)
+
+A pedido explícito del usuario: que un estudiante-instructor pueda compartir un link/QR para que el beneficiario tome el test MCER o la encuesta de satisfacción **desde su propio celular, sin necesidad de cuenta ni login**. Evaluado primero usar Ably (mensajería en tiempo real) — descartado: el problema real no es tiempo real, es acceso público sin sesión, así que se optó por un link con token en vez de un servicio externo.
+
+- **Tabla nueva `enlaces_evaluacion`** (`scripts/migrate-enlaces-evaluacion.js`, aplicada vía Neon MCP): `token` (UUID, PK), `tipo` (`pretest`|`postest`), `test_tipo` (`mcer`|`encuesta`), `espacio_id`, `beneficiario_id` (NULL en pretest — el beneficiario no existe todavía), `ciclo_id` (obligatorio si `test_tipo='encuesta'`, para poder guardar en `encuestas_satisfaccion`), `creado_por`, `expira_en`, `max_usos`/`usos_actuales`.
+- **Dos flujos, decisiones confirmadas por el usuario:**
+  1. **Pretest** (beneficiario nuevo): formulario completo de datos (los mismos campos que ya pide `/vinculacion/beneficiarios`) + el test/encuesta, todo en un solo envío público. El link es **por sesión, con fecha de expiración** elegida por el instructor al generarlo — no es un QR fijo del espacio — y reutilizable por todo el grupo dentro de esa ventana (`max_usos = NULL`).
+  2. **Postest** (beneficiario ya inscrito, elegido por el instructor de una lista): el link no pide datos, va directo al test/encuesta. Seguridad = **solo el token largo (UUID) no adivinable, de un solo uso** (`max_usos = 1`) — sin verificación de identidad adicional, decisión explícita del usuario.
+  3. Misma infraestructura sirve para la encuesta de satisfacción, no solo MCER (a pedido del usuario) — el generador de enlaces pide el ciclo académico a evaluar cuando `test_tipo='encuesta'`.
+- **Endpoints:** `POST /api/enlaces` (protegido, exige `puedeOperarEspacio`) genera el token; `GET /api/enlaces/[token]` (público) valida vigencia/cupo y dice qué formulario mostrar; `POST /api/enlaces/[token]/pretest` (público, transacción con `Pool`+`BEGIN/COMMIT` igual que `/api/espacios/asistencia`) crea usuario+perfil+inscripción+evaluación en un solo paso; `POST /api/enlaces/[token]/postest` (público, mismo patrón transaccional con `SELECT ... FOR UPDATE` para evitar doble uso) guarda la evaluación contra el `beneficiario_id` ya conocido.
+- **Página pública nueva `/vinculacion/publico/[token]`** — fuera de `protectedRoutes` en `middleware.ts` (no requirió tocar el middleware, ya no exige sesión por defecto). Renderiza el formulario de datos (solo en pretest) + las preguntas MCER (`lib/questions.ts`) o la encuesta de estrellas, según `test_tipo`.
+- **Componente reutilizable `components/EnlaceEvaluacionModal.tsx`** — genera el enlace, muestra el QR (mismo patrón que `QRModal.tsx`: imagen de `api.qrserver.com`, sin librería nueva), botón copiar y compartir por WhatsApp. Se agregaron botones "🔗 QR Pre-Test/Pre-Encuesta" y "🔗 QR Post-Test/Post-Encuesta" en `/vinculacion/test-mcer` y `/vinculacion/encuesta` (el postest usa el beneficiario ya seleccionado en el selector existente de esas páginas — no hizo falta tocar `/vinculacion/beneficiarios`).
+- **Verificación:** `npm run build` compila y pasa el chequeo de tipos limpio. La cadena completa de SQL (creación de enlace, alta de beneficiario+perfil+inscripción+evaluación MCER, alta de encuesta) se probó contra la Neon de producción real dentro de un bloque `DO $$ ... RAISE EXCEPTION $$` (se revierte solo, sin dejar datos de prueba) — confirmado sin filas huérfanas después. **No se hizo clic-a-clic en navegador**: no había `DATABASE_URL` local disponible en esta sesión y `espacios_enseñanza` está vacía en producción (el Portal recién se está usando), así que no hay un espacio real con beneficiarios inscritos para probar el flujo de postest de punta a punta todavía — pendiente que el usuario lo prueba con un espacio real o pida una sesión de verificación dedicada.
+
+Rama: `claude/online-tests-surveys-tool-47d92f`.
 
 ---
 

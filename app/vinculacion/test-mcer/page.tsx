@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { mcerQuestions } from '@/lib/questions';
+import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 
 export default function TestMcerPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function TestMcerPage() {
   const [form, setForm] = useState({ beneficiario_id: '', tipo: 'inicial' });
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [file, setFile] = useState<File | null>(null);
+  const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -126,12 +128,38 @@ export default function TestMcerPage() {
           </Link>
         </div>
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-2">Test de Nivelación MCER</h2>
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-8">
           <p className="text-gray-600">Aplicado por estudiantes a beneficiarios del programa</p>
-          <a href="/api/tests/download-docx" target="_blank" className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-            📄 Descargar Test en Word
-          </a>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button type="button" disabled={!espacioId} onClick={() => setModalEnlace({ tipo: 'pretest' })}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+              🔗 QR Pre-Test (sin login)
+            </button>
+            <button type="button" disabled={!form.beneficiario_id}
+              onClick={() => setModalEnlace({
+                tipo: 'postest',
+                beneficiarioId: parseInt(form.beneficiario_id),
+                beneficiarioNombre: beneficiarios.find(b => String(b.id) === form.beneficiario_id) ? `${beneficiarios.find(b => String(b.id) === form.beneficiario_id).nombres} ${beneficiarios.find(b => String(b.id) === form.beneficiario_id).apellidos}` : undefined,
+              })}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+              🔗 QR Post-Test (sin login)
+            </button>
+            <a href="/api/tests/download-docx" target="_blank" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+              📄 Descargar Test en Word
+            </a>
+          </div>
         </div>
+
+        {modalEnlace && espacioId && (
+          <EnlaceEvaluacionModal
+            espacioId={espacioId}
+            testTipo="mcer"
+            tipo={modalEnlace.tipo}
+            beneficiarioId={modalEnlace.beneficiarioId}
+            beneficiarioNombre={modalEnlace.beneficiarioNombre}
+            onClose={() => setModalEnlace(null)}
+          />
+        )}
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
