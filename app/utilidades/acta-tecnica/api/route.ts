@@ -18,11 +18,10 @@ export async function POST(request: NextRequest) {
 
     const titulos = form.getAll("p_titulo[]").map(String);
     const nombres = form.getAll("p_nombre[]").map(String);
-    const apellidos = form.getAll("p_apellido[]").map(String);
     const cargos = form.getAll("p_cargo[]").map(String);
     const participantes = nombres
       .map((nombre, i) => ({
-        nombre: `${titulos[i] ?? ""} ${nombre} ${apellidos[i] ?? ""}`.trim(),
+        nombre: `${titulos[i] ?? ""} ${nombre}`.trim(),
         cargo: cargos[i] || "Docente",
       }))
       .filter((p) => p.nombre);

@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 interface ParticipanteForm {
   titulo: string;
   nombre: string;
-  apellido: string;
   cargo: string;
 }
 
@@ -50,7 +49,7 @@ export default function ActaTecnicaPage() {
   const [convocante, setConvocante] = useState("");
 
   const [participantes, setParticipantes] = useState<ParticipanteForm[]>([
-    { titulo: "", nombre: "", apellido: "", cargo: "Docente" },
+    { titulo: "", nombre: "", cargo: "Docente" },
   ]);
 
   const [elaboradoTitulo, setElaboradoTitulo] = useState("");
@@ -70,7 +69,7 @@ export default function ActaTecnicaPage() {
 
   function agregarParticipante() {
     if (participantes.length >= MAX_PARTICIPANTES) return;
-    setParticipantes((prev) => [...prev, { titulo: "", nombre: "", apellido: "", cargo: "Docente" }]);
+    setParticipantes((prev) => [...prev, { titulo: "", nombre: "", cargo: "Docente" }]);
   }
 
   function seleccionarConvocante(id: string) {
@@ -83,7 +82,7 @@ export default function ActaTecnicaPage() {
     const d = docentes.find((x) => String(x.id) === id);
     if (!d) return;
     setParticipantes((prev) =>
-      prev.map((p, i) => (i === idx ? { titulo: d.titulo_grado, nombre: d.nombre, apellido: "", cargo: d.cargo } : p))
+      prev.map((p, i) => (i === idx ? { titulo: d.titulo_grado, nombre: d.nombre, cargo: d.cargo } : p))
     );
   }
 
@@ -125,7 +124,6 @@ export default function ActaTecnicaPage() {
         if (!p.nombre) return;
         fd.append("p_titulo[]", p.titulo);
         fd.append("p_nombre[]", p.nombre);
-        fd.append("p_apellido[]", p.apellido);
         fd.append("p_cargo[]", p.cargo);
       });
       fd.set("elaborado_titulo", elaboradoTitulo);
@@ -196,10 +194,9 @@ export default function ActaTecnicaPage() {
                   <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
                 ))}
               </select>
-              <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-2">
+              <div className="grid grid-cols-[80px_2fr_1fr] gap-2">
                 <input value={p.titulo} onChange={(e) => actualizarParticipante(i, "titulo", e.target.value)} placeholder="Título" className="ht-input" />
-                <input required value={p.nombre} onChange={(e) => actualizarParticipante(i, "nombre", e.target.value)} placeholder="Nombre" className="ht-input" />
-                <input required value={p.apellido} onChange={(e) => actualizarParticipante(i, "apellido", e.target.value)} placeholder="Apellido" className="ht-input" />
+                <input required value={p.nombre} onChange={(e) => actualizarParticipante(i, "nombre", e.target.value)} placeholder="Nombre y apellidos" className="ht-input" />
                 <input value={p.cargo} onChange={(e) => actualizarParticipante(i, "cargo", e.target.value)} placeholder="Cargo" className="ht-input" />
               </div>
             </div>

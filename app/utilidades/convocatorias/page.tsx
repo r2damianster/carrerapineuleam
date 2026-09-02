@@ -271,15 +271,16 @@ function FormDocentes({ docentes, carreras }: { docentes: Docente[]; carreras: s
       <fieldset className="rounded-lg border border-slate-300 p-4">
         <legend className="px-2 font-semibold text-[#003366]">Firma del convocante</legend>
         <label className="mb-3 block text-sm">Seleccione el convocante
-          <select required value={convocanteId} onChange={(e) => seleccionarConvocante(e.target.value)} className="ht-input">
+          <select value={convocanteId} onChange={(e) => seleccionarConvocante(e.target.value)} className="ht-input">
             <option value="" disabled>-- Seleccione un docente --</option>
             {opcionesConvocante.map((o) => <option key={o.id} value={o.id}>{o.titulo} {o.nombre}, {o.postgrado} — {o.cargo}</option>)}
           </select>
         </label>
+        <p className="mb-3 text-xs text-slate-500">* Seleccione de la lista para autocompletar, o escriba directamente si el convocante no está en la lista.</p>
         <div className="grid grid-cols-2 gap-3">
-          <label className="text-sm">Título<input required readOnly value={convocanteTitulo} className="ht-input" /></label>
-          <label className="text-sm">Nombre completo<input required readOnly value={convocanteNombre} className="ht-input" /></label>
-          <label className="text-sm">Cargo<input required readOnly value={convocanteCargo} className="ht-input" /></label>
+          <label className="text-sm">Título<input required value={convocanteTitulo} onChange={(e) => setConvocanteTitulo(e.target.value)} className="ht-input" /></label>
+          <label className="text-sm">Nombre completo<input required value={convocanteNombre} onChange={(e) => setConvocanteNombre(e.target.value)} className="ht-input" /></label>
+          <label className="text-sm">Cargo<input required value={convocanteCargo} onChange={(e) => setConvocanteCargo(e.target.value)} className="ht-input" /></label>
           <label className="text-sm">Iniciales elaborador<input required value={inicialesElaborador} onChange={(e) => setInicialesElaborador(e.target.value)} placeholder="Ej: VVP/ddm" className="ht-input" /></label>
         </div>
       </fieldset>

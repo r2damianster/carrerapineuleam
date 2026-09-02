@@ -274,17 +274,18 @@ export default function OficiosPage() {
           <legend className="px-2 font-semibold text-[#003366]">Firmante</legend>
           <label className="mb-3 block text-sm">
             Seleccione el firmante
-            <select required value={firmanteId} onChange={(e) => seleccionarFirmante(e.target.value)} className="ht-input">
+            <select value={firmanteId} onChange={(e) => seleccionarFirmante(e.target.value)} className="ht-input">
               <option value="" disabled>-- Seleccione un firmante --</option>
               {docentes.map((d) => (
                 <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
               ))}
             </select>
           </label>
+          <p className="mb-3 text-xs text-slate-500">* Seleccione de la lista para autocompletar, o escriba directamente si el firmante no está en la lista.</p>
           <div className="grid grid-cols-3 gap-3">
-            <label className="block text-sm">Título<input required readOnly value={firmanteTitulo} className="ht-input" /></label>
-            <label className="block text-sm">Nombre completo<input required readOnly value={firmanteNombre} className="ht-input" /></label>
-            <label className="block text-sm">Cargo<input required readOnly value={firmanteCargo} className="ht-input" /></label>
+            <label className="block text-sm">Título<input required value={firmanteTitulo} onChange={(e) => setFirmanteTitulo(e.target.value)} className="ht-input" /></label>
+            <label className="block text-sm">Nombre completo<input required value={firmanteNombre} onChange={(e) => setFirmanteNombre(e.target.value)} className="ht-input" /></label>
+            <label className="block text-sm">Cargo<input required value={firmanteCargo} onChange={(e) => setFirmanteCargo(e.target.value)} className="ht-input" /></label>
           </div>
           <label className="mt-3 block text-sm">
             Iniciales elaborador
