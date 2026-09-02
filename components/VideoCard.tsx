@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/lib/i18n';
 
 interface VideoProps {
   video: {
@@ -17,9 +18,8 @@ interface VideoProps {
   isLatest?: boolean;
 }
 
-const FUNCTION_BADGES: Record<string, { label: string; className: string; icon: JSX.Element }> = {
+const FUNCTION_BADGE_STYLE: Record<string, { className: string; icon: JSX.Element }> = {
   docencia: {
-    label: 'Docencia',
     className: 'bg-uleam-blue/10 text-uleam-blue',
     icon: (
       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
@@ -28,7 +28,6 @@ const FUNCTION_BADGES: Record<string, { label: string; className: string; icon: 
     ),
   },
   vinculacion: {
-    label: 'Vinculación',
     className: 'bg-orange-100 text-orange-700',
     icon: (
       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
@@ -37,7 +36,6 @@ const FUNCTION_BADGES: Record<string, { label: string; className: string; icon: 
     ),
   },
   investigacion: {
-    label: 'Investigación',
     className: 'bg-uleam-gold/20 text-yellow-700',
     icon: (
       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
@@ -55,9 +53,15 @@ const CATEGORY_RING: Record<string, string> = {
 
 export default function VideoCard({ video, isLatest }: VideoProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { t, lang } = useLanguage();
+  const FUNCTION_BADGE_LABELS: Record<string, string> = {
+    docencia: t.substantiveFunctions.docenciaTitle,
+    vinculacion: t.substantiveFunctions.vinculacionTitle,
+    investigacion: t.substantiveFunctions.investigacionTitle,
+  };
   const categoryInfo = video.expand?.category ?? (typeof video.category === 'object' ? video.category : undefined);
   const isInterdisciplinary = categoryInfo?.slug === 'psicoeducarte';
-  const functionTags = (video.tags ?? []).filter((tag) => FUNCTION_BADGES[tag]);
+  const functionTags = (video.tags ?? []).filter((tag) => FUNCTION_BADGE_STYLE[tag]);
   const categoryRing = categoryInfo?.slug ? CATEGORY_RING[categoryInfo.slug] ?? '' : '';
 
   return (
@@ -73,7 +77,7 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
             <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z" />
             </svg>
-            Nuevo
+            {t.videoCard.newBadge}
           </span>
         )}
         {video.embed_id ? (
@@ -86,7 +90,7 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
-            Próximamente
+            {t.videoCard.comingSoon}
           </div>
         )}
       </div>
@@ -110,7 +114,7 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z" />
                 </svg>
-                Interdisciplinario
+                {t.videoCard.interdisciplinaryBadge}
               </span>
             )}
           </div>
@@ -120,14 +124,14 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
         {functionTags.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             {functionTags.map((tag) => {
-              const badge = FUNCTION_BADGES[tag];
+              const badge = FUNCTION_BADGE_STYLE[tag];
               return (
                 <span
                   key={tag}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${badge.className}`}
                 >
                   {badge.icon}
-                  {badge.label}
+                  {FUNCTION_BADGE_LABELS[tag]}
                 </span>
               );
             })}
@@ -154,12 +158,12 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
             </svg>
             <span>
               {video.published_date
-                ? new Date(video.published_date).toLocaleDateString('es-EC', {
+                ? new Date(video.published_date).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })
-                : 'Fecha por confirmar'}
+                : t.videoCard.dateUnconfirmed}
             </span>
           </div>
 
@@ -174,7 +178,7 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
               </svg>
-              YouTube
+              {t.videoCard.youtubeLink}
             </a>
           )}
         </div>

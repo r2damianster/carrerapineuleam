@@ -2,41 +2,26 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-
-const fotos = [
-  { src: '/images/redlea/04-galeria/01-imagen.jpeg', title: 'Reuniones de trabajo (2023)' },
-  { src: '/images/redlea/04-galeria/02-imagen.jpeg', title: '3er. Congreso Facultad de Educación' },
-  { src: '/images/redlea/04-galeria/03-imagen.jpeg', title: 'Presentación de libros' },
-  { src: '/images/redlea/04-galeria/04-imagen.jpeg', title: 'Visita U.E. Juan Montalvo' },
-  { src: '/images/redlea/04-galeria/05-imagen.jpeg', title: 'Recorrido Bosque Pacoche' },
-  { src: '/images/redlea/04-galeria/06-imagen.jpeg', title: 'Encuentro interuniversitario' },
-  { src: '/images/redlea/04-galeria/07-imagen.jpeg', title: 'Actividad colaborativa' },
-  { src: '/images/redlea/04-galeria/08-imagen.jpeg', title: 'Sesión académica' },
-  { src: '/images/redlea/04-galeria/09-imagen.jpeg', title: 'Trabajo en equipo' },
-  { src: '/images/redlea/04-galeria/10-imagen.jpeg', title: 'Intercambio académico' },
-  { src: '/images/redlea/04-galeria/11-imagen.jpeg', title: 'Comunidad RED LEA' },
-  { src: '/images/redlea/04-galeria/12-imagen.jpeg', title: 'Actividades de integración' },
-  { src: '/images/redlea/04-galeria/13-imagen.jpeg', title: 'Encuentros académicos' },
-  { src: '/images/redlea/04-galeria/14-imagen.jpeg', title: 'Momentos destacados' },
-  { src: '/images/redlea/04-galeria/15-imagen.jpeg', title: 'RED LEA en acción' },
-];
+import { useLanguage } from '@/lib/i18n';
 
 export default function RedLEAGaleria() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const { t } = useLanguage();
+  const { title, subtitle, photos } = t.redlea.galeria;
 
   return (
     <section id="galeria" className="w-full py-20 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl md:text-5xl font-bold text-uleam-blue text-center mb-4">
-          Galería Fotográfica
+          {title}
         </h2>
         <p className="text-center text-gray-600 text-lg mb-12">
-          Momentos destacados de la RED LEA "Cambiando Vidas"
+          {subtitle}
         </p>
 
         {/* Grid de fotos */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          {fotos.map((foto, idx) => (
+          {photos.map((foto, idx) => (
             <div
               key={idx}
               className="relative h-48 rounded-lg overflow-hidden cursor-pointer group"
@@ -62,8 +47,8 @@ export default function RedLEAGaleria() {
           >
             <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
               <Image
-                src={fotos[selectedIdx].src}
-                alt={fotos[selectedIdx].title}
+                src={photos[selectedIdx].src}
+                alt={photos[selectedIdx].title}
                 width={1200}
                 height={800}
                 className="w-full h-auto rounded-lg"
@@ -74,7 +59,7 @@ export default function RedLEAGaleria() {
               >
                 ✕
               </button>
-              <p className="text-white text-center mt-4">{fotos[selectedIdx].title}</p>
+              <p className="text-white text-center mt-4">{photos[selectedIdx].title}</p>
             </div>
           </div>
         )}
