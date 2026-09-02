@@ -92,7 +92,7 @@ export function fusionarDocx(buffers: Buffer[]): Buffer {
     zipFinal.file(relsPath)?.asText() ??
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
 
-  const idsUsados = [...relsFinalXml.matchAll(/Id="rId(\d+)"/g)].map((m) => Number(m[1]));
+  const idsUsados = Array.from(relsFinalXml.matchAll(/Id="rId(\d+)"/g)).map((m) => Number(m[1]));
   let siguienteId = (idsUsados.length > 0 ? Math.max(...idsUsados) : 0) + 1;
 
   const cuerpos: string[] = [];
@@ -111,7 +111,7 @@ export function fusionarDocx(buffers: Buffer[]): Buffer {
 
     if (idx > 0) {
       const relsOrigenXml = zips[idx].file(relsPath)?.asText() ?? "";
-      for (const tagMatch of relsOrigenXml.matchAll(RELATIONSHIP_TAG_RE)) {
+      for (const tagMatch of Array.from(relsOrigenXml.matchAll(RELATIONSHIP_TAG_RE))) {
         const tag = tagMatch[0];
         const idOriginal = /Id="([^"]+)"/.exec(tag)?.[1];
         const tipo = /Type="([^"]+)"/.exec(tag)?.[1];
