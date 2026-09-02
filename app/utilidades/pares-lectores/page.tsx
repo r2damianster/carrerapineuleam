@@ -16,6 +16,8 @@ interface Indicador {
 }
 interface Observacion { id: number; seccion: "formal" | "fondo"; componente: string; observacion: string }
 
+interface Docente { id: number; titulo_grado: string; nombre: string; post_grado: string; cargo: string; carrera: string }
+
 interface Detalle {
   id: number; estudiante: string | null; titulo_trabajo: string | null; texto_trabajo: string | null;
   rubrica: { id: number; slug: string; schema: Schema } | null;
@@ -41,6 +43,12 @@ export default function ParesLectoresPage() {
   const [evaluadorCorreo, setEvaluadorCorreo] = useState("");
   const [precargando, setPrecargando] = useState(false);
   const [precargaError, setPrecargaError] = useState("");
+  // Se conservan para reusarlos después de crear la evaluación (paso 3 no vuelve a pedirlos).
+  const [archivoMemoPrecarga, setArchivoMemoPrecarga] = useState<File | null>(null);
+  const [archivoTrabajoPrecarga, setArchivoTrabajoPrecarga] = useState<File | null>(null);
+
+  // Lista de docentes para seleccionar el Tutor/a (puede no estar en la lista — queda editable)
+  const [docentes, setDocentes] = useState<Docente[]>([]);
 
   // Paso 2: modalidad/rubrica
   const [modalidades, setModalidades] = useState<Modalidad[]>([]);
@@ -65,7 +73,15 @@ export default function ParesLectoresPage() {
       .catch(() => setModalidades([]));
   }, []);
 
-  // Autocompleta al usuario logueado como evaluador/a (sigue pudiendo editarse).
+  useEffect(() => {
+    fetch("/utilidades/api/docentes")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setDocentes(Array.isArray(data) ? data : []))
+      .catch(() => setDocentes([]));
+  }, []);
+
+  // Autocompleta al usuario logueado como evaluador/a (sigue pudiendo editarse). El tutor/a
+  // es otra persona — no se autocompleta, se elige de la lista de docentes o se escribe a mano.
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
@@ -77,27 +93,65 @@ export default function ParesLectoresPage() {
       .catch(() => {});
   }, []);
 
-  async function precargarDesdeMemo(archivo: File) {
+  function seleccionarTutor(id: string) {
+    const d = docentes.find((x) => String(x.id) === id);
+    if (!d) return;
+    setTutor(`${d.titulo_grado} ${d.nombre}, ${d.post_grado}`.trim());
+  }
+
+  async function precargarDatos(memo: File | null, trabajo: File | null) {
+    if (!memo && !trabajo) return;
     setPrecargando(true);
     setPrecargaError("");
     try {
       const fd = new FormData();
-      fd.set("archivo", archivo);
+      if (memo) fd.set("archivo_memo", memo);
+      if (trabajo) fd.set("archivo_trabajo", trabajo);
       const r = await fetch("/utilidades/pares-lectores/api/precargar-memo", { method: "POST", body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      setNumeroMemo(d.numero_memo || "");
-      setFechaMemo(d.fecha_memo || "");
-      setFacultad(d.facultad || "");
-      setCarrera(d.carrera || "");
-      setOpcionTitulacion(d.opcion_titulacion || "");
-      setTituloTrabajo(d.titulo_trabajo || "");
-      setEstudiante(d.estudiante || "");
-      setTutor(d.tutor || "");
+      // Solo se pisan los campos que sí vinieron — así no se borra lo ya autocompletado
+      // (ej. Tutor desde la sesión) ni lo que el usuario ya haya escrito a mano.
+      if (d.numero_memo) setNumeroMemo(d.numero_memo);
+      if (d.fecha_memo) setFechaMemo(d.fecha_memo);
+      if (d.facultad) setFacultad(d.facultad);
+      if (d.carrera) setCarrera(d.carrera);
+      if (d.opcion_titulacion) setOpcionTitulacion(d.opcion_titulacion);
+      if (d.titulo_trabajo) setTituloTrabajo(d.titulo_trabajo);
+      if (d.estudiante) setEstudiante(d.estudiante);
+      if (d.tutor) setTutor(d.tutor);
     } catch (e) {
       setPrecargaError((e as Error).message);
     } finally {
       setPrecargando(false);
+    }
+  }
+
+  function onSeleccionarMemo(archivo: File) {
+    setArchivoMemoPrecarga(archivo);
+    precargarDatos(archivo, archivoTrabajoPrecarga);
+  }
+
+  function onSeleccionarTrabajoPrecarga(archivo: File) {
+    setArchivoTrabajoPrecarga(archivo);
+    precargarDatos(archivoMemoPrecarga, archivo);
+  }
+
+  async function subirArchivoConId(evalId: number, tipo: "memo" | "trabajo", archivo: File) {
+    const setSubiendo = tipo === "memo" ? setSubiendoMemo : setSubiendoTrabajo;
+    setSubiendo(true);
+    try {
+      const fd = new FormData();
+      fd.set("tipo", tipo);
+      fd.set("archivo", archivo);
+      const r = await fetch(`/utilidades/pares-lectores/api/evaluacion/${evalId}/archivo`, { method: "POST", body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      if (tipo === "trabajo") setTrabajoSubido(true);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setSubiendo(false);
     }
   }
 
@@ -115,6 +169,9 @@ export default function ParesLectoresPage() {
     const d = await r.json();
     if (!r.ok) { alert(d.error); return; }
     setEvaluacionId(d.evaluacion_id);
+    // Reusa los archivos ya subidos en el paso 1 — el paso 3 no vuelve a pedirlos.
+    if (archivoMemoPrecarga) await subirArchivoConId(d.evaluacion_id, "memo", archivoMemoPrecarga);
+    if (archivoTrabajoPrecarga) await subirArchivoConId(d.evaluacion_id, "trabajo", archivoTrabajoPrecarga);
     setPaso(2);
   }
 
@@ -133,21 +190,7 @@ export default function ParesLectoresPage() {
 
   async function subirArchivo(tipo: "memo" | "trabajo", archivo: File) {
     if (!evaluacionId) return;
-    const setSubiendo = tipo === "memo" ? setSubiendoMemo : setSubiendoTrabajo;
-    setSubiendo(true);
-    try {
-      const fd = new FormData();
-      fd.set("tipo", tipo);
-      fd.set("archivo", archivo);
-      const r = await fetch(`/utilidades/pares-lectores/api/evaluacion/${evaluacionId}/archivo`, { method: "POST", body: fd });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
-      if (tipo === "trabajo") setTrabajoSubido(true);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setSubiendo(false);
-    }
+    await subirArchivoConId(evaluacionId, tipo, archivo);
   }
 
   async function irAPaso4() {
@@ -269,8 +312,18 @@ export default function ParesLectoresPage() {
       {paso === 1 && (
         <form onSubmit={crearEvaluacion} className="space-y-4">
           <fieldset className="rounded-lg border border-slate-300 p-4">
-            <legend className="px-2 font-semibold text-[#003366]">Precargar desde el memo (opcional)</legend>
-            <input type="file" accept=".pdf,.docx" onChange={(e) => e.target.files?.[0] && precargarDesdeMemo(e.target.files[0])} className="ht-input" />
+            <legend className="px-2 font-semibold text-[#003366]">Precargar desde el memo y/o el trabajo (opcional)</legend>
+            <p className="mb-2 text-xs text-slate-500">El memo no siempre trae todos los datos — suba también el trabajo de titulación para completar lo que falte (ej. título exacto, tutor/a). Ambos archivos quedan guardados: no hace falta volver a subirlos en el paso 3.</p>
+            <label className="mb-3 block text-sm">
+              Memo (PDF/DOCX)
+              <input type="file" accept=".pdf,.docx" onChange={(e) => e.target.files?.[0] && onSeleccionarMemo(e.target.files[0])} className="ht-input" />
+              {archivoMemoPrecarga && <span className="text-xs text-green-600">✅ {archivoMemoPrecarga.name}</span>}
+            </label>
+            <label className="block text-sm">
+              Trabajo de titulación (PDF/DOCX)
+              <input type="file" accept=".pdf,.docx" onChange={(e) => e.target.files?.[0] && onSeleccionarTrabajoPrecarga(e.target.files[0])} className="ht-input" />
+              {archivoTrabajoPrecarga && <span className="text-xs text-green-600">✅ {archivoTrabajoPrecarga.name}</span>}
+            </label>
             {precargando && <p className="mt-2 text-sm text-slate-500">⏳ Extrayendo datos con IA...</p>}
             {precargaError && <p className="mt-2 text-sm text-red-600">❌ {precargaError}</p>}
           </fieldset>
@@ -285,7 +338,13 @@ export default function ParesLectoresPage() {
               <label className="text-sm">Opción de titulación<input value={opcionTitulacion} onChange={(e) => setOpcionTitulacion(e.target.value)} className="ht-input" /></label>
               <label className="text-sm">Título del trabajo<input value={tituloTrabajo} onChange={(e) => setTituloTrabajo(e.target.value)} className="ht-input" /></label>
               <label className="text-sm">Estudiante<input value={estudiante} onChange={(e) => setEstudiante(e.target.value)} className="ht-input" /></label>
-              <label className="text-sm">Tutor/a<input value={tutor} onChange={(e) => setTutor(e.target.value)} className="ht-input" /></label>
+              <label className="text-sm">Tutor/a
+                <select defaultValue="" onChange={(e) => { seleccionarTutor(e.target.value); e.target.value = ""; }} className="ht-input mb-1">
+                  <option value="" disabled>-- Seleccionar de la lista de docentes --</option>
+                  {docentes.map((d) => <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>)}
+                </select>
+                <input value={tutor} onChange={(e) => setTutor(e.target.value)} placeholder="O escriba el nombre si no está en la lista" className="ht-input" />
+              </label>
               <label className="text-sm">Su nombre (evaluador/a)<input required value={evaluadorNombre} onChange={(e) => setEvaluadorNombre(e.target.value)} className="ht-input" /></label>
               <label className="text-sm">Su correo institucional<input required type="email" value={evaluadorCorreo} onChange={(e) => setEvaluadorCorreo(e.target.value)} className="ht-input" /></label>
             </div>
@@ -339,13 +398,14 @@ export default function ParesLectoresPage() {
             <label className="mb-4 block text-sm">
               Memo (PDF/DOCX, opcional)
               <input type="file" accept=".pdf,.docx,.doc" onChange={(e) => e.target.files?.[0] && subirArchivo("memo", e.target.files[0])} className="ht-input" />
+              {archivoMemoPrecarga && !subiendoMemo && <span className="text-xs text-green-600">✅ Ya subido desde el paso 1 ({archivoMemoPrecarga.name}). Suba otro aquí solo para reemplazarlo.</span>}
               {subiendoMemo && <span className="text-xs text-slate-500">Procesando...</span>}
             </label>
             <label className="block text-sm">
               Trabajo del estudiante (PDF/DOCX, requerido para sugerencias de IA)
               <input type="file" accept=".pdf,.docx,.doc" onChange={(e) => e.target.files?.[0] && subirArchivo("trabajo", e.target.files[0])} className="ht-input" />
               {subiendoTrabajo && <span className="text-xs text-slate-500">Procesando...</span>}
-              {trabajoSubido && <span className="text-xs text-green-600">✅ Texto extraído.</span>}
+              {trabajoSubido && <span className="text-xs text-green-600">✅ Texto extraído{archivoTrabajoPrecarga ? ` desde el paso 1 (${archivoTrabajoPrecarga.name})` : ""}.</span>}
             </label>
           </fieldset>
           <button onClick={irAPaso4} className="ht-btn-primary w-full">Continuar →</button>
