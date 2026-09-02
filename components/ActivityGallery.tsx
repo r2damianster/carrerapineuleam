@@ -13,7 +13,11 @@ interface Activity {
   category: string;
 }
 
-export default function ActivityGallery() {
+interface ActivityGalleryProps {
+  limit?: number; // máximo de fotos a mostrar — omitir para mostrar todas
+}
+
+export default function ActivityGallery({ limit }: ActivityGalleryProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -65,20 +69,21 @@ export default function ActivityGallery() {
     return (
       <section className="py-10 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando galería...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.activities.loading}</div>
         </div>
       </section>
     );
   }
 
   // Flatten all photos from activities
-  const allPhotos = activities.flatMap(activity => 
+  const allPhotos = activities.flatMap(activity =>
     activity.photos.map(photo => ({
       src: photo,
       title: activity.title,
       description: activity.description,
     }))
   );
+  const displayPhotos = limit ? allPhotos.slice(0, limit) : allPhotos;
 
   return (
     <section id="actividades" className="py-20 bg-gray-50">
@@ -90,14 +95,14 @@ export default function ActivityGallery() {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Momentos destacados de nuestras actividades y eventos
+            {t.activities.sectionSubtitle}
           </p>
         </div>
 
         {/* Photos Grid */}
-        {allPhotos.length > 0 ? (
+        {displayPhotos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {allPhotos.map((photo, index) => (
+            {displayPhotos.map((photo, index) => (
               <div
                 key={index}
                 className="relative aspect-square cursor-pointer overflow-hidden rounded-lg group"
@@ -146,7 +151,7 @@ export default function ActivityGallery() {
             </button>
             <Image
               src={selectedImage}
-              alt="Activity"
+              alt={t.activities.lightboxAlt}
               width={1200}
               height={800}
               className="object-contain max-h-screen"

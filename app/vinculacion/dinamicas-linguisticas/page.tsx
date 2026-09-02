@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
+import TeamSection from '@/components/TeamSection';
 import EnglishClubSection from '@/components/EnglishClubSection';
 import TaggedVideoSection from '@/components/TaggedVideoSection';
 import VinculacionResearchSection from '@/components/VinculacionResearchSection';
@@ -20,12 +21,13 @@ export default function VinculacionProjectPage() {
       <main>
         <ProjectHero projectKey="vinculacionProject" />
         <ProjectIntegrationNote projectKey="vinculacionProject" />
+        <TeamSection project="vinculacion" />
         <EnglishClubSection />
         <TaggedVideoSection tag="vinculacion" projectKey="vinculacionProject" />
         <VinculacionResearchSection />
         <Contact projectKey="vinculacionProject" />
       </main>
-      <Footer />
+      <Footer context="vinculacion" />
     </>
   );
 }

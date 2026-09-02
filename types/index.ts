@@ -9,6 +9,10 @@ export interface Member {
   order: number;
   created: string;
   updated: string;
+  // Proyectos a los que pertenece este miembro — filtra en qué página de proyecto aparece.
+  // Un miembro puede estar en más de uno (ej. colabora en su proyecto propio + en Internacionalización).
+  // Valores usados: 'internacionalizacion' | 'vinculacion' | 'desarrollo_habilidades' | 'mentoring'
+  projects?: string[];
 }
 
 export interface Publication {

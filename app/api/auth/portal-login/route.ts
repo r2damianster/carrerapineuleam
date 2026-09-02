@@ -52,7 +52,11 @@ export async function POST(request: Request) {
       modulos_acceso: user.modulos_acceso || []
     });
 
-    const response = NextResponse.json({ success: true, redirect: '/portal/dashboard' });
+    const url = new URL(request.url);
+    const redirectParam = url.searchParams.get('redirect');
+    const redirect = redirectParam ? decodeURIComponent(redirectParam) : '/portal/dashboard';
+
+    const response = NextResponse.json({ success: true, redirect });
     
     response.cookies.set({
       name: SESSION_COOKIE.name,

@@ -24,7 +24,7 @@ export default function PineDashboard() {
             setLoading(false);
           });
       })
-      .catch(() => router.push('/login?redirect=/pine-dashboard'));
+      .catch(() => router.push('/portal/login?redirect=/pine-dashboard'));
   }, [router]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando indicadores...</div>;

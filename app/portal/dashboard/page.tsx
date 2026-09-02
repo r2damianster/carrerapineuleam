@@ -129,7 +129,7 @@ export default async function PortalDashboard() {
 
         </div>
       </div>
-      <Footer />
+      <Footer context="general" />
     </>
   );
 }

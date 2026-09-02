@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.4
-**Última sesión:** 2026-09-02 (Sesión 25 — migración completa del sitio público de `lib/data.ts` estático a Neon Postgres, borrado el código estático. Ver detalle abajo)
+**Versión actual:** 0.10.5
+**Última sesión:** 2026-09-02 (Sesión 26 — navegación del panel, footer/equipo contextuales por proyecto, página nueva de Mentoring, reorganización de secciones landing/docencia, internacionalización ES/EN completa. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -104,11 +104,11 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
-## Estado Actual (2026-09-01)
+## Estado Actual (2026-09-02, Sesión 26)
 
 | Módulo | Estado | % |
 |--------|--------|---|
-| Sitio público (landing + páginas de proyecto) | ✅ Completo — contenido en Neon Postgres (migrado desde `lib/data.ts` estático, Sesión 25) | 100% |
+| Sitio público (landing + páginas de proyecto) | ✅ Completo — contenido en Neon Postgres (migrado desde `lib/data.ts` estático, Sesión 25), footer/equipo/hub/RED LEA contextuales por proyecto, i18n ES/EN completo (Sesión 26) | 100% |
 | Admin Panel (CRUD contenido del sitio) | ✅ Completo — gateado por `modulos_acceso: contenido_sitio` (solo Arturo+Jhonny), ya no por `Pine2026` ni por `admin` genérico. Persiste en Neon (ya no "legacy"/in-memory) | 100% |
 | Portal PINE — Auth unificada | ✅ Completo (Sesión 19) | 100% |
 | Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
@@ -118,6 +118,32 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 26 — 2026-09-02)
+
+### Navegación del panel + footer contextual + equipo filtrado por proyecto
+
+Sesión de reparación y coherencia de contenido a pedido explícito del usuario, en 3 partes:
+
+1. **Navegación del Portal sin pérdida de sesión.** `/api/auth/portal-login` y `/portal/login` ahora respetan un parámetro `redirect` para volver a la página de origen tras el login (antes forzaba siempre a `/portal/dashboard`); corregidos 13 redirects rotos que apuntaban a `/login?redirect=` en vez de `/portal/login?redirect=`; agregado botón "Volver al Portal PINE" en `/contribuciones` y en el top bar de `/admin` (antes no había forma de retroceder al portal sin cerrar sesión).
+2. **Footer contextual por proyecto/sección.** Antes el footer mostraba siempre a Arturo+Jhonny como contacto y los mismos 5 "Enlaces Rápidos" (`#inicio`/`#equipo`/`#videos`/`#publicaciones`/`#noticias`) en las 10 páginas que lo usan — esos anchors solo existen realmente en `/investigacion/proyecto-innovacion`. `lib/data.ts:footerContexts` (nuevo) define, por contexto, `leader`/`coleader`/`contactEmail` y `quickLinks` reales de esa página; `Footer` ahora acepta `context` como prop. Contextos: `default` (Internacionalización, Arturo+Jhonny), `landing` (solo `c.pinextranjeros@uleam.edu.ec`), `vinculacion` (Cynthia), `linguistica` (German+Cristina), `mentoring` (Verónica), `docencia` (Verónica), `redlea` (Jhonny, coordinador — anchors propios `#sobre`/`#testimonios`/`#galeria`/`#memoria`), y `general` (páginas standalone del sitio principal sin secciones propias: publicaciones, boletines, portal/login, portal/dashboard — mantienen a Arturo+Jhonny pero con navegación real en vez de anchors rotos).
+3. **Equipo (`TeamSection`) filtrado por proyecto.** `members.projects` (`text[]`, nueva columna vía `scripts/migrate-members-projects.js`) reemplaza el listado único sin distinción — antes German y Cynthia (líderes de proyecto propio) aparecían también en el equipo de Internacionalización. `GET /api/members?project=X` filtra; `TeamSection` acepta prop `project`; cada página de proyecto la pasa. German → sale de Internacionalización, queda solo en `/investigacion/desarrollo-habilidades`. Cynthia → sale de Internacionalización, queda solo en `/vinculacion/dinamicas-linguisticas` (ahí se le agregó `TeamSection`, no la tenía). Cristina Basantes es la única excepción con dos proyectos (confirmado explícitamente por el usuario): colídera de Desarrollo de Habilidades + colaboradora de Internacionalización (Podcast). Panel `/admin/members` actualizado con checkboxes para editar `projects`.
+4. **Página nueva: `/investigacion/mentoring` (Verónica Chávez).** No existía ninguna landing para el 4to proyecto propio del grupo — Verónica ni siquiera estaba en la tabla `members` (solo en `profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio`). Creada siguiendo el patrón de `desarrollo-habilidades` (`ProjectHero`+`ProjectIntegrationNote`+`TeamSection`+`Contact`, `Footer context="mentoring"`), agregada al dropdown "Investigación" del Header, entrada `mentoringProject` en `lib/i18n.tsx` (ES+EN). Verónica agregada a `members` como `member_12` — **sin foto todavía** (placeholder, pendiente subir imagen real a `public/images/`). Ver advertencia en `## Equipo actual` para no confundir con el `member_12` fabricado que existió en Sesión 19.
+5. **Nombres oficiales completos visibles en el Hero de cada proyecto** (antes solo documentados en este CLAUDE.md, no mostrados en el sitio) — `heroDescription` actualizado en `lib/i18n.tsx` para Internacionalización, Desarrollo de Habilidades y el nuevo Mentoring con el texto exacto de `### Proyectos del grupo — nombres oficiales`. Dinámicas Lingüísticas (Cynthia) no necesitó cambio, su nombre corto ya es el oficial.
+6. **Bloque "About" del footer también contextual.** El título+descripción fijos ("Innovaciones Pedagógicas e Internacionalización" + su descripción) que mostraba el footer en las 10 páginas quedó igual de hardcodeado que el resto hasta este punto — `FooterContext` ahora incluye `title`/`description` por contexto, reutilizando el `heroDescription` de cada proyecto donde existe.
+7. **Formulario "Envíanos un mensaje" apunta al correo institucional.** `components/Contact.tsx:CONTACT_EMAIL` estaba fijo a `arturo.rodriguez@uleam.edu.ec` para el envío por Gmail/Outlook en las 5 páginas de proyecto que usan este formulario — corregido a `c.pinextranjeros@uleam.edu.ec`.
+8. **Alianzas/Noticias/Actividades exportadas de Internacionalización a la página principal (`/`).** Eran contenido general de la carrera (alianzas institucionales, noticias, galería de actividades — ninguno filtrado por proyecto en su fetch) mal ubicado bajo el proyecto de Internacionalización específicamente. `ConnectionsSection` ("Alianzas y Apoyo") ahora acepta prop `compact` (logos más chicos, sin texto descriptivo) usada en `/`; `ActivityGallery` acepta prop `limit`; `NewsSection` se movió tal cual, sin cambios de props. Los 3 componentes se quitaron de `/investigacion/proyecto-innovacion` y se agregaron a `app/page.tsx`.
+9. **Galería de Actividades reubicada de nuevo, esta vez a Docencia Innovadora.** El paso 8 la había puesto en `/` con `limit={8}`, pero el usuario pidió moverla a `/docencia/docencia-innovadora` (mejor encaje: son fotos de aula/cátedra, no contenido general de la carrera) — ahí queda sin límite. `footerContexts.landing.quickLinks` perdió el anchor `#actividades`; `footerContexts.docencia` pasó de compartir `projectPageQuickLinks` a tener su propio array con `#actividades`.
+10. **Hub principal (`HubProjectsSection`) reducido a solo Boletines.** Tenía 3 tarjetas (PINE/Grupo de Investigación, RED LEA, Boletines) — las primeras 2 se quitaron por ser redundantes con el dropdown "Investigación" del Header (ya accesibles ahí). La tarjeta de Boletines usaba el mismo label `t.hub.groupName` ("Grupo de Investigación") que la de PINE — incorrecto, los boletines son de la Carrera. Nueva key `t.hub.careerLabel` ("Carrera") usada en su lugar.
+11. **Ajustes en la página de Vinculación, a pedido explícito del usuario:** `VinculacionResearchSection` ya no muestra la noticia de capacitación (`news_10`) junto al libro — solo queda el libro (`pub_3`). Arturo Rodríguez pasa de "Colíder del Proyecto" a **"Supervisor"** en el formulario de contacto (`Contact.tsx`, nueva key `t.contact.supervisor`) — Cynthia es la única líder ahí. Arturo también se agregó al **Equipo** de Vinculación (`members.projects` de `member_1` ahora incluye `'vinculacion'` además de `'internacionalizacion'`) con el mismo badge "Supervisor" — `TeamSection`/`TeamCard` ganaron `ROLE_BADGE_OVERRIDES` (por proyecto + member_id) para estos casos de alguien con rol distinto según la página donde aparece.
+12. **Subtítulo del equipo contextual.** "Investigadores dedicados a transformar la educación" estaba fijo en `TeamSection` para las 4 páginas de proyecto — incorrecto en Vinculación (no es un equipo de investigadores). `t.team.subtitles` por proyecto.
+13. **Crédito de desarrollador en el footer, en las 10 páginas.** La línea de copyright ya no dice "Innovaciones Pedagógicas" (era específico de ese proyecto); debajo, muy sutil (`text-xs`, gris apagado), dice "Desarrollador responsable de la web: Arturo Rodríguez".
+14. **Nombre de la carrera consistente en el Header de todas las páginas.** El texto junto al logo (enlaza siempre a `/`) decía "Innovaciones Pedagógicas - ULEAM" por defecto en las páginas que no pasaban `siteName` explícito — nombre del proyecto de Internacionalización, no de la carrera. Unificado a **"Pedagogía de los Idiomas Nacionales y Extranjeros"** (`t.nav.siteName`) como default de `Header.tsx`; landing y boletines ya no pasan su propio `siteName` custom.
+15. **Auditoría e internacionalización completa ES/EN.** El toggle EN/ES del Header cambiaba el estado de idioma correctamente, pero la mayoría del contenido nunca pasaba por `t.xxx` — 6 componentes con **cero** soporte i18n (los 5 de RED LEA + `SubstantiveFunctionsSection`, más `QRModal`/`QRFloatingButton`/`VideoCard`), y ~11 componentes más con texto **mixto** (`TeamSection`, `ActivityGallery`, `NewsSection`, `Contact`, `PublicationsSection`, `VideoGallery`, `TaggedVideoSection`, `Header`), más los bloques "Información del Proyecto" hardcodeados directo en `app/investigacion/desarrollo-habilidades/page.tsx` y `.../mentoring/page.tsx` (movidos a nuevo componente cliente `components/ProjectInfoPlaceholder.tsx`, ya que esas páginas son Server Components sin acceso a `useLanguage()`). Todo el contenido institucional extenso de RED LEA (bio, testimonios de 6 personas, logros, proyecciones) se trasladó a `lib/i18n.tsx` bajo `t.redlea.*` con traducción real al inglés. Fechas que usaban `toLocaleDateString('es-EC', ...)` fijo ahora usan `es-EC`/`en-US` según el idioma activo (`VideoCard`, `NewsSection`, `PublicationsSection`). `ConnectionsSection`, `HubProjectsSection`, `About`, `EnglishClubSection` y `VinculacionResearchSection` ya estaban completos, confirmado por auditoría. Único texto en español que queda fijo fuera del panel admin: captions de fotos en datos (`vinculacionEnglishClubPhotos`, `member.role`) — contenido real, no copy de interfaz.
+
+Migración Neon de `members.projects` (punto 3): ejecutada directamente por Claude vía MCP de Neon (Project ID `dark-feather-21824720`, obtenido del usuario) en esta misma sesión — no fue necesario que el usuario corriera el script localmente. `scripts/migrate-members-projects.js` queda como referencia idéntica al cambio ya aplicado en producción.
 
 ---
 
@@ -219,7 +245,7 @@ Usados tal cual en el dropdown "Proyecto" del wizard de Contribuciones Académic
 | Arturo Rodríguez / Jhonny Villafuerte | Innovaciones Pedagógicas e Internacionalización | "Lograr la innovación pedagógica e internacionalización del proceso de formación inicial y continua de docentes para el desarrollo humano y sostenible." |
 | German Carrera | Desarrollo de Habilidades Lingüísticas | "Desarrollo de las habilidades lingüísticas del idioma inglés en estudiantes de educación superior en Ecuador." |
 | Cynthia Zambrano | Dinámicas Lingüísticas en Contextos Locales | Dinámicas Lingüísticas en Contextos Locales (mismo nombre, confirmado por el usuario — es el título de la página pública `/vinculacion/dinamicas-linguisticas`) |
-| Verónica Chávez | Mentoring | "Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional" |
+| Verónica Chávez | Mentoring | "Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional" — página pública desde Sesión 26: `/investigacion/mentoring` |
 
 ⚠️ **`CategoriaDocente` ampliado:** el enum solo llegaba hasta `AGREGADO_II` — el escalafón docente ULEAM sí tiene `AGREGADO_III` (confirmado por el usuario, caso real: Jhonny Villafuerte). Agregado a mano en Neon (`scripts/migrate-agregado3.js`, `ALTER TYPE ... ADD VALUE`, no `prisma db push`) + `prisma/schema.prisma` + `app/api/contribuciones/route.ts` (zod) + `CATEGORIAS_DOCENTE` del wizard. Los 3 deben mantenerse sincronizados si se agrega otro valor.
 
@@ -387,7 +413,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   │   └── dinamicas-linguisticas/ # Página PÚBLICA de contenido (no confundir con nada de arriba)
 │   ├── investigacion/
 │   │   ├── espacios/              # Crear/listar espacios de investigación
-│   │   └── proyecto-innovacion/, desarrollo-habilidades/  # Páginas públicas de proyecto
+│   │   └── proyecto-innovacion/, desarrollo-habilidades/, mentoring/  # Páginas públicas de proyecto
 │   ├── gestion-carrera/           # Registro de eventos, cualquier docente
 │   ├── contribuciones/            # Contribuciones académicas (Sesión 24) — listado (solo admin) + wizard (docentes)
 │   │   ├── page.tsx                # Listado, protegido por middleware (modulos_acceso:admin)
@@ -434,23 +460,28 @@ carreraPINE/                       ← RAÍZ = Next.js app
 
 ---
 
-## Equipo actual (`/lib/data.ts` → `members`)
+## Equipo actual (tabla `members` en Neon)
 
-| ID | Nombre | Rol | Orden |
-|----|--------|-----|-------|
-| member_1 | Dr. Arturo Rodríguez | Líder de Internacionalización y Miembro de Vinculación | 1 |
-| member_2 | Dr. Jhonny Villafuerte | Colíder del Proyecto | 2 |
-| member_3 | Mg. Cristina Basantes | Miembro de Investigación y Colaboradora de Internacionalización (Podcast) | 3 |
-| member_4 | Psi. Johana Bello, Mg. | Colaboradora en Investigación y Directora de Psicología Educativa | 4 |
-| member_5 | Andy Castillo | Estudiante Investigador | 5 |
-| member_6 | Josselyn Mera Rivas | Estudiante Investigadora / Equipo de Podcast | 6 |
-| member_8 | Ailys Jordana Bailón Borja | Estudiante Investigadora / Equipo de Podcast | 7 |
-| member_7 | Doménica Valeska Vélez Bravo | Equipo de Podcast | 8 |
-| member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | 9 |
-| member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — proyecto propio, ver `/investigacion/desarrollo-habilidades` | 10 |
-| member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) | 11 |
+Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía MCP — ver `scripts/migrate-members-projects.js` como referencia del mismo cambio) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
 
-⚠️ Hubo un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó en Sesión 19 junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. Ver "Cambios Recientes (Sesión 19)" abajo — regla de oro: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
+| ID | Nombre | Rol | Proyectos | Orden |
+|----|--------|-----|-----------|-------|
+| member_1 | Dr. Arturo Rodríguez | Líder de Internacionalización y Miembro de Vinculación | internacionalizacion | 1 |
+| member_2 | Dr. Jhonny Villafuerte | Colíder del Proyecto | internacionalizacion | 2 |
+| member_3 | Mg. Cristina Basantes | Miembro de Investigación y Colaboradora de Internacionalización (Podcast) | desarrollo_habilidades, internacionalizacion | 3 |
+| member_4 | Psi. Johana Bello, Mg. | Colaboradora en Investigación y Directora de Psicología Educativa | internacionalizacion | 4 |
+| member_5 | Andy Castillo | Estudiante Investigador | internacionalizacion | 5 |
+| member_6 | Josselyn Mera Rivas | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 6 |
+| member_8 | Ailys Jordana Bailón Borja | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 7 |
+| member_7 | Doménica Valeska Vélez Bravo | Equipo de Podcast | internacionalizacion | 8 |
+| member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 9 |
+| member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — ver `/investigacion/desarrollo-habilidades` | desarrollo_habilidades | 10 |
+| member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) — ver `/vinculacion/dinamicas-linguisticas` | vinculacion | 11 |
+| member_12 | Mg. Verónica Chávez | Responsable de Comisión Académica y Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`, nueva en Sesión 26. Sin foto todavía (placeholder), pendiente subir imagen real. | mentoring | 12 |
+
+Cristina Basantes es el único caso con dos proyectos — confirmado explícitamente por el usuario: colídera de Desarrollo de Habilidades Lingüísticas (con German) y además colaboradora de Internacionalización (coordina el Podcast ahí). No es un ajuste automático ni aplica al resto del equipo.
+
+⚠️ **Distinto del `member_12` fabricado anteriormente:** en Sesión 19 existió un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. El `member_12` actual (Verónica Chávez) es una persona real, ya confirmada desde antes en `profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio` (`lib/data.ts`) — no confundir ambos casos. Regla de oro sigue vigente: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
 
 ---
 
@@ -613,6 +644,7 @@ git push
 8. **Antes de tocar el esquema de Neon:** correr una consulta de auditoría (`information_schema.tables`/`columns`) primero — hay historial de cambios hechos fuera de git que desincronizan `scripts/migrate.js` de la realidad
 9. **Actualizar este CLAUDE.md** cuando cambien el equipo, publicaciones, estructura, o el esquema/flujo del Portal PINE
 10. **Trabajo en paralelo con Antigravity:** revisar `git log origin/main..HEAD` y `git fetch` antes de asumir que el repo está como lo dejaste — Antigravity pushea directo a `main` sin avisar
+11. **Antes de editar el sitio público (páginas de proyecto, footer, equipo, textos):** leer `.claude/skills/carrerapine-workflow/SKILL.md` (Sesión 26) — codifica el flujo completo: contenido contextual por proyecto en vez de genérico, i18n obligatorio en `lib/i18n.tsx` (nunca texto español hardcodeado en componentes del sitio público), reglas para tocar Neon, sincronizar ambas ramas git, y verificar el deployment en Vercel antes de reportar algo como terminado. Después de un cambio de contenido, considerar invocar el agente `.claude/agents/content-consistency-reviewer.md` para verificar que no quedó texto sin traducir o contenido genérico donde debía ser contextual.
 
 ### Convenciones de código
 - Componentes: PascalCase (`TeamSection.tsx`)
@@ -622,6 +654,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-01 (Sesión 22)
-**Versión:** 0.10.3
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-02 (Sesión 26)
+**Versión:** 0.10.5
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Repo sincronizado con origin ✅

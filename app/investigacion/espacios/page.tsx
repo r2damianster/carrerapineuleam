@@ -27,7 +27,7 @@ export default function InvestigacionEspaciosPage() {
         setCheckingSession(false);
         fetchData();
       })
-      .catch(() => router.push('/login?redirect=/investigacion/espacios'));
+      .catch(() => router.push('/portal/login?redirect=/investigacion/espacios'));
   }, [router]);
 
   const fetchData = async () => {

@@ -15,7 +15,7 @@ export default function DifusionPage() {
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.ok ? setCheckingSession(false) : Promise.reject())
-      .catch(() => router.push('/login?redirect=/vinculacion/difusion'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/difusion'));
 
     fetch('/api/profesores')
       .then(res => res.ok ? res.json() : { profesores: [] })

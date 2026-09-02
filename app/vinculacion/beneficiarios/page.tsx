@@ -46,7 +46,7 @@ export default function BeneficiariosPage() {
           if (benData.success) setTodosBeneficiarios(benData.data);
         });
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/beneficiarios'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/beneficiarios'));
   }, [router]);
 
   useEffect(() => {

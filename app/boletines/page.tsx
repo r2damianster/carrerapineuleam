@@ -41,7 +41,7 @@ export default function NewslettersPage() {
 
   return (
     <>
-      <Header siteName="Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM" />
+      <Header />
       <main className="pt-32 pb-20">
         <div className="container mx-auto px-4">
           {/* Header */}
@@ -96,7 +96,7 @@ export default function NewslettersPage() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer context="general" />
     </>
   );
 }

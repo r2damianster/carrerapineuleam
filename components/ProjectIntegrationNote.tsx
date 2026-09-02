@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 
 interface ProjectIntegrationNoteProps {
-  projectKey: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject';
+  projectKey: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject' | 'mentoringProject';
 }
 
 export default function ProjectIntegrationNote({ projectKey }: ProjectIntegrationNoteProps) {

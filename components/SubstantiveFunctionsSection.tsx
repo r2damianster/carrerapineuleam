@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Video, Publication } from '@/types';
+import { useLanguage } from '@/lib/i18n';
 
 interface NewsSlug { slug: string }
 
@@ -10,8 +11,6 @@ const INTERCLASS_SLUGS = ['mes-de-la-magia', 'fomento-escritura-creativa'];
 
 interface FunctionInfo {
   key: string;
-  title: string;
-  caption: string;
   circleClass: string;
   textClass: string;
   position: string;
@@ -21,8 +20,6 @@ interface FunctionInfo {
 const FUNCTIONS: FunctionInfo[] = [
   {
     key: 'docencia',
-    title: 'Docencia',
-    caption: 'Podcast Educa PINE (coord. Cristina Basantes) y eventos InterClass interdisciplinarios',
     circleClass: 'bg-uleam-blue/40',
     textClass: 'text-uleam-blue',
     position: 'top-0 left-1/2 -translate-x-1/2',
@@ -34,8 +31,6 @@ const FUNCTIONS: FunctionInfo[] = [
   },
   {
     key: 'investigacion',
-    title: 'Investigación',
-    caption: 'publicaciones científicas',
     circleClass: 'bg-uleam-gold/50',
     textClass: 'text-yellow-700',
     position: 'bottom-0 right-0',
@@ -47,8 +42,6 @@ const FUNCTIONS: FunctionInfo[] = [
   },
   {
     key: 'vinculacion',
-    title: 'Vinculación',
-    caption: 'episodios con la carrera de Pedagogía de Idiomas',
     circleClass: 'bg-orange-400/40',
     textClass: 'text-orange-700',
     position: 'bottom-0 left-0',
@@ -64,6 +57,13 @@ export default function SubstantiveFunctionsSection() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [news, setNews] = useState<NewsSlug[]>([]);
+  const { t } = useLanguage();
+  const s = t.substantiveFunctions;
+  const FUNCTION_TEXT: Record<string, { title: string; caption: string }> = {
+    docencia: { title: s.docenciaTitle, caption: s.docenciaCaption },
+    investigacion: { title: s.investigacionTitle, caption: s.investigacionCaption },
+    vinculacion: { title: s.vinculacionTitle, caption: s.vinculacionCaption },
+  };
 
   useEffect(() => {
     fetch('/api/videos')
@@ -84,14 +84,14 @@ export default function SubstantiveFunctionsSection() {
 
   const stat = (fn: FunctionInfo): { value: number; label: string } => {
     if (fn.key === 'investigacion') {
-      return { value: publications.length, label: 'publicaciones' };
+      return { value: publications.length, label: s.statPublications };
     }
     if (fn.key === 'docencia') {
       const count = videos.filter((v) => v.tags?.includes('docencia')).length + interclassCount;
-      return { value: count, label: 'productos' };
+      return { value: count, label: s.statProducts };
     }
     const count = videos.filter((v) => v.tags?.includes(fn.key)).length;
-    return { value: count, label: count === 1 ? 'episodio' : 'episodios' };
+    return { value: count, label: count === 1 ? s.statEpisode : s.statEpisodes };
   };
 
   return (
@@ -99,12 +99,11 @@ export default function SubstantiveFunctionsSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-10 md:mb-14">
           <h2 className="text-4xl md:text-5xl font-bold text-uleam-blue mb-4">
-            Integración de las Funciones Sustantivas
+            {s.sectionTitle}
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Docencia, Investigación y Vinculación con la Sociedad se entrelazan en el quehacer
-            cotidiano del proyecto PINE.
+            {s.sectionSubtitle}
           </p>
         </div>
 
@@ -123,13 +122,13 @@ export default function SubstantiveFunctionsSection() {
                   {value}
                 </span>
                 <span className={`text-[11px] md:text-xs font-medium ${fn.textClass}`}>{label}</span>
-                <span className={`mt-1 text-sm md:text-base font-bold ${fn.textClass}`}>{fn.title}</span>
+                <span className={`mt-1 text-sm md:text-base font-bold ${fn.textClass}`}>{FUNCTION_TEXT[fn.key].title}</span>
               </div>
             );
           })}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="text-[10px] md:text-xs font-semibold text-gray-500 bg-white/80 px-3 py-1 rounded-full">
-              Proyecto PINE
+              {s.projectBadge}
             </span>
           </div>
         </div>
@@ -140,8 +139,8 @@ export default function SubstantiveFunctionsSection() {
             <div key={fn.key} className="flex items-start gap-2">
               <span className={`mt-0.5 ${fn.textClass}`}>{fn.icon}</span>
               <p className="text-sm text-gray-600">
-                <span className={`font-bold ${fn.textClass}`}>{fn.title}: </span>
-                {fn.caption}
+                <span className={`font-bold ${fn.textClass}`}>{FUNCTION_TEXT[fn.key].title}: </span>
+                {FUNCTION_TEXT[fn.key].caption}
               </p>
             </div>
           ))}

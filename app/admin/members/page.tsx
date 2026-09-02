@@ -19,7 +19,15 @@ export default function AdminMembersPage() {
     email: '',
     is_leader: false,
     order: 0,
+    projects: [] as string[],
   });
+
+  const PROJECT_OPTIONS = [
+    { value: 'internacionalizacion', label: 'Innovaciones Pedagógicas e Internacionalización' },
+    { value: 'vinculacion', label: 'Dinámicas Lingüísticas en Contextos Locales (Vinculación)' },
+    { value: 'desarrollo_habilidades', label: 'Desarrollo de Habilidades Lingüísticas' },
+    { value: 'mentoring', label: 'Mentoring' },
+  ];
 
   useEffect(() => {
     loadMembers();
@@ -40,7 +48,7 @@ export default function AdminMembersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0 });
+    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [] });
     setEditingMember(null);
     setShowForm(false);
   };
@@ -54,6 +62,7 @@ export default function AdminMembersPage() {
       email: member.email,
       is_leader: member.is_leader,
       order: member.order,
+      projects: member.projects || [],
     });
     setShowForm(true);
   };
@@ -188,6 +197,28 @@ export default function AdminMembersPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                   placeholder="0000-0000-0000-0000"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Proyectos (en qué páginas aparece este miembro)</label>
+                <div className="space-y-2">
+                  {PROJECT_OPTIONS.map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.projects.includes(opt.value)}
+                        onChange={(e) => {
+                          const projects = e.target.checked
+                            ? [...formData.projects, opt.value]
+                            : formData.projects.filter((p) => p !== opt.value);
+                          setFormData({ ...formData, projects });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-gray-700">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="flex gap-4">

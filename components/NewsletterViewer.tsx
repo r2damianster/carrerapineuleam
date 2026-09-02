@@ -55,7 +55,7 @@ export default function NewsletterViewer({
 }
 
 function NewsletterCard({ item }: { item: NewsletterItem }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -100,7 +100,7 @@ function NewsletterCard({ item }: { item: NewsletterItem }) {
 
         {/* Date */}
         <p className="text-sm text-gray-500 mb-3">
-          {new Date(item.date).toLocaleDateString('es-EC', {
+          {new Date(item.date).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',

@@ -29,7 +29,7 @@ export default function VinculacionEspaciosPage() {
         setCheckingSession(false);
         fetchData();
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/espacios'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/espacios'));
   }, [router]);
 
   const fetchData = async () => {

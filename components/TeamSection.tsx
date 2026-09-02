@@ -5,7 +5,11 @@ import Image from 'next/image';
 import type { Member } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
-export default function TeamSection() {
+interface TeamSectionProps {
+  project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
+}
+
+export default function TeamSection({ project }: TeamSectionProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
@@ -14,7 +18,8 @@ export default function TeamSection() {
     // Load members from static data or use sample data
     const loadMembers = async () => {
       try {
-        const res = await fetch('/api/members');
+        const url = project ? `/api/members?project=${encodeURIComponent(project)}` : '/api/members';
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch members');
         const data = await res.json();
         setMembers(Array.isArray(data) ? data : []);
@@ -52,13 +57,13 @@ export default function TeamSection() {
     };
 
     loadMembers();
-  }, []);
+  }, [project]);
 
   if (loading) {
     return (
       <section id="equipo" className="py-10 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando equipo...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.team.loading}</div>
         </div>
       </section>
     );
@@ -74,14 +79,14 @@ export default function TeamSection() {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Investigadores dedicados a transformar la educación
+            {(project && t.team.subtitles[project as keyof typeof t.team.subtitles]) || t.team.subtitles.internacionalizacion}
           </p>
         </div>
 
         {/* All members side by side */}
         <div className="grid grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 max-w-6xl mx-auto justify-items-center">
           {members.map((member) => (
-            <TeamCard key={member.id} member={member} />
+            <TeamCard key={member.id} member={member} project={project} badges={t.team.badges} />
           ))}
         </div>
       </div>
@@ -89,7 +94,19 @@ export default function TeamSection() {
   );
 }
 
-function TeamCard({ member }: { member: Member }) {
+// Etiqueta de rol distinta a la global cuando un miembro aparece en más de un proyecto con
+// un rol diferente ahí — ej. Arturo es Líder en Internacionalización pero solo Supervisor en Vinculación.
+// Los valores son keys de t.team.badges, resueltas en TeamCard con el idioma activo.
+const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
+  vinculacion: { member_1: 'supervisor' },
+};
+
+function TeamCard({ member, project, badges }: { member: Member; project?: string; badges: Record<string, string> }) {
+  const badgeKey =
+    (project && ROLE_BADGE_OVERRIDES[project]?.[member.id]) ||
+    (member.is_leader ? 'leader' : member.order === 2 ? 'coleader' : member.id === 'member_7' ? 'vinculacion' : 'participant');
+  const badge = badges[badgeKey];
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-uleam-gold w-full">
       {/* Photo */}
@@ -109,7 +126,7 @@ function TeamCard({ member }: { member: Member }) {
           </div>
         )}
         <div className="absolute top-1 right-1 md:top-2 md:right-2 bg-uleam-gold text-uleam-blue px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold">
-          {member.is_leader ? 'Líder' : member.order === 2 ? 'Colíder' : member.id === 'member_7' ? 'Vinculación' : 'Participante'}
+          {badge}
         </div>
       </div>
 

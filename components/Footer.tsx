@@ -2,10 +2,21 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import type { FooterContext } from '@/lib/data';
+import { footerContexts } from '@/lib/data';
 
-export default function Footer() {
+interface FooterProps {
+  context?: string; // key from footerContexts
+}
+
+export default function Footer({ context = 'default' }: FooterProps) {
   const currentYear = new Date().getFullYear();
   const { t } = useLanguage();
+  const footerData = footerContexts[context] || footerContexts.default;
+  const contextText =
+    (t.footer.contexts as Record<string, { title: string; description: string }>)[context] ||
+    t.footer.contexts.default;
+  const linkLabels = t.footer.linkLabels as Record<string, string>;
 
   const socialLinks = [
     {
@@ -53,10 +64,10 @@ export default function Footer() {
           {/* About */}
           <div className="md:col-span-2">
             <h3 className="text-xl font-bold mb-4 text-uleam-gold">
-              {t.hero.title1} {t.hero.title2}
+              {contextText.title}
             </h3>
             <p className="text-gray-300 mb-4">
-              {t.footer.description}
+              {contextText.description}
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
@@ -78,31 +89,13 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-uleam-gold">{t.footer.quickLinks}</h4>
             <ul className="space-y-2">
-              <li>
-                <Link href="#inicio" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.home}
-                </Link>
-              </li>
-              <li>
-                <Link href="#equipo" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.team}
-                </Link>
-              </li>
-              <li>
-                <Link href="#videos" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.videos}
-                </Link>
-              </li>
-              <li>
-                <Link href="#publicaciones" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.publications}
-                </Link>
-              </li>
-              <li>
-                <Link href="#noticias" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.news}
-                </Link>
-              </li>
+              {footerData.quickLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-gray-300 hover:text-white transition">
+                    {linkLabels[link.labelKey] ?? link.labelKey}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -110,22 +103,37 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-uleam-gold">{t.footer.contact}</h4>
             <ul className="space-y-2 text-gray-300">
-              <li>
-                <strong>{t.footer.leader}</strong> Arturo Rodríguez
-              </li>
-              <li>
-                <a href="mailto:arturo.rodriguez@uleam.edu.ec" className="hover:text-uleam-gold transition">
-                  arturo.rodriguez@uleam.edu.ec
-                </a>
-              </li>
-              <li>
-                <strong>{t.footer.coleader}</strong> Jhonny Villafuerte
-              </li>
-              <li>
-                <a href="mailto:jhonny.villafuerte@uleam.edu.ec" className="hover:text-uleam-gold transition">
-                  jhonny.villafuerte@uleam.edu.ec
-                </a>
-              </li>
+              {footerData.leader && (
+                <>
+                  <li>
+                    <strong>{t.footer.leader}</strong> {footerData.leader.name}
+                  </li>
+                  <li>
+                    <a href={`mailto:${footerData.leader.email}`} className="hover:text-uleam-gold transition">
+                      {footerData.leader.email}
+                    </a>
+                  </li>
+                </>
+              )}
+              {footerData.coleader && (
+                <>
+                  <li>
+                    <strong>{t.footer.coleader}</strong> {footerData.coleader.name}
+                  </li>
+                  <li>
+                    <a href={`mailto:${footerData.coleader.email}`} className="hover:text-uleam-gold transition">
+                      {footerData.coleader.email}
+                    </a>
+                  </li>
+                </>
+              )}
+              {footerData.contactEmail && !footerData.leader && (
+                <li>
+                  <a href={`mailto:${footerData.contactEmail}`} className="hover:text-uleam-gold transition">
+                    {footerData.contactEmail}
+                  </a>
+                </li>
+              )}
               <li className="pt-2">
                 <a href="https://www.uleam.edu.ec" target="_blank" rel="noopener noreferrer" className="hover:text-uleam-gold transition">
                   www.uleam.edu.ec
@@ -136,7 +144,8 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {currentYear} ULEAM - Innovaciones Pedagógicas. {t.footer.rights}</p>
+          <p>&copy; {currentYear} ULEAM. {t.footer.rights}</p>
+          <p className="text-xs text-gray-500 mt-2">{t.footer.developerCredit}</p>
         </div>
       </div>
     </footer>

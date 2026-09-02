@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { name, role, orcid, email, photo, is_leader, order } = await request.json();
+    const { name, role, orcid, email, photo, is_leader, order, projects } = await request.json();
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -29,7 +29,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const [actualizado] = await sql`
       UPDATE members
       SET name = ${name}, role = ${role}, orcid = ${orcid || null}, email = ${email || ''},
-          photo = ${photo || null}, is_leader = ${!!is_leader}, "order" = ${order ?? 0}, updated = now()
+          photo = ${photo || null}, is_leader = ${!!is_leader}, "order" = ${order ?? 0},
+          projects = ${projects || []}, updated = now()
       WHERE id = ${params.id}
       RETURNING *
     `;

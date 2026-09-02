@@ -35,7 +35,7 @@ export default function TestMcerPage() {
           }
         });
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/test-mcer'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/test-mcer'));
   }, [router]);
 
   useEffect(() => {
