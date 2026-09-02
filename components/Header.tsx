@@ -14,7 +14,7 @@ interface HeaderProps {
 type NavChild = { href?: string; label: string; isHeader?: boolean };
 type NavItem = { href: string; label: string; children?: undefined } | { label: string; children: NavChild[]; href?: undefined };
 
-export default function Header({ siteName = 'Innovaciones Pedagógicas - ULEAM', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
+export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionales y Extranjeros', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);

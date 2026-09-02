@@ -6,11 +6,9 @@ import NewsSection from '@/components/NewsSection';
 import ConnectionsSection from '@/components/ConnectionsSection';
 
 export default function HubPage() {
-  const carreraSiteName = 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM';
-
   return (
     <>
-      <Header siteName={carreraSiteName} />
+      <Header />
       <main>
         <HubProjectsSection />
         <ActivityGallery limit={8} />
