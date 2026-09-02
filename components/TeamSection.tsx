@@ -9,6 +9,16 @@ interface TeamSectionProps {
   project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
 }
 
+// Subtítulo bajo el título "Equipo" — contextual por proyecto, ya que no todos son de investigación
+// (ej. Vinculación no es un equipo de "investigadores").
+const TEAM_SUBTITLES: Record<string, string> = {
+  internacionalizacion: 'Investigadores dedicados a transformar la educación',
+  desarrollo_habilidades: 'Investigadores dedicados al desarrollo de las habilidades lingüísticas',
+  vinculacion: 'Equipo comprometido con la vinculación y el servicio a la comunidad',
+  mentoring: 'Equipo dedicado a la mentoría y el desarrollo humano docente',
+};
+const DEFAULT_TEAM_SUBTITLE = 'Investigadores dedicados a transformar la educación';
+
 export default function TeamSection({ project }: TeamSectionProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +89,7 @@ export default function TeamSection({ project }: TeamSectionProps) {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Investigadores dedicados a transformar la educación
+            {(project && TEAM_SUBTITLES[project]) || DEFAULT_TEAM_SUBTITLE}
           </p>
         </div>
 
