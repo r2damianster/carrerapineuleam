@@ -56,6 +56,8 @@ export default function OficiosPage() {
   const [firmanteCargo, setFirmanteCargo] = useState("");
   const [iniciales, setIniciales] = useState("");
 
+  const [miId, setMiId] = useState<string | null>(null);
+
   const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
@@ -74,6 +76,20 @@ export default function OficiosPage() {
       .then((data) => setDocentes(Array.isArray(data) ? data : []))
       .catch(() => setDocentes([]));
   }, [carreraFiltro]);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setMiId(data?.usuario?.id ?? null))
+      .catch(() => setMiId(null));
+  }, []);
+
+  // Autoselecciona al usuario logueado como firmante (sigue pudiendo cambiarse).
+  useEffect(() => {
+    if (!miId || firmanteId) return;
+    if (docentes.some((d) => String(d.id) === miId)) seleccionarFirmante(miId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [miId, docentes]);
 
   function agregarDestinatario(id: string) {
     const d = docentes.find((x) => String(x.id) === id);

@@ -33,12 +33,20 @@ async function enriquecer(contexto: string, texto: string): Promise<string> {
 
 export default function ActaTecnicaPage() {
   const [docentes, setDocentes] = useState<Docente[]>([]);
+  const [miId, setMiId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/utilidades/api/docentes")
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setDocentes(Array.isArray(data) ? data : []))
       .catch(() => setDocentes([]));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setMiId(data?.usuario?.id ?? null))
+      .catch(() => setMiId(null));
   }, []);
 
   const [numActa, setNumActa] = useState("");
@@ -92,6 +100,14 @@ export default function ActaTecnicaPage() {
     setElaboradoTitulo(d.titulo_grado);
     setElaboradoNombre(d.nombre);
   }
+
+  // Autoselecciona al usuario logueado como convocante y elaborador (sigue pudiendo cambiarse).
+  useEffect(() => {
+    if (!miId || !docentes.some((d) => String(d.id) === miId)) return;
+    if (!convocante) seleccionarConvocante(miId);
+    if (!elaboradoNombre) seleccionarElaborador(miId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [miId, docentes]);
 
   async function mejorarConIA() {
     if (!notasAspectos && !notasReunion && !notasCompromisos) {
