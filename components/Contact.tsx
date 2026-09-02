@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 
 const CONTACT_EMAIL = 'c.pinextranjeros@uleam.edu.ec';
 
-export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' } = {}) {
+export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' | 'docenciaProject' } = {}) {
   const { t } = useLanguage();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
 
@@ -59,6 +59,15 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
       {
         name: 'Mg. Verónica Chávez',
         role: t.contact.leader,
+        email: 'veronica.chavez@uleam.edu.ec',
+        orcid: '0000-0003-3958-5053',
+      }
+    ];
+  } else if (projectKey === 'docenciaProject') {
+    teamContacts = [
+      {
+        name: 'Mg. Verónica Chávez',
+        role: t.contact.comisionAcademica,
         email: 'veronica.chavez@uleam.edu.ec',
         orcid: '0000-0003-3958-5053',
       }

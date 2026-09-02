@@ -99,6 +99,7 @@ export default function TeamSection({ project }: TeamSectionProps) {
 // Los valores son keys de t.team.badges, resueltas en TeamCard con el idioma activo.
 const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
   vinculacion: { member_1: 'supervisor' },
+  desarrollo_habilidades: { member_3: 'coleader' },
 };
 
 function TeamCard({ member, project, badges }: { member: Member; project?: string; badges: Record<string, string> }) {

@@ -175,6 +175,7 @@ const translations = {
       leader: 'Líder del Proyecto',
       coleader: 'Colíder del Proyecto',
       supervisor: 'Supervisor',
+      comisionAcademica: 'Responsable de Comisión Académica',
     },
     footer: {
       quickLinks: 'Enlaces Rápidos',
@@ -639,6 +640,7 @@ const translations = {
       leader: 'Project Leader',
       coleader: 'Project Co-Leader',
       supervisor: 'Supervisor',
+      comisionAcademica: 'Academic Committee Officer',
     },
     footer: {
       quickLinks: 'Quick Links',
