@@ -40,7 +40,14 @@ export async function middleware(request: NextRequest) {
     '/pine-dashboard',
     '/contribuciones',
     '/utilidades',
+    '/superadmin',
   ];
+
+  // Whitelist de emails para /superadmin — mismo hardcode que
+  // lib/superadmin-auth.ts (no se puede importar Node/@neondatabase acá
+  // porque el middleware corre en Edge runtime; se duplica a propósito,
+  // ambos deben mantenerse en sync).
+  const SUPERADMIN_EMAILS = ['arturo.rodriguez@uleam.edu.ec'];
 
   const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
 
@@ -90,6 +97,15 @@ export async function middleware(request: NextRequest) {
     // Utilidades: generadores de documentos (Acta Técnica, Oficios, Convocatorias,
     // PAT Maestría, Pares Lectores) — abierto a cualquier docente, no ligado a modulos_acceso.
     if (pathname.startsWith('/utilidades') && !['profesor', 'admin'].includes(session.rol)) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Superadmin: acceso absoluto a la Neon (explorador de tablas + SQL crudo).
+    // Doble candado — modulos_acceso Y email hardcodeado — ver lib/superadmin-auth.ts.
+    if (
+      pathname.startsWith('/superadmin') &&
+      (!session.modulos_acceso.includes('superadmin') || !SUPERADMIN_EMAILS.includes(session.email))
+    ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
