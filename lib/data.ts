@@ -138,7 +138,9 @@ const projectPageQuickLinks: FooterQuickLink[] = [
 
 export const footerContexts: Record<string, FooterContext> = {
   // Default — /investigacion/proyecto-innovacion (Internacionalización), única página que
-  // tiene realmente las secciones #inicio/#equipo/#videos/#publicaciones/#noticias.
+  // tiene realmente las secciones #inicio/#equipo/#videos/#publicaciones. "Noticias" apunta a
+  // la página principal desde Sesión 26 — Alianzas/Noticias/Actividades se movieron ahí por ser
+  // contenido general de la carrera, no específico de este proyecto.
   default: {
     title: 'Innovaciones Pedagógicas e Internacionalización',
     description: 'Lograr la innovación pedagógica e internacionalización del proceso de formación inicial y continua de docentes para el desarrollo humano y sostenible.',
@@ -149,10 +151,12 @@ export const footerContexts: Record<string, FooterContext> = {
       { label: 'Equipo', href: '#equipo' },
       { label: 'Podcast', href: '#videos' },
       { label: 'Publicaciones', href: '#publicaciones' },
-      { label: 'Noticias', href: '#noticias' },
+      { label: 'Últimas Noticias', href: '/#noticias' },
     ],
   },
-  // Main landing / career page — solo contacto genérico + navegación a los 3 hubs de proyecto
+  // Main landing / career page — solo contacto genérico + navegación a los 3 hubs de proyecto.
+  // Desde Sesión 26 también aloja Actividades/Noticias/Alianzas (movidas desde Internacionalización,
+  // eran contenido general de la carrera, no de ese proyecto específico).
   landing: {
     title: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros',
     description: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM). Docencia, investigación y vinculación con la sociedad en la formación de docentes de idiomas.',
@@ -161,6 +165,9 @@ export const footerContexts: Record<string, FooterContext> = {
       { label: 'Investigación', href: '/investigacion/proyecto-innovacion' },
       { label: 'Vinculación', href: '/vinculacion/dinamicas-linguisticas' },
       { label: 'Docencia', href: '/docencia/docencia-innovadora' },
+      { label: 'Actividades', href: '#actividades' },
+      { label: 'Noticias', href: '#noticias' },
+      { label: 'Alianzas', href: '#alianzas' },
       { label: 'Publicaciones', href: '/publicaciones' },
       { label: 'Portal PINE', href: '/portal/login' },
     ],

@@ -13,7 +13,11 @@ interface Activity {
   category: string;
 }
 
-export default function ActivityGallery() {
+interface ActivityGalleryProps {
+  limit?: number; // máximo de fotos a mostrar — omitir para mostrar todas
+}
+
+export default function ActivityGallery({ limit }: ActivityGalleryProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -72,13 +76,14 @@ export default function ActivityGallery() {
   }
 
   // Flatten all photos from activities
-  const allPhotos = activities.flatMap(activity => 
+  const allPhotos = activities.flatMap(activity =>
     activity.photos.map(photo => ({
       src: photo,
       title: activity.title,
       description: activity.description,
     }))
   );
+  const displayPhotos = limit ? allPhotos.slice(0, limit) : allPhotos;
 
   return (
     <section id="actividades" className="py-20 bg-gray-50">
@@ -95,9 +100,9 @@ export default function ActivityGallery() {
         </div>
 
         {/* Photos Grid */}
-        {allPhotos.length > 0 ? (
+        {displayPhotos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {allPhotos.map((photo, index) => (
+            {displayPhotos.map((photo, index) => (
               <div
                 key={index}
                 className="relative aspect-square cursor-pointer overflow-hidden rounded-lg group"

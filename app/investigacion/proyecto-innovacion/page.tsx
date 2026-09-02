@@ -7,10 +7,7 @@ import About from '@/components/About';
 import TeamSection from '@/components/TeamSection';
 import VideoGallery from '@/components/VideoGallery';
 import SubstantiveFunctionsSection from '@/components/SubstantiveFunctionsSection';
-import ConnectionsSection from '@/components/ConnectionsSection';
 import PublicationsSection from '@/components/PublicationsSection';
-import NewsSection from '@/components/NewsSection';
-import ActivityGallery from '@/components/ActivityGallery';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -32,10 +29,7 @@ export default function PineProjectPage() {
         <TeamSection project="internacionalizacion" />
         <VideoGallery />
         <SubstantiveFunctionsSection />
-        <ConnectionsSection />
         <PublicationsSection />
-        <NewsSection />
-        <ActivityGallery />
         <Contact />
       </main>
       <Footer />
