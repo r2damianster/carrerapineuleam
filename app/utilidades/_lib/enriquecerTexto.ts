@@ -72,7 +72,13 @@ export const PROMPTS: Record<string, PromptConfig> = {
       "TAREA: Redacta o mejora el cuerpo de un oficio universitario.\n" +
       "REGLAS: Formaliza el lenguaje, mejora la coherencia, sé preciso. No inventes información. " +
       "Usa estructura: saludo institucional → exposición → solicitud/despedida formal.\n" +
-      "FORMATO: 2-4 párrafos. Máximo 350 palabras.",
+      "IMPORTANTE: Devuelve SOLO los párrafos del cuerpo del oficio, tal como se insertarán dentro de una " +
+      "plantilla que YA tiene su propio encabezado, número de oficio, fecha, destinatario, membrete y " +
+      "bloque de firma en otros campos separados. NO incluyas nada de eso en tu respuesta ('Oficio No.', " +
+      "'Fecha:', 'A:', 'Estimado/a...' como encabezado de carta, '[Firma]', datos del remitente/destinatario, " +
+      "etc.) y NO uses placeholders entre corchetes como [Nombre de la Universidad] — si falta un dato " +
+      "específico, omítelo o redacta la frase de forma genérica sin el corchete.\n" +
+      "FORMATO: 2-4 párrafos de solo el contenido del oficio. Máximo 350 palabras.",
     temperature: 0.4,
   },
   oficio_cuerpo_generar: {
@@ -81,7 +87,13 @@ export const PROMPTS: Record<string, PromptConfig> = {
       "TAREA: Genera el cuerpo de un oficio universitario a partir del asunto dado.\n" +
       "REGLAS: Usa estructura formal: saludo institucional → exposición del motivo → " +
       "solicitud o comunicación → despedida formal. No inventes nombres ni datos que no estén en el asunto.\n" +
-      "FORMATO: 2-3 párrafos. Máximo 300 palabras.",
+      "IMPORTANTE: Devuelve SOLO los párrafos del cuerpo del oficio, tal como se insertarán dentro de una " +
+      "plantilla que YA tiene su propio encabezado, número de oficio, fecha, destinatario, membrete y " +
+      "bloque de firma en otros campos separados. NO incluyas nada de eso en tu respuesta ('Oficio No.', " +
+      "'Fecha:', 'A:', 'Estimado/a...' como encabezado de carta, '[Firma]', datos del remitente/destinatario, " +
+      "etc.) y NO uses placeholders entre corchetes como [Nombre de la Universidad] — si falta un dato " +
+      "específico, omítelo o redacta la frase de forma genérica sin el corchete.\n" +
+      "FORMATO: 2-3 párrafos de solo el contenido del oficio. Máximo 300 palabras.",
     temperature: 0.5,
   },
 };
@@ -94,6 +106,19 @@ const TONO_INSTRUCCIONES: Record<string, string> = {
 };
 
 const CONTEXTOS_CON_TONO = new Set(["oficio_cuerpo", "oficio_cuerpo_generar"]);
+
+// Regla universal para todos los contextos: el texto generado se inserta como UN campo
+// más dentro de una plantilla que ya tiene sus propios campos separados para encabezado,
+// número de documento, fecha, destinatario y firma — nunca debe reproducirlos ni usar
+// placeholders entre corchetes (evita el caso real: la IA de oficio_cuerpo generaba un
+// oficio completo con "[Nombre de la Universidad]", "Oficio No. ___", "[Firma]", etc.,
+// duplicando lo que el resto del formulario ya rellena).
+const REGLA_UNIVERSAL_ANTIPLACEHOLDER =
+  "\n\nREGLA GENERAL: Este texto se insertará como un campo dentro de una plantilla que ya " +
+  "tiene sus propios campos separados para encabezado, número de documento, fecha, " +
+  "destinatario/participantes y firma — no los repitas ni los inventes aquí. No uses " +
+  "placeholders entre corchetes como [Nombre] o [Fecha]; si falta un dato, omítelo o " +
+  "redacta de forma genérica sin el corchete.";
 
 /** Enriquece/genera texto con IA según un contexto predefinido. Devuelve [resultado, error]. */
 export async function enriquecerTexto(
@@ -109,7 +134,7 @@ export async function enriquecerTexto(
     return [null, `Contexto no reconocido: ${contexto}`];
   }
 
-  let instruction = config.instruction;
+  let instruction = config.instruction + REGLA_UNIVERSAL_ANTIPLACEHOLDER;
   if (tono && CONTEXTOS_CON_TONO.has(contexto)) {
     const extra = TONO_INSTRUCCIONES[tono];
     if (extra) instruction += `\n${extra}`;

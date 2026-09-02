@@ -115,6 +115,28 @@ function FormDocentes({ docentes, carreras }: { docentes: Docente[]; carreras: s
   const [inicialesElaborador, setInicialesElaborador] = useState("");
   const [generando, setGenerando] = useState(false);
 
+  const [miId, setMiId] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setMiId(data?.usuario?.id ?? null))
+      .catch(() => setMiId(null));
+  }, []);
+
+  // Autoselecciona al usuario logueado como convocante (sigue pudiendo cambiarse).
+  // Setea los campos directo desde el docente (no vía seleccionarConvocante/opcionesConvocante,
+  // que todavía reflejarían el carreraSeleccionada anterior a este mismo render).
+  useEffect(() => {
+    if (!miId || convocanteId || modo !== "carrera") return;
+    const miDocente = docentes.find((d) => String(d.id) === miId);
+    if (!miDocente) return;
+    setCarreraSeleccionada(miDocente.carrera);
+    setConvocanteId(String(miDocente.id));
+    setConvocanteTitulo(miDocente.titulo_grado);
+    setConvocanteNombre(miDocente.nombre);
+    setConvocanteCargo(miDocente.cargo);
+  }, [miId, docentes, convocanteId, modo]);
+
   const docentesCarrera = docentes.filter((d) => d.carrera === carreraSeleccionada);
   const opcionesConvocante = modo === "carrera"
     ? docentesCarrera.map((d) => ({ id: String(d.id), titulo: d.titulo_grado, nombre: d.nombre, postgrado: d.post_grado, cargo: d.cargo }))
