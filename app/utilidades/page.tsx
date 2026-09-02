@@ -11,6 +11,11 @@ const HERRAMIENTAS = [
 export default function HerramientasMenu() {
   return (
     <main className="mx-auto max-w-4xl p-6">
+      <div className="mb-4">
+        <Link href="/portal/dashboard" className="inline-flex items-center text-[#003366] hover:underline font-medium">
+          &larr; Volver al Portal PINE
+        </Link>
+      </div>
       <h1 className="mb-2 text-2xl font-bold text-[#003366]">Herramientas de Carrera — PINE</h1>
       <p className="mb-8 text-slate-600">Generación de documentos administrativos y académicos de la carrera.</p>
       <div className="grid gap-4 sm:grid-cols-2">
