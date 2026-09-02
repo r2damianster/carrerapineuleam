@@ -41,7 +41,12 @@
       "Bash(node --env-file=.env.local scripts/test-beneficiario-perfil.mjs)",
       "Bash(curl -s \"https://carrerapineuleam.vercel.app/vinculacion/beneficiarios\" -o /dev/null -w \"%{http_code}\\\\n\")",
       "Bash(node --env-file=.env.local scripts/migrate-actividades-difusion-extend.js)",
-      "Bash(taskkill //F //PID 6644)"
+      "Bash(taskkill //F //PID 6644)",
+      "Bash(node --env-file=.env.local scripts/migrate-publications.js)",
+      "Bash(node -e ' *)",
+      "Bash(node --env-file=.env.local scripts/test-publications-local.mjs)",
+      "Bash(curl -s http://localhost:3000/api/publications -o \"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-User-Documents-Desarrollo-Web-carreraPINE\\\\2c8c615a-8b5b-4d01-86d2-9628d1d98f1a\\\\scratchpad\\\\pubscheck.json\")",
+      "Bash(taskkill //F //PID 40684)"
     ]
   },
   "enabledMcpjsonServers": [

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getPublications } from '@/lib/db';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -22,7 +21,7 @@ export default function AdminDashboardPage() {
           fetch('/api/members').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/videos').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/video-categories').then((r) => (r.ok ? r.json() : [])),
-          getPublications(),
+          fetch('/api/publications').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/actividades-difusion?origen=noticia').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/actividades-difusion?origen=actividad').then((r) => (r.ok ? r.json() : [])),
         ]);
@@ -123,10 +122,9 @@ export default function AdminDashboardPage() {
       <div className="mt-8 bg-gradient-to-r from-uleam-blue to-primary-700 text-white rounded-xl p-6 shadow-md">
         <h3 className="text-xl font-bold mb-2">ℹ️ Información</h3>
         <p className="text-gray-200 text-sm">
-          Migración en curso a base de datos real (Neon). <strong>Miembros, Podcast, Categorías, Noticias y Actividades</strong> ya
-          persisten de forma permanente (Noticias/Actividades ahora comparten tabla con el registro de Difusión interna — ver
-          &quot;Actividades y Difusión&quot; para aprobar lo pendiente). Solo <strong>Publicaciones</strong> sigue en el archivo estático{' '}
-          <code className="bg-white/20 px-1 rounded">/lib/data.ts</code> — se pierde al reiniciar el servidor, hasta que también se migre.
+          Migración a base de datos real (Neon) completa — <strong>todo el contenido del sitio persiste de forma permanente</strong>.
+          Noticias/Actividades comparten tabla con el registro de Difusión interna (ver &quot;Actividades y Difusión&quot; para aprobar
+          lo pendiente antes de que salga en la web pública).
         </p>
       </div>
     </div>

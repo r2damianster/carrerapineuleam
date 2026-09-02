@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getPublications } from '@/lib/db';
 import type { Publication } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -17,8 +16,9 @@ export default function PublicationsSection() {
   useEffect(() => {
     const loadPublications = async () => {
       try {
-        const data = await getPublications();
-        setPublications(data as any);
+        const res = await fetch('/api/publications');
+        if (!res.ok) throw new Error('Failed to fetch publications');
+        setPublications(await res.json());
       } catch (error) {
         // Fallback sample data
         setPublications([

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getPublications } from '@/lib/db';
 import type { Publication } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -18,8 +17,9 @@ export default function PublicacionesPage() {
   useEffect(() => {
     const loadPublications = async () => {
       try {
-        const data = await getPublications();
-        setPublications(data as any);
+        const res = await fetch('/api/publications');
+        if (!res.ok) throw new Error('Failed to fetch publications');
+        setPublications(await res.json());
       } finally {
         setLoading(false);
       }

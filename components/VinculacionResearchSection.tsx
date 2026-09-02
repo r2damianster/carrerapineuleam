@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPublicationById } from '@/lib/db';
 import type { Publication } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -23,11 +22,11 @@ export default function VinculacionResearchSection() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [pub, newsRes] = await Promise.all([
-          getPublicationById(RESEARCH_PUBLICATION_ID),
+        const [pubRes, newsRes] = await Promise.all([
+          fetch(`/api/publications/${RESEARCH_PUBLICATION_ID}`),
           fetch('/api/actividades-difusion?origen=noticia'),
         ]);
-        setPublication(pub);
+        if (pubRes.ok) setPublication(await pubRes.json());
         if (newsRes.ok) {
           const rows = await newsRes.json();
           const item = rows.find((r: any) => r.legacy_id === RESEARCH_NEWS_LEGACY_ID);

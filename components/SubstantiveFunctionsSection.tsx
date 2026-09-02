@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPublications } from '@/lib/db';
 import type { Video, Publication } from '@/types';
 
 interface NewsSlug { slug: string }
@@ -71,7 +70,10 @@ export default function SubstantiveFunctionsSection() {
       .then((r) => (r.ok ? r.json() : []))
       .then((vids) => setVideos(Array.isArray(vids) ? vids : []))
       .catch(() => setVideos([]));
-    getPublications().then(setPublications).catch(() => setPublications([]));
+    fetch('/api/publications')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setPublications(Array.isArray(data) ? data : []))
+      .catch(() => setPublications([]));
     fetch('/api/actividades-difusion?origen=noticia')
       .then((r) => (r.ok ? r.json() : []))
       .then((rows) => setNews(rows.map((r: any) => ({ slug: r.slug }))))

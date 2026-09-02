@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/admin/DataTable';
-import { getPublications, createPublication, updatePublication, deletePublication } from '@/lib/db';
 import type { Publication } from '@/types';
 
 export default function AdminPublicationsPage() {
@@ -27,8 +26,10 @@ export default function AdminPublicationsPage() {
 
   const loadPublications = async () => {
     try {
-      const records = await getPublications();
-      setPublications(records as any);
+      const res = await fetch('/api/publications');
+      if (!res.ok) throw new Error('Failed to fetch publications');
+      const records = await res.json();
+      setPublications(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error('Error loading publications:', error);
       setPublications([]);
@@ -67,7 +68,8 @@ export default function AdminPublicationsPage() {
 
   const handleDelete = async (pub: Publication) => {
     try {
-      await deletePublication(pub.id);
+      const res = await fetch(`/api/publications/${pub.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
       loadPublications();
     } catch (error) {
       console.error('Error deleting publication:', error);
@@ -79,10 +81,16 @@ export default function AdminPublicationsPage() {
     e.preventDefault();
 
     try {
-      if (editingPub) {
-        await updatePublication(editingPub.id, formData as any);
-      } else {
-        await createPublication(formData as any);
+      const url = editingPub ? `/api/publications/${editingPub.id}` : '/api/publications';
+      const method = editingPub ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
       }
 
       resetForm();
