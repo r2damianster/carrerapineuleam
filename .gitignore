@@ -46,3 +46,10 @@ coverage/
 graphify-out/
 .vercel
 .env*
+
+# Herramienta portable vieja (integrada a app/utilidades/, ya no se usa aquí)
+carrera-herramientas/
+
+# Artefactos de prueba sueltos en la raíz (docx/pdf generados manualmente al probar)
+/*.docx
+/*.pdf
