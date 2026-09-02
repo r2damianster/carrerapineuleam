@@ -13,16 +13,16 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Claude Code:** Encargado de implementaciones puntuales, revisiones de código rápidas, ajustes de UI (Tailwind) y tareas de mantenimiento del día a día.
 
 ### Reglas de Sincronización
-1. **Compartir Estado:** Cada vez que realices un cambio estructural importante, actualiza el archivo `CLAUDE.md` para que Claude esté enterado de las nuevas convenciones o cambios en la base de datos estática (`lib/data.ts`).
+1. **Compartir Estado:** Cada vez que realices un cambio estructural importante, actualiza el archivo `CLAUDE.md` para que Claude esté enterado de las nuevas convenciones o cambios en el esquema de Neon.
 2. **Respetar Tareas:** Si un requerimiento es mejor manejado por Claude (ej. un ajuste menor de CSS), puedes sugerirle al usuario delegarlo.
-3. **Skills Compartidos:** Utilizar las convenciones y directrices de UI y TypeScript definidas conjuntamente. Ambos asumen que la fuente de verdad es `lib/data.ts`.
+3. **Skills Compartidos:** Utilizar las convenciones y directrices de UI y TypeScript definidas conjuntamente. **Desde la Sesión 25, la fuente de verdad del sitio público es Neon Postgres, no `lib/data.ts`** (ver más abajo).
 
 ---
 
 ## 🛠️ Stack y Reglas (Heredadas)
 - **Frontend:** Next.js 14 (App Router) + TypeScript.
 - **Estilos:** TailwindCSS (Colores ULEAM: `#003366`, `#FFD700`).
-- **Sitio público:** estático in-memory en `lib/data.ts`. NO usamos PocketBase (fue eliminado).
+- **Sitio público:** **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`, mismo patrón que el Portal PINE) — tablas `members`, `publications`, `video_categories`+`videos` (podcast), `actividades_difusion` (noticias+actividades del sitio, fusionada con el registro interno de Difusión de Vinculación/Gestión de Carrera). Migrado desde `lib/data.ts` estático en la Sesión 25 — **ese archivo ya NO es la base de datos del sitio**, solo guarda `siteSettings`, config de autorización (`profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio`) y fotos del Club de Inglés. Detalle completo en `CLAUDE.md` → Sesión 25 y `## Portal PINE`. NO usamos PocketBase (fue eliminado).
 - **Portal PINE** (docencia/vinculación/investigación, `/portal/*`, `/vinculacion/espacios`, `/investigacion/espacios`, `/gestion-carrera`): base de datos real, **Neon Postgres**. Auth unificada en `lib/session.ts` (una sola cookie firmada, `pine_app_session`, para todo el sitio incluido `/admin`). Detalle completo del esquema, roles y permisos en `CLAUDE.md` → sección `## Portal PINE`.
 - **Archivos de acceso:**
   - `public/images/` y `public/files/` para recursos públicos.
@@ -30,7 +30,7 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 
 ## 📌 Estado Actual y Tareas
 *(Ver `CLAUDE.md` para el changelog detallado y estado general — es la fuente de verdad más actualizada, léela antes de asumir el estado del repo)*
-- El proyecto está en versión 0.10.3 (Sesión 22, 2026-09-01)
+- El proyecto está en Sesión 25 (2026-09-02) — sitio público migrado por completo a Neon, ver arriba.
 - **Sesión 22 — ⚠️ `/registro` ya NO ofrece `beneficiario` como rol autoregistrable.** `PUBLIC_ROLES` en `app/api/auth/register/route.ts` quedó en `['profesor']` únicamente — el registro de beneficiario seguía vivo desde antes de Sesión 19 y usaba la columna `situacion_laboral` que se eliminó en Sesión 21, así que estaba devolviendo 500 en producción hasta que se corrigió. Si necesitas tocar `/registro` o `POST /api/auth/register`, recuerda: **beneficiario nunca se autoregistra**, se crea desde `/vinculacion/beneficiarios` (`POST /api/beneficiarios`); **estudiante tampoco**, se crea desde `/vinculacion/pasantes` (`POST /api/estudiantes` o `/api/estudiantes/bulk`).
 - El Portal PINE (Neon) se construyó en la Sesión 19 (2026-08-30) — auth unificada, áreas Vinculación/Investigación separadas, permisos por espacio, Gestión de Carrera.
 - **Sesión 20:** carga masiva de pasantes por Excel — `POST /api/estudiantes/bulk` (modo `dryRun` para vista previa, luego inserta), UI en `/vinculacion/pasantes`. Usa `xlsx` (SheetJS), nueva dependencia.
