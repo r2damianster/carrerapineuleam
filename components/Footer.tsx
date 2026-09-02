@@ -13,6 +13,10 @@ export default function Footer({ context = 'default' }: FooterProps) {
   const currentYear = new Date().getFullYear();
   const { t } = useLanguage();
   const footerData = footerContexts[context] || footerContexts.default;
+  const contextText =
+    (t.footer.contexts as Record<string, { title: string; description: string }>)[context] ||
+    t.footer.contexts.default;
+  const linkLabels = t.footer.linkLabels as Record<string, string>;
 
   const socialLinks = [
     {
@@ -60,10 +64,10 @@ export default function Footer({ context = 'default' }: FooterProps) {
           {/* About */}
           <div className="md:col-span-2">
             <h3 className="text-xl font-bold mb-4 text-uleam-gold">
-              {footerData.title}
+              {contextText.title}
             </h3>
             <p className="text-gray-300 mb-4">
-              {footerData.description}
+              {contextText.description}
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
@@ -88,7 +92,7 @@ export default function Footer({ context = 'default' }: FooterProps) {
               {footerData.quickLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-gray-300 hover:text-white transition">
-                    {link.label}
+                    {linkLabels[link.labelKey] ?? link.labelKey}
                   </Link>
                 </li>
               ))}
@@ -141,7 +145,7 @@ export default function Footer({ context = 'default' }: FooterProps) {
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
           <p>&copy; {currentYear} ULEAM. {t.footer.rights}</p>
-          <p className="text-xs text-gray-500 mt-2">Desarrollador responsable de la web: Arturo Rodríguez</p>
+          <p className="text-xs text-gray-500 mt-2">{t.footer.developerCredit}</p>
         </div>
       </div>
     </footer>

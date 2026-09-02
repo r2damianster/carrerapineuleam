@@ -12,7 +12,7 @@ export default function PublicacionesPage() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const loadPublications = async () => {
@@ -32,14 +32,8 @@ export default function PublicacionesPage() {
     ? publications
     : publications.filter(p => p.category === activeCategory);
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      regional: 'Regional',
-      libros: 'Libros',
-      impacto: 'De Impacto',
-    };
-    return labels[category] || category;
-  };
+  const getCategoryLabel = (category: string) =>
+    t.publications.filters[category as keyof typeof t.publications.filters] || category;
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
@@ -50,15 +44,8 @@ export default function PublicacionesPage() {
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
 
-  const getTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      article: 'Artículo Científico',
-      conference: 'Conferencia',
-      book: 'Libro/Capítulo',
-      other: 'Otro',
-    };
-    return types[type] || type;
-  };
+  const getTypeLabel = (type: string) =>
+    t.publications.types[type as keyof typeof t.publications.types] || type;
 
   return (
     <>
@@ -71,7 +58,7 @@ export default function PublicacionesPage() {
             </h1>
             <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Investigación y producción académica del proyecto
+              {t.publications.sectionSubtitle}
             </p>
           </div>
 
@@ -93,7 +80,7 @@ export default function PublicacionesPage() {
 
           {loading ? (
             <div className="text-center py-12 text-2xl font-bold text-uleam-blue">
-              Cargando publicaciones...
+              {t.publications.loading}
             </div>
           ) : filteredPublications.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -133,7 +120,7 @@ export default function PublicacionesPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span>
-                          {new Date(pub.publication_date).toLocaleDateString('es-EC', {
+                          {new Date(pub.publication_date).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', {
                             year: 'numeric',
                             month: 'short',
                           })}
@@ -169,7 +156,7 @@ export default function PublicacionesPage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">No hay publicaciones en esta categoría</p>
+              <p className="text-gray-600 text-lg">{t.publications.empty}</p>
             </div>
           )}
         </div>
