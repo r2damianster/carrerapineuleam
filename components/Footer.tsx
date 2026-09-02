@@ -60,10 +60,10 @@ export default function Footer({ context = 'default' }: FooterProps) {
           {/* About */}
           <div className="md:col-span-2">
             <h3 className="text-xl font-bold mb-4 text-uleam-gold">
-              {t.hero.title1} {t.hero.title2}
+              {footerData.title}
             </h3>
             <p className="text-gray-300 mb-4">
-              {t.footer.description}
+              {footerData.description}
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (

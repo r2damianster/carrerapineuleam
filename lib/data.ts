@@ -119,6 +119,8 @@ export interface FooterQuickLink {
 }
 
 export interface FooterContext {
+  title: string; // nombre del proyecto/sección mostrado en el bloque "About" del footer
+  description: string; // descripción del proyecto/sección — nunca la de Internacionalización fuera de su propia página
   leader?: { name: string; email: string };
   coleader?: { name: string; email: string };
   contactEmail?: string; // override default contact email
@@ -138,6 +140,8 @@ export const footerContexts: Record<string, FooterContext> = {
   // Default — /investigacion/proyecto-innovacion (Internacionalización), única página que
   // tiene realmente las secciones #inicio/#equipo/#videos/#publicaciones/#noticias.
   default: {
+    title: 'Innovaciones Pedagógicas e Internacionalización',
+    description: 'Lograr la innovación pedagógica e internacionalización del proceso de formación inicial y continua de docentes para el desarrollo humano y sostenible.',
     leader: { name: 'Arturo Rodríguez', email: 'arturo.rodriguez@uleam.edu.ec' },
     coleader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
     quickLinks: [
@@ -150,6 +154,8 @@ export const footerContexts: Record<string, FooterContext> = {
   },
   // Main landing / career page — solo contacto genérico + navegación a los 3 hubs de proyecto
   landing: {
+    title: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros',
+    description: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM). Docencia, investigación y vinculación con la sociedad en la formación de docentes de idiomas.',
     contactEmail: 'c.pinextranjeros@uleam.edu.ec',
     quickLinks: [
       { label: 'Investigación', href: '/investigacion/proyecto-innovacion' },
@@ -162,6 +168,8 @@ export const footerContexts: Record<string, FooterContext> = {
   // Páginas del sitio principal sin secciones propias (Publicaciones, Boletines, Portal Login) —
   // siguen siendo del proyecto Internacionalización, por eso mantienen a Arturo+Jhonny de contacto.
   general: {
+    title: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros',
+    description: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM). Docencia, investigación y vinculación con la sociedad en la formación de docentes de idiomas.',
     leader: { name: 'Arturo Rodríguez', email: 'arturo.rodriguez@uleam.edu.ec' },
     coleader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
     quickLinks: [
@@ -173,27 +181,37 @@ export const footerContexts: Record<string, FooterContext> = {
   },
   // Vinculación section — Cynthia Zambrano
   vinculacion: {
+    title: 'Dinámicas Lingüísticas en Contextos Locales',
+    description: 'Proyecto de vinculación con la sociedad que articula el uso del inglés y otras lenguas en contextos comunitarios y locales de Manabí.',
     leader: { name: 'Cynthia Zambrano', email: 'cynthia.zambrano@uleam.edu.ec' },
     quickLinks: projectPageQuickLinks,
   },
   // Desarrollo de Habilidades Lingüísticas / Lingüística section — Germán Carrera + Cristina Basantes
   linguistica: {
+    title: 'Desarrollo de las Habilidades Lingüísticas',
+    description: 'Desarrollo de las habilidades lingüísticas del idioma inglés en estudiantes de educación superior en Ecuador.',
     leader: { name: 'German Carrera', email: 'german.carrera@uleam.edu.ec' },
     coleader: { name: 'Cristina Basantes', email: 'maria.basantes@uleam.edu.ec' },
     quickLinks: projectPageQuickLinks,
   },
   // Mentoría section — Verónica Chávez
   mentoring: {
+    title: 'Mentoría y Aprendizaje Socioemocional',
+    description: 'Desarrollo Humano y perfil profesional en la formación de docentes: Mentoría y Aprendizaje Socioemocional.',
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
     quickLinks: projectPageQuickLinks,
   },
   // Docencia Innovadora — Verónica (academic commission)
   docencia: {
+    title: 'Docencia Innovadora e Interdisciplinaria',
+    description: 'Prácticas de aula, estrategias didácticas y productos de podcast generados directamente desde las cátedras de la carrera PINE.',
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
     quickLinks: projectPageQuickLinks,
   },
   // Red LEA — Jhonny as coordinator. Usa sus propios anchors reales (RedLEAAbout/Testimonios/Galeria/Memoria).
   redlea: {
+    title: 'RED LEA',
+    description: 'Red de Cooperación para la Investigación Científica sobre Lectura y Escritura Académica — organización independiente sin fines de lucro dedicada a la investigación científica y la innovación pedagógica en Iberoamérica.',
     leader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
     quickLinks: [
       { label: 'Sobre RED LEA', href: '#sobre' },
