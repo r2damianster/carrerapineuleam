@@ -155,8 +155,8 @@ export const footerContexts: Record<string, FooterContext> = {
     ],
   },
   // Main landing / career page — solo contacto genérico + navegación a los 3 hubs de proyecto.
-  // Desde Sesión 26 también aloja Actividades/Noticias/Alianzas (movidas desde Internacionalización,
-  // eran contenido general de la carrera, no de ese proyecto específico).
+  // Desde Sesión 26 también aloja Noticias/Alianzas (Actividades se movió a Docencia Innovadora,
+  // era contenido de aula específico de esa función sustantiva, no general de la carrera).
   landing: {
     title: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros',
     description: 'Universidad Laica Eloy Alfaro de Manabí (ULEAM). Docencia, investigación y vinculación con la sociedad en la formación de docentes de idiomas.',
@@ -165,7 +165,6 @@ export const footerContexts: Record<string, FooterContext> = {
       { label: 'Investigación', href: '/investigacion/proyecto-innovacion' },
       { label: 'Vinculación', href: '/vinculacion/dinamicas-linguisticas' },
       { label: 'Docencia', href: '/docencia/docencia-innovadora' },
-      { label: 'Actividades', href: '#actividades' },
       { label: 'Noticias', href: '#noticias' },
       { label: 'Alianzas', href: '#alianzas' },
       { label: 'Publicaciones', href: '/publicaciones' },
@@ -208,12 +207,19 @@ export const footerContexts: Record<string, FooterContext> = {
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
     quickLinks: projectPageQuickLinks,
   },
-  // Docencia Innovadora — Verónica (academic commission)
+  // Docencia Innovadora — Verónica (academic commission). Única página con la galería de
+  // Actividades desde Sesión 26 (movida desde Internacionalización) — anchor propio #actividades.
   docencia: {
     title: 'Docencia Innovadora e Interdisciplinaria',
     description: 'Prácticas de aula, estrategias didácticas y productos de podcast generados directamente desde las cátedras de la carrera PINE.',
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
-    quickLinks: projectPageQuickLinks,
+    quickLinks: [
+      { label: 'Inicio del sitio', href: '/' },
+      { label: 'Actividades', href: '#actividades' },
+      { label: 'Contacto', href: '#contacto' },
+      { label: 'Publicaciones', href: '/publicaciones' },
+      { label: 'Portal PINE', href: '/portal/login' },
+    ],
   },
   // Red LEA — Jhonny as coordinator. Usa sus propios anchors reales (RedLEAAbout/Testimonios/Galeria/Memoria).
   redlea: {

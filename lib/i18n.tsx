@@ -95,6 +95,7 @@ const translations = {
       sectionTitle: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM',
       sectionSubtitle: 'Proyectos, redes de cooperación y boletines de la carrera',
       groupName: 'Grupo de Investigación',
+      careerLabel: 'Carrera',
       pineCard: {
         title: 'Proyecto de Innovaciones Pedagógicas e Internacionalización',
         description: 'Proyecto integral de investigación sobre innovaciones pedagógicas, internacionalización de la educación y transformación de prácticas áulicas en la ULEAM.',
@@ -317,6 +318,7 @@ const translations = {
       sectionTitle: 'Bachelor\'s Degree in National and Foreign Languages Pedagogy - ULEAM',
       sectionSubtitle: 'Projects, cooperation networks and degree newsletters',
       groupName: 'Research Group',
+      careerLabel: 'Degree Program',
       pineCard: {
         title: 'Pedagogical Innovations and Internationalization Project',
         description: 'Comprehensive research project on pedagogical innovations, internationalization of education and transformation of classroom practices at ULEAM.',

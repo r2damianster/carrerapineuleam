@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
 import TaggedVideoSection from '@/components/TaggedVideoSection';
+import ActivityGallery from '@/components/ActivityGallery';
 import Contact from '@/components/Contact';
 
 export const metadata = {
@@ -19,6 +20,7 @@ export default function DocenciaProjectPage() {
         <ProjectHero projectKey="docenciaProject" />
         <ProjectIntegrationNote projectKey="docenciaProject" />
         <TaggedVideoSection tag="docencia" projectKey="docenciaProject" />
+        <ActivityGallery />
         <Contact />
       </main>
       <Footer context="docencia" />
