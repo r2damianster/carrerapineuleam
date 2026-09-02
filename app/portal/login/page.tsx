@@ -113,7 +113,7 @@ function LoginForm() {
           </div>
         </div>
       </div>
-      <Footer />
+      <Footer context="general" />
     </>
   );
 }

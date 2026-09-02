@@ -109,42 +109,98 @@ export const liderProyectoPropio: Record<string, string> = {
   'veronica.chavez@uleam.edu.ec': 'Mentoring',
 };
 
-// Footer contexts for different project sections — configures which leader/coleader/email shows in footer
+// Footer contexts for different project sections — configures which leader/coleader/email
+// and which quick links show in the footer. quickLinks must point to anchors that actually
+// exist on the pages using that context (or to real routes) — never assume the Internacionalización
+// project's anchors (#inicio/#equipo/#videos/#publicaciones/#noticias) apply elsewhere.
+export interface FooterQuickLink {
+  label: string;
+  href: string;
+}
+
 export interface FooterContext {
   leader?: { name: string; email: string };
   coleader?: { name: string; email: string };
   contactEmail?: string; // override default contact email
+  quickLinks: FooterQuickLink[];
 }
 
+// Quick links reused by pages that only have a #contacto section (Contact.tsx) plus
+// standard site navigation — Vinculación, Lingüística, Docencia, Mentoring project pages.
+const projectPageQuickLinks: FooterQuickLink[] = [
+  { label: 'Inicio del sitio', href: '/' },
+  { label: 'Contacto', href: '#contacto' },
+  { label: 'Publicaciones', href: '/publicaciones' },
+  { label: 'Portal PINE', href: '/portal/login' },
+];
+
 export const footerContexts: Record<string, FooterContext> = {
-  // Default/Main pages — Internacionalización project
+  // Default — /investigacion/proyecto-innovacion (Internacionalización), única página que
+  // tiene realmente las secciones #inicio/#equipo/#videos/#publicaciones/#noticias.
   default: {
     leader: { name: 'Arturo Rodríguez', email: 'arturo.rodriguez@uleam.edu.ec' },
     coleader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
+    quickLinks: [
+      { label: 'Inicio', href: '#inicio' },
+      { label: 'Equipo', href: '#equipo' },
+      { label: 'Podcast', href: '#videos' },
+      { label: 'Publicaciones', href: '#publicaciones' },
+      { label: 'Noticias', href: '#noticias' },
+    ],
   },
-  // Main landing / career page — only generic contact
+  // Main landing / career page — solo contacto genérico + navegación a los 3 hubs de proyecto
   landing: {
     contactEmail: 'c.pinextranjeros@uleam.edu.ec',
+    quickLinks: [
+      { label: 'Investigación', href: '/investigacion/proyecto-innovacion' },
+      { label: 'Vinculación', href: '/vinculacion/dinamicas-linguisticas' },
+      { label: 'Docencia', href: '/docencia/docencia-innovadora' },
+      { label: 'Publicaciones', href: '/publicaciones' },
+      { label: 'Portal PINE', href: '/portal/login' },
+    ],
+  },
+  // Páginas del sitio principal sin secciones propias (Publicaciones, Boletines, Portal Login) —
+  // siguen siendo del proyecto Internacionalización, por eso mantienen a Arturo+Jhonny de contacto.
+  general: {
+    leader: { name: 'Arturo Rodríguez', email: 'arturo.rodriguez@uleam.edu.ec' },
+    coleader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
+    quickLinks: [
+      { label: 'Inicio del sitio', href: '/' },
+      { label: 'Proyecto Internacionalización', href: '/investigacion/proyecto-innovacion' },
+      { label: 'Publicaciones', href: '/publicaciones' },
+      { label: 'Portal PINE', href: '/portal/login' },
+    ],
   },
   // Vinculación section — Cynthia Zambrano
   vinculacion: {
     leader: { name: 'Cynthia Zambrano', email: 'cynthia.zambrano@uleam.edu.ec' },
+    quickLinks: projectPageQuickLinks,
   },
   // Desarrollo de Habilidades Lingüísticas / Lingüística section — Germán Carrera + Cristina Basantes
   linguistica: {
     leader: { name: 'German Carrera', email: 'german.carrera@uleam.edu.ec' },
     coleader: { name: 'Cristina Basantes', email: 'maria.basantes@uleam.edu.ec' },
+    quickLinks: projectPageQuickLinks,
   },
   // Mentoría section — Verónica Chávez
   mentoring: {
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
+    quickLinks: projectPageQuickLinks,
   },
   // Docencia Innovadora — Verónica (academic commission)
   docencia: {
     leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
+    quickLinks: projectPageQuickLinks,
   },
-  // Red LEA — Jhonny as coordinator
+  // Red LEA — Jhonny as coordinator. Usa sus propios anchors reales (RedLEAAbout/Testimonios/Galeria/Memoria).
   redlea: {
     leader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
+    quickLinks: [
+      { label: 'Sobre RED LEA', href: '#sobre' },
+      { label: 'Testimonios', href: '#testimonios' },
+      { label: 'Galería', href: '#galeria' },
+      { label: 'Memoria', href: '#memoria' },
+      { label: 'Inicio del sitio', href: '/' },
+    ],
   },
 };

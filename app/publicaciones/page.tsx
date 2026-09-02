@@ -174,7 +174,7 @@ export default function PublicacionesPage() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer context="general" />
     </>
   );
 }

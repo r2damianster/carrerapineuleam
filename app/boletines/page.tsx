@@ -96,7 +96,7 @@ export default function NewslettersPage() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer context="general" />
     </>
   );
 }

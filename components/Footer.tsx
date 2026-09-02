@@ -85,31 +85,13 @@ export default function Footer({ context = 'default' }: FooterProps) {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-uleam-gold">{t.footer.quickLinks}</h4>
             <ul className="space-y-2">
-              <li>
-                <Link href="#inicio" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.home}
-                </Link>
-              </li>
-              <li>
-                <Link href="#equipo" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.team}
-                </Link>
-              </li>
-              <li>
-                <Link href="#videos" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.videos}
-                </Link>
-              </li>
-              <li>
-                <Link href="#publicaciones" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.publications}
-                </Link>
-              </li>
-              <li>
-                <Link href="#noticias" className="text-gray-300 hover:text-white transition">
-                  {t.footer.links.news}
-                </Link>
-              </li>
+              {footerData.quickLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-gray-300 hover:text-white transition">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
