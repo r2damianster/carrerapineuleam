@@ -86,7 +86,7 @@ export default function TeamSection({ project }: TeamSectionProps) {
         {/* All members side by side */}
         <div className="grid grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 max-w-6xl mx-auto justify-items-center">
           {members.map((member) => (
-            <TeamCard key={member.id} member={member} />
+            <TeamCard key={member.id} member={member} project={project} />
           ))}
         </div>
       </div>
@@ -94,7 +94,17 @@ export default function TeamSection({ project }: TeamSectionProps) {
   );
 }
 
-function TeamCard({ member }: { member: Member }) {
+// Etiqueta de rol distinta a la global cuando un miembro aparece en más de un proyecto con
+// un rol diferente ahí — ej. Arturo es Líder en Internacionalización pero solo Supervisor en Vinculación.
+const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
+  vinculacion: { member_1: 'Supervisor' },
+};
+
+function TeamCard({ member, project }: { member: Member; project?: string }) {
+  const badge =
+    (project && ROLE_BADGE_OVERRIDES[project]?.[member.id]) ||
+    (member.is_leader ? 'Líder' : member.order === 2 ? 'Colíder' : member.id === 'member_7' ? 'Vinculación' : 'Participante');
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-uleam-gold w-full">
       {/* Photo */}
@@ -114,7 +124,7 @@ function TeamCard({ member }: { member: Member }) {
           </div>
         )}
         <div className="absolute top-1 right-1 md:top-2 md:right-2 bg-uleam-gold text-uleam-blue px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold">
-          {member.is_leader ? 'Líder' : member.order === 2 ? 'Colíder' : member.id === 'member_7' ? 'Vinculación' : 'Participante'}
+          {badge}
         </div>
       </div>
 
