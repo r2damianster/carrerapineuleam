@@ -121,6 +121,18 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
+## Cambios Recientes (Sesión 25 — 2026-09-02)
+
+### Migración de `lib/data.ts` (estático) a Neon Postgres — en curso
+
+Objetivo a corto plazo del usuario: eliminar la base de datos estática del sitio público (`lib/data.ts` + `lib/db.ts`, que **no persiste** — cualquier edición desde `/admin/*` se pierde en el próximo redeploy, confirmado en el propio comentario del archivo) y migrar cada entidad a Neon, igual que el resto del Portal (SQL crudo, sin Prisma). Plan completo (schema de las 4 entidades restantes, decisiones de diseño, orden) en el plan file de la sesión — no versionado en el repo, pedir al usuario si hace falta retomarlo en detalle. Progreso:
+
+- ✅ **`members`** (piloto) — tabla creada y sembrada (11 filas, mismos ids `member_1`...`member_11`), `app/api/members/route.ts` + `[id]/route.ts` (GET público, POST/PATCH/DELETE protegidos por `modulos_acceso: contenido_sitio`), `TeamSection.tsx` y `/admin/members` reconectados a `fetch()`. `lib/db.ts`/`lib/data.ts` ya no se usan para members (quedan las funciones ahí sin llamar, se limpian al final de la migración completa).
+- ✅ **`video_categories` + `videos`** (rebautizado **"Podcast"** en toda la UI admin — nav, dashboard, títulos de formulario) — mismo patrón, `app/api/video-categories/` + `app/api/videos/` (el segundo con `LEFT JOIN video_categories` replicando el `expand.category` que hacía `lib/db.ts` a mano). **Cambio de comportamiento pedido por el usuario:** `youtube_url`/`embed_id`/`published_date` pasan de `NOT NULL` a opcionales — un episodio de podcast se puede registrar solo con metadata (título/descripción/categoría) y completar el link de YouTube después, editando. `VideoCard.tsx` y `types/index.ts:Video` actualizados para tolerar esos campos nulos (muestra "Próximamente" si no hay `embed_id`). Probado extremo a extremo local: crear sin link → editar agregando link → `embed_id` se deriva correctamente.
+- ⏳ **Pendiente**: `actividades_difusion` extendida (fusión de News + Activities del sitio estático **con** la tabla ya-en-producción `actividades_difusion` de Vinculación/Gestión de Carrera — decisión explícita del usuario, incluye cola de moderación/aprobación antes de que algo registrado por un docente aparezca en la web pública) y `publications` (requiere auditoría de contenido con el usuario primero — hay publicaciones 2025 dudosas y 2026 faltantes en la lista estática actual).
+- Scripts de migración: `scripts/migrate-members.js`, `scripts/migrate-videos.js` (patrón a seguir para las 2 entidades restantes).
+- Todo probado con el patrón de "flujo real" ya establecido (`scripts/_lib-sign-session.mjs` — cookie de sesión firmada localmente, coincide con el `SESSION_SECRET` de producción) contra `npm run dev` local antes de dar por buena cada entidad.
+
 ## Cambios Recientes (Sesión 24 — 2026-09-01)
 
 ### Módulo Contribuciones Académicas: implementación previa estaba rota de punta a punta, reparada

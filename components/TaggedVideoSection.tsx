@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import VideoCard from './VideoCard';
-import { getVideos } from '@/lib/db';
 import type { Video, VideoCategory } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -22,8 +21,12 @@ export default function TaggedVideoSection({ tag, projectKey }: TaggedVideoSecti
   useEffect(() => {
     const loadVideos = async () => {
       try {
-        const allVideos = await getVideos();
-        setVideos(allVideos.filter((video) => video.tags?.includes(tag)));
+        const res = await fetch('/api/videos');
+        if (!res.ok) throw new Error('Failed to fetch videos');
+        const allVideos = await res.json();
+        setVideos((allVideos as ExpandedVideo[]).filter((video) => video.tags?.includes(tag)));
+      } catch {
+        setVideos([]);
       } finally {
         setLoading(false);
       }
@@ -32,7 +35,7 @@ export default function TaggedVideoSection({ tag, projectKey }: TaggedVideoSecti
   }, [tag]);
 
   const sortedVideos = [...videos].sort(
-    (a, b) => new Date(b.published_date).getTime() - new Date(a.published_date).getTime()
+    (a, b) => new Date(b.published_date || 0).getTime() - new Date(a.published_date || 0).getTime()
   );
   const latestIds = new Set(sortedVideos.slice(0, 3).map((v) => v.id));
 

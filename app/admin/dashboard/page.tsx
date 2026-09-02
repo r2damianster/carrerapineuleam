@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getMembers, getVideos, getPublications, getNews, getActivities, getAllVideoCategories } from '@/lib/db';
+import { getPublications, getNews, getActivities } from '@/lib/db';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -18,13 +18,13 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [membersRes, videosRes, publicationsRes, newsRes, activitiesRes, categoriesRes] = await Promise.all([
-          getMembers(),
-          getVideos(),
+        const [membersRes, videosRes, categoriesRes, publicationsRes, newsRes, activitiesRes] = await Promise.all([
+          fetch('/api/members').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/videos').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/video-categories').then((r) => (r.ok ? r.json() : [])),
           getPublications(),
           getNews(),
           getActivities(),
-          getAllVideoCategories(),
         ]);
 
         setStats({
@@ -47,7 +47,7 @@ export default function AdminDashboardPage() {
 
   const statCards = [
     { label: 'Miembros', value: stats.members, icon: '👥', color: 'bg-blue-500', link: '/admin/members' },
-    { label: 'Videos', value: stats.videos, icon: '🎬', color: 'bg-red-500', link: '/admin/videos' },
+    { label: 'Podcast', value: stats.videos, icon: '🎬', color: 'bg-red-500', link: '/admin/videos' },
     { label: 'Categorías', value: stats.categories, icon: '📁', color: 'bg-purple-500', link: '/admin/categories' },
     { label: 'Publicaciones', value: stats.publications, icon: '📄', color: 'bg-green-500', link: '/admin/publications' },
     { label: 'Noticias', value: stats.news, icon: '📰', color: 'bg-yellow-500', link: '/admin/news' },
@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
             + Nuevo Miembro
           </Link>
           <Link href="/admin/videos/new" className="px-4 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-center font-medium">
-            + Nuevo Video
+            + Nuevo Podcast
           </Link>
           <Link href="/admin/news/new" className="px-4 py-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-center font-medium">
             + Nueva Noticia
@@ -123,8 +123,9 @@ export default function AdminDashboardPage() {
       <div className="mt-8 bg-gradient-to-r from-uleam-blue to-primary-700 text-white rounded-xl p-6 shadow-md">
         <h3 className="text-xl font-bold mb-2">ℹ️ Información</h3>
         <p className="text-gray-200 text-sm">
-          Los datos se almacenan en un archivo estático TypeScript. Para editar los datos, modifica el archivo <code className="bg-white/20 px-1 rounded">/lib/data.ts</code>.
-          Los cambios persistirán hasta que se reinicie el servidor.
+          Migración en curso a base de datos real (Neon). <strong>Miembros, Podcast y Categorías</strong> ya persisten
+          de forma permanente. Publicaciones, Noticias y Actividades siguen en el archivo estático <code className="bg-white/20 px-1 rounded">/lib/data.ts</code> —
+          los cambios ahí se pierden al reiniciar el servidor, hasta que también se migren.
         </p>
       </div>
     </div>

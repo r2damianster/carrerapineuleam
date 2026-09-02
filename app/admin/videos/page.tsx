@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/admin/DataTable';
-import { getVideos, createVideo, updateVideo, deleteVideo, getAllVideoCategories } from '@/lib/db';
 import type { Video, VideoCategory } from '@/types';
 
 export default function AdminVideosPage() {
@@ -29,11 +28,12 @@ export default function AdminVideosPage() {
   const loadData = async () => {
     try {
       const [videosRes, catsRes] = await Promise.all([
-        getVideos(),
-        getAllVideoCategories(),
+        fetch('/api/videos'),
+        fetch('/api/video-categories'),
       ]);
-      setVideos(videosRes as any);
-      setCategories(catsRes as any);
+      if (!videosRes.ok || !catsRes.ok) throw new Error('Failed to fetch');
+      setVideos(await videosRes.json());
+      setCategories(await catsRes.json());
     } catch (error) {
       console.error('Error loading videos:', error);
       setVideos([]);
@@ -61,10 +61,10 @@ export default function AdminVideosPage() {
     setEditingVideo(video);
     setFormData({
       title: video.title,
-      youtube_url: video.youtube_url,
+      youtube_url: video.youtube_url || '',
       description: video.description || '',
       category: video.category,
-      published_date: video.published_date,
+      published_date: video.published_date || '',
       order: video.order,
       is_featured: video.is_featured,
     });
@@ -73,43 +73,38 @@ export default function AdminVideosPage() {
 
   const handleDelete = async (video: Video) => {
     try {
-      await deleteVideo(video.id);
+      const res = await fetch(`/api/videos/${video.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
       loadData();
     } catch (error) {
       console.error('Error deleting video:', error);
-      alert('Error al eliminar video');
+      alert('Error al eliminar podcast');
     }
-  };
-
-  const extractEmbedId = (url: string): string => {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=|\/sandalsResorts#\w\/\w\/.*\/))([^\/&\?]{10,12})/);
-    return match?.[1] || '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const embed_id = extractEmbedId(formData.youtube_url);
-
-    if (!embed_id) {
-      alert('URL de YouTube no válida');
-      return;
-    }
-
+    // El link de YouTube ya no es obligatorio — se puede registrar el episodio
+    // solo con metadata y completar el link después, editando.
     try {
-      const data = { ...formData, embed_id };
-
-      if (editingVideo) {
-        await updateVideo(editingVideo.id, data as any);
-      } else {
-        await createVideo(data as any);
+      const url = editingVideo ? `/api/videos/${editingVideo.id}` : '/api/videos';
+      const method = editingVideo ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
       }
 
       resetForm();
       loadData();
     } catch (error) {
       console.error('Error saving video:', error);
-      alert('Error al guardar video');
+      alert('Error al guardar podcast');
     }
   };
 
@@ -132,7 +127,7 @@ export default function AdminVideosPage() {
       label: 'Fecha',
       render: (item: Video) => (
         <span className="text-sm text-gray-600">
-          {new Date(item.published_date).toLocaleDateString('es-EC')}
+          {item.published_date ? new Date(item.published_date).toLocaleDateString('es-EC') : '—'}
         </span>
       ),
     },
@@ -152,7 +147,7 @@ export default function AdminVideosPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-uleam-blue">
-            {editingVideo ? 'Editar Video' : 'Nuevo Video'}
+            {editingVideo ? 'Editar Podcast' : 'Nuevo Podcast'}
           </h2>
           <button
             onClick={resetForm}
@@ -177,16 +172,15 @@ export default function AdminVideosPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">URL de YouTube *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">URL de YouTube</label>
               <input
                 type="url"
                 value={formData.youtube_url}
                 onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 placeholder="https://www.youtube.com/watch?v=..."
               />
-              <p className="text-xs text-gray-500 mt-1">Pega la URL completa del video de YouTube</p>
+              <p className="text-xs text-gray-500 mt-1">Opcional — puedes registrar el episodio antes de tener el link y completarlo después</p>
             </div>
 
             <div>
@@ -275,7 +269,7 @@ export default function AdminVideosPage() {
 
   return (
     <DataTable
-      title="Videos"
+      title="Podcast"
       columns={columns}
       data={videos}
       loading={loading}

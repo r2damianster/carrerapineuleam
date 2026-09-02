@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getVideos, getPublications, getNews } from '@/lib/db';
+import { getPublications, getNews } from '@/lib/db';
 import type { Video, Publication, News } from '@/types';
 
 // Eventos InterClass organizados (clases que integran varias carreras/disciplinas)
@@ -65,7 +65,10 @@ export default function SubstantiveFunctionsSection() {
   const [news, setNews] = useState<News[]>([]);
 
   useEffect(() => {
-    getVideos().then((vids) => setVideos(vids as Video[])).catch(() => setVideos([]));
+    fetch('/api/videos')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((vids) => setVideos(Array.isArray(vids) ? vids : []))
+      .catch(() => setVideos([]));
     getPublications().then(setPublications).catch(() => setPublications([]));
     getNews().then(setNews).catch(() => setNews([]));
   }, []);

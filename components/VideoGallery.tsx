@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import VideoCard from './VideoCard';
-import { getVideoCategories, getVideos } from '@/lib/db';
 import type { VideoCategory, Video } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 
@@ -19,12 +18,13 @@ export default function VideoGallery() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [cats, vids] = await Promise.all([
-          getVideoCategories(),
-          getVideos(),
+        const [catsRes, vidsRes] = await Promise.all([
+          fetch('/api/video-categories?active=true'),
+          fetch('/api/videos'),
         ]);
-        setCategories(cats as any);
-        setVideos(vids as any);
+        if (!catsRes.ok || !vidsRes.ok) throw new Error('Failed to fetch videos');
+        setCategories(await catsRes.json());
+        setVideos(await vidsRes.json());
       } catch (error) {
         // Fallback sample data
         setCategories([
@@ -71,7 +71,7 @@ export default function VideoGallery() {
   }, []);
 
   const sortedVideos = [...videos].sort(
-    (a, b) => new Date(b.published_date).getTime() - new Date(a.published_date).getTime()
+    (a, b) => new Date(b.published_date || 0).getTime() - new Date(a.published_date || 0).getTime()
   );
   const latestIds = new Set(sortedVideos.slice(0, 3).map((v) => v.id));
 

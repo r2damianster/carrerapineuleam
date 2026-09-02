@@ -41,11 +41,11 @@ export interface VideoCategory {
 export interface Video {
   id: string;
   title: string;
-  youtube_url: string;
+  youtube_url?: string | null; // opcional: se puede registrar el episodio antes de tener el link
   description?: string;
-  embed_id: string;
+  embed_id?: string | null;
   category: string; // relation to video_categories
-  published_date: string;
+  published_date?: string | null;
   order: number;
   is_featured: boolean;
   tags?: string[];

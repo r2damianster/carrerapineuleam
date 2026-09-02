@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/admin/DataTable';
-import { getAllVideoCategories, createVideoCategory, updateVideoCategory, deleteVideoCategory } from '@/lib/db';
 import type { VideoCategory } from '@/types';
 
 export default function AdminCategoriesPage() {
@@ -25,8 +24,10 @@ export default function AdminCategoriesPage() {
 
   const loadCategories = async () => {
     try {
-      const records = await getAllVideoCategories();
-      setCategories(records as any);
+      const res = await fetch('/api/video-categories');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      const records = await res.json();
+      setCategories(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error('Error loading categories:', error);
       setCategories([]);
@@ -62,7 +63,8 @@ export default function AdminCategoriesPage() {
 
   const handleDelete = async (category: VideoCategory) => {
     try {
-      await deleteVideoCategory(category.id);
+      const res = await fetch(`/api/video-categories/${category.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
       loadCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -77,11 +79,16 @@ export default function AdminCategoriesPage() {
 
     try {
       const data = { ...formData, slug };
-
-      if (editingCategory) {
-        await updateVideoCategory(editingCategory.id, data as any);
-      } else {
-        await createVideoCategory(data as any);
+      const url = editingCategory ? `/api/video-categories/${editingCategory.id}` : '/api/video-categories';
+      const method = editingCategory ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save');
       }
 
       resetForm();

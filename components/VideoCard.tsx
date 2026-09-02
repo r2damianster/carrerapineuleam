@@ -6,10 +6,10 @@ interface VideoProps {
   video: {
     id: string;
     title: string;
-    youtube_url: string;
+    youtube_url?: string | null;
     description?: string;
-    embed_id: string;
-    published_date: string;
+    embed_id?: string | null;
+    published_date?: string | null;
     category?: any;
     tags?: string[];
     expand?: { category?: { name: string; slug: string } };
@@ -76,13 +76,19 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
             Nuevo
           </span>
         )}
-        <iframe
-          src={`https://www.youtube.com/embed/${video.embed_id}`}
-          title={video.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-        />
+        {video.embed_id ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${video.embed_id}`}
+            title={video.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+            Próximamente
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -147,26 +153,30 @@ export default function VideoCard({ video, isLatest }: VideoProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>
-              {new Date(video.published_date).toLocaleDateString('es-EC', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {video.published_date
+                ? new Date(video.published_date).toLocaleDateString('es-EC', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : 'Fecha por confirmar'}
             </span>
           </div>
 
           {/* YouTube Link */}
-          <a
-            href={video.youtube_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1 transition"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-            </svg>
-            YouTube
-          </a>
+          {video.youtube_url && (
+            <a
+              href={video.youtube_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1 transition"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+              YouTube
+            </a>
+          )}
         </div>
       </div>
     </div>
