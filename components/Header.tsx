@@ -14,13 +14,14 @@ interface HeaderProps {
 type NavChild = { href?: string; label: string; isHeader?: boolean };
 type NavItem = { href: string; label: string; children?: undefined } | { label: string; children: NavChild[]; href?: undefined };
 
-export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionales y Extranjeros', logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
+export default function Header({ siteName, logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
   const { lang, t, toggle } = useLanguage();
   const navRef = useRef<HTMLUListElement>(null);
+  const displaySiteName = siteName || t.nav.siteName;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,16 +42,16 @@ export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionale
   }, []);
 
   const navLinks: NavItem[] = [
-    { href: '/', label: 'Inicio' },
+    { href: '/', label: t.nav.home },
     { label: t.nav.docencia, children: [{ href: '/docencia/docencia-innovadora', label: t.docenciaProject.navLabel }] },
-    { 
-      label: t.nav.investigacion, 
+    {
+      label: t.nav.investigacion,
       children: [
-        { label: 'REDES', isHeader: true },
-        { href: '/redlea', label: 'RED LEA' },
-        { label: 'PROYECTOS', isHeader: true },
-        { href: '/investigacion/proyecto-innovacion', label: 'Innovaciones Pedagógicas' },
-        { href: '/investigacion/desarrollo-habilidades', label: 'Desarrollo de las habilidades lingüísticas' },
+        { label: t.nav.networksHeader, isHeader: true },
+        { href: '/redlea', label: t.nav.redLeaLabel },
+        { label: t.nav.projectsHeader, isHeader: true },
+        { href: '/investigacion/proyecto-innovacion', label: t.nav.innovacionesLabel },
+        { href: '/investigacion/desarrollo-habilidades', label: t.desarrolloProject.navLabel },
         { href: '/investigacion/mentoring', label: t.mentoringProject.navLabel }
       ]
     },
@@ -84,7 +85,7 @@ export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionale
               />
             </div>
             <span className={`font-bold text-lg hidden lg:block leading-tight ${scrolled ? 'text-uleam-blue' : 'text-white'}`}>
-              {siteName}
+              {displaySiteName}
             </span>
           </Link>
 
@@ -166,7 +167,7 @@ export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionale
                     : 'bg-white text-uleam-blue hover:bg-white/90'
                 }`}
               >
-                Portal PINE
+                {t.nav.portalPine}
               </Link>
             </li>
           </ul>
@@ -259,7 +260,7 @@ export default function Header({ siteName = 'Pedagogía de los Idiomas Nacionale
                 className="block w-full text-left py-2 px-4 text-uleam-blue hover:bg-gray-100 rounded font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Portal PINE
+                {t.nav.portalPine}
               </Link>
             </li>
           </ul>

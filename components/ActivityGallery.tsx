@@ -69,7 +69,7 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
     return (
       <section className="py-10 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando galería...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.activities.loading}</div>
         </div>
       </section>
     );
@@ -95,7 +95,7 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Momentos destacados de nuestras actividades y eventos
+            {t.activities.sectionSubtitle}
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
             </button>
             <Image
               src={selectedImage}
-              alt="Activity"
+              alt={t.activities.lightboxAlt}
               width={1200}
               height={800}
               className="object-contain max-h-screen"

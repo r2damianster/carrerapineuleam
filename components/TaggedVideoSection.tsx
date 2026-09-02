@@ -43,7 +43,7 @@ export default function TaggedVideoSection({ tag, projectKey }: TaggedVideoSecti
     return (
       <section className="py-10 md:py-20 bg-white">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando videos...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.videos.loading}</div>
         </div>
       </section>
     );
@@ -58,7 +58,7 @@ export default function TaggedVideoSection({ tag, projectKey }: TaggedVideoSecti
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">{p.videosSectionSubtitle}</p>
           {sortedVideos.length > 0 && (
             <p className="mt-3 inline-flex items-center gap-2 px-5 py-2 bg-uleam-gold text-uleam-blue text-base font-extrabold rounded-full shadow-md">
-              🎙️ {sortedVideos.length} episodios
+              🎙️ {sortedVideos.length} {t.videos.episodesPublished}
             </p>
           )}
         </div>

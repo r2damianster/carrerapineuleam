@@ -91,7 +91,7 @@ export default function VideoGallery() {
     return (
       <section id="videos" className="py-10 md:py-20 bg-white">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando videos...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.videos.loading}</div>
         </div>
       </section>
     );
@@ -107,11 +107,11 @@ export default function VideoGallery() {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Explora nuestra colección de podcasts, entrevistas y materiales educativos
+            {t.videos.sectionSubtitle}
           </p>
           {videos.length > 0 && (
             <p className="mt-3 inline-flex items-center gap-2 px-5 py-2 bg-uleam-gold text-uleam-blue text-base font-extrabold rounded-full shadow-md">
-              🎙️ {videos.length} episodios publicados
+              🎙️ {videos.length} {t.videos.episodesPublished}
             </p>
           )}
         </div>
@@ -203,7 +203,7 @@ export default function VideoGallery() {
                   onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
                   className="px-8 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition-all"
                 >
-                  Cargar más episodios
+                  {t.videos.loadMore}
                 </button>
               </div>
             )}
@@ -213,7 +213,7 @@ export default function VideoGallery() {
             <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <p className="text-gray-600 text-lg">No hay videos en esta categoría aún</p>
+            <p className="text-gray-600 text-lg">{t.videos.empty}</p>
           </div>
         )}
 
@@ -225,7 +225,7 @@ export default function VideoGallery() {
             rel="noopener noreferrer"
             className="inline-block px-8 py-4 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition-all transform hover:scale-105"
           >
-            Ver Canal de PINE en YouTube →
+            {t.videos.viewChannel}
           </a>
         </div>
       </div>

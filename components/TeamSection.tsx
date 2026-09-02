@@ -9,16 +9,6 @@ interface TeamSectionProps {
   project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
 }
 
-// Subtítulo bajo el título "Equipo" — contextual por proyecto, ya que no todos son de investigación
-// (ej. Vinculación no es un equipo de "investigadores").
-const TEAM_SUBTITLES: Record<string, string> = {
-  internacionalizacion: 'Investigadores dedicados a transformar la educación',
-  desarrollo_habilidades: 'Investigadores dedicados al desarrollo de las habilidades lingüísticas',
-  vinculacion: 'Equipo comprometido con la vinculación y el servicio a la comunidad',
-  mentoring: 'Equipo dedicado a la mentoría y el desarrollo humano docente',
-};
-const DEFAULT_TEAM_SUBTITLE = 'Investigadores dedicados a transformar la educación';
-
 export default function TeamSection({ project }: TeamSectionProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +63,7 @@ export default function TeamSection({ project }: TeamSectionProps) {
     return (
       <section id="equipo" className="py-10 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando equipo...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.team.loading}</div>
         </div>
       </section>
     );
@@ -89,14 +79,14 @@ export default function TeamSection({ project }: TeamSectionProps) {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            {(project && TEAM_SUBTITLES[project]) || DEFAULT_TEAM_SUBTITLE}
+            {(project && t.team.subtitles[project as keyof typeof t.team.subtitles]) || t.team.subtitles.internacionalizacion}
           </p>
         </div>
 
         {/* All members side by side */}
         <div className="grid grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 max-w-6xl mx-auto justify-items-center">
           {members.map((member) => (
-            <TeamCard key={member.id} member={member} project={project} />
+            <TeamCard key={member.id} member={member} project={project} badges={t.team.badges} />
           ))}
         </div>
       </div>
@@ -106,14 +96,16 @@ export default function TeamSection({ project }: TeamSectionProps) {
 
 // Etiqueta de rol distinta a la global cuando un miembro aparece en más de un proyecto con
 // un rol diferente ahí — ej. Arturo es Líder en Internacionalización pero solo Supervisor en Vinculación.
+// Los valores son keys de t.team.badges, resueltas en TeamCard con el idioma activo.
 const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
-  vinculacion: { member_1: 'Supervisor' },
+  vinculacion: { member_1: 'supervisor' },
 };
 
-function TeamCard({ member, project }: { member: Member; project?: string }) {
-  const badge =
+function TeamCard({ member, project, badges }: { member: Member; project?: string; badges: Record<string, string> }) {
+  const badgeKey =
     (project && ROLE_BADGE_OVERRIDES[project]?.[member.id]) ||
-    (member.is_leader ? 'Líder' : member.order === 2 ? 'Colíder' : member.id === 'member_7' ? 'Vinculación' : 'Participante');
+    (member.is_leader ? 'leader' : member.order === 2 ? 'coleader' : member.id === 'member_7' ? 'vinculacion' : 'participant');
+  const badge = badges[badgeKey];
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-uleam-gold w-full">

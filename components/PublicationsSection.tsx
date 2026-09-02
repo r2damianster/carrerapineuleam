@@ -11,7 +11,7 @@ export default function PublicationsSection() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const loadPublications = async () => {
@@ -70,7 +70,7 @@ export default function PublicationsSection() {
     return (
       <section id="publicaciones" className="py-10 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold text-uleam-blue">Cargando publicaciones...</div>
+          <div className="text-2xl font-bold text-uleam-blue">{t.publications.loading}</div>
         </div>
       </section>
     );
@@ -81,12 +81,7 @@ export default function PublicationsSection() {
     : publications.filter(p => p.category === activeCategory);
 
   const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      regional: 'Regional',
-      libros: 'Libros',
-      impacto: 'De Impacto',
-    };
-    return labels[category] || category;
+    return t.publications.filters[category as keyof typeof t.publications.filters] || category;
   };
 
   const getCategoryColor = (category: string) => {
@@ -99,13 +94,7 @@ export default function PublicationsSection() {
   };
 
   const getTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      article: 'Artículo Científico',
-      conference: 'Conferencia',
-      book: 'Libro/Capítulo',
-      other: 'Otro',
-    };
-    return types[type] || type;
+    return t.publications.types[type as keyof typeof t.publications.types] || type;
   };
 
   return (
@@ -118,7 +107,7 @@ export default function PublicationsSection() {
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Investigación y producción académica del proyecto
+            {t.publications.sectionSubtitle}
           </p>
         </div>
 
@@ -196,7 +185,7 @@ export default function PublicationsSection() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span>
-                        {new Date(pub.publication_date).toLocaleDateString('es-EC', {
+                        {new Date(pub.publication_date).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', {
                           year: 'numeric',
                           month: 'short',
                         })}
@@ -236,7 +225,7 @@ export default function PublicationsSection() {
             <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <p className="text-gray-600 text-lg">No hay publicaciones en esta categoría</p>
+            <p className="text-gray-600 text-lg">{t.publications.empty}</p>
           </div>
         )}
 

@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 const CONTACT_EMAIL = 'c.pinextranjeros@uleam.edu.ec';
 
 export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' } = {}) {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
 
   const buildMailUrl = (provider: 'gmail' | 'outlook') => {
@@ -138,7 +138,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
           </h2>
           <div className="w-24 h-1 bg-uleam-gold mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            ¿Tienes preguntas o quieres colaborar? ¡Contáctanos!
+            {t.contact.sectionSubtitle}
           </p>
         </div>
 
@@ -197,7 +197,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
             
             {/* Social Links */}
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <h4 className="text-lg font-semibold text-uleam-blue mb-4">Síguenos</h4>
+              <h4 className="text-lg font-semibold text-uleam-blue mb-4">{t.contact.followUs}</h4>
               <div className="flex flex-wrap gap-4">
                 {socialLinks.map((social) => (
                   <a
@@ -217,9 +217,9 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
 
             {/* Institution Info */}
             <div className="bg-gradient-to-br from-uleam-blue to-primary-800 text-white rounded-lg p-6">
-              <h4 className="text-lg font-bold mb-3">Universidad Laica Eloy Alfaro de Manabí</h4>
+              <h4 className="text-lg font-bold mb-3">{t.contact.institutionName}</h4>
               <p className="text-gray-200 text-sm mb-4">
-                Comprometida con la excelencia académica, la investigación y la transformación social.
+                {t.contact.institutionDescription}
               </p>
               <a
                 href="https://www.uleam.edu.ec"
@@ -227,7 +227,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-uleam-gold text-uleam-blue font-bold rounded-lg hover:bg-yellow-400 transition"
               >
-                Visitar sitio web
+                {t.contact.visitWebsite}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -265,7 +265,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-uleam-blue focus:ring-2 focus:ring-uleam-blue/20 outline-none transition resize-none"
                   ></textarea>
                 </div>
-                <p className="text-sm text-gray-500">{t.contact.sendBtn} {lang === 'en' ? 'with:' : 'con:'}</p>
+                <p className="text-sm text-gray-500">{t.contact.sendBtn} {t.contact.sendWith}</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
