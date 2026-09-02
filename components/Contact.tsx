@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 
-const CONTACT_EMAIL = 'arturo.rodriguez@uleam.edu.ec';
+const CONTACT_EMAIL = 'c.pinextranjeros@uleam.edu.ec';
 
 export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' } = {}) {
   const { t, lang } = useLanguage();
