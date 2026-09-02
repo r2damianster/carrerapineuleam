@@ -22,7 +22,7 @@ export default function REDLEAPage() {
         <RedLEAGaleria />
         <RedLEAMemoria />
       </main>
-      <Footer />
+      <Footer context="redlea" />
     </>
   );
 }

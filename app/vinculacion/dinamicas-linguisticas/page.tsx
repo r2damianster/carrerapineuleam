@@ -25,7 +25,7 @@ export default function VinculacionProjectPage() {
         <VinculacionResearchSection />
         <Contact projectKey="vinculacionProject" />
       </main>
-      <Footer />
+      <Footer context="vinculacion" />
     </>
   );
 }

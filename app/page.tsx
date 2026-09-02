@@ -11,7 +11,7 @@ export default function HubPage() {
       <main>
         <HubProjectsSection />
       </main>
-      <Footer />
+      <Footer context="landing" />
     </>
   );
 }

@@ -21,7 +21,7 @@ export default function DocenciaProjectPage() {
         <TaggedVideoSection tag="docencia" projectKey="docenciaProject" />
         <Contact />
       </main>
-      <Footer />
+      <Footer context="docencia" />
     </>
   );
 }

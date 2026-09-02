@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import type { FooterContext } from '@/lib/data';
+import { footerContexts } from '@/lib/data';
 
-export default function Footer() {
+interface FooterProps {
+  context?: string; // key from footerContexts
+}
+
+export default function Footer({ context = 'default' }: FooterProps) {
   const currentYear = new Date().getFullYear();
   const { t } = useLanguage();
+  const footerData = footerContexts[context] || footerContexts.default;
 
   const socialLinks = [
     {
@@ -110,22 +117,37 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-uleam-gold">{t.footer.contact}</h4>
             <ul className="space-y-2 text-gray-300">
-              <li>
-                <strong>{t.footer.leader}</strong> Arturo Rodríguez
-              </li>
-              <li>
-                <a href="mailto:arturo.rodriguez@uleam.edu.ec" className="hover:text-uleam-gold transition">
-                  arturo.rodriguez@uleam.edu.ec
-                </a>
-              </li>
-              <li>
-                <strong>{t.footer.coleader}</strong> Jhonny Villafuerte
-              </li>
-              <li>
-                <a href="mailto:jhonny.villafuerte@uleam.edu.ec" className="hover:text-uleam-gold transition">
-                  jhonny.villafuerte@uleam.edu.ec
-                </a>
-              </li>
+              {footerData.leader && (
+                <>
+                  <li>
+                    <strong>{t.footer.leader}</strong> {footerData.leader.name}
+                  </li>
+                  <li>
+                    <a href={`mailto:${footerData.leader.email}`} className="hover:text-uleam-gold transition">
+                      {footerData.leader.email}
+                    </a>
+                  </li>
+                </>
+              )}
+              {footerData.coleader && (
+                <>
+                  <li>
+                    <strong>{t.footer.coleader}</strong> {footerData.coleader.name}
+                  </li>
+                  <li>
+                    <a href={`mailto:${footerData.coleader.email}`} className="hover:text-uleam-gold transition">
+                      {footerData.coleader.email}
+                    </a>
+                  </li>
+                </>
+              )}
+              {footerData.contactEmail && !footerData.leader && (
+                <li>
+                  <a href={`mailto:${footerData.contactEmail}`} className="hover:text-uleam-gold transition">
+                    {footerData.contactEmail}
+                  </a>
+                </li>
+              )}
               <li className="pt-2">
                 <a href="https://www.uleam.edu.ec" target="_blank" rel="noopener noreferrer" className="hover:text-uleam-gold transition">
                   www.uleam.edu.ec

@@ -108,3 +108,43 @@ export const liderProyectoPropio: Record<string, string> = {
   'german.carrera@uleam.edu.ec': 'Desarrollo de Habilidades Lingüísticas',
   'veronica.chavez@uleam.edu.ec': 'Mentoring',
 };
+
+// Footer contexts for different project sections — configures which leader/coleader/email shows in footer
+export interface FooterContext {
+  leader?: { name: string; email: string };
+  coleader?: { name: string; email: string };
+  contactEmail?: string; // override default contact email
+}
+
+export const footerContexts: Record<string, FooterContext> = {
+  // Default/Main pages — Internacionalización project
+  default: {
+    leader: { name: 'Arturo Rodríguez', email: 'arturo.rodriguez@uleam.edu.ec' },
+    coleader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
+  },
+  // Main landing / career page — only generic contact
+  landing: {
+    contactEmail: 'c.pinextranjeros@uleam.edu.ec',
+  },
+  // Vinculación section — Cynthia Zambrano
+  vinculacion: {
+    leader: { name: 'Cynthia Zambrano', email: 'cynthia.zambrano@uleam.edu.ec' },
+  },
+  // Desarrollo de Habilidades Lingüísticas / Lingüística section — Germán Carrera + Cristina Basantes
+  linguistica: {
+    leader: { name: 'German Carrera', email: 'german.carrera@uleam.edu.ec' },
+    coleader: { name: 'Cristina Basantes', email: 'maria.basantes@uleam.edu.ec' },
+  },
+  // Mentoría section — Verónica Chávez
+  mentoring: {
+    leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
+  },
+  // Docencia Innovadora — Verónica (academic commission)
+  docencia: {
+    leader: { name: 'Verónica Chávez', email: 'veronica.chavez@uleam.edu.ec' },
+  },
+  // Red LEA — Jhonny as coordinator
+  redlea: {
+    leader: { name: 'Jhonny Villafuerte', email: 'jhonny.villafuerte@uleam.edu.ec' },
+  },
+};

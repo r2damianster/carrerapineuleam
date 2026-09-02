@@ -29,7 +29,7 @@ export default function DesarrolloHabilidadesPage() {
 
         <Contact projectKey="desarrolloProject" />
       </main>
-      <Footer />
+      <Footer context="linguistica" />
     </>
   );
 }
