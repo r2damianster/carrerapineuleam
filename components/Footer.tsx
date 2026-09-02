@@ -140,7 +140,8 @@ export default function Footer({ context = 'default' }: FooterProps) {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {currentYear} ULEAM - Innovaciones Pedagógicas. {t.footer.rights}</p>
+          <p>&copy; {currentYear} ULEAM. {t.footer.rights}</p>
+          <p className="text-xs text-gray-500 mt-2">Desarrollador responsable de la web: Arturo Rodríguez</p>
         </div>
       </div>
     </footer>

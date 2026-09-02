@@ -132,6 +132,7 @@ const translations = {
       sendBtn: 'Enviar Mensaje',
       leader: 'Líder del Proyecto',
       coleader: 'Colíder del Proyecto',
+      supervisor: 'Supervisor',
     },
     footer: {
       description: 'Proyecto de investigación dedicado a la transformación de las prácticas pedagógicas y la internacionalización en la Universidad Laica Eloy Alfaro de Manabí (ULEAM).',
@@ -355,6 +356,7 @@ const translations = {
       sendBtn: 'Send Message',
       leader: 'Project Leader',
       coleader: 'Project Co-Leader',
+      supervisor: 'Supervisor',
     },
     footer: {
       description: 'Research project dedicated to the transformation of pedagogical practices and internationalization at the Laica Eloy Alfaro University of Manabí (ULEAM).',

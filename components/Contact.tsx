@@ -34,7 +34,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
       },
       {
         name: 'Dr. Arturo Rodríguez',
-        role: t.contact.coleader,
+        role: t.contact.supervisor,
         email: 'arturo.rodriguez@uleam.edu.ec',
         orcid: '0000-0002-7017-9443',
       }
