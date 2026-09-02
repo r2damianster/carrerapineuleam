@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -11,6 +11,13 @@ export default function PortalLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [redirect, setRedirect] = useState<string | null>(null);
+
+  useEffect(() => {
+    const redirectParam = searchParams.get('redirect');
+    setRedirect(redirectParam);
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +25,8 @@ export default function PortalLogin() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/portal-login', {
+      const loginUrl = '/api/auth/portal-login' + (redirect ? `?redirect=${encodeURIComponent(redirect)}` : '');
+      const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

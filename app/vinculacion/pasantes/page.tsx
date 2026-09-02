@@ -40,7 +40,7 @@ export default function PasantesPage() {
         setCheckingSession(false);
         return fetchEstudiantes();
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/pasantes'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/pasantes'));
   }, [router]);
 
   const fetchEstudiantes = async () => {

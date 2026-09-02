@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 
 interface Author {
   authorName: string;
@@ -107,6 +108,11 @@ export default function ContributionsPage() {
 
   return (
     <div className="p-4">
+      <div className="mb-4">
+        <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+          &larr; Volver al Portal PINE
+        </Link>
+      </div>
       <h1 className="text-2xl font-bold mb-4">Contribuciones (solo admin)</h1>
       {contributions.length === 0 ? (
         <p>No hay contribuciones registradas.</p>

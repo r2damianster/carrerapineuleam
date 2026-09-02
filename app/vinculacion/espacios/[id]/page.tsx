@@ -28,7 +28,7 @@ export default function EspacioInstructoresPage() {
         setCheckingSession(false);
         return fetchData();
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/espacios'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/espacios'));
   }, [router, espacioId]);
 
   const fetchData = async () => {

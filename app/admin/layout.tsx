@@ -39,6 +39,9 @@ export default function AdminLayout({
               <span className="text-sm text-gray-300">ULEAM - Innovaciones Pedagógicas</span>
             </div>
             <div className="flex items-center gap-4">
+              <a href="/portal/dashboard" className="text-sm hover:text-uleam-gold transition">
+                ← Volver al Portal PINE
+              </a>
               <a href="/" className="text-sm hover:text-uleam-gold transition">
                 Ver sitio →
               </a>

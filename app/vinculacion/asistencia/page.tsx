@@ -33,7 +33,7 @@ export default function AsistenciaPage() {
           }
         });
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/asistencia'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/asistencia'));
   }, [router]);
 
   useEffect(() => {

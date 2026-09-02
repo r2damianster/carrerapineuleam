@@ -39,7 +39,7 @@ export default function GestionCarreraPage() {
           setResponsables([parseInt(data.usuario.id, 10)]);
         }
       })
-      .catch(() => router.push('/login?redirect=/gestion-carrera'));
+      .catch(() => router.push('/portal/login?redirect=/gestion-carrera'));
 
     fetch('/api/profesores')
       .then(res => res.ok ? res.json() : { profesores: [] })

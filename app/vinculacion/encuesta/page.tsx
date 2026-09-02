@@ -42,7 +42,7 @@ export default function EncuestaPage() {
           if (ciclosData.success) setCiclos(ciclosData.data);
         });
       })
-      .catch(() => router.push('/login?redirect=/vinculacion/encuesta'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/encuesta'));
   }, [router]);
 
   useEffect(() => {
