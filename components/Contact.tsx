@@ -60,7 +60,7 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
         name: 'Mg. Verónica Chávez',
         role: t.contact.leader,
         email: 'veronica.chavez@uleam.edu.ec',
-        orcid: '',
+        orcid: '0000-0003-3958-5053',
       }
     ];
   } else {
