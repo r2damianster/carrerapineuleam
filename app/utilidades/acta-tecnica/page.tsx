@@ -1,13 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ParticipanteForm {
   titulo: string;
   nombre: string;
   apellido: string;
   cargo: string;
+}
+
+interface Docente {
+  id: number;
+  titulo_grado: string;
+  nombre: string;
+  post_grado: string;
+  cargo: string;
+  carrera: string;
 }
 
 const MAX_PARTICIPANTES = 9;
@@ -24,6 +33,15 @@ async function enriquecer(contexto: string, texto: string): Promise<string> {
 }
 
 export default function ActaTecnicaPage() {
+  const [docentes, setDocentes] = useState<Docente[]>([]);
+
+  useEffect(() => {
+    fetch("/utilidades/api/docentes")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setDocentes(Array.isArray(data) ? data : []))
+      .catch(() => setDocentes([]));
+  }, []);
+
   const [numActa, setNumActa] = useState("");
   const [fechaReunion, setFechaReunion] = useState("");
   const [lugarReunion, setLugarReunion] = useState("");
@@ -53,6 +71,27 @@ export default function ActaTecnicaPage() {
   function agregarParticipante() {
     if (participantes.length >= MAX_PARTICIPANTES) return;
     setParticipantes((prev) => [...prev, { titulo: "", nombre: "", apellido: "", cargo: "Docente" }]);
+  }
+
+  function seleccionarConvocante(id: string) {
+    const d = docentes.find((x) => String(x.id) === id);
+    if (!d) return;
+    setConvocante(`${d.titulo_grado} ${d.nombre}, ${d.cargo}`.trim());
+  }
+
+  function seleccionarParticipante(idx: number, id: string) {
+    const d = docentes.find((x) => String(x.id) === id);
+    if (!d) return;
+    setParticipantes((prev) =>
+      prev.map((p, i) => (i === idx ? { titulo: d.titulo_grado, nombre: d.nombre, apellido: "", cargo: d.cargo } : p))
+    );
+  }
+
+  function seleccionarElaborador(id: string) {
+    const d = docentes.find((x) => String(x.id) === id);
+    if (!d) return;
+    setElaboradoTitulo(d.titulo_grado);
+    setElaboradoNombre(d.nombre);
   }
 
   async function mejorarConIA() {
@@ -135,6 +174,12 @@ export default function ActaTecnicaPage() {
               <label className="text-sm">Hora fin<input required type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} className="ht-input" /></label>
             </div>
             <label className="col-span-2 text-sm">Convocado por (Nombre, Cargo)
+              <select defaultValue="" onChange={(e) => { seleccionarConvocante(e.target.value); e.target.value = ""; }} className="ht-input mb-2">
+                <option value="" disabled>-- Seleccionar de la lista de docentes --</option>
+                {docentes.map((d) => (
+                  <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+                ))}
+              </select>
               <input required value={convocante} onChange={(e) => setConvocante(e.target.value)} placeholder="Ej: Mg. López, Director de Carrera" className="ht-input" />
             </label>
           </div>
@@ -142,13 +187,21 @@ export default function ActaTecnicaPage() {
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
           <legend className="px-2 font-semibold text-[#003366]">2. Participantes (aparecerán como firmantes)</legend>
-          <p className="mb-2 text-xs text-slate-500">Máximo 9 participantes (el acta tiene 10 espacios de firma: 1 para el convocante + 9 participantes).</p>
+          <p className="mb-2 text-xs text-slate-500">Máximo 9 participantes (el acta tiene 10 espacios de firma: 1 para el convocante + 9 participantes). Seleccione un docente de la lista para autocompletar sus datos, o escríbalos manualmente (invitados externos).</p>
           {participantes.map((p, i) => (
-            <div key={i} className="mb-2 grid grid-cols-[80px_1fr_1fr_1fr] gap-2">
-              <input value={p.titulo} onChange={(e) => actualizarParticipante(i, "titulo", e.target.value)} placeholder="Título" className="ht-input" />
-              <input required value={p.nombre} onChange={(e) => actualizarParticipante(i, "nombre", e.target.value)} placeholder="Nombre" className="ht-input" />
-              <input required value={p.apellido} onChange={(e) => actualizarParticipante(i, "apellido", e.target.value)} placeholder="Apellido" className="ht-input" />
-              <input value={p.cargo} onChange={(e) => actualizarParticipante(i, "cargo", e.target.value)} placeholder="Cargo" className="ht-input" />
+            <div key={i} className="mb-3 rounded-md border border-slate-200 p-2">
+              <select defaultValue="" onChange={(e) => { seleccionarParticipante(i, e.target.value); e.target.value = ""; }} className="ht-input mb-2">
+                <option value="" disabled>-- Seleccionar de la lista de docentes --</option>
+                {docentes.map((d) => (
+                  <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+                ))}
+              </select>
+              <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-2">
+                <input value={p.titulo} onChange={(e) => actualizarParticipante(i, "titulo", e.target.value)} placeholder="Título" className="ht-input" />
+                <input required value={p.nombre} onChange={(e) => actualizarParticipante(i, "nombre", e.target.value)} placeholder="Nombre" className="ht-input" />
+                <input required value={p.apellido} onChange={(e) => actualizarParticipante(i, "apellido", e.target.value)} placeholder="Apellido" className="ht-input" />
+                <input value={p.cargo} onChange={(e) => actualizarParticipante(i, "cargo", e.target.value)} placeholder="Cargo" className="ht-input" />
+              </div>
             </div>
           ))}
           <button type="button" onClick={agregarParticipante} disabled={participantes.length >= MAX_PARTICIPANTES}
@@ -159,6 +212,12 @@ export default function ActaTecnicaPage() {
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
           <legend className="px-2 font-semibold text-[#003366]">3. Elaborado por</legend>
+          <select defaultValue="" onChange={(e) => { seleccionarElaborador(e.target.value); e.target.value = ""; }} className="ht-input mb-3">
+            <option value="" disabled>-- Seleccionar de la lista de docentes --</option>
+            {docentes.map((d) => (
+              <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+            ))}
+          </select>
           <div className="grid grid-cols-[100px_1fr] gap-3">
             <label className="text-sm">Título<input required value={elaboradoTitulo} onChange={(e) => setElaboradoTitulo(e.target.value)} placeholder="Ej: Lic." className="ht-input" /></label>
             <label className="text-sm">Nombre completo<input required value={elaboradoNombre} onChange={(e) => setElaboradoNombre(e.target.value)} className="ht-input" /></label>

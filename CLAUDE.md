@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.5
-**Última sesión:** 2026-09-02 (Sesión 26 — navegación del panel, footer/equipo contextuales por proyecto, página nueva de Mentoring, reorganización de secciones landing/docencia, internacionalización ES/EN completa. Ver detalle abajo)
+**Última sesión:** 2026-09-02 (Sesión 27 — módulo /utilidades conectado a la BD real: se descubrió que la tabla `docentes` nunca existió en producción, unificada dentro de `usuarios`; Acta Técnica ahora selecciona docentes igual que Convocatorias/Oficios; eliminada carpeta duplicada `carrera-herramientas/`. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -57,6 +57,7 @@
 
 ### Auth unificada
 - **Una sola cookie httpOnly firmada** (`pine_app_session`, HMAC-SHA256 vía Web Crypto) para *todo* — Portal Y panel `/admin` legacy. Implementada en `lib/session.ts` (`createSessionCookieValue`/`verifySessionCookieValue`/`getAppSessionFromCookies`). Requiere `SESSION_SECRET` en las env vars — **sin fallback hardcodeado** (existió brevemente, se removió por seguridad).
+- **Expiración "sliding" de 8 horas (Sesión 27):** la cookie ya es persistente desde siempre (sobrevive a cerrar la pestaña/navegador), pero antes expiraba a fecha fija 4h después del login sin importar si el usuario seguía activo. Ahora `SESSION_MAX_AGE_SECONDS` (`lib/session.ts`) es 8h, y `middleware.ts` reemite la cookie con maxAge completo en cada request autenticado a una ruta protegida (`conSesionRenovada()`) — el usuario se mantiene logueado mientras entre al menos una vez cada 8 horas; solo tras 8h seguidas sin ninguna visita debe volver a loguearse.
 - **NO existen ya**: `lib/adminSession.ts`, `lib/userSession.ts`, el panel `/admin` con password `Pine2026` hardcodeado, ni el módulo viejo `/vinculacion/dinamicas-linguisticas/asistencia` (UUID). Todo fue consolidado/retirado en Sesión 19 — si encuentras referencias a esto en código o docs viejos, están obsoletas.
 - **Login:** `/portal/login` → `POST /api/auth/portal-login`. **Registro:** `/registro` → `POST /api/auth/register` (autologuea). Desde Sesión 22, `PUBLIC_ROLES = ['profesor']` — es el único rol que se autoregistra; `estudiante` y `beneficiario` fueron retirados del todo del selector (antes `beneficiario` seguía ahí como opción viva y rompía porque insertaba en una columna ya eliminada, ver changelog Sesión 22).
 - **Roles** (`usuarios.rol`): `admin` | `profesor` | `estudiante` | `beneficiario`. Autoregistro público solo permite `profesor`/`estudiante`/`beneficiario` — `admin` nunca es autoasignable.
@@ -102,6 +103,15 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 ### Variables de entorno requeridas (Neon/Portal)
 `DATABASE_URL` (Neon), `SESSION_SECRET` (firma de `pine_app_session`), `CLOUDINARY_CLOUD_NAME`/`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` (uploads). Todas ya están en Vercel Production — ver `.env.local.example` para desarrollo local.
 
+### Módulo `/utilidades` — generación de documentos administrativos (Sesión 27)
+
+Generador de documentos `.docx` para trámites de la carrera, integrado dentro de `app/utilidades/` (venía de un proyecto standalone "Utilidades" — la carpeta portable original `carrera-herramientas/` se eliminó en esta sesión, ya no se usa). 5 herramientas: **Acta Técnica**, **Oficios**, **Convocatorias** (a docentes o a estudiantes vía Excel), **Docs AT Maestría** (paquete PAT-003 a PAT-006), **Pares Lectores** (evaluación de trabajos de titulación). Todas con redacción asistida por IA (Groq) para los campos de texto libre.
+
+- **Selector de docentes (Acta Técnica, Oficios, Convocatorias a docentes):** hasta esta sesión leían de una tabla `docentes` separada de `usuarios` — que además **nunca llegó a crearse en la Neon de producción real** (el fetch fallaba silenciosamente con "relation docentes does not exist", el frontend caía a un array vacío, y nadie lo notó porque el modo manual siempre estaba disponible). Se unificó: en vez de crear esa tabla huérfana, `usuarios` ganó columnas opcionales `titulo_grado`/`post_grado`/`cargo_institucional`/`es_director`/`dependencia` (`scripts/migrate-usuarios-docentes.js`). Una fila de `usuarios` aparece en estos selectores cuando `titulo_grado IS NOT NULL`, sin importar su `rol` de auth — `app/utilidades/_lib/docentes.ts` es la única fuente (`getAllDocentes`/`getDocentesByCarrera`/`getAllCarreras`), consumida sin cambios por Convocatorias/Oficios y ahora también por Acta Técnica (antes 100% texto libre manual).
+- **Dos tipos de fila en `usuarios` para este directorio:** (a) docentes reales de PINE con `rol='profesor'`, `activado=false` — se activan solos con su email real en su primer login (idéntico al alta de pasantes); (b) autoridades externas que **nunca** inician sesión (Decano, Rectora Subrogante, Director DIPSB) con `rol=NULL` (columna ya nullable, no se tocó el CHECK) y `activado=false` permanente, invisibles para todo el middleware/auth — mismo patrón de email placeholder que `beneficiarios`.
+- **13 personas sembradas** (Sesión 27, todas confirmadas explícitamente por el usuario): Arturo Rodríguez, Jhonny Villafuerte, Cintya Zambrano (ya eran usuario real); María Cristina Basantes Robalino, Gabriel Bazurto Alcívar, Laura Mena Sánchez, Ulbio Farfán Corrales (unifica lo que en un seed viejo nunca aplicado aparecían como dos personas distintas, "Gonzalo" y "Ulbio" Farfán), Jorge Corral Joniaux, Germán Carrera Moreno (Coordinador de Carrera — no "Director", corregido en esta sesión), Verónica Chávez Zambrano (Responsable de Comisión Académica) — pre-alta pendiente de activación; Jackeline Terranova Ruiz (Rectora Subrogante — actualizado en esta sesión, antes decía Vicerrectora Académica), Klever Alfredo Delgado Reyes (Director DIPSB), Pedro Quijije Anchundia (Decano, Facultad de Educación y Turismo) — autoridades externas sin cuenta real.
+- **Otras tablas del módulo** (no tocadas en esta unificación, siguen igual): `modalidades_titulacion`, `rubricas`, `evaluaciones`, `evaluacion_observaciones`, `evaluacion_indicadores` (Pares Lectores) — creadas por `scripts/migrate-utilidades.js`, que ya NO crea/siembra `docentes`.
+
 ---
 
 ## Estado Actual (2026-09-02, Sesión 26)
@@ -115,9 +125,26 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | Portal PINE — Investigación | ⏳ Solo creación de espacios; artículos científicos pendiente de definir | 30% |
 | Gestión de Carrera (eventos multi-área) | ✅ Completo (Sesión 19) | 100% |
 | Contribuciones Académicas | ✅ Reparado y funcional (Sesión 24) — ⏳ solo campos comunes, faltan ~15 campos específicos por tipo, exportación CSV y tests (ver plan original) | 60% |
+| Módulo `/utilidades` (Acta Técnica/Oficios/Convocatorias/PAT-Maestría/Pares Lectores) | ✅ Selector de docentes unificado en `usuarios` con las 13 personas del directorio confirmadas por el usuario, funcional en las 3 herramientas que lo usan (Sesión 27) | 100% |
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 27 — 2026-09-02)
+
+### Módulo /utilidades conectado a la BD real + unificación de tablas de docentes
+
+A pedido explícito del usuario ("las herramientas de utilidades no permiten traer a los docentes de la base de datos"). Auditoría en vivo contra la Neon de producción real (vía Neon MCP, antes de tocar nada) reveló que la causa no era solo de UI:
+
+1. **Hallazgo:** la tabla `docentes` (fuente de Convocatorias y Oficios) **nunca se creó en producción** — el script que la crea/siembra (`scripts/migrate-utilidades.js`) nunca se corrió contra el `DATABASE_URL` real. El selector de docentes en esas dos herramientas estaba silenciosamente vacío desde siempre (el `fetch` fallaba, el frontend caía a `catch(() => [])`).
+2. **Unificación (en vez de crear la tabla huérfana):** se agregaron columnas opcionales a `usuarios` (`titulo_grado`, `post_grado`, `cargo_institucional`, `es_director`, `dependencia` — `scripts/migrate-usuarios-docentes.js`). Ya no hay dos catálogos de "quién es docente" — uno de ellos ni siquiera existía. Ver detalle en `## Portal PINE` → `### Módulo /utilidades`.
+3. **Acta Técnica** ganó selector de docentes (convocante, cada participante, elaborado por) — antes 100% texto libre manual, a diferencia de Convocatorias/Oficios que ya lo tenían (aunque roto por el punto 1).
+4. **13 personas confirmadas por el usuario y sembradas** — incluyendo 2 correcciones sobre el seed original (nunca aplicado) de `docentes`: "María Basantes" era en realidad María Cristina Basantes Robalino; "Gonzalo Farfán" y "Ulbio Farfán" eran la misma persona (nombre real: Ulbio). Cargos actualizados: Germán Carrera es **Coordinador de Carrera** (no "Director"), Verónica Chávez es **Responsable de Comisión Académica**, Jackeline Terranova es actualmente **Rectora Subrogante** (no Vicerrectora Académica).
+5. **Carpeta `carrera-herramientas/` eliminada** — era la versión "portable" original desde donde se integró todo esto a `app/utilidades/`, ya no se usaba ni se referenciaba en producción.
+
+Rama: `claude/utilidades-seleccionar-docentes-wmpzfo`.
 
 ---
 
