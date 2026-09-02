@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { mcerQuestions } from '@/lib/questions';
+import StarRating from '@/components/StarRating';
 
 type EnlaceInfo = {
   tipo: 'pretest' | 'postest';
   test_tipo: 'mcer' | 'encuesta';
   espacio_nombre: string;
   beneficiario_nombre: string | null;
+  instructores: { id: number; nombre: string }[];
 };
 
 function calculateLevel(score: number) {
@@ -28,6 +30,9 @@ export default function EnlacePublicoPage() {
   const [enviado, setEnviado] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
+  const [yaRegistrado, setYaRegistrado] = useState(false);
+  const [emailExistente, setEmailExistente] = useState('');
+
   const [datosForm, setDatosForm] = useState({
     nombres: '', apellidos: '', contacto: '', email: '',
     edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
@@ -38,7 +43,11 @@ export default function EnlacePublicoPage() {
 
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
+  const [aprendizaje, setAprendizaje] = useState(5);
+  const [mejora, setMejora] = useState(5);
+  const [recursos, setRecursos] = useState(5);
   const [comentarios, setComentarios] = useState('');
+  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
 
   useEffect(() => {
     fetch(`/api/enlaces/${token}`)
@@ -46,6 +55,9 @@ export default function EnlacePublicoPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setEnlace(data.data);
+        if (data.data.instructores?.length) {
+          setCalificacionesInstructores(Object.fromEntries(data.data.instructores.map((i: any) => [i.id, 5])));
+        }
       })
       .catch(err => setErrorCarga(err.message || 'Este enlace ya no está disponible'))
       .finally(() => setLoading(false));
@@ -55,9 +67,15 @@ export default function EnlacePublicoPage() {
     e.preventDefault();
     if (!enlace) return;
 
-    if (enlace.tipo === 'pretest' && (!datosForm.nombres || !datosForm.apellidos)) {
-      setMensaje('Error: Escribe tus nombres y apellidos');
-      return;
+    if (enlace.tipo === 'pretest') {
+      if (yaRegistrado && !emailExistente) {
+        setMensaje('Error: Escribe el correo con el que te registraste');
+        return;
+      }
+      if (!yaRegistrado && (!datosForm.nombres || !datosForm.apellidos)) {
+        setMensaje('Error: Escribe tus nombres y apellidos');
+        return;
+      }
     }
     if (enlace.test_tipo === 'mcer' && Object.keys(answers).length < mcerQuestions.length) {
       setMensaje('Error: Debes responder todas las preguntas');
@@ -67,7 +85,10 @@ export default function EnlacePublicoPage() {
     setEnviando(true);
     setMensaje('');
     try {
-      const payload: Record<string, any> = enlace.tipo === 'pretest' ? { ...datosForm } : {};
+      let payload: Record<string, any> = {};
+      if (enlace.tipo === 'pretest') {
+        payload = yaRegistrado ? { ya_registrado: true, email: emailExistente } : { ...datosForm };
+      }
 
       if (enlace.test_tipo === 'mcer') {
         let score = 0;
@@ -77,7 +98,11 @@ export default function EnlacePublicoPage() {
         payload.nivel_asignado = calculateLevel(score);
       } else {
         payload.nivel_satisfaccion = nivelSatisfaccion;
+        payload.aprendizaje = aprendizaje;
+        payload.mejora = mejora;
+        payload.recursos = recursos;
         payload.comentarios = comentarios;
+        payload.calificaciones_instructores = calificacionesInstructores;
       }
 
       const res = await fetch(`/api/enlaces/${token}/${enlace.tipo === 'pretest' ? 'pretest' : 'postest'}`, {
@@ -146,62 +171,83 @@ export default function EnlacePublicoPage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {enlace.tipo === 'pretest' && (
             <div className="space-y-4 bg-blue-50 p-6 rounded-lg border border-blue-100">
-              <h3 className="font-bold text-uleam-blue">Tus datos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input required placeholder="Nombres" value={datosForm.nombres} onChange={e => setDatosForm({ ...datosForm, nombres: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-                <input required placeholder="Apellidos" value={datosForm.apellidos} onChange={e => setDatosForm({ ...datosForm, apellidos: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-              </div>
-              <input placeholder="Contacto (teléfono)" value={datosForm.contacto} onChange={e => setDatosForm({ ...datosForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-              <input type="email" placeholder="Email (opcional)" value={datosForm.email} onChange={e => setDatosForm({ ...datosForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-              <input type="number" min="0" placeholder="Edad" value={datosForm.edad} onChange={e => setDatosForm({ ...datosForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-
-              <label className="flex items-center gap-3 px-1 cursor-pointer">
-                <input type="checkbox" checked={datosForm.tiene_discapacidad} onChange={e => setDatosForm({ ...datosForm, tiene_discapacidad: e.target.checked, tipo_discapacidad: e.target.checked ? datosForm.tipo_discapacidad : '' })} className="w-5 h-5 accent-uleam-blue" />
-                <span className="text-gray-700">Tengo una discapacidad</span>
-              </label>
-              {datosForm.tiene_discapacidad && (
-                <input placeholder="¿Cuál?" value={datosForm.tipo_discapacidad} onChange={e => setDatosForm({ ...datosForm, tipo_discapacidad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Situación ocupacional</label>
-                <select
-                  value={datosForm.situacion_ocupacional}
-                  onChange={e => setDatosForm({ ...datosForm, situacion_ocupacional: e.target.value, rol_laboral: '', nivel_educativo: '', carrera: '', curso: '' })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
-                >
-                  <option value="">Selecciona...</option>
-                  <option value="solo_estudia">Solo estudio</option>
-                  <option value="estudia_trabaja">Estudio y trabajo</option>
-                  <option value="solo_trabaja">Solo trabajo</option>
-                  <option value="desempleado_no_estudia">Desempleado y no estudio</option>
-                </select>
+              <div className="flex gap-2 justify-center">
+                <button type="button" onClick={() => setYaRegistrado(false)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold ${!yaRegistrado ? 'bg-uleam-blue text-white' : 'bg-white text-uleam-blue border border-uleam-blue'}`}>
+                  Soy nuevo
+                </button>
+                <button type="button" onClick={() => setYaRegistrado(true)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold ${yaRegistrado ? 'bg-uleam-blue text-white' : 'bg-white text-uleam-blue border border-uleam-blue'}`}>
+                  Ya estoy registrado
+                </button>
               </div>
 
-              {trabaja && (
-                <input placeholder="Rol que ejerces" value={datosForm.rol_laboral} onChange={e => setDatosForm({ ...datosForm, rol_laboral: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-              )}
-
-              {estudia && (
+              {yaRegistrado ? (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nivel educativo</label>
-                  <select
-                    value={datosForm.nivel_educativo}
-                    onChange={e => setDatosForm({ ...datosForm, nivel_educativo: e.target.value, carrera: '', curso: '' })}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
-                  >
-                    <option value="">Selecciona...</option>
-                    <option value="universidad">Universidad</option>
-                    <option value="colegio">Colegio</option>
-                    <option value="escuela">Escuela</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Correo con el que te registraste</label>
+                  <input type="email" required placeholder="tu@correo.com" value={emailExistente} onChange={e => setEmailExistente(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                 </div>
-              )}
-
-              {estudia && datosForm.nivel_educativo === 'universidad' && (
+              ) : (
                 <>
-                  <input placeholder="Carrera" value={datosForm.carrera} onChange={e => setDatosForm({ ...datosForm, carrera: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-                  <input placeholder="Curso/semestre" value={datosForm.curso} onChange={e => setDatosForm({ ...datosForm, curso: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  <h3 className="font-bold text-uleam-blue">Tus datos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input required placeholder="Nombres" value={datosForm.nombres} onChange={e => setDatosForm({ ...datosForm, nombres: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                    <input required placeholder="Apellidos" value={datosForm.apellidos} onChange={e => setDatosForm({ ...datosForm, apellidos: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  </div>
+                  <input placeholder="Contacto (teléfono)" value={datosForm.contacto} onChange={e => setDatosForm({ ...datosForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  <input type="email" placeholder="Email (opcional)" value={datosForm.email} onChange={e => setDatosForm({ ...datosForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  <input type="number" min="0" placeholder="Edad" value={datosForm.edad} onChange={e => setDatosForm({ ...datosForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+
+                  <label className="flex items-center gap-3 px-1 cursor-pointer">
+                    <input type="checkbox" checked={datosForm.tiene_discapacidad} onChange={e => setDatosForm({ ...datosForm, tiene_discapacidad: e.target.checked, tipo_discapacidad: e.target.checked ? datosForm.tipo_discapacidad : '' })} className="w-5 h-5 accent-uleam-blue" />
+                    <span className="text-gray-700">Tengo una discapacidad</span>
+                  </label>
+                  {datosForm.tiene_discapacidad && (
+                    <input placeholder="¿Cuál?" value={datosForm.tipo_discapacidad} onChange={e => setDatosForm({ ...datosForm, tipo_discapacidad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Situación ocupacional</label>
+                    <select
+                      value={datosForm.situacion_ocupacional}
+                      onChange={e => setDatosForm({ ...datosForm, situacion_ocupacional: e.target.value, rol_laboral: '', nivel_educativo: '', carrera: '', curso: '' })}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
+                    >
+                      <option value="">Selecciona...</option>
+                      <option value="solo_estudia">Solo estudio</option>
+                      <option value="estudia_trabaja">Estudio y trabajo</option>
+                      <option value="solo_trabaja">Solo trabajo</option>
+                      <option value="desempleado_no_estudia">Desempleado y no estudio</option>
+                    </select>
+                  </div>
+
+                  {trabaja && (
+                    <input placeholder="Rol que ejerces" value={datosForm.rol_laboral} onChange={e => setDatosForm({ ...datosForm, rol_laboral: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  )}
+
+                  {estudia && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nivel educativo</label>
+                      <select
+                        value={datosForm.nivel_educativo}
+                        onChange={e => setDatosForm({ ...datosForm, nivel_educativo: e.target.value, carrera: '', curso: '' })}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
+                      >
+                        <option value="">Selecciona...</option>
+                        <option value="universidad">Universidad</option>
+                        <option value="colegio">Colegio</option>
+                        <option value="escuela">Escuela</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {estudia && datosForm.nivel_educativo === 'universidad' && (
+                    <>
+                      <input placeholder="Carrera" value={datosForm.carrera} onChange={e => setDatosForm({ ...datosForm, carrera: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                      <input placeholder="Curso/semestre" value={datosForm.curso} onChange={e => setDatosForm({ ...datosForm, curso: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -231,18 +277,21 @@ export default function EnlacePublicoPage() {
               ))}
             </div>
           ) : (
-            <div className="pt-2">
-              <label className="block text-lg font-bold text-gray-800 mb-4 text-center">
-                ¿Qué tan satisfecho estás con el programa?
-              </label>
-              <div className="flex justify-center space-x-4">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button key={star} type="button" onClick={() => setNivelSatisfaccion(star)}
-                    className={`text-4xl focus:outline-none transition-colors ${star <= nivelSatisfaccion ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'}`}
-                  >★</button>
-                ))}
-              </div>
-              <p className="text-center text-sm text-gray-500 mt-2">{nivelSatisfaccion} de 5 estrellas</p>
+            <div className="pt-2 space-y-6">
+              <StarRating label="¿Qué tan satisfecho estás con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
+              <StarRating label="¿Sientes que aprendiste?" value={aprendizaje} onChange={setAprendizaje} />
+              <StarRating label="¿Sientes que mejoraste tu nivel de inglés?" value={mejora} onChange={setMejora} />
+              <StarRating label="¿Cómo calificarías los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
+              {enlace.instructores.length > 0 && (
+                <div className="pt-4 border-t space-y-6">
+                  <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
+                  {enlace.instructores.map(i => (
+                    <StarRating key={i.id} label={`¿Cómo calificarías a ${i.nombre}?`}
+                      value={calificacionesInstructores[i.id] ?? 5}
+                      onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
+                  ))}
+                </div>
+              )}
               <div className="pt-4">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
                 <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
+import StarRating from '@/components/StarRating';
 
 export default function EncuestaPage() {
   const router = useRouter();
@@ -15,11 +16,16 @@ export default function EncuestaPage() {
   const [espacioId, setEspacioId] = useState('');
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
+  const [instructores, setInstructores] = useState<any[]>([]);
+  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
 
   const [formData, setFormData] = useState({
     beneficiario_id: '',
     ciclo_id: '',
     nivel_satisfaccion: 5,
+    aprendizaje: 5,
+    mejora: 5,
+    recursos: 5,
     comentarios: ''
   });
   const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
@@ -50,19 +56,24 @@ export default function EncuestaPage() {
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
+      setInstructores([]);
       return;
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setBeneficiarios(d.data); });
+    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setInstructores(d.data);
+          setCalificacionesInstructores(Object.fromEntries(d.data.map((i: any) => [i.id, 5])));
+        }
+      });
   }, [espacioId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleRating = (rating: number) => {
-    setFormData({ ...formData, nivel_satisfaccion: rating });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,13 +97,18 @@ export default function EncuestaPage() {
           espacio_id: parseInt(espacioId),
           ciclo_id: parseInt(formData.ciclo_id),
           nivel_satisfaccion: formData.nivel_satisfaccion,
-          comentarios: formData.comentarios
+          aprendizaje: formData.aprendizaje,
+          mejora: formData.mejora,
+          recursos: formData.recursos,
+          comentarios: formData.comentarios,
+          calificaciones_instructores: calificacionesInstructores,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage('¡Gracias! Encuesta registrada.');
-      setFormData({ beneficiario_id: '', ciclo_id: '', nivel_satisfaccion: 5, comentarios: '' });
+      setFormData({ beneficiario_id: '', ciclo_id: '', nivel_satisfaccion: 5, aprendizaje: 5, mejora: 5, recursos: 5, comentarios: '' });
+      setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -178,20 +194,21 @@ export default function EncuestaPage() {
             </div>
           </div>
 
-          <div className="pt-6 border-t">
-            <label className="block text-lg font-bold text-gray-800 mb-4 text-center">
-              ¿Qué tan satisfecho está el beneficiario con el programa?
-            </label>
-            <div className="flex justify-center space-x-4">
-              {[1, 2, 3, 4, 5].map(star => (
-                <button key={star} type="button" onClick={() => handleRating(star)}
-                  className={`text-4xl focus:outline-none transition-colors ${
-                    star <= formData.nivel_satisfaccion ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
-                  }`}
-                >★</button>
-              ))}
-            </div>
-            <p className="text-center text-sm text-gray-500 mt-2">{formData.nivel_satisfaccion} de 5 estrellas</p>
+          <div className="pt-6 border-t space-y-6">
+            <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={formData.nivel_satisfaccion} onChange={v => setFormData({ ...formData, nivel_satisfaccion: v })} />
+            <StarRating label="¿Sintió que aprendió?" value={formData.aprendizaje} onChange={v => setFormData({ ...formData, aprendizaje: v })} />
+            <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={formData.mejora} onChange={v => setFormData({ ...formData, mejora: v })} />
+            <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={formData.recursos} onChange={v => setFormData({ ...formData, recursos: v })} />
+            {instructores.length > 0 && (
+              <div className="pt-4 border-t space-y-6">
+                <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
+                {instructores.map(i => (
+                  <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
+                    value={calificacionesInstructores[i.id] ?? 5}
+                    onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="pt-4">

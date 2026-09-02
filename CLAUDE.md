@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.5
-**Última sesión:** 2026-09-02 (Sesión 28 — enlaces/QR públicos sin login para pretest/postest de MCER y encuesta de satisfacción, tabla `enlaces_evaluacion`. Ver detalle abajo)
+**Última sesión:** 2026-09-02 (Sesión 29 — encuesta de satisfacción ampliada (aprendizaje/mejora/recursos + calificación por instructor) y opción "ya estoy registrado" en el pretest público, para no duplicar beneficiarios. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -134,6 +134,22 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 29 — 2026-09-02)
+
+### Encuesta de satisfacción ampliada + evitar duplicar beneficiarios en el pretest público
+
+A pedido explícito del usuario tras probar el flujo de la Sesión 28: (1) la encuesta de satisfacción solo tenía una pregunta general — se pidió sumar dimensiones específicas y una calificación por cada instructor del espacio; (2) el pretest público (autoinscripción sin login) siempre creaba un beneficiario nuevo, sin opción para alguien que ya estuviera registrado de antes (p. ej. inscrito en otro espacio/ciclo) — si esa persona escribía su email real ya existente, el `INSERT` fallaba por la restricción `UNIQUE` de `usuarios.email` y quedaba sin poder completar el test.
+
+- **Encuesta ampliada** (`scripts/migrate-encuesta-ampliada.js`, aplicada vía Neon MCP): 3 columnas nuevas en `encuestas_satisfaccion` (`aprendizaje`, `mejora`, `recursos`, todas 1-5) además de la ya existente `nivel_satisfaccion` (satisfacción general) — 4 preguntas en total, tal como pidió el usuario. Tabla nueva `encuesta_evaluaciones_instructor` (`encuesta_id`, `instructor_id`, `calificacion`) porque el número de instructores por espacio varía — se genera **una pregunta de calificación repetida por cada estudiante-instructor asignado** al espacio (`espacio_instructores`), no una sola pregunta genérica de "el instructor". Componente nuevo `components/StarRating.tsx` (extraído para no repetir el bloque de 5 estrellas 5+ veces en 2 páginas).
+  - `GET /api/enlaces/[token]` (público) ahora devuelve `instructores: [{id, nombre}]` del espacio cuando `test_tipo='encuesta'`, para que la página pública pueda armar las preguntas sin necesitar sesión.
+  - `POST /api/encuestas` (autenticado) y `POST /api/enlaces/[token]/{pretest,postest}` (públicos) validan que las 4 calificaciones estén en 1-5 y que **todos** los instructores actuales del espacio tengan una calificación en el payload (se leen de `espacio_instructores` en el servidor, no se confía en la lista que mande el cliente) antes de insertar.
+  - UI: `/vinculacion/encuesta` y `/vinculacion/publico/[token]` (cuando `test_tipo='encuesta'`) muestran los 4 `StarRating` + una fila por instructor debajo, antes de los comentarios.
+- **Opción "Ya estoy registrado" en el pretest público** (`/vinculacion/publico/[token]`, tipo `pretest`): dos botones al inicio del formulario — "Soy nuevo" (comportamiento de antes, formulario completo) o "Ya estoy registrado" (solo pide el email). `POST /api/enlaces/[token]/pretest` acepta `ya_registrado: true` — busca el `usuario` por email (`rol='beneficiario'`), reusa su `id` en vez de crear uno nuevo, y solo lo inscribe en `inscripciones_espacio` si no lo estaba ya (`ON CONFLICT DO NOTHING`); si no encuentra el email devuelve 404 pidiendo verificarlo o usar "Soy nuevo". El flujo "Soy nuevo" no cambió — sigue fallando con el mismo mensaje de "email ya registrado" si alguien lo usa por error para una persona que ya existe (ahora el mensaje de error sugiere la otra opción).
+- **Verificación:** `npm run build` compila y pasa el chequeo de tipos limpio (esta vez terminó completo, incluida la fase de generación de páginas — a diferencia de la Sesión 28, esta vez sí había `DATABASE_URL` disponible localmente). Cadena de SQL (búsqueda de beneficiario existente por email + insert de encuesta + calificación de instructor) probada contra la Neon de producción real dentro de un bloque `DO $$ ... RAISE EXCEPTION $$` que se revierte solo — confirmado sin filas huérfanas después.
+- ⚠️ **Seguimiento de la Sesión 28, aún sin resolver:** el clic-a-clic en navegador real sigue sin poder hacerse desde este entorno de sesión — el proxy de salida del sandbox bloquea tanto el acceso directo a Neon como, se confirmó en esta sesión, el acceso al propio sitio desplegado (`carrerapineuleam.vercel.app`) vía Playwright. La Sesión 28 se validó mergeando directo a `main` (a pedido explícito del usuario) y dejando datos de prueba persistentes en producción para que el usuario probara manualmente: espacio "PRUEBA QA - Club de Inglés" (id 2), estudiante-instructor `qa.estudiante.test@sin-login.pine` (se activa con cualquier password ≥6 caracteres en su primer login) y beneficiario "PRUEBA QA Beneficiario Uno" (id 27) ya inscrito ahí — siguen en producción, no se han limpiado.
 
 ---
 
