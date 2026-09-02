@@ -31,7 +31,7 @@ const PROJECTS_BY_MEMBER = {
 const VERONICA = {
   id: 'member_12',
   name: 'Mg. Verónica Chávez',
-  role: 'Líder de Proyecto (Mentoring)',
+  role: 'Responsable de Comisión Académica y Líder de Proyecto (Mentoring)',
   orcid: '',
   email: 'veronica.chavez@uleam.edu.ec',
   photo: null, // placeholder — pendiente subir foto real

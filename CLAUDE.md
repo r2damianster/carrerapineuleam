@@ -452,7 +452,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 
 ## Equipo actual (tabla `members` en Neon)
 
-Desde la Sesión 26, `members.projects` (`text[]`, migrado con `scripts/migrate-members-projects.js`) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
+Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía MCP — ver `scripts/migrate-members-projects.js` como referencia del mismo cambio) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
 
 | ID | Nombre | Rol | Proyectos | Orden |
 |----|--------|-----|-----------|-------|
@@ -467,7 +467,7 @@ Desde la Sesión 26, `members.projects` (`text[]`, migrado con `scripts/migrate-
 | member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 9 |
 | member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — ver `/investigacion/desarrollo-habilidades` | desarrollo_habilidades | 10 |
 | member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) — ver `/vinculacion/dinamicas-linguisticas` | vinculacion | 11 |
-| member_12 | Mg. Verónica Chávez | Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`, nueva en Sesión 26. Sin foto todavía (placeholder), pendiente subir imagen real. | mentoring | 12 |
+| member_12 | Mg. Verónica Chávez | Responsable de Comisión Académica y Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`, nueva en Sesión 26. Sin foto todavía (placeholder), pendiente subir imagen real. | mentoring | 12 |
 
 Cristina Basantes es el único caso con dos proyectos — confirmado explícitamente por el usuario: colídera de Desarrollo de Habilidades Lingüísticas (con German) y además colaboradora de Internacionalización (coordina el Podcast ahí). No es un ajuste automático ni aplica al resto del equipo.
 
