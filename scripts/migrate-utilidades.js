@@ -6,22 +6,22 @@ const sql = neon(process.env.DATABASE_URL);
 // (proyecto Utilidades) al integrar ese código dentro de carreraPINE.
 // CREATE TABLE IF NOT EXISTS + seed idempotente — mismo patrón que
 // migrate-contribuciones.js, no toca ninguna tabla existente del Portal.
-
-const DOCENTES_INICIALES = [
-  ['Lic.', 'María Basantes Robalino', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Lic.', 'Gabriel Bazurto Alcívar', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Dr.', 'Germán Carrera Moreno', 'PhD.', 'Director de carrera', 'Pedagogía de los Idiomas Nacionales y Extranjeros', true],
-  ['Lic.', 'Verónica Chávez Zambrano', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Lic.', 'Jorge Corral Joniaux', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Lic.', 'Gonzalo Farfán Corrales', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Lic.', 'Laura Mena Sánchez', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Dr.', 'Arturo Rodríguez Zambrano', 'PhD.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Dr.', 'Jhonny Villafuerte Holguín', 'PhD.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Lic.', 'Cintya Zambrano Zambrano', 'Mg.', 'Docente', 'Pedagogía de los Idiomas Nacionales y Extranjeros', false],
-  ['Dr.', 'Pedro Quijije Anchundia', 'PhD.', 'Decano', 'Facultad de Educación y Turismo', false],
-  ['Lic.', 'Klever Alfredo Delgado Reyes', 'Mg.', 'Director', 'Dirección de Investigación, Publicaciones y Servicio Bibliográficos - ULEAM', false],
-  ['Dra.', 'Jackeline Terranova Ruiz', 'PhD.', 'Vicerrectora Académica', 'ULEAM', false],
-];
+//
+// El seed de `docentes` que vivía aquí (DOCENTES_INICIALES) nunca se aplicó a
+// producción y se retiró en la unificación de Sesión 27 — ver
+// scripts/migrate-usuarios-docentes.js. Se conserva la lista original como
+// referencia de los nombres/cargos pendientes de confirmar antes de sembrarlos
+// en `usuarios` (email real requerido, nunca inventado):
+//   Lic. María Basantes Robalino, Mg. — Docente
+//   Lic. Gabriel Bazurto Alcívar, Mg. — Docente
+//   Dr. Germán Carrera Moreno, PhD. — Director de carrera (¿sigue vigente?)
+//   Lic. Verónica Chávez Zambrano, Mg. — Docente
+//   Lic. Jorge Corral Joniaux, Mg. — Docente
+//   Lic. Gonzalo Farfán Corrales, Mg. — Docente
+//   Lic. Laura Mena Sánchez, Mg. — Docente
+//   Dr. Pedro Quijije Anchundia, PhD. — Decano, Facultad de Educación y Turismo
+//   Lic. Klever Alfredo Delgado Reyes, Mg. — Director, DIPSB-ULEAM
+//   Dra. Jackeline Terranova Ruiz, PhD. — Vicerrectora Académica, ULEAM
 
 const NIVELES_4 = [
   { pct: 0, label: 'No adecuado' },
@@ -161,30 +161,12 @@ function schemaArticuloPublicado() {
 }
 
 async function main() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS docentes (
-      id SERIAL PRIMARY KEY,
-      titulo_grado TEXT NOT NULL,
-      nombre TEXT NOT NULL,
-      post_grado TEXT NOT NULL,
-      cargo TEXT NOT NULL,
-      carrera TEXT NOT NULL DEFAULT 'Pedagogía de los Idiomas Nacionales y Extranjeros',
-      es_director BOOLEAN NOT NULL DEFAULT false
-    )
-  `;
-
-  const [{ count }] = await sql`SELECT COUNT(*)::int AS count FROM docentes`;
-  if (count === 0) {
-    for (const [titulo_grado, nombre, post_grado, cargo, carrera, es_director] of DOCENTES_INICIALES) {
-      await sql`
-        INSERT INTO docentes (titulo_grado, nombre, post_grado, cargo, carrera, es_director)
-        VALUES (${titulo_grado}, ${nombre}, ${post_grado}, ${cargo}, ${carrera}, ${es_director})
-      `;
-    }
-    console.log(`Sembrados ${DOCENTES_INICIALES.length} docentes.`);
-  } else {
-    console.log(`Tabla docentes ya tiene ${count} filas, no se resiembra.`);
-  }
+  // La tabla `docentes` NUNCA se creó en la Neon de producción real — este
+  // bloque (CREATE TABLE + seed de DOCENTES_INICIALES) se eliminó en la
+  // unificación de Sesión 27: ahora Acta Técnica/Oficios/Convocatorias leen
+  // directo de `usuarios` (ver scripts/migrate-usuarios-docentes.js y
+  // app/utilidades/_lib/docentes.ts) — una sola tabla de "quién es docente",
+  // no dos catálogos separados.
 
   await sql`
     CREATE TABLE IF NOT EXISTS modalidades_titulacion (
