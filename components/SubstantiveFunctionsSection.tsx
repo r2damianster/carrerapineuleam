@@ -74,7 +74,7 @@ export default function SubstantiveFunctionsSection() {
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setPublications(Array.isArray(data) ? data : []))
       .catch(() => setPublications([]));
-    fetch('/api/actividades-difusion?origen=noticia')
+    fetch('/api/actividades-difusion?seccion=noticias')
       .then((r) => (r.ok ? r.json() : []))
       .then((rows) => setNews(rows.map((r: any) => ({ slug: r.slug }))))
       .catch(() => setNews([]));

@@ -6,11 +6,20 @@ import { getAppSessionFromCookies } from '@/lib/session';
 // (/vinculacion/difusion, /gestion-carrera) — ver CLAUDE.md Sesión 25.
 // GET público: solo aprobado_sitio=true (contenido ya revisado por
 // contenido_sitio). GET ?pendientes=true: cola de moderación, protegido.
+//
+// `seccion` filtra por dónde se PUBLICA la fila (publicar_noticias /
+// publicar_actividades) — independiente de `origen`, que solo registra cómo
+// se creó. Antes NewsSection/ActivityGallery filtraban por `origen`
+// directamente, lo que forzaba que un evento fuera SOLO noticia O SOLO
+// actividad (nunca ambas) y dejaba invisibles para siempre las difusiones
+// aprobadas (origen='difusion' no lo leía ninguna sección pública). `origen`
+// se mantiene por compatibilidad con quien todavía lo use (ej. getNewsletters).
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const origen = searchParams.get('origen'); // 'noticia' | 'actividad' | 'difusion'
+    const seccion = searchParams.get('seccion'); // 'noticias' | 'actividades'
     const pendientes = searchParams.get('pendientes') === 'true';
     const sql = neon(process.env.DATABASE_URL!);
 
@@ -21,6 +30,23 @@ export async function GET(request: Request) {
       }
       const rows = await sql`
         SELECT * FROM actividades_difusion WHERE aprobado_sitio = false ORDER BY fecha DESC NULLS LAST
+      `;
+      return NextResponse.json(rows);
+    }
+
+    if (seccion === 'noticias') {
+      const rows = await sql`
+        SELECT * FROM actividades_difusion
+        WHERE aprobado_sitio = true AND publicar_noticias = true
+        ORDER BY "order" ASC, fecha DESC NULLS LAST
+      `;
+      return NextResponse.json(rows);
+    }
+    if (seccion === 'actividades') {
+      const rows = await sql`
+        SELECT * FROM actividades_difusion
+        WHERE aprobado_sitio = true AND publicar_actividades = true
+        ORDER BY "order" ASC, fecha DESC NULLS LAST
       `;
       return NextResponse.json(rows);
     }
@@ -52,7 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, order } = await request.json();
+    const { origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, order, publicar_noticias, publicar_actividades } = await request.json();
     if (!titulo || !fecha || !origen) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -60,9 +86,9 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const [nueva] = await sql`
       INSERT INTO actividades_difusion
-        (origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, "order", aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables)
+        (origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, "order", aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables, publicar_noticias, publicar_actividades)
       VALUES
-        (${origen}, ${titulo}, ${descripcion || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${order ?? 0}, true, ${Number(usuario.id)}, now(), '{}')
+        (${origen}, ${titulo}, ${descripcion || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${order ?? 0}, true, ${Number(usuario.id)}, now(), '{}', ${!!publicar_noticias}, ${!!publicar_actividades})
       RETURNING *
     `;
     return NextResponse.json(nueva, { status: 201 });

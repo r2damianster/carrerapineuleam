@@ -26,7 +26,7 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
   useEffect(() => {
     const loadActivities = async () => {
       try {
-        const res = await fetch('/api/actividades-difusion?origen=actividad');
+        const res = await fetch('/api/actividades-difusion?seccion=actividades');
         if (!res.ok) throw new Error('Failed to fetch activities');
         const rows = await res.json();
         setActivities(rows.map((r: any) => ({

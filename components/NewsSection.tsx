@@ -21,7 +21,7 @@ export default function NewsSection() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        const res = await fetch('/api/actividades-difusion?origen=noticia');
+        const res = await fetch('/api/actividades-difusion?seccion=noticias');
         if (!res.ok) throw new Error('Failed to fetch news');
         const rows = await res.json();
         setNews(rows.map((r: any) => ({

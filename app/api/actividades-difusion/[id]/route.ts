@@ -24,6 +24,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const is_featured = typeof body.is_featured === 'boolean' ? body.is_featured : null;
     const order = typeof body.order === 'number' ? body.order : null;
     const aprobar = !!body.aprobar;
+    // Al aprobar una difusión pendiente (origen='difusion'), por defecto se
+    // publica como actividad — si no se manda publicar_actividades explícito,
+    // aprobar=true implica publicar_actividades=true (si no, la fila quedaba
+    // aprobada pero invisible en ambas secciones, el bug que motivó este flag).
+    const publicarNoticias = typeof body.publicar_noticias === 'boolean' ? body.publicar_noticias : null;
+    const publicarActividades = typeof body.publicar_actividades === 'boolean'
+      ? body.publicar_actividades
+      : (aprobar ? true : null);
 
     const sql = neon(process.env.DATABASE_URL!);
     const [actualizado] = await sql`
@@ -38,6 +46,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           project_id = COALESCE(${project_id}, project_id),
           is_featured = COALESCE(${is_featured}, is_featured),
           "order" = COALESCE(${order}, "order"),
+          publicar_noticias = COALESCE(${publicarNoticias}, publicar_noticias),
+          publicar_actividades = COALESCE(${publicarActividades}, publicar_actividades),
           aprobado_sitio = CASE WHEN ${!!aprobar} THEN true ELSE aprobado_sitio END,
           aprobado_por = CASE WHEN ${!!aprobar} THEN ${Number(usuario.id)} ELSE aprobado_por END,
           fecha_aprobacion = CASE WHEN ${!!aprobar} THEN now() ELSE fecha_aprobacion END

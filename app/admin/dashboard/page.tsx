@@ -22,8 +22,8 @@ export default function AdminDashboardPage() {
           fetch('/api/videos').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/video-categories').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/publications').then((r) => (r.ok ? r.json() : [])),
-          fetch('/api/actividades-difusion?origen=noticia').then((r) => (r.ok ? r.json() : [])),
-          fetch('/api/actividades-difusion?origen=actividad').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/actividades-difusion?seccion=noticias').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/actividades-difusion?seccion=actividades').then((r) => (r.ok ? r.json() : [])),
         ]);
 
         setStats({

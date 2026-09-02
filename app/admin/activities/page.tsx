@@ -12,6 +12,7 @@ interface ActivityRow {
   categoria?: string;
   photos: string[];
   aprobado_sitio: boolean;
+  publicar_noticias: boolean;
 }
 
 // Cola de moderación: junta lo pendiente de aprobar (registrado por
@@ -30,6 +31,7 @@ export default function AdminActivitiesPage() {
     fecha: new Date().toISOString().split('T')[0],
     categoria: 'taller',
     imagen: '',
+    publicar_noticias: false,
   });
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function AdminActivitiesPage() {
     try {
       const [pendientesRes, actividadesRes] = await Promise.all([
         fetch('/api/actividades-difusion?pendientes=true'),
-        fetch('/api/actividades-difusion?origen=actividad'),
+        fetch('/api/actividades-difusion?seccion=actividades'),
       ]);
       const pendientes = pendientesRes.ok ? await pendientesRes.json() : [];
       const actividades = actividadesRes.ok ? await actividadesRes.json() : [];
@@ -60,6 +62,7 @@ export default function AdminActivitiesPage() {
       fecha: new Date().toISOString().split('T')[0],
       categoria: 'taller',
       imagen: '',
+      publicar_noticias: false,
     });
     setEditingRow(null);
     setShowForm(false);
@@ -73,6 +76,7 @@ export default function AdminActivitiesPage() {
       fecha: row.fecha?.slice(0, 10) || '',
       categoria: row.categoria || 'taller',
       imagen: row.photos?.[0] || '',
+      publicar_noticias: row.publicar_noticias || false,
     });
     setShowForm(true);
   };
@@ -119,6 +123,7 @@ export default function AdminActivitiesPage() {
             fecha: formData.fecha,
             categoria: formData.categoria,
             photos,
+            publicar_noticias: formData.publicar_noticias,
           }),
         });
         if (!res.ok) throw new Error('Failed to save');
@@ -134,6 +139,8 @@ export default function AdminActivitiesPage() {
             fecha: formData.fecha,
             categoria: formData.categoria,
             photos,
+            publicar_actividades: true,
+            publicar_noticias: formData.publicar_noticias,
           }),
         });
         if (!res.ok) throw new Error('Failed to save');
@@ -164,6 +171,15 @@ export default function AdminActivitiesPage() {
       render: (item: ActivityRow) => (
         <span className="text-sm text-gray-600">
           {item.fecha ? new Date(item.fecha).toLocaleDateString('es-EC') : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'publicar_noticias',
+      label: 'También en Noticias',
+      render: (item: ActivityRow) => (
+        <span className={`px-2 py-1 rounded text-xs font-bold ${item.publicar_noticias ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-500'}`}>
+          {item.publicar_noticias ? 'Sí' : 'No'}
         </span>
       ),
     },
@@ -259,6 +275,19 @@ export default function AdminActivitiesPage() {
                   <option value="otro">Otro</option>
                 </select>
               </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.publicar_noticias}
+                  onChange={(e) => setFormData({ ...formData, publicar_noticias: e.target.checked })}
+                  className="w-5 h-5"
+                />
+                <span className="text-sm font-medium text-gray-700">También publicar en Noticias</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Un mismo evento puede mostrarse en Actividades y en Noticias a la vez.</p>
             </div>
           </div>
 

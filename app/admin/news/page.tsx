@@ -11,6 +11,7 @@ interface NewsRow {
   is_featured: boolean;
   slug?: string;
   photos: string[];
+  publicar_actividades: boolean;
 }
 
 export default function AdminNewsPage() {
@@ -26,6 +27,7 @@ export default function AdminNewsPage() {
     is_featured: false,
     slug: '',
     imagen: '',
+    publicar_actividades: false,
   });
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function AdminNewsPage() {
 
   const loadNews = async () => {
     try {
-      const res = await fetch('/api/actividades-difusion?origen=noticia');
+      const res = await fetch('/api/actividades-difusion?seccion=noticias');
       if (!res.ok) throw new Error('Failed to fetch news');
       const rows = await res.json();
       setNews(rows.map((r: any) => ({ ...r, id: String(r.id) })));
@@ -54,6 +56,7 @@ export default function AdminNewsPage() {
       is_featured: false,
       slug: '',
       imagen: '',
+      publicar_actividades: false,
     });
     setEditingNews(null);
     setShowForm(false);
@@ -71,6 +74,7 @@ export default function AdminNewsPage() {
       is_featured: item.is_featured,
       slug: item.slug || '',
       imagen: item.photos?.[0] || '',
+      publicar_actividades: item.publicar_actividades || false,
     });
     setShowForm(true);
   };
@@ -98,6 +102,8 @@ export default function AdminNewsPage() {
       is_featured: formData.is_featured,
       slug,
       photos: formData.imagen ? [formData.imagen] : [],
+      publicar_noticias: true,
+      publicar_actividades: formData.publicar_actividades,
     };
 
     try {
@@ -231,6 +237,19 @@ export default function AdminNewsPage() {
                   <span className="text-sm font-medium text-gray-700">Destacada</span>
                 </label>
               </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.publicar_actividades}
+                  onChange={(e) => setFormData({ ...formData, publicar_actividades: e.target.checked })}
+                  className="w-5 h-5"
+                />
+                <span className="text-sm font-medium text-gray-700">También publicar en Galería de Actividades</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Un mismo evento puede mostrarse en Noticias y en Actividades a la vez.</p>
             </div>
           </div>
 
