@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { crearDocxActa, generarTextoIA, formatearFechaActa } from "../../_lib/actaTecnica";
 import { respuestaDocx } from "../../_lib/respuestaArchivo";
+import { requireDocenteApi } from "../../_lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,9 @@ function tipoImagen(nombreArchivo: string): "png" | "jpg" {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const form = await request.formData();
     const campo = (nombre: string) => (form.get(nombre)?.toString() ?? "").trim();

@@ -130,7 +130,7 @@ function generarPat06(datos: DatosPats): Buffer {
     Oficio: datos.oficio,
     NOMBRE: datos.nombre,
     Articulo: datos.articulo,
-    TutorFirma: "Dr. Rodríguez Zambrano Arturo Damián, PhD",
+    TutorFirma: datos.responsable,
   });
 }
 

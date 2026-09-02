@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enriquecerTexto } from "../../_lib/enriquecerTexto";
+import { requireDocenteApi } from "../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   const data = await request.json().catch(() => ({}));
   const contexto = (data.contexto || "").trim();
   const texto = (data.texto || "").trim();

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerEvaluacion } from "../../../../../_lib/titulacionLogic";
 import { sugerirComentarioCriterio } from "../../../../../_lib/titulacionIa";
+import { requireDocenteApi } from "../../../../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const datos = await request.json();
     const criterioTexto = (datos.criterio_texto || "").trim();

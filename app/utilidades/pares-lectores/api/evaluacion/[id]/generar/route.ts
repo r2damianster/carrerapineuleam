@@ -3,10 +3,14 @@ import { obtenerDetalleEvaluacion, marcarFinalizada } from "../../../../../_lib/
 import { generarInformeDocx, generarRubricaDocx } from "../../../../../_lib/titulacionDocgen";
 import { crearZip } from "../../../../../_lib/zip";
 import { respuestaZip } from "../../../../../_lib/respuestaArchivo";
+import { requireDocenteApi } from "../../../../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const evaluacionId = Number(params.id);
     const evaluacion = await obtenerDetalleEvaluacion(evaluacionId);

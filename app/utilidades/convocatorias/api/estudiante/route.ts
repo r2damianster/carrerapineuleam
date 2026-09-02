@@ -3,10 +3,14 @@ import { renderizarPlantilla } from "../../../_lib/docxtemplater";
 import { formatearFechaLarga } from "../../../_lib/fechas";
 import { procesarExcelEstudiantes } from "../../../_lib/convocatorias";
 import { respuestaDocx } from "../../../_lib/respuestaArchivo";
+import { requireDocenteApi } from "../../../_lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const form = await request.formData();
     const campo = (nombre: string) => (form.get(nombre)?.toString() ?? "").trim();

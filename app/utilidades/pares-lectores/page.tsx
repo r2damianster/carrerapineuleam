@@ -65,6 +65,18 @@ export default function ParesLectoresPage() {
       .catch(() => setModalidades([]));
   }, []);
 
+  // Autocompleta al usuario logueado como evaluador/a (sigue pudiendo editarse).
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.usuario) return;
+        setEvaluadorNombre((prev) => prev || data.usuario.nombres || "");
+        setEvaluadorCorreo((prev) => prev || data.usuario.email || "");
+      })
+      .catch(() => {});
+  }, []);
+
   async function precargarDesdeMemo(archivo: File) {
     setPrecargando(true);
     setPrecargaError("");

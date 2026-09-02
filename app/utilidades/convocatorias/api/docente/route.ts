@@ -4,6 +4,7 @@ import { formatearFechaLarga } from "../../../_lib/fechas";
 import { datosDocentesParaLista, datosDocentesParaFirmas } from "../../../_lib/convocatorias";
 import { getAllDocentes, type Docente } from "../../../_lib/docentes";
 import { respuestaDocx } from "../../../_lib/respuestaArchivo";
+import { requireDocenteApi } from "../../../_lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,9 @@ interface DocenteManual {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await requireDocenteApi())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   try {
     const form = await request.formData();
     const campo = (nombre: string) => (form.get(nombre)?.toString() ?? "").trim();
