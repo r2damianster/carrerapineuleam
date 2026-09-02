@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 
 export default function EncuestaPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function EncuestaPage() {
     nivel_satisfaccion: 5,
     comentarios: ''
   });
+  const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -111,7 +113,34 @@ export default function EncuestaPage() {
           </Link>
         </div>
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Encuesta de Satisfacción</h2>
-        <p className="text-center text-gray-600 mb-8">Tu opinión nos ayuda a mejorar el programa de inglés.</p>
+        <p className="text-center text-gray-600 mb-4">Tu opinión nos ayuda a mejorar el programa de inglés.</p>
+
+        <div className="flex flex-wrap gap-2 justify-center mb-6">
+          <button type="button" disabled={!espacioId} onClick={() => setModalEnlace({ tipo: 'pretest' })}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+            🔗 QR Pre-Encuesta (sin login)
+          </button>
+          <button type="button" disabled={!formData.beneficiario_id}
+            onClick={() => setModalEnlace({
+              tipo: 'postest',
+              beneficiarioId: parseInt(formData.beneficiario_id),
+              beneficiarioNombre: beneficiarios.find(b => String(b.id) === formData.beneficiario_id) ? `${beneficiarios.find(b => String(b.id) === formData.beneficiario_id).nombres} ${beneficiarios.find(b => String(b.id) === formData.beneficiario_id).apellidos}` : undefined,
+            })}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+            🔗 QR Post-Encuesta (sin login)
+          </button>
+        </div>
+
+        {modalEnlace && espacioId && (
+          <EnlaceEvaluacionModal
+            espacioId={espacioId}
+            testTipo="encuesta"
+            tipo={modalEnlace.tipo}
+            beneficiarioId={modalEnlace.beneficiarioId}
+            beneficiarioNombre={modalEnlace.beneficiarioNombre}
+            onClose={() => setModalEnlace(null)}
+          />
+        )}
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
