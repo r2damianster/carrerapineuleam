@@ -7,29 +7,48 @@ const CAMPOS_MEMO = [
 
 export type DatosMemoExtraidos = Record<(typeof CAMPOS_MEMO)[number], string>;
 
-/** Pide a la IA que extraiga los campos del memo en JSON. Siempre editable después. */
-export async function precargarDatosMemo(textoMemo: string): Promise<[DatosMemoExtraidos, null] | [null, string]> {
+/**
+ * Pide a la IA que extraiga los campos del memo en JSON. Siempre editable después.
+ * El memo de Comisión Académica no siempre trae todos los campos (ej. título exacto del
+ * trabajo, o el nombre completo del tutor) — si se sube también el trabajo de titulación,
+ * su portada/primeras páginas sirve como fuente complementaria para completar lo que falte.
+ */
+export async function precargarDatosMemo(
+  textoMemo: string,
+  textoTrabajo?: string
+): Promise<[DatosMemoExtraidos, null] | [null, string]> {
   if (!process.env.GROQ_API_KEY) {
     return [null, "IA no configurada (GROQ_API_KEY no definida)"];
   }
 
   const texto = (textoMemo || "").trim().slice(0, 6000);
-  if (texto.length < 20) {
-    return [null, "El archivo no tiene suficiente texto para extraer datos."];
+  const textoAdicional = (textoTrabajo || "").trim().slice(0, 4000);
+  if (texto.length < 20 && textoAdicional.length < 20) {
+    return [null, "Los archivos no tienen suficiente texto para extraer datos."];
   }
 
   const instruction =
-    "Extrae del siguiente memo de Comisión Académica (ULEAM, proceso de titulación) estos " +
+    "Extrae de los siguientes documentos de un proceso de titulación (ULEAM) estos " +
     "campos, en JSON estricto y sin texto adicional:\n" +
     '{"numero_memo": "", "fecha_memo": "YYYY-MM-DD", "facultad": "", "carrera": "", ' +
     '"opcion_titulacion": "", "titulo_trabajo": "", "estudiante": "", "tutor": ""}\n' +
-    "Si un campo no aparece en el texto, déjalo como cadena vacía. No inventes datos.";
+    "El memo de Comisión Académica es la fuente principal; si un campo no aparece ahí " +
+    "pero sí en el trabajo de titulación (portada, primeras páginas), complétalo desde ahí. " +
+    "Si un campo no aparece en ninguno de los dos, déjalo como cadena vacía. No inventes datos.";
+
+  const partes = [
+    `${instruction}`,
+    `\n\nTEXTO DEL MEMO:\n${texto || "(no se subió memo)"}`,
+  ];
+  if (textoAdicional.length >= 20) {
+    partes.push(`\n\nTEXTO DEL TRABAJO DE TITULACIÓN (portada/primeras páginas):\n${textoAdicional}`);
+  }
 
   try {
     const contenido = await pedirCompletionIA(
       [
-        { role: "system", content: "Eres un asistente que extrae datos estructurados de memorandos universitarios. Respondes solo JSON válido." },
-        { role: "user", content: `${instruction}\n\nTEXTO DEL MEMO:\n${texto}` },
+        { role: "system", content: "Eres un asistente que extrae datos estructurados de documentos universitarios de titulación. Respondes solo JSON válido." },
+        { role: "user", content: partes.join("") },
       ],
       { temperature: 0.1, reasoningEffort: "low", responseFormatJson: true }
     );
