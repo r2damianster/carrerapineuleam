@@ -47,7 +47,8 @@
       "Bash(node --env-file=.env.local scripts/test-publications-local.mjs)",
       "Bash(curl -s http://localhost:3000/api/publications -o \"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-User-Documents-Desarrollo-Web-carreraPINE\\\\2c8c615a-8b5b-4d01-86d2-9628d1d98f1a\\\\scratchpad\\\\pubscheck.json\")",
       "Bash(taskkill //F //PID 40684)",
-      "Bash(taskkill //F //PID 33580)"
+      "Bash(taskkill //F //PID 33580)",
+      "mcp__claude_ai_Neon__run_sql"
     ]
   },
   "enabledMcpjsonServers": [
