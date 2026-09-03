@@ -34,6 +34,8 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/beneficiarios',
     '/vinculacion/pasantes',
     '/vinculacion/difusion',
+    '/vinculacion/test-mcer',
+    '/vinculacion/encuesta',
     '/investigacion/espacios',
     '/gestion-carrera',
     '/docencia',
@@ -63,7 +65,9 @@ export async function middleware(request: NextRequest) {
     if (
       (pathname.startsWith('/vinculacion/espacios') ||
        pathname.startsWith('/vinculacion/asistencia') ||
-       pathname.startsWith('/vinculacion/beneficiarios')) &&
+       pathname.startsWith('/vinculacion/beneficiarios') ||
+       pathname.startsWith('/vinculacion/test-mcer') ||
+       pathname.startsWith('/vinculacion/encuesta')) &&
       !['profesor', 'admin', 'estudiante'].includes(session.rol)
     ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
