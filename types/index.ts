@@ -9,6 +9,14 @@ export interface Member {
   // solo almacenados para uso futuro/estadístico. Sesión 29.
   genero?: string;
   fecha_nacimiento?: string;
+  // Título académico, separado de `name` (que solo lleva el nombre) — se
+  // compone al renderizar en TeamSection. grado/posgrado son opciones fijas
+  // (ver ABREVIATURAS_TITULO en TeamSection.tsx); titulo_especifico es texto
+  // libre opcional (ej. "Magíster en Docencia e Investigación Educativa"),
+  // no se muestra en la tarjeta pública todavía. Sesión 29.
+  grado?: string;
+  posgrado?: string;
+  titulo_especifico?: string;
   is_leader: boolean;
   order: number;
   created: string;

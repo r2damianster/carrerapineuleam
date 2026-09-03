@@ -22,7 +22,13 @@ export default function AdminMembersPage() {
     projects: [] as string[],
     genero: '',
     fecha_nacimiento: '',
+    grado: '',
+    posgrado: '',
+    titulo_especifico: '',
   });
+
+  const GRADO_OPCIONES = ['Licenciado/a', 'Ingeniero/a', 'Doctor/a', 'Psicólogo/a'];
+  const POSGRADO_OPCIONES = ['Magíster', 'PhD'];
 
   const PROJECT_OPTIONS = [
     { value: 'internacionalizacion', label: 'Innovaciones Pedagógicas e Internacionalización' },
@@ -50,7 +56,7 @@ export default function AdminMembersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], genero: '', fecha_nacimiento: '' });
+    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], genero: '', fecha_nacimiento: '', grado: '', posgrado: '', titulo_especifico: '' });
     setEditingMember(null);
     setShowForm(false);
   };
@@ -67,6 +73,9 @@ export default function AdminMembersPage() {
       projects: member.projects || [],
       genero: member.genero || '',
       fecha_nacimiento: member.fecha_nacimiento || '',
+      grado: member.grado || '',
+      posgrado: member.posgrado || '',
+      titulo_especifico: member.titulo_especifico || '',
     });
     setShowForm(true);
   };
@@ -164,7 +173,7 @@ export default function AdminMembersPage() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
-                  placeholder="Nombre del miembro"
+                  placeholder="Sin título (ej: Arturo Rodríguez, no 'Dr. Arturo Rodríguez')"
                 />
               </div>
 
@@ -177,6 +186,46 @@ export default function AdminMembersPage() {
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                   placeholder="Ej: Investigador, Docente, etc."
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Grado (opcional)</label>
+                  <select
+                    value={formData.grado}
+                    onChange={(e) => setFormData({ ...formData, grado: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  >
+                    <option value="">Sin especificar</option>
+                    {GRADO_OPCIONES.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Posgrado (opcional)</label>
+                  <select
+                    value={formData.posgrado}
+                    onChange={(e) => setFormData({ ...formData, posgrado: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  >
+                    <option value="">Sin especificar</option>
+                    {POSGRADO_OPCIONES.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Título específico (opcional)</label>
+                <input
+                  type="text"
+                  value={formData.titulo_especifico}
+                  onChange={(e) => setFormData({ ...formData, titulo_especifico: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  placeholder="Ej: Magíster en Docencia e Investigación Educativa"
                 />
               </div>
 

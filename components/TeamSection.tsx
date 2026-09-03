@@ -102,6 +102,26 @@ const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
   desarrollo_habilidades: { member_3: 'coleader' },
 };
 
+// Abreviaturas para componer el nombre mostrado en la tarjeta pública —
+// `member.name` guarda solo el nombre, grado/posgrado son campos aparte
+// (ver types/index.ts). Sesión 29.
+const GRADO_ABREVIADO: Record<string, string> = {
+  'Licenciado/a': 'Lic.',
+  'Ingeniero/a': 'Ing.',
+  'Doctor/a': 'Dr.',
+  'Psicólogo/a': 'Psi.',
+};
+const POSGRADO_ABREVIADO: Record<string, string> = {
+  'Magíster': 'Mg.',
+  'PhD': 'PhD.',
+};
+
+function displayNameConTitulo(member: Member): string {
+  const prefijo = member.grado ? GRADO_ABREVIADO[member.grado] : undefined;
+  const sufijo = member.posgrado ? POSGRADO_ABREVIADO[member.posgrado] : undefined;
+  return [prefijo, member.name].filter(Boolean).join(' ') + (sufijo ? `, ${sufijo}` : '');
+}
+
 function TeamCard({ member, project, badges }: { member: Member; project?: string; badges: Record<string, string> }) {
   const badgeKey =
     (project && ROLE_BADGE_OVERRIDES[project]?.[member.id]) ||
@@ -133,7 +153,7 @@ function TeamCard({ member, project, badges }: { member: Member; project?: strin
 
       {/* Info */}
       <div className="p-2 md:p-4">
-        <h3 className="text-xs sm:text-sm md:text-lg font-bold text-uleam-blue mb-0.5 md:mb-1 leading-tight">{member.name}</h3>
+        <h3 className="text-xs sm:text-sm md:text-lg font-bold text-uleam-blue mb-0.5 md:mb-1 leading-tight">{displayNameConTitulo(member)}</h3>
         <p className="text-gray-600 text-xs md:text-sm mb-1 md:mb-3 leading-tight">{member.role}</p>
 
         {member.orcid && (
