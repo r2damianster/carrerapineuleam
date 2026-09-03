@@ -1,22 +1,25 @@
 import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
 
-// Campos nuevos en `usuarios`, solo usados por el autoregistro de profesor
+// Campo nuevo en `usuarios`, usado solo por el autoregistro de profesor
 // (/registro, POST /api/auth/register). No aplica a pasantes (activación
 // diferida) ni a beneficiarios (nunca tienen cuenta) — decisión explícita
 // del usuario, Sesión 29.
 //
-//   cedula            VARCHAR(10), UNIQUE, NULL permitido (filas ya
-//                      existentes no la tienen)
-//   orcid             VARCHAR(50), opcional
-//   genero            VARCHAR(20)
-//   fecha_nacimiento  DATE
+//   cedula  VARCHAR(10), UNIQUE, NULL permitido (filas ya existentes no
+//           la tienen) — dato privado, NUNCA se expone en `members`
+//           (tarjeta pública del equipo).
+//
+// ⚠️ orcid/genero/fecha_nacimiento NO viven aquí — se decidió después,
+// misma sesión, que son datos de la tarjeta pública y viven en `members`
+// (ver scripts/migrate-members-perfil-academico.js). Este script solo
+// agrega `cedula`; una versión anterior de este mismo archivo agregaba
+// también orcid/genero/fecha_nacimiento a usuarios — quedó obsoleta y fue
+// corregida en la misma sesión (Sesión 29) antes de dejar rastro real en
+// otros entornos.
 
 async function migrate() {
   await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cedula VARCHAR(10)`;
-  await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS orcid VARCHAR(50)`;
-  await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS genero VARCHAR(20)`;
-  await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE`;
   await sql`
     DO $$
     BEGIN
@@ -27,7 +30,7 @@ async function migrate() {
       END IF;
     END $$;
   `;
-  console.log('Migración completada: usuarios.cedula/orcid/genero/fecha_nacimiento');
+  console.log('Migración completada: usuarios.cedula');
 }
 
 migrate().catch((err) => {
