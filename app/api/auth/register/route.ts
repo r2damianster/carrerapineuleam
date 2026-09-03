@@ -10,15 +10,30 @@ import { profesoresAutorizados, profesorModulos } from '@/lib/data';
 // 'beneficiario' tampoco — nunca tiene cuenta, lo crea el instructor/profesor
 // desde /vinculacion/beneficiarios (POST /api/beneficiarios).
 const PUBLIC_ROLES = ['profesor'];
+const GENEROS_VALIDOS = ['femenino', 'masculino', 'otro', 'prefiero_no_decir'];
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { nombres, apellidos, password, rol } = data;
+    const { nombres, apellidos, password, rol, genero, fecha_nacimiento } = data;
     const email = String(data.email ?? '').trim().toLowerCase();
+    const cedula = String(data.cedula ?? '').trim();
+    const orcid = data.orcid ? String(data.orcid).trim() : null;
 
-    if (!nombres || !apellidos || !email || !password || !rol) {
+    if (!nombres || !apellidos || !email || !password || !rol || !cedula || !genero || !fecha_nacimiento) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    if (!/^\d{10}$/.test(cedula)) {
+      return NextResponse.json({ error: 'La cédula debe tener 10 dígitos' }, { status: 400 });
+    }
+
+    if (!GENEROS_VALIDOS.includes(genero)) {
+      return NextResponse.json({ error: 'Género no válido' }, { status: 400 });
+    }
+
+    if (orcid && !/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(orcid)) {
+      return NextResponse.json({ error: 'ORCID inválido (formato 0000-0000-0000-0000)' }, { status: 400 });
     }
 
     if (!PUBLIC_ROLES.includes(rol)) {
@@ -40,6 +55,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El email ya está registrado' }, { status: 400 });
     }
 
+    const existingCedula = await sql`SELECT id FROM usuarios WHERE cedula = ${cedula}`;
+    if (existingCedula.length > 0) {
+      return NextResponse.json({ error: 'La cédula ya está registrada' }, { status: 400 });
+    }
+
     // Hashear password
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
@@ -48,8 +68,8 @@ export async function POST(request: Request) {
 
     // Insertar usuario
     const userResult = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso)
-      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso})
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula, orcid, genero, fecha_nacimiento)
+      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula}, ${orcid}, ${genero}, ${fecha_nacimiento})
       RETURNING id
     `;
 

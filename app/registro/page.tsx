@@ -13,6 +13,10 @@ export default function RegistroPage() {
     email: '',
     password: '',
     rol: 'profesor',
+    cedula: '',
+    orcid: '',
+    genero: '',
+    fecha_nacimiento: '',
   });
   const [message, setMessage] = useState('');
 
@@ -95,6 +99,33 @@ export default function RegistroPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700">Contraseña</label>
             <input type="password" name="password" required onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Cédula de identidad</label>
+            <input type="text" name="cedula" required maxLength={10} pattern="\d{10}" title="10 dígitos" onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">ORCID (opcional)</label>
+            <input type="text" name="orcid" placeholder="0000-0000-0000-0000" onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Género</label>
+              <select name="genero" required onChange={handleChange} defaultValue="" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                <option value="" disabled>Selecciona...</option>
+                <option value="femenino">Femenino</option>
+                <option value="masculino">Masculino</option>
+                <option value="otro">Otro</option>
+                <option value="prefiero_no_decir">Prefiero no decir</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Fecha de nacimiento</label>
+              <input type="date" name="fecha_nacimiento" required onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            </div>
           </div>
 
           <button
