@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { name, role, orcid, email, photo, is_leader, order, projects } = await request.json();
+    const { name, role, orcid, email, photo, is_leader, order, projects, genero, fecha_nacimiento } = await request.json();
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const id = `member_${Date.now()}`;
     const [nuevo] = await sql`
-      INSERT INTO members (id, name, role, orcid, email, photo, is_leader, "order", projects)
-      VALUES (${id}, ${name}, ${role}, ${orcid || null}, ${email || ''}, ${photo || null}, ${!!is_leader}, ${order ?? 0}, ${projects || []})
+      INSERT INTO members (id, name, role, orcid, email, photo, is_leader, "order", projects, genero, fecha_nacimiento)
+      VALUES (${id}, ${name}, ${role}, ${orcid || null}, ${email || ''}, ${photo || null}, ${!!is_leader}, ${order ?? 0}, ${projects || []}, ${genero || null}, ${fecha_nacimiento || null})
       RETURNING *
     `;
     return NextResponse.json(nuevo, { status: 201 });

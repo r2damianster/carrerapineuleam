@@ -66,14 +66,29 @@ export async function POST(request: Request) {
 
     const modulosAcceso = rol === 'profesor' ? (profesorModulos[email] ?? []) : [];
 
-    // Insertar usuario
+    // Insertar usuario (solo campos de auth/identidad interna — cédula es
+    // privada, nunca se expone en `members`. orcid/genero/fecha_nacimiento
+    // son datos públicos del perfil, van a `members`, no a `usuarios`)
     const userResult = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula, orcid, genero, fecha_nacimiento)
-      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula}, ${orcid}, ${genero}, ${fecha_nacimiento})
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula)
+      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula})
       RETURNING id
     `;
 
     const userId = userResult[0].id;
+
+    // Si ya existe una tarjeta pública (members) para este email —cargada a
+    // mano por contenido_sitio—, se completan orcid/genero/fecha_nacimiento
+    // ahí. No se crea una fila de members nueva: esa tabla sigue curada por
+    // admin (foto, rol descriptivo, proyecto), un profesor no debe generar
+    // su propia tarjeta pública solo por registrarse.
+    await sql`
+      UPDATE members
+      SET orcid = COALESCE(${orcid}, orcid),
+          genero = ${genero},
+          fecha_nacimiento = ${fecha_nacimiento}
+      WHERE email = ${email}
+    `;
 
     const session: AppSession = { id: String(userId), nombres: `${nombres} ${apellidos}`, email, rol, modulos_acceso: modulosAcceso };
     const cookieValue = await createSessionCookieValue(session);

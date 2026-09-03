@@ -20,6 +20,8 @@ export default function AdminMembersPage() {
     is_leader: false,
     order: 0,
     projects: [] as string[],
+    genero: '',
+    fecha_nacimiento: '',
   });
 
   const PROJECT_OPTIONS = [
@@ -48,7 +50,7 @@ export default function AdminMembersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [] });
+    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], genero: '', fecha_nacimiento: '' });
     setEditingMember(null);
     setShowForm(false);
   };
@@ -63,6 +65,8 @@ export default function AdminMembersPage() {
       is_leader: member.is_leader,
       order: member.order,
       projects: member.projects || [],
+      genero: member.genero || '',
+      fecha_nacimiento: member.fecha_nacimiento || '',
     });
     setShowForm(true);
   };
@@ -197,6 +201,32 @@ export default function AdminMembersPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                   placeholder="0000-0000-0000-0000"
                 />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Género (interno, no se muestra en la web)</label>
+                  <select
+                    value={formData.genero}
+                    onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  >
+                    <option value="">Sin especificar</option>
+                    <option value="femenino">Femenino</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="otro">Otro</option>
+                    <option value="prefiero_no_decir">Prefiero no decir</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de nacimiento (interno)</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_nacimiento}
+                    onChange={(e) => setFormData({ ...formData, fecha_nacimiento: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  />
+                </div>
               </div>
 
               <div>

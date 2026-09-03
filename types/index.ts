@@ -5,6 +5,10 @@ export interface Member {
   orcid?: string;
   email: string;
   photo?: string;
+  // Datos internos, no renderizados en la tarjeta pública (TeamCard) —
+  // solo almacenados para uso futuro/estadístico. Sesión 29.
+  genero?: string;
+  fecha_nacimiento?: string;
   is_leader: boolean;
   order: number;
   created: string;
