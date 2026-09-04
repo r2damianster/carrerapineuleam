@@ -96,6 +96,10 @@ Solo para quien tiene el módulo `admin` (hoy: Arturo, Jhonny, German, Verónica
 
 Distinto de todo lo anterior — es para editar el contenido de la página pública (miembros del equipo, publicaciones, videos, noticias, documentos). Tarjeta **"Gestión del Sitio"** → `/admin`, requiere el mismo login del Portal con el módulo `contenido_sitio` — **restringido solo a Arturo Rodríguez y Jhonny Villafuerte** (líder/colíder de este proyecto), no es lo mismo que el módulo `admin` de Indicadores.
 
+**Ocultar un registro sin borrarlo:** en Noticias, Actividades, Publicaciones, Podcast y Miembros, la columna verde/gris de la tabla (según el módulo dice "Visible en el sitio", "Visible en /noticias" o "Visible en /actividades") es un botón — un clic lo saca de la página pública al instante, sin perder el registro ni su contenido; otro clic lo vuelve a mostrar. Es distinto de **Eliminar**, que sí borra la fila para siempre. La columna "Destacado" (en Noticias y Podcast) también es clickeable directo desde la tabla, sin necesidad de abrir "Editar".
+
+**Buscar y paginar:** arriba de cada tabla hay un cuadro de búsqueda (filtra por título, autor, descripción, email, etc.) y un selector de "Mostrar 10/25/50/100 por página" — útil cuando la lista crece. Abajo de la tabla, "Anterior"/"Siguiente" para moverse entre páginas.
+
 ---
 
 ## Nota para quien ya tenía cuenta antes de agosto 2026
