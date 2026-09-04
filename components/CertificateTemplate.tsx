@@ -33,6 +33,21 @@ function bodyText(data: CertificateData): { intro: string; showMotive: boolean }
         intro: `En reconocimiento a ${data.motiveText || 'su valioso aporte y compromiso'}${data.eventName ? ` en ${data.eventName}` : ''}.`,
         showMotive: false,
       };
+    case 'asistencia':
+      return {
+        intro: `Por su asistencia a ${data.eventName || 'el evento'}.`,
+        showMotive: false,
+      };
+    case 'capacitador':
+      return {
+        intro: `Por su destacada labor como capacitador(a) en ${data.eventName || 'el evento'}, impartiendo:`,
+        showMotive: true,
+      };
+    case 'voluntariado':
+      return {
+        intro: `Por su valiosa labor de voluntariado en ${data.eventName || 'el evento'}.`,
+        showMotive: false,
+      };
   }
 }
 

@@ -151,7 +151,7 @@ export interface CertificateSigner {
   role: string;
 }
 
-export type CertificateType = 'participacion' | 'expositor' | 'reconocimiento';
+export type CertificateType = 'participacion' | 'expositor' | 'reconocimiento' | 'asistencia' | 'capacitador' | 'voluntariado';
 export type CertificateEntity = 'carrera' | 'proyecto' | 'grupo_investigacion';
 export type CertificateLogo = 'proyecto' | 'grupo_investigacion' | 'red_lea' | 'ninguno';
 

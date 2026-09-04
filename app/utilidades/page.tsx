@@ -6,6 +6,7 @@ const HERRAMIENTAS = [
   { href: "/utilidades/convocatorias", icon: "📢", nombre: "Convocatorias", descripcion: "Convocatorias a docentes o estudiantes, con hoja de asistencia." },
   { href: "/utilidades/pat-maestria", icon: "🎓", nombre: "PATs Maestría", descripcion: "Genera el paquete PAT-003 a PAT-006 de acompañamiento de tesis de maestría." },
   { href: "/utilidades/pares-lectores", icon: "📋", nombre: "Pares Lectores", descripcion: "Wizard de evaluación de trabajos de titulación (TEFL / Artículo científico)." },
+  { href: "/utilidades/certificados", icon: "🏆", nombre: "Certificados", descripcion: "Genera certificados de participación, exposición, capacitación, voluntariado o reconocimiento, individuales o en lote." },
 ];
 
 export default function HerramientasMenu() {

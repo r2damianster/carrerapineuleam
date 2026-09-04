@@ -107,6 +107,16 @@ export const PROMPTS: Record<string, PromptConfig> = {
       "FORMATO: Un solo párrafo, máximo 5 líneas.",
     temperature: 0.3,
   },
+  certificado_motivo: {
+    role: "Eres un asistente de redacción institucional universitaria.",
+    instruction:
+      "TAREA: Mejora el motivo, título de ponencia o tema de un certificado (participación, " +
+      "exposición, capacitación, reconocimiento, etc.).\n" +
+      "REGLAS: Formaliza el lenguaje, corrige ortografía, sé preciso y solemne. No inventes " +
+      "datos ni alargues innecesariamente — un certificado usa frases cortas.\n" +
+      "FORMATO: Una sola frase o línea corta. Máximo 25 palabras. Sin punto final si es un título.",
+    temperature: 0.3,
+  },
   informe_plan_siguiente: {
     role: "Eres un asistente de redacción académica de un proyecto de investigación universitario.",
     instruction:
