@@ -96,6 +96,28 @@ export const PROMPTS: Record<string, PromptConfig> = {
       "FORMATO: 2-3 párrafos de solo el contenido del oficio. Máximo 300 palabras.",
     temperature: 0.5,
   },
+  informe_resumen_ejecutivo: {
+    role: "Eres un asistente de redacción académica de un proyecto de investigación universitario.",
+    instruction:
+      "TAREA: A partir de un resumen estructurado (JSON) de las publicaciones, podcasts y actividades " +
+      "que el usuario seleccionó para su informe mensual, redacta un resumen ejecutivo.\n" +
+      "REGLAS: Usa SOLO las cifras, títulos y fechas presentes en el JSON — nunca inventes datos, " +
+      "cifras ni logros que no estén ahí. Si el JSON está vacío o casi vacío, dilo explícitamente " +
+      "en vez de inventar contenido. Tono institucional, en tercera persona o impersonal.\n" +
+      "FORMATO: Un solo párrafo, máximo 5 líneas.",
+    temperature: 0.3,
+  },
+  informe_plan_siguiente: {
+    role: "Eres un asistente de redacción académica de un proyecto de investigación universitario.",
+    instruction:
+      "TAREA: A partir de un resumen estructurado (JSON) de lo ejecutado en el período, sugiere el " +
+      "plan de actividades para el siguiente período.\n" +
+      "REGLAS: Basa las sugerencias en continuidad razonable de lo ya ejecutado (ej. si hubo podcasts, " +
+      "sugerir sostener el ritmo; si hubo una capacitación, sugerir dar seguimiento). No inventes " +
+      "compromisos, fechas ni nombres de terceros que no estén en el JSON.\n" +
+      "FORMATO: Lista de 3 a 4 objetivos breves, numerados. Máximo 150 palabras en total.",
+    temperature: 0.4,
+  },
 };
 
 const TONO_INSTRUCCIONES: Record<string, string> = {

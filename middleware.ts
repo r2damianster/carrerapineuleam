@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/test-mcer',
     '/vinculacion/encuesta',
     '/investigacion/espacios',
+    '/investigacion/informes',
     '/gestion-carrera',
     '/docencia',
     '/pine-dashboard',
@@ -79,6 +80,14 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith('/investigacion/espacios') && !session.modulos_acceso.includes('investigacion')) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (
+      pathname.startsWith('/investigacion/informes') &&
+      (!['profesor', 'admin'].includes(session.rol) ||
+        !(session.modulos_acceso.includes('investigacion') || session.modulos_acceso.includes('admin')))
+    ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
