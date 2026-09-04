@@ -31,6 +31,17 @@ export default async function PortalDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
+            {/* Mi Perfil — cualquier docente/admin, para completar/actualizar sus propios datos */}
+            {esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Mi Perfil</h3>
+                <p className="text-gray-600 mb-4 text-sm">Cédula, ORCID, títulos académicos, foto y contraseña.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
+                </div>
+              </div>
+            )}
+
             {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor */}
             {modulos_acceso.includes('vinculacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">

@@ -25,16 +25,18 @@ export async function POST(request: Request) {
     }
 
     const user = users[0];
+    let esPrimeraActivacion = false;
 
     if (!user.activado) {
-      // Primer ingreso: el pasante fue pre-registrado por su profesor (solo
-      // nombres/apellidos/email, sin password). Lo que escribe aquí se guarda
-      // como su clave definitiva.
+      // Primer ingreso: el pasante/docente fue pre-registrado (solo nombres/
+      // apellidos/email, sin password) — lo que escribe aquí se guarda como su
+      // clave definitiva.
       if (password.length < 6) {
         return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
       }
       const nuevoHash = await bcrypt.hash(password, 10);
       await sql`UPDATE usuarios SET password_hash = ${nuevoHash}, activado = true WHERE id = ${user.id}`;
+      esPrimeraActivacion = true;
     } else {
       // Validate password
       const isValid = await bcrypt.compare(password, user.password_hash);
@@ -54,7 +56,11 @@ export async function POST(request: Request) {
 
     const url = new URL(request.url);
     const redirectParam = url.searchParams.get('redirect');
-    const redirect = redirectParam ? decodeURIComponent(redirectParam) : '/portal/dashboard';
+    // Primer login (cuenta recién activada) sin redirect explícito: aterriza en
+    // "Mi Perfil" en vez del dashboard, para que complete sus datos de una vez.
+    const redirect = redirectParam
+      ? decodeURIComponent(redirectParam)
+      : (esPrimeraActivacion ? '/portal/perfil' : '/portal/dashboard');
 
     const response = NextResponse.json({ success: true, redirect });
     

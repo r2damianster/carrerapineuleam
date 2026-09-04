@@ -72,6 +72,9 @@ export default function RegistroPage() {
         <p className="text-sm text-gray-500 text-center mb-6">
           Solo para docentes con correo autorizado por el proyecto. ¿Eres estudiante de vinculación? Tu profesor debe registrarte desde Administrar Pasantes — luego entra directo en <Link href="/portal/login" className="text-blue-600 hover:underline">/portal/login</Link> con el correo que te dio. Los beneficiarios/participantes no crean cuenta — los registra su instructor.
         </p>
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3 text-center mb-6">
+          ¿Te dice que tu correo ya está registrado? Es probable que ya tengas una cuenta precargada por la carrera (ej. para los documentos de Utilidades). Entra directo en <Link href="/portal/login" className="text-blue-600 hover:underline font-medium">/portal/login</Link> con tu correo — la contraseña que escribas ahí quedará como tu clave. Luego completa tus datos (cédula, ORCID, títulos, foto) en &quot;Mi Perfil&quot; dentro del Portal.
+        </p>
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>

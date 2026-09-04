@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
   // y '/registro' es la pagina de alta de cuenta — no puede exigir sesion previa.
   const protectedRoutes = [
     '/portal/dashboard',
+    '/portal/perfil',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',

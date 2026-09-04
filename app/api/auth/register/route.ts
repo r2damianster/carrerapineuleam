@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { createSessionCookieValue, SESSION_COOKIE, AppSession } from '@/lib/session';
 import { profesoresAutorizados, profesorModulos } from '@/lib/data';
+import { solicitarPublicacionPerfil } from '@/lib/perfilSync';
 
 // 'estudiante' no es autoregistro — se maneja desde Administrar Pasantes
 // (el profesor pre-crea el email, el pasante activa su cuenta al hacer login
@@ -66,29 +67,22 @@ export async function POST(request: Request) {
 
     const modulosAcceso = rol === 'profesor' ? (profesorModulos[email] ?? []) : [];
 
-    // Insertar usuario (solo campos de auth/identidad interna — cédula es
-    // privada, nunca se expone en `members`. orcid/genero/fecha_nacimiento
-    // son datos públicos del perfil, van a `members`, no a `usuarios`)
+    // Insertar usuario. orcid/genero/fecha_nacimiento/cedula son datos privados de
+    // "Mi Perfil" (/portal/perfil) — viven en `usuarios`, válido para cualquier
+    // profesor tenga o no tarjeta pública. Si ya existe una tarjeta curada en
+    // `members` para este email, el ORCID se propone como pendiente de aprobación
+    // (solicitarPublicacionPerfil) — nunca se crea una tarjeta nueva por registrarse.
     const userResult = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula)
-      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula})
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula, orcid, genero, fecha_nacimiento)
+      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula}, ${orcid}, ${genero}, ${fecha_nacimiento})
       RETURNING id
     `;
 
     const userId = userResult[0].id;
 
-    // Si ya existe una tarjeta pública (members) para este email —cargada a
-    // mano por contenido_sitio—, se completan orcid/genero/fecha_nacimiento
-    // ahí. No se crea una fila de members nueva: esa tabla sigue curada por
-    // admin (foto, rol descriptivo, proyecto), un profesor no debe generar
-    // su propia tarjeta pública solo por registrarse.
-    await sql`
-      UPDATE members
-      SET orcid = COALESCE(${orcid}, orcid),
-          genero = ${genero},
-          fecha_nacimiento = ${fecha_nacimiento}
-      WHERE email = ${email}
-    `;
+    if (orcid) {
+      await solicitarPublicacionPerfil(sql, userId, email, { orcid });
+    }
 
     const session: AppSession = { id: String(userId), nombres: `${nombres} ${apellidos}`, email, rol, modulos_acceso: modulosAcceso };
     const cookieValue = await createSessionCookieValue(session);
