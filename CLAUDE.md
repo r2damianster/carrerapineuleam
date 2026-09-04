@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.5
-**Última sesión:** 2026-09-02 (Sesión 29 — encuesta de satisfacción ampliada (aprendizaje/mejora/recursos + calificación por instructor) y opción "ya estoy registrado" en el pretest público, para no duplicar beneficiarios. Ver detalle abajo)
+**Versión actual:** 0.10.6
+**Última sesión:** 2026-09-04 (Sesión 30 — "ocultar sin borrar" en Noticias/Actividades/Publicaciones/Podcast/Members, "Destacado" clickeable, y buscador + paginación configurable en las 5 tablas del admin. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -136,6 +136,20 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
 
 ---
+
+## Cambios Recientes (Sesión 30 — 2026-09-04)
+
+### "Ocultar sin borrar" en todo el admin de contenido + buscador y paginación configurable
+
+Partió de un reporte del usuario: al editar una noticia en `/admin/news` y poner "Destacado" en No, la noticia seguía saliendo en `/noticias` del sitio público — confundía "Destacado" (un badge sin efecto real en la visibilidad, nunca lo tuvo) con "Publicada". Auditoría en vivo (código + Neon + API de producción) confirmó que el sistema de eliminar funciona bien (sin caché, sin duplicados, `DELETE` limpio) — el problema real era que **ningún módulo tenía forma de ocultar un registro sin borrarlo**, excepto Noticias/Actividades que ya tenían las columnas (`publicar_noticias`/`publicar_actividades`) pero la UI nunca las exponía (el formulario las mandaba siempre en `true`, fijas).
+
+- **Columna `activo` (boolean, default `true`) agregada a `publications`, `videos`, `members`** — aplicada directo en Neon vía MCP (`scripts/migrate-activo-toggle.js` queda como referencia, igual que otras migraciones de esta sesión hechas por MCP en vez de localmente). `false` = no sale en ningún `GET` público, sin borrar la fila.
+- **Los 4 `GET` públicos** (`/api/publications`, `/api/videos`, `/api/members`, y `/api/actividades-difusion?seccion=noticias|actividades`) filtran por defecto (`activo=true` o `publicar_noticias`/`publicar_actividades=true`, según la tabla). Parámetro `?all=true` (usado solo por las páginas `/admin/*`, nunca por el sitio público) trae también lo oculto, para que el admin lo seleccione y reactive.
+- **Botón toggle directo en la tabla de cada admin** (`/admin/news`, `/admin/activities`, `/admin/publications`, `/admin/videos`, `/admin/members`) — un clic cambia `activo` (o `publicar_noticias`/`publicar_actividades`), sin abrir el formulario ni tocar Eliminar. Las rutas `PATCH` de `publications`/`videos`/`members` ganaron un atajo: si el body trae *solo* el campo a togglear, se salta la validación de campos obligatorios del formulario completo (antes exigía título/autor/etc. hasta para cambiar un booleano).
+- **Bug real encontrado en el propio toggle, corregido en la misma sesión:** al implementar el toggle de `/admin/news` y `/admin/activities`, la fila oculta (`publicar_noticias=false`) desaparecía también de la lista del admin — porque el `GET` que alimenta esas páginas es el mismo que usa el sitio público (`?seccion=noticias`/`?seccion=actividades`), y ese filtro no distinguía "admin viendo todo" de "público viendo solo lo publicado". Corregido agregando el mismo patrón `?all=true` a `/api/actividades-difusion` y haciendo que `/admin/news` y `/admin/activities` lo pidan siempre.
+- **"Destacado" (`is_featured`) ahora también es clickeable** en `/admin/news` y `/admin/videos` (los únicos 2 módulos con ese campo) — antes era un badge sin interacción, solo editable reabriendo el formulario completo. La ruta `PATCH /api/videos/[id]` ganó el mismo atajo de "solo togglear" para `is_featured` (antes solo lo tenía `activo`); `PATCH /api/actividades-difusion/[id]` ya soportaba `is_featured` suelto vía `COALESCE`, no necesitó cambio de servidor.
+- **Buscador + selector de tamaño de página (10/25/50/100)** agregado directo en `components/admin/DataTable.tsx` — componente compartido por las 5 tablas del admin (Noticias, Actividades, Publicaciones, Podcast, Members), así el cambio quedó en todas de una sola vez sin tocar cada página. Busca por coincidencia de texto en cualquier campo string/número del registro (título, descripción, autores, email, etc. — no busca dentro de arrays/objetos anidados como `photos` o `expand.category`). Incluye contador "Mostrando X–Y de Z" y paginación Anterior/Siguiente. **Si agregás una tabla admin nueva con `DataTable`, el buscador y la paginación ya vienen gratis — no hace falta implementarlos de nuevo.**
+- **Verificación:** `npx tsc --noEmit` y `npm run build` limpios en cada paso. Toggle probado contra la Neon de producción real (lectura directa antes/después del cambio). No se hizo clic-a-clic en navegador — mismo límite de sandbox que sesiones anteriores (sin acceso directo al sitio desplegado vía Playwright).
 
 ## Cambios Recientes (Sesión 29 — 2026-09-02)
 
@@ -725,6 +739,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-02 (Sesión 26)
-**Versión:** 0.10.5
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-04 (Sesión 30)
+**Versión:** 0.10.6
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Repo sincronizado con origin ✅
