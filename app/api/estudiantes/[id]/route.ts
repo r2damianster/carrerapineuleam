@@ -12,17 +12,32 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombres, apellidos, email } = await request.json();
+    const body = await request.json();
+    const sql = neon(process.env.DATABASE_URL!);
+
+    // Toggle rápido del permiso de subir video (mismo patrón que el toggle de
+    // "activo" en members/videos) — no exige los campos del formulario completo.
+    if (typeof body.puede_subir_video === 'boolean' && Object.keys(body).length === 1) {
+      const modulosAcceso = body.puede_subir_video ? ['subir_video'] : [];
+      const [actualizado] = await sql`
+        UPDATE usuarios SET modulos_acceso = ${modulosAcceso}
+        WHERE id = ${parseInt(params.id)} AND rol = 'estudiante'
+        RETURNING id, nombres, apellidos, email, activado, modulos_acceso
+      `;
+      if (!actualizado) return NextResponse.json({ error: 'Pasante no encontrado' }, { status: 404 });
+      return NextResponse.json({ success: true, data: actualizado });
+    }
+
+    const { nombres, apellidos, email } = body;
     if (!nombres || !apellidos || !email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
     const [actualizado] = await sql`
       UPDATE usuarios
       SET nombres = ${nombres}, apellidos = ${apellidos}, email = ${String(email).trim().toLowerCase()}
       WHERE id = ${parseInt(params.id)} AND rol = 'estudiante'
-      RETURNING id, nombres, apellidos, email, activado
+      RETURNING id, nombres, apellidos, email, activado, modulos_acceso
     `;
 
     if (!actualizado) {

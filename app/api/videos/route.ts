@@ -77,11 +77,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
     const esAdminContenido = usuario.modulos_acceso.includes('contenido_sitio');
-    // Un profesor sin contenido_sitio puede proponer un video (ya subido a
-    // YouTube como no listado vía /api/youtube/iniciar-subida) — nace
-    // pendiente de aprobación. contenido_sitio sigue creando directo, ya
-    // aprobado, como siempre.
-    if (!esAdminContenido && !['profesor', 'admin'].includes(usuario.rol)) {
+    // Un profesor sin contenido_sitio, o un estudiante con el permiso
+    // 'subir_video' activado por su profesor, puede proponer un video (ya
+    // subido a YouTube como no listado vía /api/youtube/iniciar-subida) —
+    // nace pendiente de aprobación. contenido_sitio sigue creando directo,
+    // ya aprobado, como siempre.
+    const puedeProponer = ['profesor', 'admin'].includes(usuario.rol) ||
+      (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'));
+    if (!esAdminContenido && !puedeProponer) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

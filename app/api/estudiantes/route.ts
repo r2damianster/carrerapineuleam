@@ -13,7 +13,7 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!);
     const estudiantes = await sql`
-      SELECT u.id, u.nombres, u.apellidos, u.email, u.activado,
+      SELECT u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso,
              COALESCE(
                json_agg(
                  json_build_object('id', e.id, 'nombre', e.nombre)
@@ -24,7 +24,7 @@ export async function GET() {
       LEFT JOIN espacio_instructores ei ON ei.usuario_id = u.id
       LEFT JOIN espacios_enseñanza e ON e.id = ei.espacio_id AND e.area = 'vinculacion'
       WHERE u.rol = 'estudiante'
-      GROUP BY u.id, u.nombres, u.apellidos, u.email, u.activado
+      GROUP BY u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso
       ORDER BY u.nombres ASC
     `;
 
@@ -43,18 +43,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombres, apellidos, email } = await request.json();
+    const { nombres, apellidos, email, puede_subir_video } = await request.json();
     if (!nombres || !apellidos || !email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
     const sql = neon(process.env.DATABASE_URL!);
     const placeholderHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
+    const modulosAcceso = puede_subir_video ? ['subir_video'] : [];
 
     const [nuevo] = await sql`
       INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, activado)
-      VALUES (${nombres}, ${apellidos}, ${String(email).trim().toLowerCase()}, ${placeholderHash}, 'estudiante', '{}', false)
-      RETURNING id, nombres, apellidos, email, activado
+      VALUES (${nombres}, ${apellidos}, ${String(email).trim().toLowerCase()}, ${placeholderHash}, 'estudiante', ${modulosAcceso}, false)
+      RETURNING id, nombres, apellidos, email, activado, modulos_acceso
     `;
 
     return NextResponse.json({ success: true, data: nuevo }, { status: 201 });

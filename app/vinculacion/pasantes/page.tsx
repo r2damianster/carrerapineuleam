@@ -20,7 +20,7 @@ export default function PasantesPage() {
   const [message, setMessage] = useState('');
   const [estudiantes, setEstudiantes] = useState<any[]>([]);
 
-  const [nuevoForm, setNuevoForm] = useState({ nombres: '', apellidos: '', email: '' });
+  const [nuevoForm, setNuevoForm] = useState({ nombres: '', apellidos: '', email: '', puede_subir_video: false });
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ nombres: '', apellidos: '', email: '' });
 
@@ -62,7 +62,7 @@ export default function PasantesPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage(`Pasante "${data.data.nombres} ${data.data.apellidos}" registrado — pendiente de activar`);
-      setNuevoForm({ nombres: '', apellidos: '', email: '' });
+      setNuevoForm({ nombres: '', apellidos: '', email: '', puede_subir_video: false });
       fetchEstudiantes();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -94,6 +94,21 @@ export default function PasantesPage() {
       setMessage(`Error: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTogglePuedeSubirVideo = async (s: any) => {
+    const actual = Array.isArray(s.modulos_acceso) && s.modulos_acceso.includes('subir_video');
+    try {
+      const res = await fetch(`/api/estudiantes/${s.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ puede_subir_video: !actual }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      fetchEstudiantes();
+    } catch (err) {
+      setMessage('Error al cambiar el permiso de subir video');
     }
   };
 
@@ -233,6 +248,15 @@ export default function PasantesPage() {
             <input required placeholder="Apellidos" value={nuevoForm.apellidos} onChange={e => setNuevoForm({ ...nuevoForm, apellidos: e.target.value })} className="px-3 py-2 rounded border border-gray-300 outline-none focus:border-uleam-blue" />
           </div>
           <input required type="email" placeholder="Email institucional" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 outline-none focus:border-uleam-blue" />
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={nuevoForm.puede_subir_video}
+              onChange={e => setNuevoForm({ ...nuevoForm, puede_subir_video: e.target.checked })}
+              className="w-4 h-4"
+            />
+            Puede subir video/podcast (sube directo a YouTube, queda pendiente de aprobación)
+          </label>
           <button disabled={loading} className="w-full bg-blue-600 text-white p-2 rounded font-medium disabled:opacity-50">
             {loading ? 'Guardando...' : 'Registrar Pasante'}
           </button>
@@ -335,6 +359,12 @@ export default function PasantesPage() {
                         : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full ml-1">Pendiente de activar</span>}
                     </p>
                     <p className="text-sm text-gray-500">{s.email}</p>
+                    <button
+                      onClick={() => handleTogglePuedeSubirVideo(s)}
+                      className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${Array.isArray(s.modulos_acceso) && s.modulos_acceso.includes('subir_video') ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+                    >
+                      {Array.isArray(s.modulos_acceso) && s.modulos_acceso.includes('subir_video') ? 'Puede subir video — quitar' : 'No puede subir video — activar'}
+                    </button>
                     {s.espacios && s.espacios.length > 0 ? (
                       <p className="text-sm text-gray-600 mt-1">Instructor en: {s.espacios.map((e: any) => e.nombre).join(', ')}</p>
                     ) : (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import SubirVideoDifusion from '@/components/SubirVideoDifusion';
 
 export default function GestionCarreraPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function GestionCarreraPage() {
   const [file, setFile] = useState<File | null>(null);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
+  const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
 
   const [form, setForm] = useState({
     titulo: '',
@@ -74,6 +76,8 @@ export default function GestionCarreraPage() {
         evidencia_url = uploadJson.url;
       }
 
+      const tagPorCategoria: Record<string, string> = { investigacion: 'investigacion', vinculacion: 'vinculacion', asignatura: 'docencia' };
+
       const res = await fetch('/api/difusion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,6 +86,7 @@ export default function GestionCarreraPage() {
           audiencia_alcanzada: parseInt(form.audiencia_alcanzada),
           evidencia_url,
           profesores_responsables: responsables,
+          ...(video ? { youtube_video_id: video.youtubeVideoId, video_category: video.categoryId, video_tags: [tagPorCategoria[form.categoria] || 'vinculacion'] } : {}),
         }),
       });
       const data = await res.json();
@@ -90,6 +95,7 @@ export default function GestionCarreraPage() {
       setMessage('¡Evento registrado correctamente!');
       setForm({ titulo: '', tipo: 'evento_formacion', categoria: 'vinculacion', proyecto: '', asignatura: '', audiencia_alcanzada: '', descripcion: '', fecha: '', hora: '', observaciones: '' });
       setFile(null);
+      setVideo(null);
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -191,6 +197,15 @@ export default function GestionCarreraPage() {
             </div>
             <p className="mt-1 text-xs text-gray-500">Puede seleccionar más de un profesor responsable.</p>
           </div>
+
+          {form.tipo === 'podcast' && (
+            <SubirVideoDifusion
+              titulo={form.titulo}
+              descripcion={form.descripcion}
+              onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
+              onVideoQuitado={() => setVideo(null)}
+            />
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Descripción</label>

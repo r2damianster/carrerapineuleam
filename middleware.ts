@@ -80,6 +80,14 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
+    if (
+      pathname.startsWith('/portal/subir-video') &&
+      !['profesor', 'admin'].includes(session.rol) &&
+      !(session.rol === 'estudiante' && session.modulos_acceso.includes('subir_video'))
+    ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
     if (pathname.startsWith('/investigacion/espacios') && !session.modulos_acceso.includes('investigacion')) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }

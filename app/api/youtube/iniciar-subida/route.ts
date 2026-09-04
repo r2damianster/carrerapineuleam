@@ -3,12 +3,18 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { obtenerAccessToken, iniciarSesionReanudable } from '@/lib/youtube';
 
-// Cualquier profesor/admin autenticado puede proponer un video — la
-// aprobación ocurre después en /admin/videos, no aquí.
+// Profesor/admin siempre puede proponer un video. Un estudiante-instructor
+// solo si el profesor le activó el permiso desde Administrar Pasantes
+// (usuarios.modulos_acceso incluye 'subir_video'). La aprobación ocurre
+// después en /admin/videos, no aquí.
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    const autorizado = usuario && (
+      ['profesor', 'admin'].includes(usuario.rol) ||
+      (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'))
+    );
+    if (!autorizado) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

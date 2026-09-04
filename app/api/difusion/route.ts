@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
+import { registrarVideoPropuesto } from '@/lib/registrarVideoPropuesto';
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       descripcion,
       observaciones,
       profesores_responsables,
+      youtube_video_id,
+      video_category,
+      video_tags,
     } = data;
     const registrador_id = usuario.id;
 
@@ -59,6 +63,25 @@ export async function POST(request: Request) {
         (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null},
          ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds}, ${periodo_academico})
     `;
+
+    // Si se subió un video (tipo "podcast", ver components/SubirVideoDifusion.tsx),
+    // se registra también en `videos` como propuesta pendiente — aprobación
+    // independiente en /admin/videos, separada de la de esta difusión. Mismo
+    // chequeo de permiso que /api/youtube/iniciar-subida (el video ya se subió
+    // a YouTube en el navegador, pero solo se registra en el sitio si el
+    // usuario está autorizado — evita filas basura de alguien sin permiso).
+    const puedeProponerVideo = ['profesor', 'admin'].includes(usuario.rol) ||
+      (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'));
+    if (youtube_video_id && video_category && puedeProponerVideo) {
+      await registrarVideoPropuesto(sql, {
+        usuarioId: Number(usuario.id),
+        youtubeVideoId: youtube_video_id,
+        title: titulo,
+        description: descripcion,
+        category: video_category,
+        tags: Array.isArray(video_tags) ? video_tags : [],
+      });
+    }
 
     return NextResponse.json({ success: true, message: 'Actividad registrada exitosamente' });
   } catch (error: any) {

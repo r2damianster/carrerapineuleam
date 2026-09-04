@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import SubirVideoDifusion from '@/components/SubirVideoDifusion';
 
 export default function DifusionPage() {
   const router = useRouter();
@@ -11,10 +12,13 @@ export default function DifusionPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
+  const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[] } | null>(null);
+  const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
-      .then(res => res.ok ? setCheckingSession(false) : Promise.reject())
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => { setUsuario(data.usuario); setCheckingSession(false); })
       .catch(() => router.push('/portal/login?redirect=/vinculacion/difusion'));
 
     fetch('/api/profesores')
@@ -22,6 +26,11 @@ export default function DifusionPage() {
       .then(data => setProfesores(data.profesores || []))
       .catch(() => setProfesores([]));
   }, [router]);
+
+  const puedeSubirVideo = !!usuario && (
+    ['profesor', 'admin'].includes(usuario.rol) ||
+    (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'))
+  );
 
   const toggleResponsable = (id: number) => {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
@@ -83,7 +92,8 @@ export default function DifusionPage() {
         ...formData,
         audiencia_alcanzada: parseInt(formData.audiencia_alcanzada),
         evidencia_url,
-        profesores_responsables: responsables
+        profesores_responsables: responsables,
+        ...(video ? { youtube_video_id: video.youtubeVideoId, video_category: video.categoryId, video_tags: ['vinculacion'] } : {}),
       };
 
       const res = await fetch('/api/difusion', {
@@ -178,6 +188,14 @@ export default function DifusionPage() {
             </div>
             <p className="mt-1 text-xs text-gray-500">Puede seleccionar más de un profesor responsable.</p>
           </div>
+
+          {formData.tipo === 'podcast' && puedeSubirVideo && (
+            <SubirVideoDifusion
+              titulo={formData.titulo}
+              onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
+              onVideoQuitado={() => setVideo(null)}
+            />
+          )}
 
           <div className="pt-4 border-t">
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto / Evidencia del Evento o Podcast</label>
