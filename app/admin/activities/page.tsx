@@ -43,7 +43,7 @@ export default function AdminActivitiesPage() {
     try {
       const [pendientesRes, actividadesRes] = await Promise.all([
         fetch('/api/actividades-difusion?pendientes=true'),
-        fetch('/api/actividades-difusion?seccion=actividades'),
+        fetch('/api/actividades-difusion?seccion=actividades&all=true'),
       ]);
       const pendientes = pendientesRes.ok ? await pendientesRes.json() : [];
       const actividades = actividadesRes.ok ? await actividadesRes.json() : [];

@@ -19,6 +19,19 @@ interface DataTableProps<T> {
   actionsLabel?: string;
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+// Texto plano de un registro para el buscador — solo campos string/number
+// (título, descripción, autores, email, etc.), sin arrays/objetos anidados
+// (fotos, expand.category) que no aportan a una búsqueda de texto.
+function textoBuscable(item: unknown): string {
+  if (!item || typeof item !== 'object') return '';
+  return Object.values(item as Record<string, unknown>)
+    .filter((v) => typeof v === 'string' || typeof v === 'number')
+    .join(' ')
+    .toLowerCase();
+}
+
 export default function DataTable<T extends { id: string }>({
   title,
   columns,
@@ -30,6 +43,9 @@ export default function DataTable<T extends { id: string }>({
   actionsLabel = 'Acciones',
 }: DataTableProps<T>) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   const handleDelete = (item: T) => {
     if (deleteConfirm === item.id) {
@@ -45,6 +61,14 @@ export default function DataTable<T extends { id: string }>({
     return <div className="text-center py-12">Cargando datos...</div>;
   }
 
+  const query = search.trim().toLowerCase();
+  const filtered = query ? data.filter((item) => textoBuscable(item).includes(query)) : data;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const desde = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const hasta = Math.min(currentPage * pageSize, filtered.length);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -55,6 +79,35 @@ export default function DataTable<T extends { id: string }>({
         >
           + Nuevo
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Buscar..."
+          className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+        />
+        <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+          Mostrar
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(parseInt(e.target.value, 10));
+              setPage(1);
+            }}
+            className="px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+          por página
+        </label>
       </div>
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -70,14 +123,16 @@ export default function DataTable<T extends { id: string }>({
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 1} className="px-6 py-12 text-center text-gray-500">
-                  No hay registros aún. Haz clic en "Nuevo" para agregar.
+                  {data.length === 0
+                    ? 'No hay registros aún. Haz clic en "Nuevo" para agregar.'
+                    : 'Ningún registro coincide con la búsqueda.'}
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
+              paginated.map((item, index) => (
                 <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   {columns.map((col) => (
                     <td key={col.key} className="px-6 py-4">
@@ -114,6 +169,32 @@ export default function DataTable<T extends { id: string }>({
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 text-sm text-gray-600">
+          <span>
+            Mostrando {desde}–{hasta} de {filtered.length}
+            {query ? ` (filtrado de ${data.length})` : ''}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 rounded border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              ← Anterior
+            </button>
+            <span>Página {currentPage} de {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="px-3 py-1 rounded border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              Siguiente →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

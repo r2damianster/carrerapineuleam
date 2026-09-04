@@ -38,7 +38,7 @@ export default function AdminNewsPage() {
 
   const loadNews = async () => {
     try {
-      const res = await fetch('/api/actividades-difusion?seccion=noticias');
+      const res = await fetch('/api/actividades-difusion?seccion=noticias&all=true');
       if (!res.ok) throw new Error('Failed to fetch news');
       const rows = await res.json();
       setNews(rows.map((r: any) => ({ ...r, id: String(r.id) })));

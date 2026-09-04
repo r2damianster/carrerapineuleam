@@ -21,6 +21,11 @@ export async function GET(request: Request) {
     const origen = searchParams.get('origen'); // 'noticia' | 'actividad' | 'difusion'
     const seccion = searchParams.get('seccion'); // 'noticias' | 'actividades'
     const pendientes = searchParams.get('pendientes') === 'true';
+    // ?all=true (usado solo por /admin/news y /admin/activities) trae también
+    // las filas con publicar_noticias/publicar_actividades=false (ocultas sin
+    // borrar) para que el admin las siga viendo y pueda reactivarlas — el
+    // sitio público nunca lo manda.
+    const incluirOcultas = searchParams.get('all') === 'true';
     const sql = neon(process.env.DATABASE_URL!);
 
     if (pendientes) {
@@ -37,7 +42,7 @@ export async function GET(request: Request) {
     if (seccion === 'noticias') {
       const rows = await sql`
         SELECT * FROM actividades_difusion
-        WHERE aprobado_sitio = true AND publicar_noticias = true
+        WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_noticias = true)
         ORDER BY "order" ASC, fecha DESC NULLS LAST
       `;
       return NextResponse.json(rows);
@@ -45,7 +50,7 @@ export async function GET(request: Request) {
     if (seccion === 'actividades') {
       const rows = await sql`
         SELECT * FROM actividades_difusion
-        WHERE aprobado_sitio = true AND publicar_actividades = true
+        WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_actividades = true)
         ORDER BY "order" ASC, fecha DESC NULLS LAST
       `;
       return NextResponse.json(rows);
