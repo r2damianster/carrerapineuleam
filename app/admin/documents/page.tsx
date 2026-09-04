@@ -269,6 +269,15 @@ const documents = {
       period: '2026-1',
     },
     {
+      id: 'informe-mensual-comision-agosto-2026',
+      title: 'Informe Mensual de Comisión — Agosto 2026',
+      filename: '2026-09-04_InformeMensualComision_Agosto-signed.pdf',
+      description: 'Informe mensual de comisión correspondiente a agosto 2026. Detalla el lanzamiento del Portal PINE (Neon Postgres) con autenticación unificada y módulos de Vinculación/Investigación/Gestión de Carrera, la capacitación internacional de 40 horas con el Dr. Asier Romero Andonegi (UPV/EHU) con 18 personas certificadas, 2 publicaciones científicas y 2 episodios de podcast. Documento firmado por el líder del proyecto.',
+      icon: '📋',
+      date: '2026-09-04',
+      period: '2026-1',
+    },
+    {
       id: 'pub-lascano-villafuerte-confidence-2026',
       title: 'Confidence and Formal Speech in High School Students in English Language: Mentoring in EFL instruction',
       filename: 'https://doi.org/10.32996/jeltal.2026.8.8.13',
