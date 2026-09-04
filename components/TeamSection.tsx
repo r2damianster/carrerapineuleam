@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { Member } from '@/types';
 import { useLanguage } from '@/lib/i18n';
+import { GRADO_ABREVIADO, POSGRADO_ABREVIADO } from '@/lib/gradosCatalogo';
 
 interface TeamSectionProps {
   project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
@@ -105,17 +106,6 @@ const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
 // Abreviaturas para componer el nombre mostrado en la tarjeta pública —
 // `member.name` guarda solo el nombre, grado/posgrado son campos aparte
 // (ver types/index.ts). Sesión 29.
-const GRADO_ABREVIADO: Record<string, string> = {
-  'Licenciado/a': 'Lic.',
-  'Ingeniero/a': 'Ing.',
-  'Doctor/a': 'Dr.',
-  'Psicólogo/a': 'Psi.',
-};
-const POSGRADO_ABREVIADO: Record<string, string> = {
-  'Magíster': 'Mg.',
-  'PhD': 'PhD.',
-};
-
 function displayNameConTitulo(member: Member): string {
   const prefijo = member.grado ? GRADO_ABREVIADO[member.grado] : undefined;
   const sufijo = member.posgrado ? POSGRADO_ABREVIADO[member.posgrado] : undefined;

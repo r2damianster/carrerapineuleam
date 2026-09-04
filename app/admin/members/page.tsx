@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DataTable from '@/components/admin/DataTable';
 import type { Member } from '@/types';
+import { GRADOS_TERCER_NIVEL, GRADOS_CUARTO_NIVEL } from '@/lib/gradosCatalogo';
 
 export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -27,8 +28,8 @@ export default function AdminMembersPage() {
     titulo_especifico: '',
   });
 
-  const GRADO_OPCIONES = ['Licenciado/a', 'Ingeniero/a', 'Doctor/a', 'Psicólogo/a'];
-  const POSGRADO_OPCIONES = ['Magíster', 'PhD'];
+  const GRADO_OPCIONES = GRADOS_TERCER_NIVEL;
+  const POSGRADO_OPCIONES = GRADOS_CUARTO_NIVEL;
 
   const PROJECT_OPTIONS = [
     { value: 'internacionalizacion', label: 'Innovaciones Pedagógicas e Internacionalización' },
@@ -91,6 +92,26 @@ export default function AdminMembersPage() {
     }
   };
 
+  const resolverPendiente = async (member: Member, accion: 'aprobar_pendientes' | 'rechazar_pendientes') => {
+    try {
+      const res = await fetch(`/api/members/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [accion]: true }),
+      });
+      if (!res.ok) throw new Error('Failed to resolve');
+      loadMembers();
+    } catch (error) {
+      console.error('Error resolviendo pendiente:', error);
+      alert('Error al procesar el cambio pendiente');
+    }
+  };
+
+  const tienePendientes = (member: Member) =>
+    !!(member.pending_photo || member.pending_grado || member.pending_posgrado || member.pending_orcid || member.pending_titulo_especifico);
+
+  const miembrosPendientes = members.filter(tienePendientes);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -139,6 +160,61 @@ export default function AdminMembersPage() {
 
   return (
     <div>
+      {!showForm && miembrosPendientes.length > 0 && (
+        <div className="mb-8 bg-white rounded-xl p-6 shadow-md border-2 border-uleam-gold">
+          <h2 className="text-xl font-bold text-uleam-blue mb-4">
+            Cambios pendientes de publicación ({miembrosPendientes.length})
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Propuestos por el propio profesor desde &quot;Mi Perfil&quot; — no se ven en la web pública hasta que apruebes.
+          </p>
+          <div className="space-y-4">
+            {miembrosPendientes.map((member) => (
+              <div key={member.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="font-bold text-gray-800">{member.name}</p>
+                    <div className="text-sm text-gray-600 mt-2 space-y-1">
+                      {member.pending_photo && (
+                        <div className="flex items-center gap-2">
+                          <span>Foto:</span>
+                          <img src={member.pending_photo} alt="Foto propuesta" className="w-12 h-12 rounded-full object-cover border" />
+                        </div>
+                      )}
+                      {member.pending_grado && (
+                        <p><span className="text-gray-400">Grado:</span> {member.grado || '(sin definir)'} → <strong>{member.pending_grado}</strong></p>
+                      )}
+                      {member.pending_posgrado && (
+                        <p><span className="text-gray-400">Posgrado:</span> {member.posgrado || '(sin definir)'} → <strong>{member.pending_posgrado}</strong></p>
+                      )}
+                      {member.pending_orcid && (
+                        <p><span className="text-gray-400">ORCID:</span> {member.orcid || '(sin definir)'} → <strong>{member.pending_orcid}</strong></p>
+                      )}
+                      {member.pending_titulo_especifico && (
+                        <p><span className="text-gray-400">Título específico:</span> {member.titulo_especifico || '(sin definir)'} → <strong>{member.pending_titulo_especifico}</strong></p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => resolverPendiente(member, 'aprobar_pendientes')}
+                      className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition"
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      onClick={() => resolverPendiente(member, 'rechazar_pendientes')}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-300 transition"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {!showForm ? (
         <DataTable
           title="Miembros del Equipo"

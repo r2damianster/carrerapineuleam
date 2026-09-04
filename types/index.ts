@@ -25,6 +25,17 @@ export interface Member {
   // Un miembro puede estar en más de uno (ej. colabora en su proyecto propio + en Internacionalización).
   // Valores usados: 'internacionalizacion' | 'vinculacion' | 'desarrollo_habilidades' | 'mentoring'
   projects?: string[];
+  // Cola de aprobación: cambios que el propio profesor propuso desde "Mi Perfil"
+  // (/portal/perfil) y que todavía no aplican a la tarjeta pública — quedan aquí
+  // hasta que contenido_sitio los apruebe o rechace. Mismo patrón que
+  // actividades_difusion.aprobado_sitio. Ver app/api/perfil/route.ts.
+  pending_photo?: string;
+  pending_grado?: string;
+  pending_posgrado?: string;
+  pending_orcid?: string;
+  pending_titulo_especifico?: string;
+  pending_solicitado_por?: number;
+  pending_fecha_solicitud?: string;
 }
 
 export interface Publication {
