@@ -1,3 +1,5 @@
+> ⚠️ **Obsoleto.** Esta guía describe una arquitectura Railway (PocketBase) + Vercel que el proyecto abandonó por completo en la Sesión 8 (2026-04-26). El deploy real hoy es: **Vercel** (Next.js, auto-deploy on push a `main`) + **Neon Postgres** (base de datos, sin servidor propio que levantar) + **Cloudinary** (uploads). No hay ningún paso de Railway/PocketBase que ejecutar. Variables de entorno reales en `CLAUDE.md` → `### Variables de entorno requeridas`. Se conserva solo como referencia histórica, no se actualiza.
+
 # 🚀 Guía Completa de Deploy - Railway + Vercel
 
 ## Arquitectura Final

@@ -1,3 +1,5 @@
+> ⚠️ **Obsoleto.** Este resumen es del 12 de abril de 2026 (v0.3.0), cuando el proyecto todavía apuntaba a PocketBase como backend. Desde la Sesión 8 (2026-04-26) el proyecto migró por completo a Neon Postgres y el progreso/arquitectura descritos abajo ya no aplican. Estado actual real: [`README.md`](./README.md) y [`CLAUDE.md`](./CLAUDE.md). Se conserva solo como referencia histórica, no se actualiza.
+
 # ✅ PROYECTO COMPLETADO - RESUMEN FINAL
 
 **Fecha:** Abril 12, 2026  

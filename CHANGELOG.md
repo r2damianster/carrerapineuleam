@@ -7,19 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### TODO - Pending Tasks
-- [ ] Setup PocketBase backend locally with collections (Session 4)
-- [ ] Create 8 collections according to schema (Session 4)
-- [ ] Configure API rules for all collections (Session 4)
-- [ ] Create admin users (2 authorized emails) (Session 4)
-- [ ] Extract content from Word documents (Session 5)
-- [ ] Seed database with real data (Session 5)
-- [ ] Create additional public pages (videos, news, publications) (Session 6 - Optional)
-- [ ] Add file upload functionality for images and PDFs (Session 6 - Optional)
-- [ ] Add rich text editor for news content (Session 6 - Optional)
-- [ ] Deploy to Vercel + PocketBase Cloud (Session 7)
-- [ ] Configure custom domain (Session 7 - Optional)
-- [ ] Production testing (Session 7)
+*(nada pendiente al día de la última entrada — ver `CLAUDE.md` para tareas abiertas de módulos específicos, ej. artículos científicos de Investigación)*
+
+---
+
+> ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (30 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
+
+## [0.10.6] - 2026-09-04 (Sesión 30)
+
+### ✅ Added
+- "Ocultar sin borrar" en las 5 tablas del admin de contenido (Noticias, Actividades, Publicaciones, Podcast, Miembros) — columna `activo` nueva en `publications`/`videos`/`members`; `publicar_noticias`/`publicar_actividades` (ya existían en Noticias/Actividades) ahora editables desde la UI en vez de fijas en `true`. Un clic en la tabla oculta/muestra sin borrar el registro.
+- Badge "Destacado" (Noticias, Podcast) ahora clickeable directo desde la tabla, sin abrir el formulario de edición.
+- Buscador de texto libre + selector de tamaño de página (10/25/50/100) integrados en `components/admin/DataTable.tsx` — heredado automáticamente por las 5 tablas del admin que lo usan.
+
+### 🐛 Fixed
+- Al ocultar una noticia/actividad, la fila también desaparecía de la lista del propio admin (el `GET` que alimenta esas páginas era el mismo que filtra el sitio público) — corregido con un parámetro `?all=true` de uso exclusivo del admin.
+
+---
+
+## [0.10.0] – [0.10.5] (2026-06 a 2026-09-02) — resumen de hitos
+
+Rango largo de sesiones que llevó el proyecto de un sitio estático con panel admin en memoria a la plataforma actual. Puntos mayores (detalle sesión por sesión en `CLAUDE.md`):
+
+- Migración completa del contenido del sitio público (miembros, publicaciones, podcast, noticias/actividades) de `lib/data.ts` estático a **Neon Postgres** — el panel `/admin` dejó de perder los cambios en cada redeploy.
+- Construcción del **Portal PINE**: auth unificada con cookie firmada, roles y permisos por espacio, Vinculación (espacios, pasantes, beneficiarios, asistencia, Test MCER, encuestas, difusión), Investigación, Gestión de Carrera, Indicadores.
+- **Enlaces/QR públicos sin login** para que un beneficiario tome su Test MCER o encuesta de satisfacción desde el celular (pretest con alta de datos, postest de un solo uso).
+- **Contribuciones Académicas** — registro de producción académica de docentes (artículos, libros, capítulos, memorias de evento), vía Prisma (único módulo del repo que no usa SQL crudo).
+- Módulo **`/utilidades`** — generación de documentos administrativos (Acta Técnica, Oficios, Convocatorias, PATs de Maestría, Pares Lectores) con redacción asistida por IA, con selector de docentes unificado sobre `usuarios`.
+- **i18n ES/EN completo** en todo el sitio público, footer/equipo/hub contextuales por proyecto (antes un solo bloque genérico repetido en las 10 páginas).
+- Encuesta de satisfacción ampliada (4 dimensiones + calificación por instructor) y opción "ya estoy registrado" en el pretest público para no duplicar beneficiarios.
 
 ---
 
@@ -170,14 +186,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Focus | Progress |
 |---------|------|-------|----------|
-| 0.1.0 | 2026-04-12 | Initial Setup | 20% |
-| 0.2.0 | 2026-04-12 | Landing Page | 50% |
-| 0.3.0 | 2026-04-12 | Admin Panel + Git | 70% |
-| 0.3.1 | 2026-04-13 | Docs + Multi-AI Setup | 70% |
-| Unreleased | TBD | Backend + Content + Deploy | 30% |
+| 0.1.0 | 2026-04-12 | Initial Setup (era PocketBase, prototipo) | 20% |
+| 0.2.0 | 2026-04-12 | Landing Page (era PocketBase, prototipo) | 50% |
+| 0.3.0 | 2026-04-12 | Admin Panel + Git (era PocketBase, prototipo) | 70% |
+| 0.3.1 | 2026-04-13 | Docs + Multi-AI Setup (era PocketBase, prototipo) | 70% |
+| 0.10.0 – 0.10.5 | 2026-06 a 2026-09-02 | Migración a Neon + Portal PINE + i18n completo | ~99% |
+| 0.10.6 | 2026-09-04 | Admin: ocultar sin borrar + buscador/paginación | ~99% |
 
 ---
 
-**Last Updated:** 2026-04-13 (Session 4)
-**Current Version:** 0.3.1
-**Next Version:** 0.4.0 (PocketBase + Real Content)
+**Last Updated:** 2026-09-04 (Sesión 30)
+**Current Version:** 0.10.6
+**Detalle sesión por sesión:** ver [`CLAUDE.md`](./CLAUDE.md)
