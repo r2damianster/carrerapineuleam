@@ -100,7 +100,7 @@ export default async function PortalDashboard() {
                 <p className="text-gray-600 mb-4 text-sm">Registra tus artículos, libros, capítulos, ponencias, propiedad intelectual y eventos de difusión (investigación, vinculación o asignatura).</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/contribuciones/new" className="text-pink-600 hover:underline">» Registrar Contribución</Link>
-                  <Link href="/gestion-carrera" className="text-pink-600 hover:underline">» Registrar Evento</Link>
+                  <Link href="/gestion-carrera" className="text-pink-600 hover:underline">» Registrar Evento o Podcast</Link>
                   {modulos_acceso.includes('admin') && (
                     <Link href="/contribuciones" className="text-pink-600 hover:underline">» Ver Contribuciones Registradas</Link>
                   )}
