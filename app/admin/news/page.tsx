@@ -109,6 +109,21 @@ export default function AdminNewsPage() {
     }
   };
 
+  const handleToggleDestacado = async (item: NewsRow) => {
+    try {
+      const res = await fetch(`/api/actividades-difusion/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_featured: !item.is_featured }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadNews();
+    } catch (error) {
+      console.error('Error toggling destacado:', error);
+      alert('Error al cambiar destacado');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -161,9 +176,12 @@ export default function AdminNewsPage() {
       key: 'is_featured',
       label: 'Destacado',
       render: (item: NewsRow) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
+        <button
+          onClick={() => handleToggleDestacado(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue hover:opacity-80' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+        >
           {item.is_featured ? 'Sí' : 'No'}
-        </span>
+        </button>
       ),
     },
     {

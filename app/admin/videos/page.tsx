@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DataTable from '@/components/admin/DataTable';
 import type { Video, VideoCategory } from '@/types';
 
-export default function AdminVideosPage() {
+interface EstadoYoutube {
+  conectado: boolean;
+  channel_title: string | null;
+}
+
+function AdminVideosPage() {
+  const searchParams = useSearchParams();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [pendientes, setPendientes] = useState<Video[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
+  const [estadoYoutube, setEstadoYoutube] = useState<EstadoYoutube | null>(null);
+  const [publicarAlAprobar, setPublicarAlAprobar] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
@@ -27,19 +37,42 @@ export default function AdminVideosPage() {
 
   const loadData = async () => {
     try {
-      const [videosRes, catsRes] = await Promise.all([
+      const [videosRes, catsRes, pendientesRes, estadoRes] = await Promise.all([
         fetch('/api/videos?all=true'),
         fetch('/api/video-categories'),
+        fetch('/api/videos?pendientes=true'),
+        fetch('/api/youtube/estado'),
       ]);
       if (!videosRes.ok || !catsRes.ok) throw new Error('Failed to fetch');
       setVideos(await videosRes.json());
       setCategories(await catsRes.json());
+      setPendientes(pendientesRes.ok ? await pendientesRes.json() : []);
+      setEstadoYoutube(estadoRes.ok ? await estadoRes.json() : null);
     } catch (error) {
       console.error('Error loading videos:', error);
       setVideos([]);
       setCategories([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resolverPendiente = async (video: Video, accion: 'aprobar' | 'rechazar') => {
+    try {
+      const res = await fetch(`/api/videos/${video.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          accion === 'aprobar'
+            ? { aprobar: true, hacerPublicoEnYoutube: !!publicarAlAprobar[video.id] }
+            : { rechazar: true }
+        ),
+      });
+      if (!res.ok) throw new Error('Failed to resolve');
+      loadData();
+    } catch (error) {
+      console.error('Error resolviendo video pendiente:', error);
+      alert('Error al procesar el video pendiente');
     }
   };
 
@@ -55,6 +88,21 @@ export default function AdminVideosPage() {
     } catch (error) {
       console.error('Error toggling podcast:', error);
       alert('Error al cambiar visibilidad');
+    }
+  };
+
+  const handleToggleDestacado = async (video: Video) => {
+    try {
+      const res = await fetch(`/api/videos/${video.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_featured: !video.is_featured }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadData();
+    } catch (error) {
+      console.error('Error toggling destacado:', error);
+      alert('Error al cambiar destacado');
     }
   };
 
@@ -150,9 +198,12 @@ export default function AdminVideosPage() {
       key: 'is_featured',
       label: 'Destacado',
       render: (item: Video) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
+        <button
+          onClick={() => handleToggleDestacado(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue hover:opacity-80' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+        >
           {item.is_featured ? 'Sí' : 'No'}
-        </span>
+        </button>
       ),
     },
     {
@@ -169,9 +220,88 @@ export default function AdminVideosPage() {
     },
   ];
 
+  const youtubeError = searchParams.get('youtube_error');
+  const youtubeConectadoOk = searchParams.get('conectado') === 'true';
+
+  const banner = (
+    <div className="mb-6 space-y-2">
+      {estadoYoutube && (
+        <div className={`p-4 rounded-lg flex items-center justify-between gap-4 flex-wrap ${estadoYoutube.conectado ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+          <span className="text-sm">
+            {estadoYoutube.conectado
+              ? <>Canal de YouTube conectado: <strong>{estadoYoutube.channel_title}</strong></>
+              : 'No hay ningún canal de YouTube conectado — los profesores no podrán subir videos hasta que conectes uno.'}
+          </span>
+          <a href="/api/youtube/oauth-start" className="text-sm font-bold text-uleam-blue hover:underline whitespace-nowrap">
+            {estadoYoutube.conectado ? 'Reconectar' : 'Conectar canal'}
+          </a>
+        </div>
+      )}
+      {youtubeConectadoOk && (
+        <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">Canal de YouTube conectado correctamente.</div>
+      )}
+      {youtubeError && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+          Error conectando el canal de YouTube ({youtubeError}). Intenta de nuevo.
+        </div>
+      )}
+    </div>
+  );
+
+  const seccionPendientes = pendientes.length > 0 && (
+    <div className="mb-8 bg-white rounded-xl p-6 shadow-md border-2 border-uleam-gold">
+      <h2 className="text-xl font-bold text-uleam-blue mb-4">Videos propuestos pendientes ({pendientes.length})</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Subidos por profesores directo a YouTube (no listado) desde &quot;Subir Podcast/Video&quot; — no aparecen en el sitio hasta que apruebes.
+      </p>
+      <div className="space-y-4">
+        {pendientes.map((video) => (
+          <div key={video.id} className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-bold text-gray-800">{video.title}</p>
+                {video.description && <p className="text-sm text-gray-600 mt-1">{video.description}</p>}
+                {video.embed_id && (
+                  <a href={`https://youtu.be/${video.embed_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-uleam-blue hover:underline">
+                    Ver en YouTube (no listado) →
+                  </a>
+                )}
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!publicarAlAprobar[video.id]}
+                    onChange={(e) => setPublicarAlAprobar({ ...publicarAlAprobar, [video.id]: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm text-gray-700">Publicar también como público en YouTube</span>
+                </label>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => resolverPendiente(video, 'aprobar')}
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition"
+                >
+                  Aprobar
+                </button>
+                <button
+                  onClick={() => resolverPendiente(video, 'rechazar')}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-300 transition"
+                >
+                  Rechazar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   if (showForm) {
     return (
       <div>
+        {banner}
+        {seccionPendientes}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-uleam-blue">
             {editingVideo ? 'Editar Podcast' : 'Nuevo Podcast'}
@@ -295,20 +425,32 @@ export default function AdminVideosPage() {
   }
 
   return (
-    <DataTable
-      title="Podcast"
-      columns={columns}
-      data={videos}
-      loading={loading}
-      onAdd={() => {
-        if (categories.length === 0) {
-          alert('Primero debes crear categorías de video');
-          return;
-        }
-        setShowForm(true);
-      }}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-    />
+    <div>
+      {banner}
+      {seccionPendientes}
+      <DataTable
+        title="Podcast"
+        columns={columns}
+        data={videos}
+        loading={loading}
+        onAdd={() => {
+          if (categories.length === 0) {
+            alert('Primero debes crear categorías de video');
+            return;
+          }
+          setShowForm(true);
+        }}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}
+
+export default function AdminVideosPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <AdminVideosPage />
+    </Suspense>
   );
 }

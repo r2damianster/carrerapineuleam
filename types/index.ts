@@ -82,6 +82,14 @@ export interface Video {
   tags?: string[];
   // Ocultar sin borrar (Sesión 30) — false = no sale en ningún GET público.
   activo: boolean;
+  // Cola de aprobación para videos propuestos por profesores desde
+  // /portal/subir-video (suben directo a YouTube como no listado) — no salen
+  // en la web pública hasta que contenido_sitio aprueba en /admin/videos.
+  // Los videos creados directo por admin nacen con aprobado_sitio=true.
+  aprobado_sitio: boolean;
+  propuesto_por?: number | null;
+  aprobado_por?: number | null;
+  fecha_aprobacion?: string | null;
   created: string;
   updated: string;
 }

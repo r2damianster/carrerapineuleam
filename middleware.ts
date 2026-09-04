@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = [
     '/portal/dashboard',
     '/portal/perfil',
+    '/portal/subir-video',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',

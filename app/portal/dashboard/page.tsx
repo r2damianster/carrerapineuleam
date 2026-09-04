@@ -42,6 +42,17 @@ export default async function PortalDashboard() {
               </div>
             )}
 
+            {/* Subir Podcast/Video — cualquier docente, sube directo a YouTube (no listado), queda pendiente de aprobación */}
+            {esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-orange-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Subir Podcast / Video</h3>
+                <p className="text-gray-600 mb-4 text-sm">Sube un episodio directo a YouTube — queda pendiente de aprobación antes de aparecer en el sitio.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/portal/subir-video" className="text-orange-600 hover:underline">» Subir Video</Link>
+                </div>
+              </div>
+            )}
+
             {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor */}
             {modulos_acceso.includes('vinculacion') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
