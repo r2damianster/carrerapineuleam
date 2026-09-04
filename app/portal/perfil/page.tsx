@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { GRADOS_TERCER_NIVEL, GRADOS_CUARTO_NIVEL } from '@/lib/gradosCatalogo';
@@ -209,6 +210,9 @@ export default function PerfilPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 mt-16">
         <div className="max-w-3xl mx-auto space-y-8">
           <div>
+            <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium mb-4">
+              &larr; Volver al Portal PINE
+            </Link>
             <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
             <p className="text-gray-600 mt-2">{perfil.nombres} {perfil.apellidos} — {perfil.email}</p>
           </div>
