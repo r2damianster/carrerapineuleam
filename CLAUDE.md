@@ -480,7 +480,8 @@ carreraPINE/                       ← RAÍZ = Next.js app
 ├── CLAUDE.md                      # Este archivo (instrucciones para Claude)
 ├── ANTIGRAVITY.md                 # Instrucciones equivalentes para Antigravity
 ├── MANUAL_USUARIO.md              # Manual del Portal PINE, por rol
-├── CHANGELOG.md / README.md / RESUMEN.md / DEPLOY_GUIDE.md   # ⚠️ obsoletos, de la era pre-PocketBase-removal — no confiar, no se actualizan
+├── README.md / CHANGELOG.md       # Actualizados en Sesión 30 — README resume módulos/stack actual, CHANGELOG resume hitos por versión
+├── RESUMEN.md / DEPLOY_GUIDE.md   # ⚠️ obsoletos, de la era PocketBase/Railway (pre-Sesión 8) — marcados con aviso en el propio archivo, no se actualizan
 ├── package.json
 ├── middleware.ts                  # Protege /admin/*, /portal/*, /vinculacion/espacios*, /investigacion/espacios*, /gestion-carrera, /pine-dashboard
 ├── .env.local.example
