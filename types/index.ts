@@ -19,6 +19,8 @@ export interface Member {
   titulo_especifico?: string;
   is_leader: boolean;
   order: number;
+  // Ocultar sin borrar (Sesión 30) — false = no sale en ningún GET público.
+  activo: boolean;
   created: string;
   updated: string;
   // Proyectos a los que pertenece este miembro — filtra en qué página de proyecto aparece.
@@ -49,6 +51,8 @@ export interface Publication {
   cover_image?: string;
   type: 'article' | 'conference' | 'book' | 'other';
   category: 'regional' | 'libros' | 'impacto';
+  // Ocultar sin borrar (Sesión 30) — false = no sale en ningún GET público.
+  activo: boolean;
   created: string;
   updated: string;
 }
@@ -76,6 +80,8 @@ export interface Video {
   order: number;
   is_featured: boolean;
   tags?: string[];
+  // Ocultar sin borrar (Sesión 30) — false = no sale en ningún GET público.
+  activo: boolean;
   created: string;
   updated: string;
 }

@@ -13,6 +13,7 @@ interface ActivityRow {
   photos: string[];
   aprobado_sitio: boolean;
   publicar_noticias: boolean;
+  publicar_actividades: boolean;
 }
 
 // Cola de moderación: junta lo pendiente de aprobar (registrado por
@@ -89,6 +90,21 @@ export default function AdminActivitiesPage() {
     } catch (error) {
       console.error('Error deleting:', error);
       alert('Error al eliminar');
+    }
+  };
+
+  const handleTogglePublicada = async (row: ActivityRow) => {
+    try {
+      const res = await fetch(`/api/actividades-difusion/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicar_actividades: !row.publicar_actividades }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadRows();
+    } catch (error) {
+      console.error('Error toggling actividad:', error);
+      alert('Error al cambiar visibilidad');
     }
   };
 
@@ -181,6 +197,18 @@ export default function AdminActivitiesPage() {
         <span className={`px-2 py-1 rounded text-xs font-bold ${item.publicar_noticias ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-500'}`}>
           {item.publicar_noticias ? 'Sí' : 'No'}
         </span>
+      ),
+    },
+    {
+      key: 'publicar_actividades',
+      label: 'Visible en /actividades',
+      render: (item: ActivityRow) => (
+        <button
+          onClick={() => handleTogglePublicada(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.publicar_actividades ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+        >
+          {item.publicar_actividades ? 'Sí — ocultar' : 'Oculta — mostrar'}
+        </button>
       ),
     },
     {

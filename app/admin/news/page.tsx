@@ -11,6 +11,7 @@ interface NewsRow {
   is_featured: boolean;
   slug?: string;
   photos: string[];
+  publicar_noticias: boolean;
   publicar_actividades: boolean;
 }
 
@@ -27,6 +28,7 @@ export default function AdminNewsPage() {
     is_featured: false,
     slug: '',
     imagen: '',
+    publicar_noticias: true,
     publicar_actividades: false,
   });
 
@@ -56,6 +58,7 @@ export default function AdminNewsPage() {
       is_featured: false,
       slug: '',
       imagen: '',
+      publicar_noticias: true,
       publicar_actividades: false,
     });
     setEditingNews(null);
@@ -74,6 +77,7 @@ export default function AdminNewsPage() {
       is_featured: item.is_featured,
       slug: item.slug || '',
       imagen: item.photos?.[0] || '',
+      publicar_noticias: item.publicar_noticias ?? true,
       publicar_actividades: item.publicar_actividades || false,
     });
     setShowForm(true);
@@ -90,6 +94,21 @@ export default function AdminNewsPage() {
     }
   };
 
+  const handleTogglePublicada = async (item: NewsRow) => {
+    try {
+      const res = await fetch(`/api/actividades-difusion/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicar_noticias: !item.publicar_noticias }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadNews();
+    } catch (error) {
+      console.error('Error toggling noticia:', error);
+      alert('Error al cambiar visibilidad');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -102,7 +121,7 @@ export default function AdminNewsPage() {
       is_featured: formData.is_featured,
       slug,
       photos: formData.imagen ? [formData.imagen] : [],
-      publicar_noticias: true,
+      publicar_noticias: formData.publicar_noticias,
       publicar_actividades: formData.publicar_actividades,
     };
 
@@ -145,6 +164,18 @@ export default function AdminNewsPage() {
         <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
           {item.is_featured ? 'Sí' : 'No'}
         </span>
+      ),
+    },
+    {
+      key: 'publicar_noticias',
+      label: 'Visible en /noticias',
+      render: (item: NewsRow) => (
+        <button
+          onClick={() => handleTogglePublicada(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.publicar_noticias ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+        >
+          {item.publicar_noticias ? 'Sí — ocultar' : 'Oculta — mostrar'}
+        </button>
       ),
     },
   ];

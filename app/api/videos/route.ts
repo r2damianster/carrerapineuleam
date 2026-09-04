@@ -13,26 +13,30 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('category');
     const featuredOnly = searchParams.get('featured') === 'true';
+    // ?all=true (usado solo por /admin/videos) trae también los ocultos
+    // (activo=false) para poder reactivarlos — el sitio público nunca lo manda.
+    const incluirInactivos = searchParams.get('all') === 'true';
 
     let rows;
     if (categoryId) {
       rows = await sql`
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
-        WHERE v.category = ${categoryId}
+        WHERE v.category = ${categoryId} AND (${incluirInactivos} OR v.activo = true)
         ORDER BY v."order" ASC
       `;
     } else if (featuredOnly) {
       rows = await sql`
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
-        WHERE v.is_featured = true
+        WHERE v.is_featured = true AND (${incluirInactivos} OR v.activo = true)
         ORDER BY v."order" ASC LIMIT 6
       `;
     } else {
       rows = await sql`
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
+        WHERE (${incluirInactivos} OR v.activo = true)
         ORDER BY v."order" ASC
       `;
     }

@@ -26,7 +26,7 @@ export default function AdminPublicationsPage() {
 
   const loadPublications = async () => {
     try {
-      const res = await fetch('/api/publications');
+      const res = await fetch('/api/publications?all=true');
       if (!res.ok) throw new Error('Failed to fetch publications');
       const records = await res.json();
       setPublications(Array.isArray(records) ? records : []);
@@ -35,6 +35,21 @@ export default function AdminPublicationsPage() {
       setPublications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleActivo = async (pub: Publication) => {
+    try {
+      const res = await fetch(`/api/publications/${pub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !pub.activo }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadPublications();
+    } catch (error) {
+      console.error('Error toggling publicación:', error);
+      alert('Error al cambiar visibilidad');
     }
   };
 
@@ -155,6 +170,18 @@ export default function AdminPublicationsPage() {
         <span className="text-sm text-gray-600">
           {new Date(item.publication_date).toLocaleDateString('es-EC')}
         </span>
+      ),
+    },
+    {
+      key: 'activo',
+      label: 'Visible en el sitio',
+      render: (item: Publication) => (
+        <button
+          onClick={() => handleToggleActivo(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.activo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+        >
+          {item.activo ? 'Sí — ocultar' : 'Oculta — mostrar'}
+        </button>
       ),
     },
   ];

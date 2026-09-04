@@ -13,11 +13,15 @@ export async function GET(request: Request) {
     const query = searchParams.get('q');
     const offset = limit ? (page - 1) * limit : 0;
     const searchPattern = query ? `%${query}%` : null;
+    // ?all=true (usado solo por /admin/publications) trae también las ocultas
+    // (activo=false) para poder reactivarlas — el sitio público nunca lo manda.
+    const incluirInactivas = searchParams.get('all') === 'true';
 
     const publications = await sql`
       SELECT * FROM publications
       WHERE (${category}::text IS NULL OR category = ${category})
         AND (${searchPattern}::text IS NULL OR title ILIKE ${searchPattern} OR authors ILIKE ${searchPattern})
+        AND (${incluirInactivas} OR activo = true)
       ORDER BY publication_date DESC
       ${limit ? sql`LIMIT ${limit} OFFSET ${offset}` : sql``}
     `;
@@ -26,6 +30,7 @@ export async function GET(request: Request) {
       SELECT COUNT(*)::int AS count FROM publications
       WHERE (${category}::text IS NULL OR category = ${category})
         AND (${searchPattern}::text IS NULL OR title ILIKE ${searchPattern} OR authors ILIKE ${searchPattern})
+        AND (${incluirInactivas} OR activo = true)
     `;
 
     if (!limit) {

@@ -28,7 +28,7 @@ export default function AdminVideosPage() {
   const loadData = async () => {
     try {
       const [videosRes, catsRes] = await Promise.all([
-        fetch('/api/videos'),
+        fetch('/api/videos?all=true'),
         fetch('/api/video-categories'),
       ]);
       if (!videosRes.ok || !catsRes.ok) throw new Error('Failed to fetch');
@@ -40,6 +40,21 @@ export default function AdminVideosPage() {
       setCategories([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleActivo = async (video: Video) => {
+    try {
+      const res = await fetch(`/api/videos/${video.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !video.activo }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadData();
+    } catch (error) {
+      console.error('Error toggling podcast:', error);
+      alert('Error al cambiar visibilidad');
     }
   };
 
@@ -138,6 +153,18 @@ export default function AdminVideosPage() {
         <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_featured ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
           {item.is_featured ? 'Sí' : 'No'}
         </span>
+      ),
+    },
+    {
+      key: 'activo',
+      label: 'Visible en el sitio',
+      render: (item: Video) => (
+        <button
+          onClick={() => handleToggleActivo(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.activo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+        >
+          {item.activo ? 'Sí — ocultar' : 'Oculto — mostrar'}
+        </button>
       ),
     },
   ];

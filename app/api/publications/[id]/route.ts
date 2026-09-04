@@ -20,17 +20,32 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { title, authors, abstract, publication_date, doi_link, pdf_file, cover_image, type, category } = await request.json();
+    const body = await request.json();
+    const sql = neon(process.env.DATABASE_URL!);
+
+    // Toggle rápido de visibilidad desde la tabla del admin (ocultar sin
+    // borrar) — no exige los campos obligatorios del formulario completo.
+    if (typeof body.activo === 'boolean' && Object.keys(body).length === 1) {
+      const [actualizada] = await sql`
+        UPDATE publications SET activo = ${body.activo}, updated = now()
+        WHERE id = ${params.id}
+        RETURNING *
+      `;
+      if (!actualizada) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
+      return NextResponse.json(actualizada);
+    }
+
+    const { title, authors, abstract, publication_date, doi_link, pdf_file, cover_image, type, category, activo } = body;
     if (!title || !authors || !abstract || !publication_date || !type || !category) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
     const [actualizada] = await sql`
       UPDATE publications
       SET title = ${title}, authors = ${authors}, abstract = ${abstract}, publication_date = ${publication_date},
           doi_link = ${doi_link || null}, pdf_file = ${pdf_file || null}, cover_image = ${cover_image || null},
-          type = ${type}, category = ${category}, updated = now()
+          type = ${type}, category = ${category},
+          activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo), updated = now()
       WHERE id = ${params.id}
       RETURNING *
     `;

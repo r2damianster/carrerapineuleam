@@ -44,7 +44,7 @@ export default function AdminMembersPage() {
 
   const loadMembers = async () => {
     try {
-      const res = await fetch('/api/members');
+      const res = await fetch('/api/members?all=true');
       if (!res.ok) throw new Error('Failed to fetch members');
       const records = await res.json();
       setMembers(Array.isArray(records) ? records : []);
@@ -53,6 +53,21 @@ export default function AdminMembersPage() {
       setMembers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleActivo = async (member: Member) => {
+    try {
+      const res = await fetch(`/api/members/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !member.activo }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle');
+      loadMembers();
+    } catch (error) {
+      console.error('Error toggling miembro:', error);
+      alert('Error al cambiar visibilidad');
     }
   };
 
@@ -154,6 +169,18 @@ export default function AdminMembersPage() {
         <span className={`px-2 py-1 rounded text-xs font-bold ${item.is_leader ? 'bg-uleam-gold text-uleam-blue' : 'bg-gray-200 text-gray-700'}`}>
           {item.is_leader ? 'Sí' : 'No'}
         </span>
+      ),
+    },
+    {
+      key: 'activo',
+      label: 'Visible en el sitio',
+      render: (item: Member) => (
+        <button
+          onClick={() => handleToggleActivo(item)}
+          className={`px-2 py-1 rounded text-xs font-bold ${item.activo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+        >
+          {item.activo ? 'Sí — ocultar' : 'Oculto — mostrar'}
+        </button>
       ),
     },
   ];

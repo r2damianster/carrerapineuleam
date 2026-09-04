@@ -6,15 +6,22 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const project = searchParams.get('project');
+    // ?all=true (usado solo por /admin/members) trae también los ocultos
+    // (activo=false) para poder reactivarlos — el sitio público nunca lo manda.
+    const incluirInactivos = searchParams.get('all') === 'true';
 
     const sql = neon(process.env.DATABASE_URL!);
     const members = project
       ? await sql`
           SELECT * FROM members
-          WHERE ${project} = ANY(projects)
+          WHERE ${project} = ANY(projects) AND (${incluirInactivos} OR activo = true)
           ORDER BY COALESCE((project_order->>${project})::int, "order") ASC
         `
-      : await sql`SELECT * FROM members ORDER BY "order" ASC`;
+      : await sql`
+          SELECT * FROM members
+          WHERE (${incluirInactivos} OR activo = true)
+          ORDER BY "order" ASC
+        `;
     return NextResponse.json(members);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -45,7 +45,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json(actualizado);
     }
 
-    const { name, role, orcid, email, photo, is_leader, order, projects, genero, fecha_nacimiento, grado, posgrado, titulo_especifico } = body;
+    // Toggle rápido de visibilidad desde la tabla del admin (ocultar sin
+    // borrar) — no exige los campos obligatorios del formulario completo.
+    if (typeof body.activo === 'boolean' && Object.keys(body).length === 1) {
+      const [actualizado] = await sql`
+        UPDATE members SET activo = ${body.activo}, updated = now()
+        WHERE id = ${params.id}
+        RETURNING *
+      `;
+      if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+      return NextResponse.json(actualizado);
+    }
+
+    const { name, role, orcid, email, photo, is_leader, order, projects, genero, fecha_nacimiento, grado, posgrado, titulo_especifico, activo } = body;
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -56,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           photo = ${photo || null}, is_leader = ${!!is_leader}, "order" = ${order ?? 0},
           projects = ${projects || []}, genero = ${genero || null}, fecha_nacimiento = ${fecha_nacimiento || null},
           grado = ${grado || null}, posgrado = ${posgrado || null}, titulo_especifico = ${titulo_especifico || null},
-          updated = now()
+          activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo), updated = now()
       WHERE id = ${params.id}
       RETURNING *
     `;
