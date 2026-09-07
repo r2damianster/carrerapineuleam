@@ -9,6 +9,10 @@ interface Franja {
   hora_fin: string;
 }
 
+const ORDEN_DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!);
@@ -18,9 +22,7 @@ export async function GET() {
       FROM usuarios u
       JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
       WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
-      ORDER BY u.apellidos ASC, u.nombres ASC,
-        array_position(ARRAY['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], h.dia_semana),
-        h.hora_inicio
+      ORDER BY u.apellidos ASC, u.nombres ASC
     `;
 
     const porProfesor = new Map<number, { usuario_id: number; nombre: string; franjas: Franja[] }>();
@@ -37,7 +39,15 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(Array.from(porProfesor.values()));
+    const resultado = Array.from(porProfesor.values());
+    for (const profesor of resultado) {
+      profesor.franjas.sort((a, b) => {
+        const diaDiff = ORDEN_DIAS.indexOf(a.dia_semana) - ORDEN_DIAS.indexOf(b.dia_semana);
+        return diaDiff !== 0 ? diaDiff : a.hora_inicio.localeCompare(b.hora_inicio);
+      });
+    }
+
+    return NextResponse.json(resultado);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -4,6 +4,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 import { solicitarPublicacionPerfil } from '@/lib/perfilSync';
 
 const GENEROS_VALIDOS = ['femenino', 'masculino', 'otro', 'prefiero_no_decir'];
+const ORDEN_DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
 export async function GET() {
   try {
@@ -25,12 +26,14 @@ export async function GET() {
       ORDER BY nivel ASC, es_principal DESC, id ASC
     `;
 
-    const horarioTutorias = await sql`
+    const horarioTutorias = (await sql`
       SELECT id, dia_semana, hora_inicio, hora_fin
       FROM perfiles_horario_tutorias
       WHERE usuario_id = ${Number(usuario.id)}
-      ORDER BY array_position(ARRAY['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], dia_semana), hora_inicio
-    `;
+    `).sort((a: any, b: any) => {
+      const diaDiff = ORDEN_DIAS.indexOf(a.dia_semana) - ORDEN_DIAS.indexOf(b.dia_semana);
+      return diaDiff !== 0 ? diaDiff : a.hora_inicio.localeCompare(b.hora_inicio);
+    });
 
     const [member] = await sql`
       SELECT pending_photo, pending_grado, pending_posgrado, pending_orcid, pending_titulo_especifico

@@ -41,7 +41,6 @@ export async function middleware(request: NextRequest) {
     '/investigacion/espacios',
     '/investigacion/informes',
     '/gestion-carrera',
-    '/docencia',
     '/pine-dashboard',
     '/contribuciones',
     '/utilidades',
