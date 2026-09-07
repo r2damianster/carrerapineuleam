@@ -25,6 +25,13 @@ export async function GET() {
       ORDER BY nivel ASC, es_principal DESC, id ASC
     `;
 
+    const horarioTutorias = await sql`
+      SELECT id, dia_semana, hora_inicio, hora_fin
+      FROM perfiles_horario_tutorias
+      WHERE usuario_id = ${Number(usuario.id)}
+      ORDER BY array_position(ARRAY['lunes','martes','miercoles','jueves','viernes','sabado','domingo'], dia_semana), hora_inicio
+    `;
+
     const [member] = await sql`
       SELECT pending_photo, pending_grado, pending_posgrado, pending_orcid, pending_titulo_especifico
       FROM members WHERE email = ${usuario.email}
@@ -34,7 +41,7 @@ export async function GET() {
       member.pending_orcid || member.pending_titulo_especifico
     );
 
-    return NextResponse.json({ ...fila, titulos, tieneTarjetaPublica: !!member, tienePendientesEnWeb });
+    return NextResponse.json({ ...fila, titulos, horarioTutorias, tieneTarjetaPublica: !!member, tienePendientesEnWeb });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

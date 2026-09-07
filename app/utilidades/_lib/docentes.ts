@@ -1,5 +1,7 @@
 import { sql } from "./db";
 
+export const DEPENDENCIA_PINE = "Pedagogía de los Idiomas Nacionales y Extranjeros";
+
 export interface Docente {
   id: number;
   titulo_grado: string;

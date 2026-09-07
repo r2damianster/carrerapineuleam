@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
 import TaggedVideoSection from '@/components/TaggedVideoSection';
+import TutoringScheduleSection from '@/components/TutoringScheduleSection';
 import ActivityGallery from '@/components/ActivityGallery';
 import Contact from '@/components/Contact';
 
@@ -20,6 +21,7 @@ export default function DocenciaProjectPage() {
         <ProjectHero projectKey="docenciaProject" />
         <ProjectIntegrationNote projectKey="docenciaProject" />
         <TaggedVideoSection tag="docencia" projectKey="docenciaProject" />
+        <TutoringScheduleSection />
         <ActivityGallery />
         <Contact projectKey="docenciaProject" />
       </main>

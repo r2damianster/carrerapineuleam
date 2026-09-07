@@ -16,6 +16,13 @@ interface Titulo {
   es_principal: boolean;
 }
 
+interface FranjaHorario {
+  id: number;
+  dia_semana: string;
+  hora_inicio: string;
+  hora_fin: string;
+}
+
 interface Perfil {
   nombres: string;
   apellidos: string;
@@ -31,11 +38,23 @@ interface Perfil {
   dependencia: string | null;
   es_director: boolean;
   titulos: Titulo[];
+  horarioTutorias: FranjaHorario[];
   tieneTarjetaPublica: boolean;
   tienePendientesEnWeb: boolean;
 }
 
 const NIVEL_LABEL: Record<string, string> = { tercer_nivel: 'Tercer nivel', cuarto_nivel: 'Cuarto nivel' };
+
+const DIAS_SEMANA: { valor: string; label: string }[] = [
+  { valor: 'lunes', label: 'Lunes' },
+  { valor: 'martes', label: 'Martes' },
+  { valor: 'miercoles', label: 'Miércoles' },
+  { valor: 'jueves', label: 'Jueves' },
+  { valor: 'viernes', label: 'Viernes' },
+  { valor: 'sabado', label: 'Sábado' },
+  { valor: 'domingo', label: 'Domingo' },
+];
+const DIA_LABEL: Record<string, string> = Object.fromEntries(DIAS_SEMANA.map((d) => [d.valor, d.label]));
 
 export default function PerfilPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
@@ -46,6 +65,7 @@ export default function PerfilPage() {
 
   const [datos, setDatos] = useState({ cedula: '', orcid: '', genero: '', fecha_nacimiento: '', foto_url: '' });
   const [nuevoTitulo, setNuevoTitulo] = useState({ nivel: 'tercer_nivel', tipo: '', titulo_especifico: '', institucion: '', anio: '', es_principal: false });
+  const [nuevaFranja, setNuevaFranja] = useState({ dia_semana: 'lunes', hora_inicio: '', hora_fin: '' });
   const [passwordForm, setPasswordForm] = useState({ password_actual: '', password_nueva: '' });
 
   const cargar = async () => {
@@ -154,6 +174,46 @@ export default function PerfilPage() {
     if (!confirm('¿Eliminar este título?')) return;
     try {
       const res = await fetch(`/api/perfil/titulos/${titulo.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar');
+      await cargar();
+    } catch (error: any) {
+      setMensaje(`Error: ${error.message}`);
+    }
+  };
+
+  const agregarFranja = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevaFranja.hora_inicio || !nuevaFranja.hora_fin) {
+      setMensaje('Error: completa hora de inicio y hora de fin');
+      return;
+    }
+    if (nuevaFranja.hora_inicio >= nuevaFranja.hora_fin) {
+      setMensaje('Error: la hora de inicio debe ser anterior a la hora de fin');
+      return;
+    }
+    setGuardando(true);
+    setMensaje('');
+    try {
+      const res = await fetch('/api/perfil/horario-tutorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevaFranja),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error agregando la franja');
+      setNuevaFranja({ dia_semana: 'lunes', hora_inicio: '', hora_fin: '' });
+      await cargar();
+    } catch (error: any) {
+      setMensaje(`Error: ${error.message}`);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const eliminarFranja = async (franja: FranjaHorario) => {
+    if (!confirm('¿Eliminar esta franja de tutoría?')) return;
+    try {
+      const res = await fetch(`/api/perfil/horario-tutorias/${franja.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar');
       await cargar();
     } catch (error: any) {
@@ -379,6 +439,56 @@ export default function PerfilPage() {
               <button type="submit" disabled={guardando}
                 className="w-full py-2 px-4 rounded-md text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
                 {guardando ? 'Guardando...' : 'Agregar Título'}
+              </button>
+            </form>
+          </div>
+
+          {/* Horario de tutorías */}
+          <div className="bg-white rounded-xl p-6 shadow-md space-y-4">
+            <h2 className="text-xl font-bold text-uleam-blue">Horario de Tutorías</h2>
+            <p className="text-sm text-gray-500">Se publica de inmediato en la sección de Docencia Innovadora del sitio, para que los estudiantes sepan cuándo puedes atenderlos.</p>
+
+            {perfil.horarioTutorias.length === 0 && (
+              <p className="text-sm text-gray-400">Sin franjas registradas todavía.</p>
+            )}
+            <div className="space-y-2">
+              {perfil.horarioTutorias.map((franja) => (
+                <div key={franja.id} className="flex items-center justify-between gap-2 border border-gray-200 rounded-md p-3">
+                  <p className="text-sm font-medium text-gray-800">
+                    {DIA_LABEL[franja.dia_semana] || franja.dia_semana}: {franja.hora_inicio.slice(0, 5)} - {franja.hora_fin.slice(0, 5)}
+                  </p>
+                  <button onClick={() => eliminarFranja(franja)} type="button" className="text-xs text-red-600 hover:underline flex-shrink-0">Eliminar</button>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={agregarFranja} className="border-t border-gray-200 pt-4 space-y-3">
+              <h3 className="font-bold text-gray-700">Agregar franja</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Día</label>
+                  <select value={nuevaFranja.dia_semana}
+                    onChange={(e) => setNuevaFranja({ ...nuevaFranja, dia_semana: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                    {DIAS_SEMANA.map((d) => <option key={d.valor} value={d.valor}>{d.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Hora inicio</label>
+                  <input type="time" value={nuevaFranja.hora_inicio}
+                    onChange={(e) => setNuevaFranja({ ...nuevaFranja, hora_inicio: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Hora fin</label>
+                  <input type="time" value={nuevaFranja.hora_fin}
+                    onChange={(e) => setNuevaFranja({ ...nuevaFranja, hora_fin: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                </div>
+              </div>
+              <button type="submit" disabled={guardando}
+                className="w-full py-2 px-4 rounded-md text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+                {guardando ? 'Guardando...' : 'Agregar Franja'}
               </button>
             </form>
           </div>

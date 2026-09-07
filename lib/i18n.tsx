@@ -257,6 +257,20 @@ const translations = {
       videosSectionSubtitle: 'Episodios producidos como resultado de la práctica áulica en las cátedras de la carrera PINE',
       emptyVideos: 'No hay episodios de docencia publicados aún',
     },
+    tutoringSchedule: {
+      title: 'Horario de Tutorías',
+      subtitle: 'Consulta los horarios de atención de los docentes de la carrera PINE',
+      empty: 'No hay horarios de tutoría publicados por el momento',
+      days: {
+        lunes: 'Lunes',
+        martes: 'Martes',
+        miercoles: 'Miércoles',
+        jueves: 'Jueves',
+        viernes: 'Viernes',
+        sabado: 'Sábado',
+        domingo: 'Domingo',
+      },
+    },
     vinculacionProject: {
       navLabel: 'Dinámicas Lingüísticas en Contextos Locales',
       heroTitle1: 'Dinámicas Lingüísticas',
@@ -725,6 +739,20 @@ const translations = {
       videosSectionTitle: 'Teaching Podcasts',
       videosSectionSubtitle: 'Episodes produced as a result of classroom practice in the PINE degree program\'s courses',
       emptyVideos: 'No teaching episodes published yet',
+    },
+    tutoringSchedule: {
+      title: 'Tutoring Schedule',
+      subtitle: 'Check the office hours of PINE degree program faculty',
+      empty: 'No tutoring schedules have been published yet',
+      days: {
+        lunes: 'Monday',
+        martes: 'Tuesday',
+        miercoles: 'Wednesday',
+        jueves: 'Thursday',
+        viernes: 'Friday',
+        sabado: 'Saturday',
+        domingo: 'Sunday',
+      },
     },
     vinculacionProject: {
       navLabel: 'Linguistic Dynamics in Local Contexts',
