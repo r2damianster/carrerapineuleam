@@ -1,25 +1,11 @@
 import { renderizarPlantilla, fusionarDocx } from "./docxtemplater";
 import { formatearFechaCorta, formatearFechaLargaDel, restarSemanas, sumarHoras } from "./fechas";
 
-interface InfoMaestria {
-  nombre: string;
-  responsable: string;
-}
-
 /** Copiado literal de logic/PatsMaestria.py. */
-const INFO_MAESTRIAS: Record<string, InfoMaestria> = {
-  "1": {
-    nombre: "Maestría en Educación con Mención en Lingüística y Literatura, Cohorte IV – Matriz Manta.",
-    responsable: "Mg. Vargas Parraga Vanessa Monserrate",
-  },
-  "2": {
-    nombre: "Maestría en Educación con Mención en Innovaciones Pedagógicas, Cohorte IV – sede Matriz.",
-    responsable: "Mg. Delgado Mero Diana Maria",
-  },
-  "3": {
-    nombre: "Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros Mención Inglés Matriz Manta, Cohorte III.",
-    responsable: "Mg. Bazurto Alcivar Gabriel José",
-  },
+const NOMBRES_MAESTRIAS: Record<string, string> = {
+  "1": "Maestría en Educación con Mención en Lingüística y Literatura, Cohorte IV – Matriz Manta.",
+  "2": "Maestría en Educación con Mención en Innovaciones Pedagógicas, Cohorte IV – sede Matriz.",
+  "3": "Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros Mención Inglés Matriz Manta, Cohorte III.",
 };
 
 const TEMAS_MAP: Record<string, string[]> = {
@@ -30,7 +16,7 @@ const TEMAS_MAP: Record<string, string[]> = {
 
 export interface DatosPats {
   MAESTRIA: string;
-  responsable: string;
+  tutor: string;
   temas: string[];
   nombre: string;
   articulo: string;
@@ -52,11 +38,9 @@ export function prepararDatosParaPats(form: FormData): DatosPats {
     ? formatearFechaCorta(new Date(`${fechaDesignacionStr}T00:00:00`))
     : formatearFechaCorta(new Date());
 
-  const info = INFO_MAESTRIAS[maestriaOpcion];
-
   return {
-    MAESTRIA: info?.nombre ?? "Maestría no encontrada",
-    responsable: info?.responsable ?? "Responsable no encontrado",
+    MAESTRIA: NOMBRES_MAESTRIAS[maestriaOpcion] ?? "Maestría no encontrada",
+    tutor: (form.get("tutor_nombre")?.toString() ?? "").trim(),
     temas: TEMAS_MAP[metodologiaOpcion] ?? TEMAS_MAP["1"],
     nombre: (form.get("nombre_maestrante")?.toString() ?? "").toUpperCase(),
     articulo: form.get("titulo_articulo")?.toString() ?? "",
@@ -72,7 +56,7 @@ function generarPat03(datos: DatosPats): Buffer {
     articulo: datos.articulo,
     nombre: datos.nombre,
     MAESTRIA: datos.MAESTRIA,
-    TutorFirma: datos.responsable,
+    TutorFirma: datos.tutor,
   };
   datos.temas.forEach((t, i) => { ctx[`t${i + 1}`] = t; });
   return renderizarPlantilla("PAT-03-G-001-F-003.docx", ctx);
@@ -94,7 +78,7 @@ function generarPat04(datos: DatosPats): Buffer {
       HoraFin: horaFin,
       Tema: datos.temas[i],
       Proxima: proxima,
-      TutorFirma: datos.responsable,
+      TutorFirma: datos.tutor,
     }));
   }
   return fusionarDocx(buffers);
@@ -113,7 +97,7 @@ function generarPat05(datos: DatosPats): Buffer {
     FechaDesignacion: datos.fechaDesignacion,
     HORA: datos.hora,
     HoraFin: horaFin,
-    TutorFirma: datos.responsable,
+    TutorFirma: datos.tutor,
   };
   datos.temas.forEach((t, i) => {
     ctx[`n${i + 1}`] = i + 1;
@@ -132,7 +116,7 @@ function generarPat06(datos: DatosPats): Buffer {
     Oficio: datos.oficio,
     NOMBRE: datos.nombre,
     Articulo: datos.articulo,
-    TutorFirma: datos.responsable,
+    TutorFirma: datos.tutor,
   });
 }
 
