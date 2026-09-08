@@ -30,12 +30,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json(actualizada);
     }
 
-    const { titulo, descripcion, ubicaciones, order, activo } = body;
+    const { titulo, descripcion, ubicaciones, order, activo, posicion } = body;
     const [actualizada] = await sql`
       UPDATE fotos
       SET titulo = ${titulo ?? null}, descripcion = ${descripcion ?? null},
           ubicaciones = ${ubicaciones || []}, "order" = ${order ?? 0},
           activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo),
+          posicion = ${posicion || 'center'},
           updated = now()
       WHERE id = ${params.id}
       RETURNING *

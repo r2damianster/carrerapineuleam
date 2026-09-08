@@ -12,10 +12,17 @@ interface Foto {
   ubicaciones: string[];
   order: number;
   activo: boolean;
+  posicion: 'top' | 'center' | 'bottom';
 }
 
 const UBICACION_OPTIONS = [
   { value: 'portada', label: 'Portada (carrusel principal)' },
+];
+
+const POSICION_OPTIONS = [
+  { value: 'top', label: 'Arriba (si corta cabezas/rostros)' },
+  { value: 'center', label: 'Centro (por defecto)' },
+  { value: 'bottom', label: 'Abajo' },
 ];
 
 export default function AdminPhotosPage() {
@@ -31,6 +38,7 @@ export default function AdminPhotosPage() {
     descripcion: '',
     ubicaciones: ['portada'] as string[],
     order: 0,
+    posicion: 'center' as 'top' | 'center' | 'bottom',
   });
 
   useEffect(() => {
@@ -67,7 +75,7 @@ export default function AdminPhotosPage() {
   };
 
   const resetForm = () => {
-    setFormData({ file: null, titulo: '', descripcion: '', ubicaciones: ['portada'], order: 0 });
+    setFormData({ file: null, titulo: '', descripcion: '', ubicaciones: ['portada'], order: 0, posicion: 'center' });
     setEditingFoto(null);
     setShowForm(false);
   };
@@ -80,6 +88,7 @@ export default function AdminPhotosPage() {
       descripcion: foto.descripcion || '',
       ubicaciones: foto.ubicaciones || [],
       order: foto.order,
+      posicion: foto.posicion || 'center',
     });
     setShowForm(true);
   };
@@ -109,6 +118,7 @@ export default function AdminPhotosPage() {
             descripcion: formData.descripcion,
             ubicaciones: formData.ubicaciones,
             order: formData.order,
+            posicion: formData.posicion,
           }),
         });
         if (!res.ok) {
@@ -149,6 +159,7 @@ export default function AdminPhotosPage() {
           descripcion: formData.descripcion,
           ubicaciones: formData.ubicaciones,
           order: formData.order,
+          posicion: formData.posicion,
         }),
       });
       if (!res.ok) {
@@ -291,6 +302,19 @@ export default function AdminPhotosPage() {
                   onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Posición de la imagen (recorte)</label>
+                <select
+                  value={formData.posicion}
+                  onChange={(e) => setFormData({ ...formData, posicion: e.target.value as 'top' | 'center' | 'bottom' })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                >
+                  {POSICION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

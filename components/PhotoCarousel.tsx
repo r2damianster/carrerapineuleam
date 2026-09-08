@@ -9,7 +9,14 @@ interface Foto {
   url: string;
   titulo?: string;
   descripcion?: string;
+  posicion?: 'top' | 'center' | 'bottom';
 }
+
+const POSICION_CLASS: Record<string, string> = {
+  top: 'object-top',
+  center: 'object-center',
+  bottom: 'object-bottom',
+};
 
 const AUTOPLAY_MS = 5000;
 
@@ -61,7 +68,7 @@ export default function PhotoCarousel({ ubicacion }: { ubicacion: string }) {
                 alt={foto.titulo || ''}
                 fill
                 priority={false}
-                className="object-cover"
+                className={`object-cover ${POSICION_CLASS[foto.posicion || 'center']}`}
                 sizes="100vw"
               />
               {foto.titulo && (

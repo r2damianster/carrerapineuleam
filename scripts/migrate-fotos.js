@@ -27,6 +27,7 @@ async function main() {
       updated TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
+  // posicion (top|center|bottom) agregada después, ver scripts/migrate-fotos-posicion.js
 
   await sql`
     INSERT INTO fotos (id, url, titulo, ubicaciones, "order") VALUES

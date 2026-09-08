@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { url, cloudinary_public_id, titulo, descripcion, ubicaciones, order } = await request.json();
+    const { url, cloudinary_public_id, titulo, descripcion, ubicaciones, order, posicion } = await request.json();
     if (!url) {
       return NextResponse.json({ error: 'Falta la URL de la foto' }, { status: 400 });
     }
@@ -46,8 +46,8 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const id = `foto_${Date.now()}`;
     const [nueva] = await sql`
-      INSERT INTO fotos (id, url, cloudinary_public_id, titulo, descripcion, ubicaciones, "order", subido_por)
-      VALUES (${id}, ${url}, ${cloudinary_public_id || null}, ${titulo || null}, ${descripcion || null}, ${ubicaciones || []}, ${order ?? 0}, ${usuario.email})
+      INSERT INTO fotos (id, url, cloudinary_public_id, titulo, descripcion, ubicaciones, "order", subido_por, posicion)
+      VALUES (${id}, ${url}, ${cloudinary_public_id || null}, ${titulo || null}, ${descripcion || null}, ${ubicaciones || []}, ${order ?? 0}, ${usuario.email}, ${posicion || 'center'})
       RETURNING *
     `;
     return NextResponse.json(nueva, { status: 201 });
