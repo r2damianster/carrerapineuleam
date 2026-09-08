@@ -15,8 +15,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
-    console.log('[horario-tutorias][debug] DEPENDENCIA_PINE=', JSON.stringify(DEPENDENCIA_PINE), 'len=', DEPENDENCIA_PINE.length);
+    // fetchOptions: { cache: 'no-store' } es obligatorio aquí — @neondatabase/serverless
+    // hace sus queries vía fetch() por debajo, y Next.js intercepta ese fetch con su Data
+    // Cache global keyed por el texto exacto de la query, SIN importar `dynamic =
+    // 'force-dynamic'` del route handler (ese solo desactiva el Full Route Cache, no el
+    // Data Cache de fetches internos de una librería). Sin esto, la primera vez que esta
+    // query se ejecutó (antes de que Arturo publicara su horario) quedó cacheada vacía
+    // para siempre — confirmado en producción (Sesión 31).
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
       SELECT u.id AS usuario_id, u.nombres, u.apellidos, u.titulo_grado,
              h.id, h.dia_semana, h.hora_inicio, h.hora_fin
@@ -25,24 +31,6 @@ export async function GET() {
       WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE} AND u.horario_tutorias_publico = true
       ORDER BY u.apellidos ASC, u.nombres ASC
     `;
-    console.log('[horario-tutorias][debug] rows.length=', rows.length);
-    const soloDep = await sql`
-      SELECT u.id, u.dependencia FROM usuarios u
-      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
-    `;
-    console.log('[horario-tutorias][debug] soloDep.length=', soloDep.length, JSON.stringify(soloDep.map((r: any) => r.id)));
-    const depMasJoin = await sql`
-      SELECT u.id, h.id AS franja_id FROM usuarios u
-      JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
-      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
-    `;
-    console.log('[horario-tutorias][debug] depMasJoin.length=', depMasJoin.length, JSON.stringify(depMasJoin));
-    const depMasJoinMasPublico = await sql`
-      SELECT u.id, h.id AS franja_id FROM usuarios u
-      JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
-      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE} AND u.horario_tutorias_publico = true
-    `;
-    console.log('[horario-tutorias][debug] depMasJoinMasPublico.length=', depMasJoinMasPublico.length, JSON.stringify(depMasJoinMasPublico));
 
     const porProfesor = new Map<number, { usuario_id: number; nombre: string; franjas: Franja[] }>();
     for (const row of rows as any[]) {
