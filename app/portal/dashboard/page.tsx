@@ -123,12 +123,15 @@ export default async function PortalDashboard() {
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Utilidades</h3>
                 <p className="text-gray-600 mb-4 text-sm">
-                  Herramientas y recursos adicionales que se irán incorporando poco a poco.
+                  Generación de documentos administrativos y académicos de la carrera.
                 </p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/utilidades" className="text-teal-600 hover:underline">
-                    » Ver Utilidades
-                  </Link>
+                  <Link href="/utilidades/acta-tecnica" className="text-teal-600 hover:underline">» Acta Técnica</Link>
+                  <Link href="/utilidades/oficios" className="text-teal-600 hover:underline">» Generador de Oficios</Link>
+                  <Link href="/utilidades/convocatorias" className="text-teal-600 hover:underline">» Convocatorias</Link>
+                  <Link href="/utilidades/pat-maestria" className="text-teal-600 hover:underline">» PATs Maestría</Link>
+                  <Link href="/utilidades/pares-lectores" className="text-teal-600 hover:underline">» Pares Lectores</Link>
+                  <Link href="/utilidades/certificados" className="text-teal-600 hover:underline">» Certificados</Link>
                 </div>
               </div>
             )}
