@@ -17,6 +17,9 @@ interface Foto {
 
 const UBICACION_OPTIONS = [
   { value: 'portada', label: 'Portada (carrusel principal)' },
+  { value: 'docencia-galeria', label: 'Galería de Docencia Innovadora' },
+  { value: 'redlea-galeria', label: 'Galería de RED LEA' },
+  { value: 'club-ingles', label: 'Club de Inglés en Escenarios Locales' },
 ];
 
 export default function AdminPhotosPage() {

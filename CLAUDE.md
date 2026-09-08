@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.10 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-08 (Sesión 35 — Docencia Innovadora ganó `TeamSection`, equipo ampliado con 3 personas nuevas + Laura en Vinculación + Verónica también en Docencia. Ver detalle abajo)
+**Versión actual:** 0.10.11 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
+**Última sesión:** 2026-09-08 (Sesión 36 — Docencia/RED LEA/Club de Inglés unificadas al Banco de Fotos, `fotos.ubicaciones` deja de ser exclusivo de portada. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -95,7 +95,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
 | `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
 | `Contribution` / `ContributionAuthor` | Contribuciones académicas de docentes (artículos, libros, capítulos, memorias de evento, propiedad intelectual) | **Nombres con mayúscula, sin snake_case** — a diferencia de todo el resto del esquema, porque se manejan vía Prisma (`prisma/schema.prisma`) sin `@@map`, no SQL crudo. Creadas a mano en Sesión 24 con `scripts/migrate-contribuciones.js` (no con `prisma db push`, ver advertencia en `## Stack Técnico`). Visibilidad: `GET`/`DELETE /api/contribuciones` solo `modulos_acceso: admin`; `POST` cualquier docente (`rol: profesor\|admin`) autenticado. |
-| `fotos` | Banco de fotos administrable (Sesión 32) | `ubicaciones TEXT[]` decide dónde aparece cada foto (hoy solo `'portada'`, ver `components/PhotoCarousel.tsx`). Ocultar sin borrar vía `activo`, igual que `members`/`publications`/`videos`. |
+| `fotos` | Banco de fotos administrable (Sesión 32, ampliado Sesión 36) | `ubicaciones TEXT[]` decide dónde aparece cada foto — valores reales hoy: `portada` (`PhotoCarousel`), `docencia-galeria` (`ActivityGallery`), `redlea-galeria` (`RedLEAGaleria`), `club-ingles` (`EnglishClubSection`). `posicion INT` (0-100, Sesión 34) controla el recorte vertical. Ocultar sin borrar vía `activo`, igual que `members`/`publications`/`videos`. |
 | `proyectos` | Catálogo de proyectos/redes del grupo, controla el nav público (Sesión 32) | Creada en una sesión anterior no documentada (probablemente Antigravity) pero nunca leída por código hasta Sesión 32 — ahora `components/Header.tsx` la consume vía `/api/proyectos` con fallback hardcodeado si falla. `tipo='plantilla_simple'` (desarrollo_habilidades, mentoring, y cualquiera nuevo creado desde `/admin/proyectos`) vs `tipo='personalizada'` (internacionalizacion, vinculacion, docencia_innovadora, redlea — página con código bespoke, solo se puede ocultar/reordenar desde admin, no recrear). |
 | `enlaces_evaluacion` | Enlaces/QR públicos sin login para pretest/postest (Sesión 28) | `token` UUID, `tipo` pretest\|postest, `test_tipo` mcer\|encuesta, `max_usos`/`usos_actuales`. Consumida por `/api/enlaces/**` |
 | `encuesta_evaluaciones_instructor` | Calificación de cada estudiante-instructor dentro de la encuesta ampliada (Sesión 29) | Una fila por instructor evaluado, no una sola pregunta genérica — se genera dinámicamente según `espacio_instructores` |
@@ -161,6 +161,55 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 36 — 2026-09-08)
+
+### Docencia + RED LEA + Club de Inglés unificadas al Banco de Fotos
+
+El usuario preguntó si había una forma de administrar "qué fotos van en qué
+páginas" desde un solo lugar — la respuesta ya existía a medias (Banco de
+Fotos de Sesión 32) pero solo cubría la portada. Había otras 3 galerías,
+cada una con su propio sistema aislado: **Docencia Innovadora**
+(`ActivityGallery.tsx` leía `actividades_difusion.photos[]` **sin filtrar
+por proyecto — bug real**: mostraba fotos de cualquier actividad aprobada
+del sitio completo, no solo de docencia), **RED LEA** (15 fotos hardcodeadas
+en `lib/i18n.tsx`, duplicadas ES/EN) y **Club de Inglés** (3 fotos
+hardcodeadas en `lib/data.ts`). El usuario eligió unificar las 3 de una vez.
+
+- **`fotos.ubicaciones`** ganó 3 valores nuevos sin ninguna migración de
+  schema (ya era `TEXT[]` genérico desde Sesión 32): `docencia-galeria`,
+  `redlea-galeria`, `club-ingles`.
+- **Migración de datos vía Neon MCP, sin perder nada:**
+  - Docencia: 23 fotos migradas desde `actividades_difusion.photos[]`
+    (19 actividades aprobadas) con un solo `INSERT ... SELECT` usando
+    `LATERAL unnest(...) WITH ORDINALITY` — cada foto entra con
+    `titulo`/`descripcion` de su actividad de origen y
+    `origen='evidencia_evento'` (valor que el CHECK de la tabla ya
+    reservaba para este caso exacto desde Sesión 32). **No se tocó
+    `actividades_difusion.photos`** — sigue existiendo, porque
+    `NewsSection.tsx` y `lib/db.ts:getNewsletters()` siguen usando
+    `photos[0]` como imagen destacada de noticias/boletín (concepto
+    distinto de "galería").
+  - RED LEA: 15 fotos migradas desde `lib/i18n.tsx` (títulos en español,
+    ya se documenta desde Sesión 26 que los captions de fotos son
+    "contenido real, no copy de interfaz" — no se agregó columna bilingüe).
+  - Club de Inglés: 3 fotos migradas desde `lib/data.ts`.
+- **`components/ActivityGallery.tsx`, `components/redlea/RedLEAGaleria.tsx`,
+  `components/EnglishClubSection.tsx`** — los 3 ahora hacen
+  `fetch('/api/photos?ubicacion=X')` en vez de leer de
+  `actividades_difusion`/i18n/`lib/data.ts`. Los 3 respetan `posicion`
+  (recorte 0-100 de Sesión 34) igual que `PhotoCarousel`.
+- **`/admin/photos`** — 3 opciones nuevas en el checklist de ubicaciones.
+  Esto es literalmente la respuesta a la pregunta del usuario: desde ahora
+  es el único lugar para subir una foto y elegir con checkboxes en qué
+  página(s) del sitio aparece (portada, Docencia, RED LEA, Club de Inglés).
+- **`app/admin/activities/page.tsx`** — el campo de foto de una actividad ya
+  no alimenta ninguna galería (eso ahora es 100% `/admin/photos`); reetiquetado
+  a "Imagen destacada (Noticias/Boletín)" para no confundir, sin tocar su lógica.
+- **Código muerto borrado** tras confirmar 0 referencias: `lib/data.ts:vinculacionEnglishClubPhotos`, `types/index.ts:VinculacionEnglishClubPhoto`, y los arrays `redlea.galeria.photos` de `lib/i18n.tsx` (es+en) — `title`/`subtitle` de esa sección se quedan en i18n.
+- **Verificación:** conteos confirmados en Neon (`SELECT unnest(ubicaciones), count(*) ... GROUP BY 1` → 23/15/3/4 exactos). `npx tsc --noEmit` y `npm run build` limpios.
 
 ---
 
@@ -905,6 +954,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-08 (Sesión 35)
-**Versión:** 0.10.10
+**Última actualización:** 2026-09-08 (Sesión 36)
+**Versión:** 0.10.11
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

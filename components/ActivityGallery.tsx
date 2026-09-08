@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n';
 
-interface Activity {
+interface Foto {
   id: string;
-  title: string;
-  description?: string;
-  photos: string[];
-  event_date: string;
-  category: string;
+  url: string;
+  titulo?: string;
+  descripcion?: string;
+  posicion?: number;
 }
 
 interface ActivityGalleryProps {
@@ -18,51 +17,17 @@ interface ActivityGalleryProps {
 }
 
 export default function ActivityGallery({ limit }: ActivityGalleryProps) {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [fotos, setFotos] = useState<Foto[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { t } = useLanguage();
 
   useEffect(() => {
-    const loadActivities = async () => {
-      try {
-        const res = await fetch('/api/actividades-difusion?seccion=actividades');
-        if (!res.ok) throw new Error('Failed to fetch activities');
-        const rows = await res.json();
-        setActivities(rows.map((r: any) => ({
-          id: String(r.id),
-          title: r.titulo,
-          description: r.descripcion,
-          photos: r.photos || [],
-          event_date: r.fecha,
-          category: r.categoria || '',
-        })));
-      } catch (error) {
-        // Fallback sample data
-        setActivities([
-          {
-            id: '1',
-            title: 'Actividad Previa Podcast',
-            description: 'Preparación del primer episodio del podcast educativo',
-            photos: ['/images/activities/actividad_previa_podcast.jpeg'],
-            event_date: '2025-01-10',
-            category: 'podcast',
-          },
-          {
-            id: '2',
-            title: 'Grabación de Podcast',
-            description: 'Sesión de grabación con invitados especiales',
-            photos: ['/images/activities/Actividad_Podcast.jpeg'],
-            event_date: '2025-02-15',
-            category: 'podcast',
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadActivities();
+    fetch('/api/photos?ubicacion=docencia-galeria')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows) => setFotos(Array.isArray(rows) ? rows : []))
+      .catch(() => setFotos([]))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -75,15 +40,7 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
     );
   }
 
-  // Flatten all photos from activities
-  const allPhotos = activities.flatMap(activity =>
-    activity.photos.map(photo => ({
-      src: photo,
-      title: activity.title,
-      description: activity.description,
-    }))
-  );
-  const displayPhotos = limit ? allPhotos.slice(0, limit) : allPhotos;
+  const displayPhotos = limit ? fotos.slice(0, limit) : fotos;
 
   return (
     <section id="actividades" className="py-20 bg-gray-50">
@@ -102,23 +59,24 @@ export default function ActivityGallery({ limit }: ActivityGalleryProps) {
         {/* Photos Grid */}
         {displayPhotos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {displayPhotos.map((photo, index) => (
+            {displayPhotos.map((foto) => (
               <div
-                key={index}
+                key={foto.id}
                 className="relative aspect-square cursor-pointer overflow-hidden rounded-lg group"
-                onClick={() => setSelectedImage(photo.src)}
+                onClick={() => setSelectedImage(foto.url)}
               >
                 <Image
-                  src={photo.src}
-                  alt={photo.title}
+                  src={foto.url}
+                  alt={foto.titulo || ''}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  style={{ objectPosition: `center ${foto.posicion ?? 50}%` }}
                 />
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                  <h4 className="text-white font-bold text-sm">{photo.title}</h4>
-                  {photo.description && (
-                    <p className="text-gray-200 text-xs mt-1 line-clamp-2">{photo.description}</p>
+                  <h4 className="text-white font-bold text-sm">{foto.titulo}</h4>
+                  {foto.descripcion && (
+                    <p className="text-gray-200 text-xs mt-1 line-clamp-2">{foto.descripcion}</p>
                   )}
                 </div>
               </div>

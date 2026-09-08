@@ -1,13 +1,30 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
+
+interface Foto {
+  id: string;
+  url: string;
+  titulo?: string;
+  posicion?: number;
+}
 
 export default function RedLEAGaleria() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<Foto[]>([]);
   const { t } = useLanguage();
-  const { title, subtitle, photos } = t.redlea.galeria;
+  const { title, subtitle } = t.redlea.galeria;
+
+  useEffect(() => {
+    fetch('/api/photos?ubicacion=redlea-galeria')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows) => setPhotos(Array.isArray(rows) ? rows : []))
+      .catch(() => setPhotos([]));
+  }, []);
+
+  if (photos.length === 0) return null;
 
   return (
     <section id="galeria" className="w-full py-20 px-4 bg-white">
@@ -23,15 +40,16 @@ export default function RedLEAGaleria() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           {photos.map((foto, idx) => (
             <div
-              key={idx}
+              key={foto.id}
               className="relative h-48 rounded-lg overflow-hidden cursor-pointer group"
               onClick={() => setSelectedIdx(idx)}
             >
               <Image
-                src={foto.src}
-                alt={foto.title}
+                src={foto.url}
+                alt={foto.titulo || ''}
                 fill
                 className="object-cover group-hover:scale-110 transition duration-300"
+                style={{ objectPosition: `center ${foto.posicion ?? 50}%` }}
                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
               />
               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-40 transition" />
@@ -47,8 +65,8 @@ export default function RedLEAGaleria() {
           >
             <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
               <Image
-                src={photos[selectedIdx].src}
-                alt={photos[selectedIdx].title}
+                src={photos[selectedIdx].url}
+                alt={photos[selectedIdx].titulo || ''}
                 width={1200}
                 height={800}
                 className="w-full h-auto rounded-lg"
@@ -59,7 +77,7 @@ export default function RedLEAGaleria() {
               >
                 ✕
               </button>
-              <p className="text-white text-center mt-4">{photos[selectedIdx].title}</p>
+              <p className="text-white text-center mt-4">{photos[selectedIdx].titulo}</p>
             </div>
           </div>
         )}

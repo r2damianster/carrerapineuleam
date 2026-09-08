@@ -267,7 +267,7 @@ export default function AdminActivitiesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Foto (ruta o URL)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen destacada (Noticias/Boletín — ya no alimenta la galería de Docencia, ver /admin/photos)</label>
               <input
                 type="text"
                 value={formData.imagen}
