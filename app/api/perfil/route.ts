@@ -14,7 +14,8 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!);
     const [fila] = await sql`
       SELECT nombres, apellidos, email, cedula, orcid, genero, fecha_nacimiento, foto_url,
-             titulo_grado, post_grado, cargo_institucional, dependencia, es_director
+             titulo_grado, post_grado, cargo_institucional, dependencia, es_director,
+             horario_tutorias_publico
       FROM usuarios WHERE id = ${Number(usuario.id)}
     `;
     if (!fila) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
@@ -61,6 +62,7 @@ export async function PATCH(request: Request) {
     const genero = data.genero !== undefined ? data.genero : undefined;
     const fecha_nacimiento = data.fecha_nacimiento !== undefined ? data.fecha_nacimiento : undefined;
     const foto_url = data.foto_url !== undefined ? data.foto_url : undefined;
+    const horario_tutorias_publico = data.horario_tutorias_publico !== undefined ? !!data.horario_tutorias_publico : undefined;
 
     if (cedula !== undefined && !/^\d{10}$/.test(cedula)) {
       return NextResponse.json({ error: 'La cédula debe tener 10 dígitos' }, { status: 400 });
@@ -90,9 +92,10 @@ export async function PATCH(request: Request) {
           orcid = CASE WHEN ${orcid !== undefined} THEN ${orcid ?? null} ELSE orcid END,
           genero = CASE WHEN ${genero !== undefined} THEN ${genero || null} ELSE genero END,
           fecha_nacimiento = CASE WHEN ${fecha_nacimiento !== undefined} THEN ${fecha_nacimiento || null} ELSE fecha_nacimiento END,
-          foto_url = CASE WHEN ${foto_url !== undefined} THEN ${foto_url || null} ELSE foto_url END
+          foto_url = CASE WHEN ${foto_url !== undefined} THEN ${foto_url || null} ELSE foto_url END,
+          horario_tutorias_publico = CASE WHEN ${horario_tutorias_publico !== undefined} THEN ${horario_tutorias_publico ?? false} ELSE horario_tutorias_publico END
       WHERE id = ${Number(usuario.id)}
-      RETURNING orcid, foto_url
+      RETURNING orcid, foto_url, horario_tutorias_publico
     `;
 
     if (orcid !== undefined || foto_url !== undefined) {

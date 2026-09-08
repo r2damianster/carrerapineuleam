@@ -137,6 +137,20 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 
 ---
 
+## Cambios Recientes (Sesión 31 — 2026-09-08)
+
+### Toggle público/no-público para el horario de tutorías
+
+El horario de tutorías (`perfiles_horario_tutorias`, ya construido en sesión previa: UI en `/portal/perfil`, API pública `/api/docentes/horario-tutorias`, componente `TutoringScheduleSection` montado en `/docencia/docencia-innovadora`) se publicaba siempre sin control — cualquier franja guardada por un profesor con `dependencia=DEPENDENCIA_PINE` salía en la web de inmediato. A pedido del usuario: opción explícita de marcar el horario como público o no.
+
+- **Columna nueva `usuarios.horario_tutorias_publico BOOLEAN NOT NULL DEFAULT false`** — aplicada directo en Neon vía MCP (Project ID `dark-feather-21824720`). Default `false`: opt-in, nada se publica hasta que el profesor lo active.
+- `GET /api/perfil` devuelve el campo; `PATCH /api/perfil` lo acepta suelto (mismo patrón `CASE WHEN ... !== undefined` que el resto de campos parciales del endpoint).
+- `GET /api/docentes/horario-tutorias` (público) suma `AND u.horario_tutorias_publico = true` al filtro existente (`rol='profesor' AND dependencia=DEPENDENCIA_PINE`).
+- `/portal/perfil`: checkbox "Publicar mi horario de tutorías en la web pública" en el bloque de horario, togglea con `PATCH` inmediato (no espera al submit del formulario de datos personales) — mismo patrón de toggle directo que Sesión 30. Aviso inline si está activado pero sin franjas todavía.
+- **Verificación:** columna confirmada en Neon vía `information_schema.columns`; `npx tsc --noEmit` sin errores nuevos en los archivos tocados (`app/api/perfil/route.ts`, `app/api/docentes/horario-tutorias/route.ts`, `app/portal/perfil/page.tsx`). No se probó clic-a-clic en navegador (mismo límite de sandbox de sesiones previas).
+
+---
+
 ## Cambios Recientes (Sesión 30 — 2026-09-04)
 
 ### "Ocultar sin borrar" en todo el admin de contenido + buscador y paginación configurable

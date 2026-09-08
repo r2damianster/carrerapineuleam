@@ -39,6 +39,7 @@ interface Perfil {
   es_director: boolean;
   titulos: Titulo[];
   horarioTutorias: FranjaHorario[];
+  horario_tutorias_publico: boolean;
   tieneTarjetaPublica: boolean;
   tienePendientesEnWeb: boolean;
 }
@@ -66,6 +67,7 @@ export default function PerfilPage() {
   const [datos, setDatos] = useState({ cedula: '', orcid: '', genero: '', fecha_nacimiento: '', foto_url: '' });
   const [nuevoTitulo, setNuevoTitulo] = useState({ nivel: 'tercer_nivel', tipo: '', titulo_especifico: '', institucion: '', anio: '', es_principal: false });
   const [nuevaFranja, setNuevaFranja] = useState({ dia_semana: 'lunes', hora_inicio: '', hora_fin: '' });
+  const [guardandoPublico, setGuardandoPublico] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ password_actual: '', password_nueva: '' });
 
   const cargar = async () => {
@@ -218,6 +220,25 @@ export default function PerfilPage() {
       await cargar();
     } catch (error: any) {
       setMensaje(`Error: ${error.message}`);
+    }
+  };
+
+  const togglePublicoHorario = async (valor: boolean) => {
+    setGuardandoPublico(true);
+    setMensaje('');
+    try {
+      const res = await fetch('/api/perfil', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ horario_tutorias_publico: valor }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error actualizando visibilidad');
+      await cargar();
+    } catch (error: any) {
+      setMensaje(`Error: ${error.message}`);
+    } finally {
+      setGuardandoPublico(false);
     }
   };
 
@@ -446,7 +467,18 @@ export default function PerfilPage() {
           {/* Horario de tutorías */}
           <div className="bg-white rounded-xl p-6 shadow-md space-y-4">
             <h2 className="text-xl font-bold text-uleam-blue">Horario de Tutorías</h2>
-            <p className="text-sm text-gray-500">Se publica de inmediato en la sección de Docencia Innovadora del sitio, para que los estudiantes sepan cuándo puedes atenderlos.</p>
+            <p className="text-sm text-gray-500">Opcional. Registra tus franjas y decide si quieres que se muestren en la sección de Docencia Innovadora del sitio público.</p>
+
+            <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-md p-3 border border-gray-200">
+              <input type="checkbox" checked={perfil.horario_tutorias_publico} disabled={guardandoPublico}
+                onChange={(e) => togglePublicoHorario(e.target.checked)} className="w-4 h-4" />
+              <span className="text-sm text-gray-700">
+                Publicar mi horario de tutorías en la web pública
+                {perfil.horario_tutorias_publico && perfil.horarioTutorias.length === 0 && (
+                  <span className="text-amber-600"> (activado, pero sin franjas registradas todavía — no se mostrará nada hasta que agregues al menos una)</span>
+                )}
+              </span>
+            </label>
 
             {perfil.horarioTutorias.length === 0 && (
               <p className="text-sm text-gray-400">Sin franjas registradas todavía.</p>

@@ -21,7 +21,7 @@ export async function GET() {
              h.id, h.dia_semana, h.hora_inicio, h.hora_fin
       FROM usuarios u
       JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
-      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
+      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE} AND u.horario_tutorias_publico = true
       ORDER BY u.apellidos ASC, u.nombres ASC
     `;
 
