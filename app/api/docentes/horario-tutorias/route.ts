@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!);
+    console.log('[horario-tutorias][debug] DEPENDENCIA_PINE=', JSON.stringify(DEPENDENCIA_PINE), 'len=', DEPENDENCIA_PINE.length);
     const rows = await sql`
       SELECT u.id AS usuario_id, u.nombres, u.apellidos, u.titulo_grado,
              h.id, h.dia_semana, h.hora_inicio, h.hora_fin
@@ -24,6 +25,14 @@ export async function GET() {
       WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE} AND u.horario_tutorias_publico = true
       ORDER BY u.apellidos ASC, u.nombres ASC
     `;
+    console.log('[horario-tutorias][debug] rows.length=', rows.length);
+    const sinFiltroPublico = await sql`
+      SELECT u.id, u.rol, u.dependencia, u.horario_tutorias_publico, count(h.id)::int AS franjas
+      FROM usuarios u LEFT JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
+      WHERE u.rol = 'profesor'
+      GROUP BY u.id, u.rol, u.dependencia, u.horario_tutorias_publico
+    `;
+    console.log('[horario-tutorias][debug] sinFiltroPublico=', JSON.stringify(sinFiltroPublico));
 
     const porProfesor = new Map<number, { usuario_id: number; nombre: string; franjas: Franja[] }>();
     for (const row of rows as any[]) {
