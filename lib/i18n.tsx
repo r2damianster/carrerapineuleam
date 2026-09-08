@@ -62,6 +62,7 @@ const translations = {
         desarrollo_habilidades: 'Investigadores dedicados al desarrollo de las habilidades lingüísticas',
         vinculacion: 'Equipo comprometido con la vinculación y el servicio a la comunidad',
         mentoring: 'Equipo dedicado a la mentoría y el desarrollo humano docente',
+        docencia_innovadora: 'Equipo dedicado a la docencia innovadora e interdisciplinaria',
       },
       badges: {
         leader: 'Líder',
@@ -554,6 +555,7 @@ const translations = {
         desarrollo_habilidades: 'Researchers dedicated to developing linguistic skills',
         vinculacion: 'A team committed to community outreach and service',
         mentoring: 'A team dedicated to mentoring and teachers\' human development',
+        docencia_innovadora: 'A team dedicated to innovative and interdisciplinary teaching',
       },
       badges: {
         leader: 'Leader',

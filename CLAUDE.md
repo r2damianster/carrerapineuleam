@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.9 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-08 (Sesión 34 — fotos.posicion pasó de enum top/center/bottom a porcentaje 0-100 con vista previa en vivo en el admin; tarjeta del dashboard renombrada a "Administrador de sitio". Ver detalle abajo)
+**Versión actual:** 0.10.10 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
+**Última sesión:** 2026-09-08 (Sesión 35 — Docencia Innovadora ganó `TeamSection`, equipo ampliado con 3 personas nuevas + Laura en Vinculación + Verónica también en Docencia. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -161,6 +161,22 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 35 — 2026-09-08)
+
+### Docencia Innovadora gana equipo propio + 3 personas nuevas + multi-proyecto para Verónica y Laura
+
+A pedido del usuario. Antes de insertar nada se consultó `usuarios`/`members` reales en Neon (regla de oro del proyecto: nunca adivinar email/persona) — confirmó que "Gonzalo Farfán" que pidió el usuario es la misma persona que **Ulbio Farfán Corrales** (ya documentado así desde Sesión 27) y sacó a la luz que `member_13` (Laura Mena Sánchez) **ya existía en Neon sin estar documentada** en este archivo — mismo patrón que la tabla `proyectos` de Sesión 32 (alguien la agregó fuera de sesión).
+
+- **`app/docencia/docencia-innovadora/page.tsx` no tenía `TeamSection`** (confirmado, era la única página de proyecto sin equipo visible) — se agregó `<TeamSection project="docencia_innovadora" />`, más la key `t.team.subtitles.docencia_innovadora` (ES/EN) en `lib/i18n.tsx` para que no caiga al subtítulo genérico de Internacionalización.
+- **3 miembros nuevos** creados en `members` (`member_14`/`15`/`16`: Ulbio Farfán Corrales, Gabriel Bazurto Alcívar, Jorge Corral Joniaux) con `projects=['docencia_innovadora']` — emails tomados de `usuarios` (directorio de `/utilidades`, Sesión 27), no inventados.
+- **Verónica (`member_12`)** sumó `docencia_innovadora` a sus proyectos (ya tenía `mentoring`) — primer caso de alguien con `mentoring`+`docencia_innovadora` a la vez.
+- **Laura (`member_13`)** sumó `vinculacion` a sus proyectos (ya tenía `internacionalizacion`, sin documentar hasta ahora).
+- **Pregunta del usuario respondida:** sí, `/admin/members` ya administra "qué miembro aparece en qué página" — checkboxes de `projects` por miembro, y desde Sesión 32 la lista de proyectos ya no está hardcodeada (se trae de `/api/proyectos?all=true`, así que un proyecto nuevo creado en `/admin/proyectos` aparece ahí automáticamente). Lo único que faltaba y se corrigió en esta sesión es que **la página de Docencia Innovadora no tenía ningún `<TeamSection>` en el código** — el checkbox podía marcarse pero no se renderizaba nada; ya no es el caso.
+- **"Betty"** (mencionada por el usuario para Docencia Innovadora) — no aparece en `usuarios` ni en `members`, no se agregó sin confirmar nombre completo/email real (regla de oro).
+- **Verificación:** `npx tsc --noEmit` limpio. Cambios de Neon aplicados vía MCP con `SELECT`/`RETURNING` de confirmación en cada paso.
 
 ---
 
@@ -703,9 +719,15 @@ Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía 
 | member_9 | Diana Noemi Cedeño Sánchez | Estudiante Investigadora / Equipo de Podcast | internacionalizacion | 9 |
 | member_10 | Dr. German Carrera Moreno, PhD. | Líder de Proyecto (Desarrollo de Habilidades Lingüísticas) — ver `/investigacion/desarrollo-habilidades` | desarrollo_habilidades | 10 |
 | member_11 | Mg. Cynthia Zambrano Zambrano | Líder de Proyecto (Vinculación) — ver `/vinculacion/dinamicas-linguisticas` | vinculacion | 11 |
-| member_12 | Mg. Verónica Chávez | Responsable de Comisión Académica y Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`, nueva en Sesión 26. Sin foto todavía (placeholder), pendiente subir imagen real. | mentoring | 12 |
+| member_12 | Mg. Verónica Chávez | Responsable de Comisión Académica y Líder de Proyecto (Mentoring) — ver `/investigacion/mentoring`. Sin foto todavía (placeholder). | mentoring, docencia_innovadora (Sesión 35) | 12 |
+| member_13 | Laura Mena Sánchez | Miembro de Investigación | internacionalizacion, vinculacion (Sesión 35) | 13 |
+| member_14 | Ulbio Farfán Corrales | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) — email real confirmado contra `usuarios` (Sesión 27), no adivinado | docencia_innovadora | 14 |
+| member_15 | Gabriel Bazurto Alcívar | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) | docencia_innovadora | 15 |
+| member_16 | Jorge Corral Joniaux | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) | docencia_innovadora | 16 |
 
-Cristina Basantes es el único caso con dos proyectos — confirmado explícitamente por el usuario: colídera de Desarrollo de Habilidades Lingüísticas (con German) y además colaboradora de Internacionalización (coordina el Podcast ahí). No es un ajuste automático ni aplica al resto del equipo.
+⚠️ **`member_13` (Laura Mena) ya existía en Neon sin estar documentada aquí** — encontrada recién en Sesión 35 al auditar la tabla real antes de agregar gente nueva. Mismo patrón que la tabla `proyectos` (Sesión 32): alguien (probablemente Antigravity) la agregó fuera de una sesión documentada. Regla reafirmada: **antes de insertar en `members`, consultar primero el estado real de Neon** — esta tabla de referencia puede estar desincronizada.
+
+Cristina Basantes es el único caso con dos proyectos — confirmado explícitamente por el usuario: colídera de Desarrollo de Habilidades Lingüísticas (con German) y además colaboradora de Internacionalización (coordina el Podcast ahí). No es un ajuste automático ni aplica al resto del equipo. Verónica (mentoring+docencia_innovadora) y Laura (internacionalizacion+vinculacion) son los otros 2 casos con más de un proyecto, agregados en Sesión 35.
 
 ⚠️ **Distinto del `member_12` fabricado anteriormente:** en Sesión 19 existió un `member_12` ("Mg. Veronika Vera", líder de un supuesto proyecto "Mentoría Lingüística") que resultó ser una identidad **fabricada por Antigravity** (email inventado, sin confirmar con el usuario) — se eliminó junto con su página pública (`/investigacion/mentoria-linguistica`) y su link en el Header. El `member_12` actual (Verónica Chávez) es una persona real, ya confirmada desde antes en `profesoresAutorizados`/`profesorModulos`/`liderProyectoPropio` (`lib/data.ts`) — no confundir ambos casos. Regla de oro sigue vigente: **nunca inventar/adivinar un email o una persona**, confirmar siempre con el usuario antes de agregar a `members`, `profesoresAutorizados` o `profesorModulos`.
 
@@ -882,6 +904,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-08 (Sesión 34)
-**Versión:** 0.10.9
+**Última actualización:** 2026-09-08 (Sesión 35)
+**Versión:** 0.10.10
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
