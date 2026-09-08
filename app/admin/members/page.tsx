@@ -11,6 +11,12 @@ export default function AdminMembersPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([
+    { value: 'internacionalizacion', label: 'Innovaciones Pedagógicas e Internacionalización' },
+    { value: 'vinculacion', label: 'Dinámicas Lingüísticas en Contextos Locales (Vinculación)' },
+    { value: 'desarrollo_habilidades', label: 'Desarrollo de Habilidades Lingüísticas' },
+    { value: 'mentoring', label: 'Mentoring' },
+  ]);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -31,15 +37,21 @@ export default function AdminMembersPage() {
   const GRADO_OPCIONES = GRADOS_TERCER_NIVEL;
   const POSGRADO_OPCIONES = GRADOS_CUARTO_NIVEL;
 
-  const PROJECT_OPTIONS = [
-    { value: 'internacionalizacion', label: 'Innovaciones Pedagógicas e Internacionalización' },
-    { value: 'vinculacion', label: 'Dinámicas Lingüísticas en Contextos Locales (Vinculación)' },
-    { value: 'desarrollo_habilidades', label: 'Desarrollo de Habilidades Lingüísticas' },
-    { value: 'mentoring', label: 'Mentoring' },
-  ];
+  const PROJECT_OPTIONS = projectOptions;
 
   useEffect(() => {
     loadMembers();
+    // Trae los proyectos reales desde Neon (incluye cualquiera creado desde
+    // /admin/proyectos) — si falla, se queda con el fallback hardcodeado
+    // inicial en useState, para no dejar el checklist vacío.
+    fetch('/api/proyectos?all=true')
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((rows) => {
+        if (Array.isArray(rows) && rows.length > 0) {
+          setProjectOptions(rows.map((p: any) => ({ value: p.id, label: p.nombre_oficial })));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const loadMembers = async () => {

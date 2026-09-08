@@ -14,14 +14,51 @@ interface HeaderProps {
 type NavChild = { href?: string; label: string; isHeader?: boolean };
 type NavItem = { href: string; label: string; children?: undefined } | { label: string; children: NavChild[]; href?: undefined };
 
+interface ProyectoNav {
+  id: string;
+  slug: string;
+  tipo: string;
+  grupo_nav: string | null;
+  nav_label: string | null;
+  nombre_oficial: string;
+  es_red: boolean;
+  order: number;
+}
+
+// Proyectos cuya página pública ya existe con código bespoke (no la ruta
+// genérica /proyectos/[slug]) — sus URLs no cambian sin que un programador
+// mueva el archivo, así que quedan fijas acá. Cualquier proyecto NUEVO
+// creado desde /admin/proyectos (tipo='plantilla_simple') no está en este
+// mapa y cae al fallback /proyectos/{slug}.
+const RUTA_CONOCIDA: Record<string, string> = {
+  internacionalizacion: '/investigacion/proyecto-innovacion',
+  vinculacion: '/vinculacion/dinamicas-linguisticas',
+  docencia_innovadora: '/docencia/docencia-innovadora',
+  redlea: '/redlea',
+  desarrollo_habilidades: '/investigacion/desarrollo-habilidades',
+  mentoring: '/investigacion/mentoring',
+};
+
+function hrefDeProyecto(p: ProyectoNav): string {
+  return RUTA_CONOCIDA[p.id] || `/proyectos/${p.slug}`;
+}
+
 export default function Header({ siteName, logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
+  const [proyectosDb, setProyectosDb] = useState<ProyectoNav[] | null>(null);
   const { lang, t, toggle } = useLanguage();
   const navRef = useRef<HTMLUListElement>(null);
   const displaySiteName = siteName || t.nav.siteName;
+
+  useEffect(() => {
+    fetch('/api/proyectos')
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setProyectosDb(Array.isArray(data) && data.length > 0 ? data : null))
+      .catch(() => setProyectosDb(null));
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,7 +78,7 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-proyect
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navLinks: NavItem[] = [
+  const navLinksHardcodeados: NavItem[] = [
     { href: '/', label: t.nav.home },
     { label: t.nav.docencia, children: [{ href: '/docencia/docencia-innovadora', label: t.docenciaProject.navLabel }] },
     {
@@ -57,6 +94,34 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-proyect
     },
     { label: t.nav.vinculacion, children: [{ href: '/vinculacion/dinamicas-linguisticas', label: t.vinculacionProject.navLabel }] },
   ];
+
+  // Si /api/proyectos respondió con filas, el nav se arma desde Neon
+  // (permite ocultar/mostrar/reordenar desde /admin/proyectos sin tocar
+  // código). Si el fetch falló o la tabla está vacía, se usa el array de
+  // arriba tal cual — nunca se deja el nav sin proyectos por un problema de
+  // red o de datos.
+  const proyectosDeGrupo = (grupo: string, esRed?: boolean) =>
+    (proyectosDb || [])
+      .filter((p) => p.grupo_nav === grupo && (esRed === undefined || p.es_red === esRed))
+      .sort((a, b) => a.order - b.order)
+      .map((p): NavChild => ({ href: hrefDeProyecto(p), label: p.nav_label || p.nombre_oficial }));
+
+  const navLinks: NavItem[] = proyectosDb
+    ? [
+        { href: '/', label: t.nav.home },
+        { label: t.nav.docencia, children: proyectosDeGrupo('docencia') },
+        {
+          label: t.nav.investigacion,
+          children: [
+            { label: t.nav.networksHeader, isHeader: true },
+            ...proyectosDeGrupo('investigacion', true),
+            { label: t.nav.projectsHeader, isHeader: true },
+            ...proyectosDeGrupo('investigacion', false),
+          ],
+        },
+        { label: t.nav.vinculacion, children: proyectosDeGrupo('vinculacion') },
+      ]
+    : navLinksHardcodeados;
 
   const toggleDropdown = (label: string) => {
     setOpenDropdown((current) => (current === label ? null : label));

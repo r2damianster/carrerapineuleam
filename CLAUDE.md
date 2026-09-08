@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.6
-**Última sesión:** 2026-09-04 (Sesión 30 — "ocultar sin borrar" en Noticias/Actividades/Publicaciones/Podcast/Members, "Destacado" clickeable, y buscador + paginación configurable en las 5 tablas del admin. Ver detalle abajo)
+**Versión actual:** 0.10.7
+**Última sesión:** 2026-09-08 (Sesión 32 — Banco de Fotos administrable + config de proyectos/nav vía Neon. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -95,6 +95,8 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
 | `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
 | `Contribution` / `ContributionAuthor` | Contribuciones académicas de docentes (artículos, libros, capítulos, memorias de evento, propiedad intelectual) | **Nombres con mayúscula, sin snake_case** — a diferencia de todo el resto del esquema, porque se manejan vía Prisma (`prisma/schema.prisma`) sin `@@map`, no SQL crudo. Creadas a mano en Sesión 24 con `scripts/migrate-contribuciones.js` (no con `prisma db push`, ver advertencia en `## Stack Técnico`). Visibilidad: `GET`/`DELETE /api/contribuciones` solo `modulos_acceso: admin`; `POST` cualquier docente (`rol: profesor\|admin`) autenticado. |
+| `fotos` | Banco de fotos administrable (Sesión 32) | `ubicaciones TEXT[]` decide dónde aparece cada foto (hoy solo `'portada'`, ver `components/PhotoCarousel.tsx`). Ocultar sin borrar vía `activo`, igual que `members`/`publications`/`videos`. |
+| `proyectos` | Catálogo de proyectos/redes del grupo, controla el nav público (Sesión 32) | Creada en una sesión anterior no documentada (probablemente Antigravity) pero nunca leída por código hasta Sesión 32 — ahora `components/Header.tsx` la consume vía `/api/proyectos` con fallback hardcodeado si falla. `tipo='plantilla_simple'` (desarrollo_habilidades, mentoring, y cualquiera nuevo creado desde `/admin/proyectos`) vs `tipo='personalizada'` (internacionalizacion, vinculacion, docencia_innovadora, redlea — página con código bespoke, solo se puede ocultar/reordenar desde admin, no recrear). |
 
 **⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
 
@@ -134,6 +136,32 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 32 — 2026-09-08)
+
+### Banco de Fotos administrable + config de proyectos/nav vía Neon
+
+A pedido del usuario, que quería poner un carrusel de fotos de eventos en la
+portada (`/`) — pero al planificarlo amplió el pedido a "que cada vez más del
+sitio dependa de admin, no de programar": banco de fotos reutilizable +
+poder ocultar un proyecto o agregar una red (tipo RED LEA) sin tocar código.
+
+- **Tabla nueva `fotos`** (`scripts/migrate-fotos.js`, aplicada vía Neon MCP): `id, url, cloudinary_public_id, titulo, descripcion, ubicaciones TEXT[], "order", activo, subido_por, origen`. `ubicaciones` es un slot reusable (mismo patrón que `members.projects`) — hoy solo `'portada'`, pero cualquier página nueva puede sumar `<PhotoCarousel ubicacion="otra">` sin otra migración. Sembradas 4 fotos iniciales del usuario (sin fecha real de evento conocida, documentada en `titulo` en vez de fingirla en el nombre de archivo).
+  - `GET/POST /api/photos`, `PATCH/DELETE /api/photos/[id]` — mismo patrón `?all=true`+`activo` que `members`, protegido por `contenido_sitio`. `DELETE` es la primera vez que el repo usa `cloudinary.uploader.destroy` (no existía en ningún lado) — con try/catch para no dejar una foto imposible de borrar si Cloudinary falla.
+  - `app/api/upload/route.ts` ahora también devuelve `public_id` (antes solo `url`) — necesario para poder borrar después. Cambio aditivo, no rompe a sus otros 3 consumidores.
+  - `components/PhotoCarousel.tsx` (sin librería nueva — no hay ninguna en `package.json` — CSS/state puro con autoplay+pausa on hover) insertado en `app/page.tsx`, antes de `HubProjectsSection`.
+  - `/admin/photos` — primer formulario admin del repo con subida de archivo real (`<input type="file">` → `/api/upload` → `/api/photos`), el resto de formularios admin usaban `<input type="text">` para pegar una URL.
+
+- **Se activó la tabla `proyectos`** (creada por `scripts/migrate-proyectos.js` en una sesión anterior no documentada — probablemente Antigravity — pero **nunca leída por ningún código hasta ahora**, confirmado por grep). `scripts/migrate-proyectos-extend.js` (ALTER, aplicado vía Neon MCP) le agregó `slug, tipo ('plantilla_simple'|'personalizada'), es_red, grupo_nav, nav_label, "order"` + campos de hero/integración/info bilingües (`_es`/`_en`, con fallback a `_es` si falta `_en` — mismo estilo SQL crudo del resto del repo, no JSON) + `lider_nombre`/`lider_orcid`. Se agregaron 2 filas nuevas (`docencia_innovadora`, `redlea`) que antes no existían en esta tabla.
+  - **Alcance explícito, no todo se generalizó igual:** `desarrollo_habilidades` y `mentoring` quedaron `tipo='plantilla_simple'` (ya eran genéricas en código: mismo esqueleto `ProjectHero`+`ProjectIntegrationNote`+`TeamSection`+`Contact`) — pero sus páginas actuales (`/investigacion/desarrollo-habilidades`, `/investigacion/mentoring`) **no se tocaron**, siguen usando `projectKey`/i18n como siempre. `internacionalizacion`, `vinculacion`, `docencia_innovadora` y `redlea` quedaron `tipo='personalizada'` — tienen secciones bespoke (testimonios, galerías, formularios propios) que **no se generalizaron** (eso requeriría un page-builder real, fuera de alcance de esta sesión). Para estas 4, lo único que se ganó desde admin es ocultar/mostrar y reordenar su entrada en el menú — crear una red tan rica como RED LEA sigue necesitando un desarrollador.
+  - `GET/POST /api/proyectos`, `GET/PATCH /api/proyectos/[slug]` — sin `DELETE` real (hay FKs desde `actividades_difusion`/`videos`), solo se oculta (`activo=false`).
+  - `components/Header.tsx` ahora hace `fetch('/api/proyectos')` al montar; si responde con filas arma el nav desde Neon (agrupado por `grupo_nav`, separando redes de proyectos con `es_red`), si falla o viene vacío cae 100% al array hardcodeado de siempre (`navLinksHardcodeados`) — cero riesgo de dejar el nav vacío en producción. Un `Record<id, href>` chico (`RUTA_CONOCIDA`) mapea los 6 proyectos ya existentes a su URL real (bespoke o no); cualquier proyecto nuevo creado desde admin (no está en ese mapa) cae a `/proyectos/{slug}`.
+  - **Ruta dinámica nueva `app/proyectos/[slug]/page.tsx`** — solo para `tipo='plantilla_simple'`, renderiza el mismo esqueleto que `desarrollo-habilidades`/`mentoring` pero con datos de Neon en vez de `projectKey`. `ProjectHero`, `ProjectIntegrationNote`, `ProjectInfoPlaceholder` y `Contact` ganaron una segunda forma de props (`data`/`leaderName` etc., opcional) sin romper sus 4 call-sites existentes que siguen pasando `projectKey`.
+  - **`/admin/proyectos`** — nuevo, permite crear proyectos `plantilla_simple` completos (hero ES/EN, integración, info opcional, líder/contacto) sin tocar código, y editar/ocultar/reordenar cualquier proyecto (los 4 `personalizada` solo exponen nav/orden/activo, no los campos de hero que no usan). `app/admin/members/page.tsx: PROJECT_OPTIONS` ahora se trae de `/api/proyectos?all=true` (con el array viejo como fallback si el fetch falla) — así un proyecto nuevo es asignable a un miembro sin editar ese archivo.
+  - **Explícitamente NO migrado hoy** (decisión consciente, no un olvido): `lib/data.ts: liderProyectoPropio` (alimenta una tarjeta de `/portal/dashboard` fuera de alcance), `lib/data.ts: footerContexts` + `t.footer.contexts` (un proyecto nuevo cae al `Footer` `default` por fallback ya existente; agregar su propio contexto de footer es un paso manual si se quiere personalizarlo), `TeamSection.tsx: t.team.subtitles`/`ROLE_BADGE_OVERRIDES` (overrides de excepción por persona, un proyecto nuevo cae al fallback genérico).
+- **Verificación:** `npx tsc --noEmit` y `npm run build` limpios (exit 0, todas las rutas nuevas compilaron). Migraciones aplicadas y confirmadas contra la Neon de producción real (`dark-feather-21824720`) vía MCP, con `SELECT` de verificación después de cada paso. No se hizo clic-a-clic en navegador — mismo límite de sandbox de sesiones previas.
 
 ---
 
@@ -765,6 +793,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-04 (Sesión 30)
-**Versión:** 0.10.6
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-08 (Sesión 32)
+**Versión:** 0.10.7
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Repo sincronizado con origin ✅

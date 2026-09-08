@@ -5,7 +5,16 @@ import { useLanguage } from '@/lib/i18n';
 
 const CONTACT_EMAIL = 'c.pinextranjeros@uleam.edu.ec';
 
-export default function Contact({ projectKey }: { projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' | 'docenciaProject' } = {}) {
+interface ContactProps {
+  projectKey?: 'vinculacionProject' | 'desarrolloProject' | 'innovacionProject' | 'mentoringProject' | 'docenciaProject';
+  // Proyectos "plantilla_simple" creados desde /admin/proyectos — sin
+  // projectKey de i18n, el líder viene directo de la fila de Neon.
+  leaderName?: string | null;
+  leaderEmail?: string | null;
+  leaderOrcid?: string | null;
+}
+
+export default function Contact({ projectKey, leaderName, leaderEmail, leaderOrcid }: ContactProps = {}) {
   const { t } = useLanguage();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
 
@@ -70,6 +79,15 @@ export default function Contact({ projectKey }: { projectKey?: 'vinculacionProje
         role: t.contact.comisionAcademica,
         email: 'veronica.chavez@uleam.edu.ec',
         orcid: '0000-0003-3958-5053',
+      }
+    ];
+  } else if (!projectKey && leaderName) {
+    teamContacts = [
+      {
+        name: leaderName,
+        role: t.contact.leader,
+        email: leaderEmail || '',
+        orcid: leaderOrcid || '',
       }
     ];
   } else {

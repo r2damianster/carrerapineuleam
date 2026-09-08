@@ -3,13 +3,25 @@
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 
-interface ProjectIntegrationNoteProps {
-  projectKey: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject' | 'mentoringProject';
+interface ProyectoData {
+  integration_text_es: string | null;
+  integration_text_en: string | null;
 }
 
-export default function ProjectIntegrationNote({ projectKey }: ProjectIntegrationNoteProps) {
-  const { t } = useLanguage();
-  const p = t[projectKey];
+interface ProjectIntegrationNoteProps {
+  projectKey?: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject' | 'mentoringProject';
+  data?: ProyectoData;
+}
+
+export default function ProjectIntegrationNote({ projectKey, data }: ProjectIntegrationNoteProps) {
+  const { t, lang } = useLanguage();
+  const p = projectKey
+    ? t[projectKey]
+    : {
+        integrationTitle: t.proyectoGenerico.integrationTitle,
+        integrationText: (lang === 'en' && data?.integration_text_en) || data?.integration_text_es || '',
+        viewProjectCta: t.proyectoGenerico.viewProjectCta,
+      };
 
   return (
     <section className="py-10 md:py-14 bg-gray-50 border-y border-gray-200">

@@ -2,13 +2,25 @@
 
 import { useLanguage } from '@/lib/i18n';
 
-interface ProjectInfoPlaceholderProps {
-  projectKey: 'desarrolloProject' | 'mentoringProject';
+interface ProyectoData {
+  nombre_oficial: string;
+  info_text_es: string | null;
+  info_text_en: string | null;
 }
 
-export default function ProjectInfoPlaceholder({ projectKey }: ProjectInfoPlaceholderProps) {
-  const { t } = useLanguage();
-  const p = t[projectKey];
+interface ProjectInfoPlaceholderProps {
+  projectKey?: 'desarrolloProject' | 'mentoringProject';
+  data?: ProyectoData;
+}
+
+export default function ProjectInfoPlaceholder({ projectKey, data }: ProjectInfoPlaceholderProps) {
+  const { t, lang } = useLanguage();
+  const p = projectKey
+    ? t[projectKey]
+    : {
+        infoTitle: data?.nombre_oficial || '',
+        infoText: (lang === 'en' && data?.info_text_en) || data?.info_text_es || '',
+      };
 
   return (
     <section className="py-20 bg-white">

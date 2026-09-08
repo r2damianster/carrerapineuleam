@@ -3,8 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 
+interface ProyectoData {
+  grupo_nav: string | null;
+  hero_title1_es: string | null;
+  hero_title1_en: string | null;
+  hero_title2_es: string | null;
+  hero_title2_en: string | null;
+  hero_subtitle_es: string | null;
+  hero_subtitle_en: string | null;
+  hero_description_es: string | null;
+  hero_description_en: string | null;
+}
+
 interface ProjectHeroProps {
-  projectKey: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject' | 'mentoringProject';
+  // Proyectos "personalizada" con texto escrito a mano en lib/i18n.tsx
+  projectKey?: 'docenciaProject' | 'vinculacionProject' | 'desarrolloProject' | 'mentoringProject';
+  // Proyectos "plantilla_simple" creados desde /admin/proyectos, sin i18n a mano
+  data?: ProyectoData;
 }
 
 const EYEBROW_NAV_KEY = {
@@ -14,11 +29,19 @@ const EYEBROW_NAV_KEY = {
   mentoringProject: 'investigacion',
 } as const;
 
-export default function ProjectHero({ projectKey }: ProjectHeroProps) {
+export default function ProjectHero({ projectKey, data }: ProjectHeroProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const { t } = useLanguage();
-  const p = t[projectKey];
-  const eyebrow = t.nav[EYEBROW_NAV_KEY[projectKey]];
+  const { t, lang } = useLanguage();
+
+  const p = projectKey
+    ? t[projectKey]
+    : {
+        heroTitle1: (lang === 'en' && data?.hero_title1_en) || data?.hero_title1_es || '',
+        heroTitle2: (lang === 'en' && data?.hero_title2_en) || data?.hero_title2_es || '',
+        heroSubtitle: (lang === 'en' && data?.hero_subtitle_en) || data?.hero_subtitle_es || '',
+        heroDescription: (lang === 'en' && data?.hero_description_en) || data?.hero_description_es || '',
+      };
+  const eyebrow = projectKey ? t.nav[EYEBROW_NAV_KEY[projectKey]] : t.nav[(data?.grupo_nav as 'docencia' | 'vinculacion' | 'investigacion') || 'investigacion'];
 
   useEffect(() => {
     setIsVisible(true);

@@ -94,6 +94,15 @@ const translations = {
       viewAll: 'Ver Todas las Noticias →',
       readMore: 'Leer más',
     },
+    photoCarousel: {
+      prev: 'Foto anterior',
+      next: 'Foto siguiente',
+      goTo: 'Ir a la foto',
+    },
+    proyectoGenerico: {
+      integrationTitle: 'Integración con el Proyecto de Investigación Principal',
+      viewProjectCta: 'Ver Proyecto de Innovaciones Pedagógicas',
+    },
     videos: {
       sectionTitle: 'Videos y Contenido Multimedia',
       sectionSubtitle: 'Explora nuestra colección de podcasts, entrevistas y materiales educativos',
@@ -576,6 +585,15 @@ const translations = {
       empty: 'No news yet',
       viewAll: 'View All News →',
       readMore: 'Read more',
+    },
+    photoCarousel: {
+      prev: 'Previous photo',
+      next: 'Next photo',
+      goTo: 'Go to photo',
+    },
+    proyectoGenerico: {
+      integrationTitle: 'Integration with the Main Research Project',
+      viewProjectCta: 'View Pedagogical Innovations Project',
     },
     videos: {
       sectionTitle: 'Videos and Multimedia Content',

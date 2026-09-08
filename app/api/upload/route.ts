@@ -41,10 +41,12 @@ export async function POST(request: Request) {
       folder: "pine_project_uploads", // Carpeta en Cloudinary
     });
 
-    // Devolver la URL segura que nos da Cloudinary
+    // Devolver la URL segura y el public_id (necesario para poder borrar
+    // el asset de Cloudinary después, ej. desde el banco de fotos)
     return NextResponse.json({
       success: true,
       url: uploadResponse.secure_url,
+      public_id: uploadResponse.public_id,
     });
   } catch (error: any) {
     console.error("Upload error:", error);
