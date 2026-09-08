@@ -4,9 +4,11 @@ import { neon } from '@neondatabase/serverless';
 // Público (sin sesión) — valida un token y dice qué formulario mostrar.
 // No expone nada sensible: solo el nombre del espacio y, en postest, el
 // nombre del beneficiario (para saludarlo por su nombre).
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request, { params }: { params: { token: string } }) {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
       SELECT
         el.tipo, el.test_tipo, el.expira_en, el.max_usos, el.usos_actuales, el.espacio_id,

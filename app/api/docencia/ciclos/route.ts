@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const ciclos = await sql`SELECT * FROM ciclos_academicos ORDER BY fecha_inicio DESC`;
     return NextResponse.json({ success: true, data: ciclos });
   } catch (error: any) {
