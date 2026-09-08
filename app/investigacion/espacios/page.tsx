@@ -109,9 +109,6 @@ export default function InvestigacionEspaciosPage() {
           ))}
         </ul>
 
-        <div className="mt-8 p-4 bg-green-50 border border-green-100 rounded-lg text-sm text-green-800">
-          Próximamente: gestión de artículos científicos y publicaciones.
-        </div>
       </div>
     </div>
   );
