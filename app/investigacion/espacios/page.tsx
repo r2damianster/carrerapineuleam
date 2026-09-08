@@ -90,6 +90,7 @@ export default function InvestigacionEspaciosPage() {
           <select required className="w-full border p-2 rounded" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
             <option value="aula">Aula Virtual/Física</option>
             <option value="comunidad">Encuentro Comunitario</option>
+            <option value="podcast">Podcast</option>
           </select>
           <select required className="w-full border p-2 rounded" value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })}>
             <option value="">Selecciona Ciclo</option>
