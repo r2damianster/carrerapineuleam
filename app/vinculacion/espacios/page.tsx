@@ -93,6 +93,7 @@ export default function VinculacionEspaciosPage() {
             <select required className="w-full border p-2 rounded" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
               <option value="comunidad">Encuentro Comunitario / Club</option>
               <option value="aula">Aula Virtual/Física</option>
+              <option value="podcast">Podcast</option>
             </select>
             <select required className="w-full border p-2 rounded" value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })}>
               <option value="">Selecciona Ciclo</option>
@@ -108,7 +109,7 @@ export default function VinculacionEspaciosPage() {
           {espacios.map(e => (
             <li key={e.id}>
               <Link href={`/vinculacion/espacios/${e.id}`} className="block p-3 border rounded shadow-sm hover:bg-gray-50">
-                <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
+                <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
                 <span className="text-sm text-gray-500">{e.inscritos} beneficiarios inscritos</span>
               </Link>
             </li>
