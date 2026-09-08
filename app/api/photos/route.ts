@@ -45,9 +45,10 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
     const id = `foto_${Date.now()}`;
+    const posicionValida = Number.isFinite(posicion) ? Math.min(100, Math.max(0, Math.round(posicion))) : 50;
     const [nueva] = await sql`
       INSERT INTO fotos (id, url, cloudinary_public_id, titulo, descripcion, ubicaciones, "order", subido_por, posicion)
-      VALUES (${id}, ${url}, ${cloudinary_public_id || null}, ${titulo || null}, ${descripcion || null}, ${ubicaciones || []}, ${order ?? 0}, ${usuario.email}, ${posicion || 'center'})
+      VALUES (${id}, ${url}, ${cloudinary_public_id || null}, ${titulo || null}, ${descripcion || null}, ${ubicaciones || []}, ${order ?? 0}, ${usuario.email}, ${posicionValida})
       RETURNING *
     `;
     return NextResponse.json(nueva, { status: 201 });

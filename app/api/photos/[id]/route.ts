@@ -31,12 +31,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const { titulo, descripcion, ubicaciones, order, activo, posicion } = body;
+    const posicionValida = Number.isFinite(posicion) ? Math.min(100, Math.max(0, Math.round(posicion))) : 50;
     const [actualizada] = await sql`
       UPDATE fotos
       SET titulo = ${titulo ?? null}, descripcion = ${descripcion ?? null},
           ubicaciones = ${ubicaciones || []}, "order" = ${order ?? 0},
           activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo),
-          posicion = ${posicion || 'center'},
+          posicion = ${posicionValida},
           updated = now()
       WHERE id = ${params.id}
       RETURNING *

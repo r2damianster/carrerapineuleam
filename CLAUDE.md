@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.8 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-08 (Sesión 33 — auditoría exhaustiva: documentación desactualizada corregida en todo el repo + limpieza de archivos sin uso. Ver detalle abajo)
+**Versión actual:** 0.10.9 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
+**Última sesión:** 2026-09-08 (Sesión 34 — fotos.posicion pasó de enum top/center/bottom a porcentaje 0-100 con vista previa en vivo en el admin; tarjeta del dashboard renombrada a "Administrador de sitio". Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -161,6 +161,20 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 34 — 2026-09-08)
+
+### Ajuste fino del Banco de Fotos: `posicion` de enum a porcentaje + rename de tarjeta del dashboard
+
+A pedido del usuario tras ver el carrusel en producción: la foto del poster session seguía cortando cabezas pese al `posicion='top'` puesto en Sesión 32. Causa real: el contenedor del carrusel es muchísimo más ancho que alto (~4:1 en desktop) contra una foto 4:3 — `object-fit:cover` termina mostrando solo una franja delgada (~33% de la altura original), y el enum de 3 valores no daba suficiente precisión para acertar esa franja. `top` (0%) mostraba casi puro cielo, `center` (50%) cortaba las cabezas.
+
+- **`fotos.posicion`** pasó de `TEXT CHECK IN ('top','center','bottom')` a `INT CHECK (0-100)` — 0 = borde superior de la foto, 100 = borde inferior, interpretado como `object-position: center {N}%`. Migración `scripts/migrate-fotos-posicion.js` (aplicada vía Neon MCP: drop constraint viejo → cambiar tipo con `USING CASE ... END` mapeando los 3 valores previos a 15/50/85 → nuevo constraint numérico).
+- **Cálculo real para `foto_4`** (no a ojo): con la foto original de 2048×1536 y las cabezas empezando ~25% desde arriba, más el factor de escala del contenedor (framing ~33% de la altura visible), el valor que centra la banda visible sobre las caras da **30%** — confirmado por el cálculo, no por prueba y error visual (no hay acceso a navegador en este entorno).
+- **`/admin/photos`** — el selector de 3 opciones se reemplazó por un slider 0-100 con **vista previa en vivo** (usa la foto ya subida al editar, o `URL.createObjectURL` del archivo recién elegido al crear) — el usuario puede afinar la posición de cualquier foto futura sin depender de que alguien haga el cálculo geométrico a mano.
+- **Tarjeta "Gestión de MI PROYECTO" → "Administrador de sitio"** en `/portal/dashboard` (`app/portal/dashboard/page.tsx`), a pedido explícito del usuario — misma tarjeta/link (`/admin`), solo cambió el nombre visible; se agregó "fotos y proyectos" a su descripción.
+- **Verificación:** confirmado que el commit de Sesión 32-33 ya estaba pusheado y desplegado en Vercel (`dpl_Be1iPEYE...`, commit `41aeced`, estado `READY`, target `production`) antes de hacer este ajuste — el reporte de "sigue cortando cabezas" no era un problema de despliegue, era el valor de `posicion` insuficiente. `npx tsc --noEmit` limpio tras el cambio.
 
 ---
 
@@ -868,6 +882,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-08 (Sesión 33)
-**Versión:** 0.10.8
+**Última actualización:** 2026-09-08 (Sesión 34)
+**Versión:** 0.10.9
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DataTable from '@/components/admin/DataTable';
 
 interface Foto {
@@ -12,17 +12,11 @@ interface Foto {
   ubicaciones: string[];
   order: number;
   activo: boolean;
-  posicion: 'top' | 'center' | 'bottom';
+  posicion: number;
 }
 
 const UBICACION_OPTIONS = [
   { value: 'portada', label: 'Portada (carrusel principal)' },
-];
-
-const POSICION_OPTIONS = [
-  { value: 'top', label: 'Arriba (si corta cabezas/rostros)' },
-  { value: 'center', label: 'Centro (por defecto)' },
-  { value: 'bottom', label: 'Abajo' },
 ];
 
 export default function AdminPhotosPage() {
@@ -38,8 +32,18 @@ export default function AdminPhotosPage() {
     descripcion: '',
     ubicaciones: ['portada'] as string[],
     order: 0,
-    posicion: 'center' as 'top' | 'center' | 'bottom',
+    posicion: 50,
   });
+
+  // Vista previa en vivo del slider de posición: la foto ya subida (al
+  // editar) o la que se acaba de elegir en el input de archivo (al crear).
+  const localFileUrl = useMemo(() => (formData.file ? URL.createObjectURL(formData.file) : null), [formData.file]);
+  useEffect(() => {
+    return () => {
+      if (localFileUrl) URL.revokeObjectURL(localFileUrl);
+    };
+  }, [localFileUrl]);
+  const previewUrl = editingFoto?.url || localFileUrl;
 
   useEffect(() => {
     loadFotos();
@@ -75,7 +79,7 @@ export default function AdminPhotosPage() {
   };
 
   const resetForm = () => {
-    setFormData({ file: null, titulo: '', descripcion: '', ubicaciones: ['portada'], order: 0, posicion: 'center' });
+    setFormData({ file: null, titulo: '', descripcion: '', ubicaciones: ['portada'], order: 0, posicion: 50 });
     setEditingFoto(null);
     setShowForm(false);
   };
@@ -88,7 +92,7 @@ export default function AdminPhotosPage() {
       descripcion: foto.descripcion || '',
       ubicaciones: foto.ubicaciones || [],
       order: foto.order,
-      posicion: foto.posicion || 'center',
+      posicion: foto.posicion ?? 50,
     });
     setShowForm(true);
   };
@@ -305,16 +309,33 @@ export default function AdminPhotosPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Posición de la imagen (recorte)</label>
-                <select
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Posición vertical de la imagen (ajustá si corta cabezas/rostros): {formData.posicion}%
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
                   value={formData.posicion}
-                  onChange={(e) => setFormData({ ...formData, posicion: e.target.value as 'top' | 'center' | 'bottom' })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
-                >
-                  {POSICION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                  onChange={(e) => setFormData({ ...formData, posicion: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mb-2">
+                  <span>Arriba</span>
+                  <span>Centro</span>
+                  <span>Abajo</span>
+                </div>
+                {previewUrl && (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewUrl}
+                      alt="Vista previa"
+                      className="w-full h-full object-cover"
+                      style={{ objectPosition: `center ${formData.posicion}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
