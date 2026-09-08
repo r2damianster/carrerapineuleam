@@ -36,7 +36,11 @@ export default function InvestigacionEspaciosPage() {
       fetch('/api/espacios?area=investigacion'),
     ]);
     const [dataCiclos, dataEspacios] = await Promise.all([resCiclos.json(), resEspacios.json()]);
-    if (dataCiclos.success) setCiclos(dataCiclos.data);
+    if (dataCiclos.success) {
+      setCiclos(dataCiclos.data);
+      const cicloActual = dataCiclos.data.find((c: any) => c.nombre === '2026-2');
+      if (cicloActual) setForm(prev => ({ ...prev, ciclo_id: String(cicloActual.id) }));
+    }
     if (dataEspacios.success) setEspacios(dataEspacios.data);
   };
 

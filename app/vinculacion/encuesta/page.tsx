@@ -47,7 +47,11 @@ export default function EncuestaPage() {
             setEspacios(espaciosData.data);
             if (espaciosData.data.length === 1) setEspacioId(String(espaciosData.data[0].id));
           }
-          if (ciclosData.success) setCiclos(ciclosData.data);
+          if (ciclosData.success) {
+            setCiclos(ciclosData.data);
+            const cicloActual = ciclosData.data.find((c: any) => c.nombre === '2026-2');
+            if (cicloActual) setFormData(prev => ({ ...prev, ciclo_id: String(cicloActual.id) }));
+          }
         });
       })
       .catch(() => router.push('/portal/login?redirect=/vinculacion/encuesta'));
