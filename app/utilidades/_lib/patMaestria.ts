@@ -72,6 +72,7 @@ function generarPat03(datos: DatosPats): Buffer {
     articulo: datos.articulo,
     nombre: datos.nombre,
     MAESTRIA: datos.MAESTRIA,
+    TutorFirma: datos.responsable,
   };
   datos.temas.forEach((t, i) => { ctx[`t${i + 1}`] = t; });
   return renderizarPlantilla("PAT-03-G-001-F-003.docx", ctx);
@@ -93,6 +94,7 @@ function generarPat04(datos: DatosPats): Buffer {
       HoraFin: horaFin,
       Tema: datos.temas[i],
       Proxima: proxima,
+      TutorFirma: datos.responsable,
     }));
   }
   return fusionarDocx(buffers);
@@ -111,7 +113,7 @@ function generarPat05(datos: DatosPats): Buffer {
     FechaDesignacion: datos.fechaDesignacion,
     HORA: datos.hora,
     HoraFin: horaFin,
-    Responsable: datos.responsable,
+    TutorFirma: datos.responsable,
   };
   datos.temas.forEach((t, i) => {
     ctx[`n${i + 1}`] = i + 1;
