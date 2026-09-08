@@ -26,13 +26,23 @@ export async function GET() {
       ORDER BY u.apellidos ASC, u.nombres ASC
     `;
     console.log('[horario-tutorias][debug] rows.length=', rows.length);
-    const sinFiltroPublico = await sql`
-      SELECT u.id, u.rol, u.dependencia, u.horario_tutorias_publico, count(h.id)::int AS franjas
-      FROM usuarios u LEFT JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
-      WHERE u.rol = 'profesor'
-      GROUP BY u.id, u.rol, u.dependencia, u.horario_tutorias_publico
+    const soloDep = await sql`
+      SELECT u.id, u.dependencia FROM usuarios u
+      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
     `;
-    console.log('[horario-tutorias][debug] sinFiltroPublico=', JSON.stringify(sinFiltroPublico));
+    console.log('[horario-tutorias][debug] soloDep.length=', soloDep.length, JSON.stringify(soloDep.map((r: any) => r.id)));
+    const depMasJoin = await sql`
+      SELECT u.id, h.id AS franja_id FROM usuarios u
+      JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
+      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE}
+    `;
+    console.log('[horario-tutorias][debug] depMasJoin.length=', depMasJoin.length, JSON.stringify(depMasJoin));
+    const depMasJoinMasPublico = await sql`
+      SELECT u.id, h.id AS franja_id FROM usuarios u
+      JOIN perfiles_horario_tutorias h ON h.usuario_id = u.id
+      WHERE u.rol = 'profesor' AND u.dependencia = ${DEPENDENCIA_PINE} AND u.horario_tutorias_publico = true
+    `;
+    console.log('[horario-tutorias][debug] depMasJoinMasPublico.length=', depMasJoinMasPublico.length, JSON.stringify(depMasJoinMasPublico));
 
     const porProfesor = new Map<number, { usuario_id: number; nombre: string; franjas: Franja[] }>();
     for (const row of rows as any[]) {
