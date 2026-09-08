@@ -2,7 +2,7 @@
 
 Sitio público del proyecto de Innovaciones Pedagógicas e Internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM), junto con el **Portal PINE** — el sistema operativo interno para docencia, vinculación e investigación de la carrera.
 
-**Versión:** 0.10.6
+**Versión:** 0.10.8
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo ✅
 **Tech Stack:** Next.js 14 (App Router) + TypeScript + TailwindCSS + Neon (Postgres Serverless) + Cloudinary
 **Sitio en producción:** https://carrerapineuleam.vercel.app
@@ -20,16 +20,19 @@ Landing institucional bilingüe (ES/EN) con contenido contextual por proyecto: e
 ### Portal PINE (`/portal/*`)
 Sistema operativo real para el trabajo de campo de la carrera:
 - **Vinculación:** gestión de espacios (clubes/aulas), asignación de estudiantes-instructores, registro de beneficiarios, asistencia, Test MCER (pre/post, exportable a Word), encuestas de satisfacción, difusión de eventos — incluye enlaces/QR públicos sin login para que un beneficiario tome su test o encuesta desde el celular.
-- **Investigación:** gestión de espacios (función de artículos aún pendiente de definir).
+- **Investigación:** gestión de espacios + generador de Informes Mensuales (`/investigacion/informes`).
 - **Gestión de Carrera:** registro de eventos abierto a cualquier docente.
-- **Contribuciones Académicas:** registro de producción académica de docentes (artículos, libros, capítulos, memorias de evento).
+- **Contribuciones Académicas:** registro de producción académica de docentes (artículos, libros, capítulos, memorias de evento), con campos específicos por tipo.
 - **Indicadores** (`/pine-dashboard`): KPIs en tiempo real desde Neon.
 
 ### Gestión del Sitio (`/admin`)
-Panel CRUD para el contenido público — Miembros, Publicaciones, Podcast, Noticias, Actividades y Documentos. Cada tabla incluye buscador, paginación configurable (10/25/50/100) y la posibilidad de **ocultar un registro del sitio sin borrarlo** (Sesión 30). Restringido al líder/colíder del proyecto vía el módulo `contenido_sitio`.
+Panel CRUD para el contenido público — Miembros, Publicaciones, Podcast, Noticias, Actividades, Documentos, **Fotos** (banco de fotos administrable, alimenta un carrusel en la portada) y **Proyectos** (ocultar/reordenar cualquier proyecto o red del menú, crear proyectos nuevos sin tocar código). Cada tabla incluye buscador, paginación configurable (10/25/50/100) y la posibilidad de **ocultar un registro del sitio sin borrarlo** (Sesión 30). Restringido al líder/colíder del proyecto vía el módulo `contenido_sitio`.
 
 ### `/utilidades`
 Generador de documentos administrativos de la carrera (Acta Técnica, Oficios, Convocatorias, PATs de Maestría, Pares Lectores) con redacción asistida por IA.
+
+### Superadmin (`/superadmin`)
+Explorador de tablas + SQL runner sobre toda la base de datos Neon, con doble candado (módulo + email en whitelist). Restringido a una sola cuenta — herramienta de mantenimiento de base de datos, no de uso operativo.
 
 Detalle completo de cada módulo, esquema de Neon, roles y permisos: ver [`CLAUDE.md`](./CLAUDE.md).
 

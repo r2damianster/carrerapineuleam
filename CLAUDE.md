@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.7
-**Última sesión:** 2026-09-08 (Sesión 32 — Banco de Fotos administrable + config de proyectos/nav vía Neon. Ver detalle abajo)
+**Versión actual:** 0.10.8 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
+**Última sesión:** 2026-09-08 (Sesión 33 — auditoría exhaustiva: documentación desactualizada corregida en todo el repo + limpieza de archivos sin uso. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -39,7 +39,7 @@
 | Uploads (fotos/evidencias) | Cloudinary (`app/api/upload`) |
 | Deploy | Vercel — Next.js en raíz del repo, auto-deploy on push a `main` |
 
-**Dependencias clave (`package.json`):** `@neondatabase/serverless`, `bcryptjs` (hash de passwords del Portal), `cloudinary`, `docx`+`jszip` (generación de certificados y test MCER descargable), `@prisma/client`+`prisma` (módulo Contribuciones, ver nota abajo), `react-hook-form`+`yup`+`@hookform/resolvers` (formulario del wizard de Contribuciones), `zod` (validación de `POST /api/contribuciones`).
+**Dependencias clave (`package.json`):** `@neondatabase/serverless`, `bcryptjs` (hash de passwords del Portal), `cloudinary`, `docx`+`jszip` (generación de certificados y test MCER descargable), `@prisma/client`+`prisma` (módulo Contribuciones, ver nota abajo), `react-hook-form`+`yup`+`@hookform/resolvers` (formulario del wizard de Contribuciones), `zod` (validación de `POST /api/contribuciones`), `xlsx` (carga masiva de pasantes por Excel, Sesión 20), `docxtemplater`+`pizzip` (generación de documentos en `/utilidades`), `mammoth` (lectura de `.docx` para precargar memos en Pares Lectores), `pdf-parse` (extracción de texto de PDF en Contribuciones y Pares Lectores), `google-auth-library` (OAuth de subida a YouTube, `app/api/youtube/**`).
 
 > ⚠️ **Prisma en este repo está fijado a `^6.19.3`, no actualizar a 7.x sin revisar.** Prisma 7 rompió el datasource clásico `url = env("DATABASE_URL")` del schema (exige migrar a `prisma.config.ts` + driver adapters) — el schema actual usa el patrón viejo y no compila contra Prisma 7 (Sesión 24).
 >
@@ -62,7 +62,7 @@
 - **Login:** `/portal/login` → `POST /api/auth/portal-login`. **Registro:** `/registro` → `POST /api/auth/register` (autologuea). Desde Sesión 22, `PUBLIC_ROLES = ['profesor']` — es el único rol que se autoregistra; `estudiante` y `beneficiario` fueron retirados del todo del selector (antes `beneficiario` seguía ahí como opción viva y rompía porque insertaba en una columna ya eliminada, ver changelog Sesión 22).
 - **Roles** (`usuarios.rol`): `admin` | `profesor` | `estudiante` | `beneficiario`. Autoregistro público solo permite `profesor`/`estudiante`/`beneficiario` — `admin` nunca es autoasignable.
 - **`profesor` es de lista fija**, no autoregistro abierto: `lib/data.ts` → `profesoresAutorizados` (array de emails permitidos) + `profesorModulos` (qué `modulos_acceso` recibe cada uno al registrarse). Agregar gente nueva ahí, con su email real confirmado — **nunca adivinar el email**.
-- **`modulos_acceso`** (`text[]` en `usuarios`, valores: `admin`/`investigacion`/`vinculacion`/`contenido_sitio`): controla qué ve cada quien en `/portal/dashboard` y qué rutas puede pisar (`middleware.ts`). Una persona puede tener varios. `admin` controla solo `/pine-dashboard` (indicadores). `contenido_sitio` es un módulo **distinto**, restringido solo a `arturo.rodriguez` y `jhonny.villafuerte` (líder/colíder de este proyecto) — controla `/admin/*` (las 10 secciones CRUD del contenido estático) y `/api/protected/assets` (PDFs confidenciales). German y Verónica tienen `admin` pero NO `contenido_sitio` — ven el dashboard de indicadores pero no el panel de contenido.
+- **`modulos_acceso`** (`text[]` en `usuarios`, valores reales: `admin`/`investigacion`/`vinculacion`/`contenido_sitio`/`subir_video`/`superadmin` — los últimos 2 no se documentaban hasta Sesión 33): controla qué ve cada quien en `/portal/dashboard` y qué rutas puede pisar (`middleware.ts`). Una persona puede tener varios. `admin` controla solo `/pine-dashboard` (indicadores) e `/investigacion/informes`. `contenido_sitio` es un módulo **distinto**, restringido solo a `arturo.rodriguez` y `jhonny.villafuerte` (líder/colíder de este proyecto) — controla `/admin/*` (las secciones CRUD del contenido estático, incluyendo Fotos y Proyectos desde Sesión 32) y `/api/protected/assets` (PDFs confidenciales). German y Verónica tienen `admin` pero NO `contenido_sitio` — ven el dashboard de indicadores pero no el panel de contenido. `subir_video` habilita a un `estudiante` (sin más permisos de docente) a subir video/evidencia. `superadmin` da acceso a `/superadmin` (ver `### Módulo Superadmin`) — hoy solo Arturo, doble candado con email hardcodeado.
 - **Permisos por espacio** (no globales): `lib/permisos-espacio.ts` → `puedeOperarEspacio(usuario, espacio_id)`. Un `profesor` con módulo `vinculacion` opera cualquier espacio; un `estudiante` **solo** los espacios donde está en `espacio_instructores` (asignado por el profesor). Se usa en `/api/espacios/asignar`, `/api/tests` (MCER), `/api/encuestas`, `/api/espacios/asistencia`.
 
 ### Flujo real de Vinculación (confirmado con el usuario, Sesión 19)
@@ -76,7 +76,7 @@ Dos conceptos separados, **no anidados uno dentro del otro**:
 
 **Carga masiva por Excel (Sesión 20):** en la misma página, sección "Carga Masiva por Excel" — botón descarga plantilla `.xlsx` (columnas Nombres/Apellidos/Email, generada client-side con `xlsx`/SheetJS), input de archivo parsea el `.xlsx` subido en el navegador (`XLSX.read` + `sheet_to_json`, columnas detectadas sin importar mayúsculas) y llama `POST /api/estudiantes/bulk` con `dryRun:true` → tabla de vista previa con estado por fila (✅ OK / ❌ motivo: campos faltantes, email inválido, duplicado en el archivo, o ya existente en `usuarios`). Nada se guarda hasta pulsar "Confirmar y Crear", que reenvía solo las filas válidas con `dryRun:false` — mismo endpoint hace el insert real (misma lógica de placeholder `password_hash` + `activado=false` que el alta individual). El alta uno-por-uno original no cambió, es una sección aparte en la misma página.
 
-Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna función propia — la tarjeta "Gestionar Investigación" del Portal no tiene links, solo un texto "Próximamente" (se quitó el link a `/investigacion/espacios` porque no tenía nada real detrás; la página sigue en el código, sin enlazar).
+Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Sesión 19, **ya obsoleta**: en su momento la tarjeta "Gestionar Investigación" no tenía links reales. Desde entonces (sin sesión que lo documentara hasta la auditoría de Sesión 33) se repuso el link a `/investigacion/espacios` y se sumó el módulo de Informes Mensuales (`/investigacion/informes`) — ver `### Módulo Informes Mensuales de Investigación` más abajo. Investigación ya tiene función propia real, esto no es solo "Próximamente".
 
 **Gestión de Carrera** (`/gestion-carrera`) es aparte: cualquier docente (investigación o vinculación) registra ahí eventos generales de difusión, categorizados como Investigación (¿qué proyecto?) / Vinculación / Asignatura (texto libre) — no reemplaza el formulario simple de Difusión que ya usa el estudiante-instructor dentro de su espacio.
 
@@ -97,6 +97,13 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 | `Contribution` / `ContributionAuthor` | Contribuciones académicas de docentes (artículos, libros, capítulos, memorias de evento, propiedad intelectual) | **Nombres con mayúscula, sin snake_case** — a diferencia de todo el resto del esquema, porque se manejan vía Prisma (`prisma/schema.prisma`) sin `@@map`, no SQL crudo. Creadas a mano en Sesión 24 con `scripts/migrate-contribuciones.js` (no con `prisma db push`, ver advertencia en `## Stack Técnico`). Visibilidad: `GET`/`DELETE /api/contribuciones` solo `modulos_acceso: admin`; `POST` cualquier docente (`rol: profesor\|admin`) autenticado. |
 | `fotos` | Banco de fotos administrable (Sesión 32) | `ubicaciones TEXT[]` decide dónde aparece cada foto (hoy solo `'portada'`, ver `components/PhotoCarousel.tsx`). Ocultar sin borrar vía `activo`, igual que `members`/`publications`/`videos`. |
 | `proyectos` | Catálogo de proyectos/redes del grupo, controla el nav público (Sesión 32) | Creada en una sesión anterior no documentada (probablemente Antigravity) pero nunca leída por código hasta Sesión 32 — ahora `components/Header.tsx` la consume vía `/api/proyectos` con fallback hardcodeado si falla. `tipo='plantilla_simple'` (desarrollo_habilidades, mentoring, y cualquiera nuevo creado desde `/admin/proyectos`) vs `tipo='personalizada'` (internacionalizacion, vinculacion, docencia_innovadora, redlea — página con código bespoke, solo se puede ocultar/reordenar desde admin, no recrear). |
+| `enlaces_evaluacion` | Enlaces/QR públicos sin login para pretest/postest (Sesión 28) | `token` UUID, `tipo` pretest\|postest, `test_tipo` mcer\|encuesta, `max_usos`/`usos_actuales`. Consumida por `/api/enlaces/**` |
+| `encuesta_evaluaciones_instructor` | Calificación de cada estudiante-instructor dentro de la encuesta ampliada (Sesión 29) | Una fila por instructor evaluado, no una sola pregunta genérica — se genera dinámicamente según `espacio_instructores` |
+| `perfiles_horario_tutorias` | Horario de tutorías de cada profesor, publicable en la web pública (Sesión 27/31) | `usuarios.horario_tutorias_publico` (Sesión 31) decide si sale en `GET /api/docentes/horario-tutorias` (público) — default `false`, opt-in |
+| `perfiles_titulos_academicos` | Títulos académicos que el propio profesor gestiona desde `/portal/perfil` | Consumida por `app/api/perfil/titulos/**` |
+| `informes_mensuales` | Historial de informes mensuales de Investigación generados (`/investigacion/informes`) | Ver `### Módulo Informes Mensuales de Investigación` arriba — módulo documentado recién en Sesión 33 pese a existir desde antes |
+| `modalidades_titulacion`, `rubricas`, `evaluaciones`, `evaluacion_observaciones`, `evaluacion_indicadores` | Pares Lectores (`/utilidades/pares-lectores`) | Creadas por `scripts/migrate-utilidades.js`, ver `### Módulo /utilidades` arriba |
+| `superadmin_audit_log` | Log de auditoría de cada acción del módulo Superadmin | Ver `### Módulo Superadmin` arriba — módulo entero sin documentar hasta Sesión 33 |
 
 **⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
 
@@ -119,23 +126,76 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
   3. Pares Lectores: el campo "evaluador/a" (quien hace la evaluación) no se autocompletaba con el usuario logueado — mismo patrón de autoselección que ya se agregó a Firmante/Convocante/Elaborado por, aplicado aquí también.
   4. Pares Lectores, ronda 2 (a pedido del usuario): "Tutor/a" (quien dirigió la tesis) ahora se elige de la lista de docentes igual que Convocante/Firmante en las otras herramientas — no se autocompleta con el logueado porque es una persona distinta del evaluador/a. Además, el paso 1 ahora acepta subir el memo **y** el trabajo de titulación (antes solo el memo) — la IA usa ambos textos para precargar los datos, ya que el memo no siempre trae todo (ej. tutor/a, título exacto); los archivos subidos ahí se reusan al crear la evaluación, sin pedirlos de nuevo en el paso 3.
 
+### Módulo Superadmin (`/superadmin`) — existía en el código, nunca documentado hasta Sesión 33
+
+Auditoría de Sesión 33 encontró un módulo completo, funcional y en producción, ausente de CLAUDE.md/ANTIGRAVITY.md/README.md/MANUAL_USUARIO.md desde que se construyó. Es un explorador directo de la base de datos Neon completa — mucho más poder de acceso que cualquier otro módulo del sitio, por eso se documenta aparte con énfasis en el riesgo.
+
+- **Qué hace:** lista todas las tablas (`/superadmin`), ve/edita filas de una tabla elegida con su schema real (`/superadmin/[table]`), corre SQL arbitrario de solo lectura o escritura contra la Neon de producción (`/superadmin/sql`), y guarda un log de auditoría de cada acción (`/superadmin/audit`, tabla `superadmin_audit_log`).
+- **Doble candado, redundante a propósito:** `middleware.ts` (Edge runtime, no puede importar `@neondatabase/serverless` directo) exige `modulos_acceso.includes('superadmin')` **y** el email en `SUPERADMIN_EMAILS` (hardcodeado en `lib/superadmin-auth.ts`, hoy solo `arturo.rodriguez@uleam.edu.ec`) — ambos chequeos están duplicados también dentro de cada API route (`app/api/superadmin/**`) porque el middleware por sí solo no alcanza a proteger `/api` en este proyecto (su `matcher` excluye `/api`, ver nota en `### Módulo /utilidades` arriba sobre el mismo patrón).
+- **`lib/superadmin-db.ts`** arma el SQL dinámico (nombre de tabla/columna viene del usuario en el explorador visual) validando cada identificador contra `information_schema` antes de interpolarlo — mitiga inyección SQL en la capa de "explorar tabla", pero el runner de `/superadmin/sql` ejecuta la query tal cual la escriba quien tenga acceso, sin sandbox — es una herramienta de "manos libres" total sobre la Neon de producción, no un CRUD con barandas.
+- **Por qué importa documentarlo:** cualquier cambio futuro a `modulos_acceso` o a la whitelist de emails debe considerar que ese módulo existe — agregar `superadmin` al array de alguien (o a `SUPERADMIN_EMAILS`) le da control total sobre toda la base, no solo sobre "su" área.
+
+### Módulo Informes Mensuales de Investigación (`/investigacion/informes`) — existía, documentado como "pendiente" por error
+
+CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna función propia" — desactualizado, corregido en Sesión 33. El módulo genera el informe mensual que antes se armaba a mano en Word (ver los `.docx`/`.pdf` de `docs/`, ej. `Formato-Informe-Mensual-Comision.docx`):
+
+- `/investigacion/informes` (protegido en `middleware.ts`, rol `profesor|admin` + `modulos_acceso` `investigacion` o `admin`) — selecciona un rango de fechas, trae actividades/publicaciones/episodios de podcast de ese período (`GET .../datos`), arma un resumen ejecutivo asistido por IA, genera el documento (`.../generar`) y lo deja descargable (`.../descargar`), guardando un historial de informes generados (`.../historial`, tabla `informes_mensuales`).
+- No estaba mencionado en `## Estado Actual`, `## Estructura de Archivos`, `## Portal PINE` → tablas Neon, ni en `MANUAL_USUARIO.md` — los 4 se corrigieron en Sesión 33.
+
 ---
 
-## Estado Actual (2026-09-02, Sesión 26)
+## Estado Actual (actualizado 2026-09-08, Sesión 33 — auditoría exhaustiva de esta tabla, antes congelada desde Sesión 26)
 
 | Módulo | Estado | % |
 |--------|--------|---|
 | Sitio público (landing + páginas de proyecto) | ✅ Completo — contenido en Neon Postgres (migrado desde `lib/data.ts` estático, Sesión 25), footer/equipo/hub/RED LEA contextuales por proyecto, i18n ES/EN completo (Sesión 26) | 100% |
-| Admin Panel (CRUD contenido del sitio) | ✅ Completo — gateado por `modulos_acceso: contenido_sitio` (solo Arturo+Jhonny), ya no por `Pine2026` ni por `admin` genérico. Persiste en Neon (ya no "legacy"/in-memory) | 100% |
+| Admin Panel (CRUD contenido del sitio) | ✅ Completo — gateado por `modulos_acceso: contenido_sitio` (solo Arturo+Jhonny), ya no por `Pine2026` ni por `admin` genérico. Persiste en Neon (ya no "legacy"/in-memory). 7 secciones: Miembros, Podcast, Categorías, Publicaciones, Noticias, Actividades y Difusión, Documentos, Configuración, **Fotos** y **Proyectos** (Sesión 32) | 100% |
 | Portal PINE — Auth unificada | ✅ Completo (Sesión 19) | 100% |
 | Portal PINE — Vinculación (espacios/instructores/beneficiarios/MCER/encuesta/asistencia) | ✅ Completo, probado end-to-end en producción (Sesión 19) | 100% |
-| Portal PINE — Investigación | ⏳ Solo creación de espacios; artículos científicos pendiente de definir | 30% |
+| Portal PINE — Investigación | ✅ Creación de espacios + **generador de Informes Mensuales** (`/investigacion/informes`, ver `### Módulo Informes Mensuales de Investigación` abajo) — dato de "solo creación de espacios, 30%" quedó obsoleto, el módulo de informes ya es una función real completa | 100% |
 | Gestión de Carrera (eventos multi-área) | ✅ Completo (Sesión 19) | 100% |
-| Contribuciones Académicas | ✅ Reparado y funcional (Sesión 24) — ⏳ solo campos comunes, faltan ~15 campos específicos por tipo, exportación CSV y tests (ver plan original) | 60% |
-| Módulo `/utilidades` (Acta Técnica/Oficios/Convocatorias/PAT-Maestría/Pares Lectores) | ✅ Selector de docentes unificado en `usuarios` con las 13 personas del directorio confirmadas por el usuario, funcional en las 3 herramientas que lo usan (Sesión 27) | 100% |
+| Contribuciones Académicas | ✅ Completo — wizard con campos comunes **y** los ~17 campos específicos por tipo (`scripts/migrate-contribucion-campos-tipo.js`, `migrate-contribucion-autor-estudiante.js`, ambas migraciones aplicadas sin sesión documentada hasta ahora). ⏳ Sigue faltando exportación CSV y tests (Jest/Cypress) del plan original — dato de "60%, faltan ~15 campos" quedó obsoleto | 90% |
+| Módulo `/utilidades` (Acta Técnica/Oficios/Convocatorias/PAT-Maestría/Pares Lectores) | ✅ Selector de docentes unificado en `usuarios` con 14 personas del directorio confirmadas por el usuario (la fila decía "13" por error de transcripción — el propio detalle de Sesión 27 siempre dijo 14), funcional en las herramientas que lo usan (Sesión 27) | 100% |
+| **Superadmin** (`/superadmin`) | ✅ Completo pero **nunca documentado hasta esta sesión** — explorador de tablas + runner de SQL crudo sobre toda la Neon, doble candado (`modulos_acceso: superadmin` + email hardcodeado en `lib/superadmin-auth.ts`, hoy solo Arturo). Ver `### Módulo Superadmin` abajo | 100% |
+| **Banco de Fotos + config de proyectos/nav** (Sesión 32) | ✅ `/admin/photos` (banco de fotos administrable, carrusel en portada) + `/admin/proyectos` (ocultar/reordenar cualquier proyecto o red del nav, crear proyectos nuevos "plantilla_simple" sin código) | 100% |
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 33 — 2026-09-08)
+
+### Auditoría exhaustiva: documentación vs. código real + limpieza de archivos sin uso
+
+A pedido explícito del usuario ("audita todo el proyecto vs. la documentación... 1) actualizar exhaustivamente la documentación, 2) mover o borrar archivos que están desorganizados o que no tienen uso"). 4 agentes de exploración en paralelo (organización de archivos/raíz, consistencia `CLAUDE.md` vs. código+Neon, código muerto/sin uso, y un cuarto de verificación) auditaron todo el repo sin tocar nada hasta tener el inventario completo.
+
+**Hallazgo más grave: el módulo `/superadmin` (explorador de tablas + SQL runner sobre toda la Neon de producción, doble candado `modulos_acceso:superadmin` + email hardcodeado) existía completo en el código y **nunca estuvo documentado** en ningún archivo — ni `CLAUDE.md`, ni `ANTIGRAVITY.md`, ni `README.md`, ni `MANUAL_USUARIO.md`. Corregido con una sección nueva completa (`### Módulo Superadmin`, ver arriba).
+
+**Otros módulos reales sin documentar o con datos obsoletos, corregidos en esta sesión:**
+- `/investigacion/informes` (generador de Informes Mensuales) — `## Estado Actual` decía "Investigación: solo creación de espacios, 30%" desde Sesión 19; el módulo de informes ya existía completo. Nueva sección `### Módulo Informes Mensuales de Investigación`.
+- Contribuciones Académicas — decía "60%, faltan ~15 campos específicos por tipo"; esos campos ya se agregaron (`scripts/migrate-contribucion-campos-tipo.js`, `migrate-contribucion-autor-estudiante.js`, ninguna atribuida a una sesión documentada) y están en uso real en el wizard. Corregido a 90% (sigue faltando CSV y tests).
+- `/investigacion/espacios` — CLAUDE.md decía desde Sesión 19 "se quitó el link... sin enlazar"; en algún momento se repuso el link desde `/portal/dashboard` sin documentarlo. Corregido en 3 lugares del archivo.
+- `lib/data.ts:adminUsers` / `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` — CLAUDE.md los llamaba "código muerto, no borrado por si acaso"; en realidad ya se habían borrado del código en alguna sesión sin anotarlo. Corregido.
+- `modulos_acceso` documentado con 4 valores (`admin`/`contenido_sitio`/`investigacion`/`vinculacion`) cuando el código usa 6 — faltaban `subir_video` (estudiante habilitado a subir video/evidencia sin más permisos) y `superadmin`. Corregido en 2 lugares.
+- Lista de rutas protegidas por `middleware.ts` en `## Autenticación Admin` solo mencionaba 6 rutas; la real (`protectedRoutes`) tiene 17. Corregido con la lista completa.
+- "Dependencias clave" no mencionaba `xlsx`, `docxtemplater`+`pizzip`, `mammoth`, `pdf-parse`, `google-auth-library` — todas en uso real desde hace varias sesiones. Corregido.
+- `## Estructura de Archivos` (árbol ASCII) estaba congelado desde ~Sesión 24/25 — no incluía `/utilidades`, `/superadmin`, `/investigacion/informes`, `app/proyectos/[slug]`, `app/admin/{photos,proyectos}`, la mayoría de `lib/` (incluyendo `lib/i18n.tsx`, el archivo de i18n más importado de todo el sitio público), ni la lista real de `scripts/` (~50 archivos, el árbol solo mostraba 4). Reescrito completo, con nota explícita de que es representativo, no exhaustivo (usar `Glob`/`ls` para el detalle real).
+- Tabla "Tablas Neon" no incluía `enlaces_evaluacion`, `encuesta_evaluaciones_instructor`, `perfiles_horario_tutorias`, `perfiles_titulos_academicos`, `informes_mensuales`, las 5 tablas de Pares Lectores, ni `superadmin_audit_log`. Agregadas todas.
+- `/admin/utilidades` decía "13 personas" en la tabla resumen de `## Estado Actual` cuando el detalle de la propia Sesión 27 siempre dijo 14 — corregido a 14 (era un error de transcripción, no un cambio real de datos).
+
+**Limpieza de archivos (todo lo borrado estaba trackeado en git — recuperable vía `git log`/`git checkout` si hiciera falta):**
+- `RESUMEN.md`, `DEPLOY_GUIDE.md` (raíz) — autodeclarados obsoletos (era PocketBase/Railway, pre-Sesión 8), cero referencias.
+- `material-web-REDLEA/` (11 MB) — material fuente ya volcado por completo a `public/images/redlea/` y `lib/i18n.tsx` (testimonios, galería, memoria de RED LEA); cero referencias en código. Confirmado con el usuario antes de borrar (única decisión con ambigüedad real de todo el inventario).
+- `public/images/redlea/02-logos/{01,02}-imagen.png` (332 KB) — nunca usadas (RED LEA usa `03-testimonios/`, `04-galeria/`, `05-memoria/`, nunca `02-logos/`).
+- `public/admin-assets/2026_ProyectoActualizado.pdf` (752 KB) — único PDF de `admin-assets/` sin ninguna referencia (el resto tiene 1 c/u en `app/admin/documents/page.tsx`).
+- `public/images/WhatsApp-Image-2026-05-25.jpeg`, `public/images/QR_web.png` — huérfanos, nombre sin estandarizar, cero referencias.
+- `scripts/insertButtons.cjs` — code-mod de un solo uso ya aplicado (editaba 6 páginas para insertar botones), único script de `scripts/` que no seguía el patrón `migrate-`/`seed-`/`fix-`/`test-`.
+- `types/index.ts:AdminUser` (interface) y `lib/neon.ts` (archivo completo) — código muerto confirmado por grep (0 usos/imports en todo el repo), resto del sistema admin legacy y del esquema UUID viejo respectivamente.
+- **No tocado, a propósito:** `docs/` (17 documentos de referencia humana, es su uso normal, no están rotos por no estar en código), `PLANTILLA_USAR/` (carpeta con `.docx` modificados el mismo día de esta sesión — material de trabajo activo, no basura), `.gemini/`, `.vercel/` (config de otras herramientas, no interfieren).
+- Verificado tras la limpieza: `npx tsc --noEmit` limpio (0 errores nuevos por los borrados de `AdminUser`/`lib/neon.ts`).
+
+**Otros documentos actualizados en la misma sesión:** `ANTIGRAVITY.md` (estado sincronizado a Sesión 33, `modulos_acceso` con los 6 valores reales), `README.md` (versión 0.10.8, módulos Superadmin/Banco de Fotos/config de proyectos agregados a la lista, fila de Investigación corregida), `MANUAL_USUARIO.md` (sección de Investigación corregida, agregadas menciones a Contribuciones Académicas y `/utilidades` que faltaban por completo pese a ser accesibles a cualquier docente), `CHANGELOG.md` (entradas `[0.10.7]` y `[0.10.8]` agregadas, faltaban las Sesiones 31-33).
 
 ---
 
@@ -473,7 +533,7 @@ Usados tal cual en el dropdown "Proyecto" del wizard de Contribuciones Académic
   - `ActivityGallery.tsx`, `NewsSection.tsx` → 2 fotos de actividad podcast (datos fallback)
   - `TeamSection.tsx` → fotos líder/colíder (datos fallback) + comentario obsoleto "PocketBase" corregido
 - ✅ **Referencia de repo vieja eliminada:** `CHANGELOG.md` apuntaba a `proyecto-innovacion-e-internacionalizacion.git` (nombre pre-cambio) → corregido a `carrerapineuleam.git`
-- ℹ️ Pendiente de decisión (no tocado): `public/images/redlea/02-logos/` (2 imágenes sin uso), `public/admin-assets/2026_ProyectoActualizado.pdf` (huérfano, sin entrada en `app/admin/documents/page.tsx`), URLs viejas de vercel (`proyecto-innovacion-e-internacional.vercel.app`) dentro de `graphify-out/` (gitignored) y `material-web-REDLEA/*.md` (docs archivados, no código vivo)
+- ℹ️ Pendiente de decisión en su momento (no tocado) — **resuelto en Sesión 33:** `public/images/redlea/02-logos/`, `public/admin-assets/2026_ProyectoActualizado.pdf` y `material-web-REDLEA/` se borraron por falta de uso confirmada por grep; `graphify-out/` ya no existe en el filesystem (estaba gitignored, se ve que se limpió sola en algún redeploy)
 
 ---
 
@@ -528,80 +588,93 @@ Usados tal cual en el dropdown "Proyecto" del wizard de Contribuciones Académic
 
 ## Estructura de Archivos
 
+> **Actualizado Sesión 33** — el árbol de abajo estaba congelado desde ~Sesión 24/25 (no reflejaba `/utilidades`, `/superadmin`, `/investigacion/informes`, Fotos/Proyectos de Sesión 32, ni la mayoría de `lib/`). Es una vista representativa, no exhaustiva — `scripts/` sola tiene ~50 archivos, `app/api/` tiene más de 25 subcarpetas; para el detalle completo usar `Glob`/`ls` en vez de confiar en este árbol al pie de la letra.
+
 ```
 carreraPINE/                       ← RAÍZ = Next.js app
 ├── CLAUDE.md                      # Este archivo (instrucciones para Claude)
 ├── ANTIGRAVITY.md                 # Instrucciones equivalentes para Antigravity
 ├── MANUAL_USUARIO.md              # Manual del Portal PINE, por rol
-├── README.md / CHANGELOG.md       # Actualizados en Sesión 30 — README resume módulos/stack actual, CHANGELOG resume hitos por versión
-├── RESUMEN.md / DEPLOY_GUIDE.md   # ⚠️ obsoletos, de la era PocketBase/Railway (pre-Sesión 8) — marcados con aviso en el propio archivo, no se actualizan
+├── README.md / CHANGELOG.md       # README resume módulos/stack actual, CHANGELOG resume hitos por versión
+├── requeirmientos.md              # Documento de requerimientos del proyecto
+├── implementation_plan_es.md      # Plan de implementación (Contribuciones Académicas, Sesión 24)
 ├── package.json
-├── middleware.ts                  # Protege /admin/*, /portal/*, /vinculacion/espacios*, /investigacion/espacios*, /gestion-carrera, /pine-dashboard
+├── middleware.ts                  # Ver lista completa de protectedRoutes en ## Autenticación Admin — bastante más que /admin/*
 ├── .env.local.example
+├── PLANTILLA_USAR/                # Bandeja de entrada de plantillas .docx pendientes de procesar/subir (material humano, no código)
 │
 ├── app/
-│   ├── page.tsx, layout.tsx       # Landing pública
-│   ├── admin/                     # Panel legacy CRUD sitio estático (gateado por modulos_acceso:contenido_sitio — solo Arturo+Jhonny)
-│   ├── portal/{login,dashboard}/  # Entrada única del Portal PINE
+│   ├── page.tsx, layout.tsx       # Landing pública (incluye PhotoCarousel ubicacion="portada", Sesión 32)
+│   ├── admin/                     # Panel CRUD sitio estático (gateado por modulos_acceso:contenido_sitio — solo Arturo+Jhonny)
+│   │   ├── dashboard/, members/, videos/, categories/, publications/, news/, activities/, documents/, settings/
+│   │   ├── photos/                # Banco de Fotos (Sesión 32)
+│   │   └── proyectos/             # Config de proyectos/nav — ocultar/reordenar/crear (Sesión 32)
+│   ├── proyectos/[slug]/          # Página pública data-driven para proyectos tipo 'plantilla_simple' (Sesión 32)
+│   ├── portal/{login,dashboard,perfil,subir-video}/  # Entrada única del Portal PINE
 │   ├── registro/                  # Autoregistro — solo profesor (whitelist), único rol público desde Sesión 22
 │   ├── vinculacion/                # Gestión (profesor) vs Registro (estudiante+profesor) — ver ## Portal PINE
 │   │   ├── espacios/               # Gestión: crear/listar espacios; [id] = asignar instructores (única función que queda ahí)
 │   │   ├── pasantes/               # Gestión: vista agregada de estudiantes-instructores, solo profesor/admin
-│   │   ├── asistencia/, beneficiarios/, test-mcer/, encuesta/  # Registro: 4 páginas planas, cada una con selector de espacio propio
-│   │   ├── difusion/               # Registro: formulario simple, sin selector de espacio
+│   │   ├── asistencia/, beneficiarios/, test-mcer/, encuesta/, difusion/  # Registro: páginas planas, selector de espacio propio (difusion no tiene selector)
+│   │   ├── publico/[token]/        # Pretest/postest públicos sin login vía enlace/QR (Sesión 28)
 │   │   └── dinamicas-linguisticas/ # Página PÚBLICA de contenido (no confundir con nada de arriba)
 │   ├── investigacion/
-│   │   ├── espacios/              # Crear/listar espacios de investigación
+│   │   ├── espacios/              # Crear/listar espacios de investigación — SÍ tiene link activo desde /portal/dashboard (corregido en Sesión 33, antes decía "sin enlazar")
+│   │   ├── informes/              # Generador de Informes Mensuales (Sesión 33 lo documenta por primera vez, el módulo ya existía)
 │   │   └── proyecto-innovacion/, desarrollo-habilidades/, mentoring/  # Páginas públicas de proyecto
+│   ├── docencia/docencia-innovadora/, redlea/, publicaciones/, boletines/  # Páginas públicas adicionales
 │   ├── gestion-carrera/           # Registro de eventos, cualquier docente
-│   ├── contribuciones/            # Contribuciones académicas (Sesión 24) — listado (solo admin) + wizard (docentes)
+│   ├── contribuciones/            # Contribuciones académicas (Sesión 24, campos por tipo completados sin sesión documentada) — listado (solo admin) + wizard (docentes)
 │   │   ├── page.tsx                # Listado, protegido por middleware (modulos_acceso:admin)
 │   │   └── new/{page.tsx,[type]/page.tsx}  # Paso 1 (elegir tipo) + Paso 2 (formulario)
+│   ├── utilidades/                # Acta Técnica, Oficios, Convocatorias, PAT-Maestría, Pares Lectores, Certificados — cada API route se autoprotege con requireDocenteApi() (ver ### Módulo /utilidades)
+│   ├── superadmin/                # Explorador de tablas + SQL runner sobre toda la Neon — documentado recién en Sesión 33 (ver ### Módulo Superadmin)
 │   ├── pine-dashboard/            # KPIs, solo modulos_acceso:admin
-│   ├── docencia/, login/          # Redirects a las rutas nuevas (compat)
-│   └── api/
-│       ├── auth/{portal-login,register,logout,me}/
-│       ├── espacios/{route,asignar,instructores,asistencia}/
-│       ├── beneficiarios/, estudiantes/, tests/, encuestas/, difusion/, upload/
-│       ├── contribuciones/         # GET/DELETE solo admin, POST cualquier docente — vía Prisma, no SQL crudo
-│       ├── admin/stats/           # KPIs para /pine-dashboard
-│       └── protected/assets/[filename]/   # PDFs privados de public/admin-assets
+│   ├── docencia/ (raíz), login/, admin/login/  # Redirects de compatibilidad, sin links internos activos
+│   └── api/                       # Más de 25 grupos de rutas — auth, espacios, beneficiarios, estudiantes, tests, encuestas, difusion,
+│                                   # upload, photos, proyectos, members, publications, videos, video-categories,
+│                                   # actividades-difusion, enlaces, docentes, perfil, contribuciones, youtube, superadmin, admin/stats,
+│                                   # protected/assets — ver ## Portal PINE para el detalle de auth de cada grupo
 │
-├── components/                    # Componentes React del sitio público
-│   └── admin/DataTable.tsx
+├── components/                    # ~40 componentes del sitio público — ver components/admin/ (DataTable) y components/redlea/ (5 componentes propios)
 │
 ├── lib/
-│   ├── data.ts                    # Fuente de verdad del sitio ESTÁTICO (miembros, publicaciones, etc.) — incluye profesoresAutorizados/profesorModulos
-│   ├── db.ts                      # In-memory CRUD sobre data.ts (solo panel admin legacy)
+│   ├── data.ts                    # Config de autorización (profesoresAutorizados/profesorModulos/liderProyectoPropio) + fotos Club de Inglés + footerContexts
+│   ├── db.ts                      # In-memory CRUD de siteSettings + getNewsletters() (sí lee de Neon)
+│   ├── i18n.tsx                   # Diccionario ES/EN completo del sitio público (~1000 líneas) — faltaba en este árbol pese a ser importado en decenas de componentes
 │   ├── session.ts                 # Auth unificada del Portal (Neon) — pine_app_session
 │   ├── permisos-espacio.ts        # puedeOperarEspacio() — permisos por espacio
-│   ├── neon.ts                    # Tipos del esquema viejo (estudiantes/espacios/beneficiarios) — huérfano
 │   ├── prisma.ts                  # Cliente Prisma (singleton) — solo lo usa el módulo Contribuciones
 │   ├── questions.ts                # Banco de preguntas del Test MCER
-│   └── certificateDocx.ts          # Generación de certificados .docx
+│   ├── certificateDocx.ts          # Generación de certificados .docx
+│   ├── superadmin-auth.ts, superadmin-db.ts  # Doble candado + capa de datos del módulo Superadmin
+│   ├── youtube.ts                 # OAuth2Client de Google para subida a YouTube
+│   ├── gradosCatalogo.ts, perfilSync.ts, periodoAcademico.ts, registrarVideoPropuesto.ts  # Utilidades puntuales, cada una con un solo consumidor
+│   # lib/neon.ts se borró en Sesión 33 (0 imports en todo el repo, era el esquema UUID viejo)
 │
 ├── prisma/schema.prisma           # Solo modela Contribution/ContributionAuthor — NO ejecutar db push/migrate (ver ## Stack Técnico)
 │
-├── scripts/                       # Migraciones Neon (una sola ejecución cada una, con node --env-file=.env.local)
+├── scripts/                       # ~50 archivos, casi todos migrate-*.js/seed-*.js/fix-*.js (una sola ejecución, node --env-file=.env.local)
 │   ├── migrate.js                 # Schema original (desactualizado vs realidad, ver ## Portal PINE)
-│   ├── migrate-espacios-v2.js     # area, espacio_instructores, asistencia_*, columnas de difusión
-│   ├── migrate-contribuciones.js  # CREATE TABLE a mano de Contribution/ContributionAuthor (Sesión 24)
-│   └── fix-mcer-schema.js         # Fix puntual de evaluaciones_mcer
+│   ├── migrate-fotos.js, migrate-proyectos-extend.js  # Banco de Fotos + config de proyectos/nav (Sesión 32)
+│   ├── migrate-superadmin.js      # Tabla superadmin_audit_log
+│   ├── _lib-sign-session.mjs      # Helper: firma una cookie de sesión para probar flujos HTTP reales sin password
+│   └── test-db.js, test-periodo-via-api.mjs  # Scripts de diagnóstico/test, no migraciones
 │
-├── types/index.ts                 # Interfaces TypeScript del sitio estático
+├── types/index.ts                 # Interfaces TypeScript del sitio estático (AdminUser se borró en Sesión 33, 0 usos)
 │
 ├── public/
 │   ├── images/, files/            # Públicos
 │   └── admin-assets/              # Privados, requiere sesión admin
 │
-└── docs/                          # Documentos Word de referencia
+└── docs/                          # Documentos Word/PDF de referencia humana (informes, actas) — no referenciados por código, es normal
 ```
 
 ---
 
 ## Equipo actual (tabla `members` en Neon)
 
-Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía MCP — ver `scripts/migrate-members-projects.js` como referencia del mismo cambio) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
+Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía MCP — ver `scripts/migrate-members-projects.js` como referencia del mismo cambio) filtra en qué página de proyecto aparece cada quien — antes `TeamSection` mostraba a todos los miembros en todas las páginas de proyecto sin distinción, lo que hacía aparecer a German y Cynthia (líderes de proyecto propio) también en el equipo de Internacionalización. `GET /api/members?project=X` filtra por este campo; `TeamSection` acepta la prop `project` y cada página de proyecto la pasa (ver `## Estructura de Archivos`). Valores válidos: `internacionalizacion` | `vinculacion` | `desarrollo_habilidades` | `mentoring`, más cualquier proyecto nuevo creado desde `/admin/proyectos` (Sesión 32) — el panel `/admin/members` ya no tiene esta lista hardcodeada, la trae de `GET /api/proyectos?all=true`. El panel `/admin/members` tiene checkboxes para editar `projects` de cada miembro.
 
 | ID | Nombre | Rol | Proyectos | Orden |
 |----|--------|-----|-----------|-------|
@@ -747,8 +820,10 @@ YYYY-MM-DD_DescripcionCorta[-signed].ext
 ## Autenticación Admin (panel legacy)
 
 > ⚠️ **Obsoleto:** ya NO hay password fijo `Pine2026` ni lista de emails hardcodeada en middleware. El panel `/admin` se accede vía `/portal/login` con la cuenta de cada quien, y requiere `modulos_acceso` incluya **`contenido_sitio`** — **no** `admin` (son módulos distintos, ver `## Portal PINE`). `contenido_sitio` está restringido, por decisión explícita del usuario, solo a `arturo.rodriguez@uleam.edu.ec` y `jhonny.villafuerte@uleam.edu.ec` (líder/colíder de este proyecto específico) — German y Verónica tienen `admin` (ven `/pine-dashboard`) pero no `contenido_sitio`.
-> `lib/data.ts:adminUsers` (los 4 emails con password `Pine2026`) y `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` son **código muerto** — nada los llama desde la migración a Neon. Candidato a limpieza futura, no borrado por si algo externo los referencia todavía.
-- **Middleware:** `middleware.ts` protege `/admin/*`, `/portal/dashboard`, `/vinculacion/espacios*`, `/investigacion/espacios*`, `/gestion-carrera`, `/pine-dashboard`.
+> **Actualizado Sesión 33:** `lib/data.ts:adminUsers` y `lib/db.ts:authenticateAdmin`/`isAdminAuthorized` (el sistema admin legacy con password `Pine2026`) **ya no existen en el código** — fueron eliminados en alguna sesión posterior sin dejarlo anotado aquí. Esta nota quedaba diciendo "código muerto, no borrado" cuando en realidad ya se había borrado; corregido para que nadie pierda tiempo buscando algo que no está.
+- **Middleware — lista completa de `protectedRoutes` (`middleware.ts`), no solo un resumen:** `/portal/dashboard`, `/portal/perfil`, `/portal/subir-video`, `/vinculacion/dinamicas-linguisticas/asistencia`, `/vinculacion/espacios`, `/vinculacion/asistencia`, `/vinculacion/beneficiarios`, `/vinculacion/pasantes`, `/vinculacion/difusion`, `/vinculacion/test-mcer`, `/vinculacion/encuesta`, `/investigacion/espacios`, `/investigacion/informes`, `/gestion-carrera`, `/pine-dashboard`, `/contribuciones`, `/utilidades`, `/superadmin` — más `/admin/*` (excepto `/admin/login`) protegido aparte por `contenido_sitio`. La versión anterior de esta nota solo mencionaba 6 rutas.
+- **`modulos_acceso` tiene 6 valores reales, no 4:** además de `admin`/`contenido_sitio`/`investigacion`/`vinculacion` (los únicos documentados hasta Sesión 33), el código también chequea `subir_video` (`middleware.ts` — habilita a un `estudiante` sin más permisos a subir video/evidencia vía `/portal/subir-video` o `/vinculacion/difusion`) y `superadmin` (ver `### Módulo Superadmin`, doble candado con email hardcodeado). Ambos son reales y ya estaban en producción, solo faltaba anotarlos.
+- `/investigacion/espacios` **sí tiene un link activo** desde `app/portal/dashboard/page.tsx` (tarjeta "Gestionar Investigación" → "» Administrar Espacios") — la nota de Sesión 19 que decía "se quitó el link... la página sigue en el código, sin enlazar" quedó obsoleta, el link se repuso en algún momento sin documentarlo.
 
 ---
 
@@ -793,6 +868,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-08 (Sesión 32)
-**Versión:** 0.10.7
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-08 (Sesión 33)
+**Versión:** 0.10.8
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

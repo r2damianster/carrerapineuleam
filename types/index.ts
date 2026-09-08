@@ -138,14 +138,6 @@ export interface SiteSettings {
   updated: string;
 }
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  role: 'admin';
-  created: string;
-  updated: string;
-}
-
 export interface CertificateSigner {
   name: string;
   role: string;

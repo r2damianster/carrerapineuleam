@@ -73,7 +73,19 @@ Sin selector de espacio — cualquier estudiante registra un podcast/evento: tí
 
 ## 🔬 Perfil: Investigación (hoy: Jhonny, German, Cristina, Johana)
 
-Tarjeta **"Gestionar Investigación"**. Por ahora no tiene ninguna función propia — el equipo tiene planeado agregar gestión de artículos científicos más adelante.
+Tarjeta **"Gestionar Investigación"** — dos funciones:
+
+- **» Administrar Espacios** (`/investigacion/espacios`) — crear/listar espacios de investigación.
+- **» Informes Mensuales** (`/investigacion/informes`) — elige un rango de fechas, el sistema trae las actividades/publicaciones/episodios de podcast de ese período, genera un resumen ejecutivo asistido por IA y arma el documento descargable. Queda guardado un historial de los informes generados anteriormente.
+
+---
+
+## 📝 Perfil: Cualquier Docente — Contribuciones Académicas y Utilidades
+
+Dos tarjetas visibles a cualquier profesor con cuenta, sin importar su área:
+
+- **» Contribuciones Académicas** (`/contribuciones/new`) — registra tu producción académica (artículos, libros, capítulos, memorias de evento, propiedad intelectual) con los campos específicos según el tipo elegido. El listado completo (`/contribuciones`) solo lo ve quien tiene el módulo `admin`.
+- **» Utilidades** (`/utilidades`) — generador de documentos de trámite de la carrera: Acta Técnica, Oficios, Convocatorias (a docentes o estudiantes vía Excel), PATs de Maestría, Pares Lectores (evaluación de trabajos de titulación) y Certificados. Todos con redacción asistida por IA para los campos de texto libre, y selector de docentes/autoridades ya cargado (no hace falta escribir nombres a mano).
 
 ---
 
@@ -99,6 +111,16 @@ Distinto de todo lo anterior — es para editar el contenido de la página públ
 **Ocultar un registro sin borrarlo:** en Noticias, Actividades, Publicaciones, Podcast y Miembros, la columna verde/gris de la tabla (según el módulo dice "Visible en el sitio", "Visible en /noticias" o "Visible en /actividades") es un botón — un clic lo saca de la página pública al instante, sin perder el registro ni su contenido; otro clic lo vuelve a mostrar. Es distinto de **Eliminar**, que sí borra la fila para siempre. La columna "Destacado" (en Noticias y Podcast) también es clickeable directo desde la tabla, sin necesidad de abrir "Editar".
 
 **Buscar y paginar:** arriba de cada tabla hay un cuadro de búsqueda (filtra por título, autor, descripción, email, etc.) y un selector de "Mostrar 10/25/50/100 por página" — útil cuando la lista crece. Abajo de la tabla, "Anterior"/"Siguiente" para moverse entre páginas.
+
+**Banco de Fotos:** sección "Fotos" del panel — sube una imagen, ponele un título y elegí dónde aparece (hoy: portada del sitio, carrusel principal). Ocultar/mostrar/eliminar funciona igual que el resto de tablas.
+
+**Proyectos:** sección "Proyectos" del panel — ocultá o reordená cualquier proyecto o red (incluida RED LEA) del menú del sitio sin necesidad de pedirle a un programador que edite código. También podés crear un proyecto nuevo completo (portada, texto de integración, contacto) si es del tipo simple — los proyectos con página propia más elaborada (RED LEA, Vinculación, Docencia, Internacionalización) solo se pueden ocultar/reordenar desde acá, su contenido interno sigue necesitando a un programador.
+
+---
+
+## 🔐 Superadmin
+
+Módulo aparte, restringido a una sola cuenta (hoy: Arturo) — acceso directo a explorar y modificar cualquier tabla de la base de datos, y ejecutar consultas SQL. No es para uso operativo del día a día, es una herramienta de mantenimiento técnico.
 
 ---
 

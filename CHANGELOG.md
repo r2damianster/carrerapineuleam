@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*(nada pendiente al día de la última entrada — ver `CLAUDE.md` para tareas abiertas de módulos específicos, ej. artículos científicos de Investigación)*
+*(nada pendiente al día de la última entrada — ver `CLAUDE.md` para tareas abiertas de módulos específicos, ej. exportación CSV y tests de Contribuciones Académicas)*
 
 ---
 
-> ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (30 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
+> ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (33 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
+
+## [0.10.8] - 2026-09-08 (Sesión 33)
+
+### 📚 Documentation
+- Auditoría exhaustiva de `CLAUDE.md`/`ANTIGRAVITY.md`/`README.md`/`MANUAL_USUARIO.md` vs. código real — corregidos módulos enteros sin documentar (`/superadmin`, `/investigacion/informes`), datos obsoletos (Contribuciones Académicas ya está al 90% no 60%, `/investigacion/espacios` sí tiene link activo), lista incompleta de rutas protegidas y de valores de `modulos_acceso` (6 reales, se documentaban 4), y el árbol de `## Estructura de Archivos` (congelado desde ~Sesión 24/25).
+
+### 🧹 Removed
+- Archivos sin uso confirmado por grep: `RESUMEN.md`, `DEPLOY_GUIDE.md` (obsoletos, era PocketBase/Railway), `material-web-REDLEA/` (11 MB, ya volcado a `public/images/redlea/`), 2 imágenes huérfanas de RED LEA, 1 PDF huérfano de `admin-assets/`, 2 imágenes sueltas sin estandarizar, `scripts/insertButtons.cjs` (code-mod ya aplicado), `types/index.ts:AdminUser` y `lib/neon.ts` (código muerto, 0 usos).
+
+## [0.10.7] - 2026-09-08 (Sesión 31–32)
+
+### ✅ Added
+- **Banco de Fotos administrable** (`/admin/photos`, tabla `fotos`) — subir/aprobar/ocultar/eliminar fotos (con borrado real en Cloudinary), consumido por un carrusel nuevo en la portada (`components/PhotoCarousel.tsx`).
+- **Config de proyectos/nav vía Neon** (`/admin/proyectos`, tabla `proyectos` activada) — ocultar/reordenar cualquier proyecto o red del menú sin tocar código; crear proyectos nuevos "plantilla_simple" completos (hero, integración, equipo, contacto) desde el admin. `Header.tsx` arma el nav desde `/api/proyectos` con fallback hardcodeado si falla.
+- Toggle "Publicar mi horario de tutorías en la web" en `/portal/perfil` (`usuarios.horario_tutorias_publico`, default `false`).
+
+### 🐛 Fixed
+- **Bug de Data Cache de `@neondatabase/serverless`:** un `GET` público que no llama `cookies()` queda cacheado para siempre por el Data Cache de Next.js, incluso con `export const dynamic = 'force-dynamic'` (ese flag no lo cubre). Corregido en 4 rutas afectadas con `neon(url, { fetchOptions: { cache: 'no-store' } })` — regla aplicada de ahora en adelante a todo GET público nuevo sin sesión.
 
 ## [0.10.6] - 2026-09-04 (Sesión 30)
 
@@ -192,9 +210,11 @@ Rango largo de sesiones que llevó el proyecto de un sitio estático con panel a
 | 0.3.1 | 2026-04-13 | Docs + Multi-AI Setup (era PocketBase, prototipo) | 70% |
 | 0.10.0 – 0.10.5 | 2026-06 a 2026-09-02 | Migración a Neon + Portal PINE + i18n completo | ~99% |
 | 0.10.6 | 2026-09-04 | Admin: ocultar sin borrar + buscador/paginación | ~99% |
+| 0.10.7 | 2026-09-08 | Fix Data Cache + Banco de Fotos + config proyectos/nav | ~99% |
+| 0.10.8 | 2026-09-08 | Auditoría de documentación + limpieza de archivos sin uso | ~99% |
 
 ---
 
-**Last Updated:** 2026-09-04 (Sesión 30)
-**Current Version:** 0.10.6
+**Last Updated:** 2026-09-08 (Sesión 33)
+**Current Version:** 0.10.8
 **Detalle sesión por sesión:** ver [`CLAUDE.md`](./CLAUDE.md)
