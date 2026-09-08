@@ -77,7 +77,7 @@ export default async function PortalDashboard() {
                 <p className="text-gray-600 mb-4 text-sm">Espacios de investigación e informes mensuales de actividades.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/investigacion/espacios" className="text-emerald-600 hover:underline">» Administrar Espacios</Link>
-                  <Link href="/investigacion/informes" className="text-emerald-600 hover:underline">» Informes Mensuales</Link>
+                  <Link href="/investigacion/informes" className="text-emerald-600 hover:underline">» Generar Informe Mensual de Investigación</Link>
                 </div>
               </div>
             )}
