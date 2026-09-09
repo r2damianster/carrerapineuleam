@@ -20,6 +20,16 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Formularios del panel no soportan dark mode: Tailwind preflight hereda
+   `color` del body (que sí cambia a blanco en prefers-color-scheme: dark),
+   dejando texto blanco sobre fondo blanco en celulares con tema oscuro. */
+input,
+select,
+textarea {
+  color: #111827;
+  background-color: #ffffff;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-end-rgb));
