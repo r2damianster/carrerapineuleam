@@ -13,6 +13,7 @@ const TIPO_LABEL: Record<string, string> = {
   evento_fisico: 'Evento físico',
   encuentro_comunitario: 'Encuentro comunitario',
   evento_formacion: 'Evento de formación',
+  visita_tecnica: 'Visita técnica',
 };
 
 export async function POST(request: Request) {

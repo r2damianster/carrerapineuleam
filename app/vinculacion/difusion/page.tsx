@@ -155,6 +155,7 @@ export default function DifusionPage() {
                 <option value="evento_fisico">Evento Físico</option>
                 <option value="encuentro_comunitario">Encuentro Comunitario</option>
                 <option value="evento_formacion">Evento de Formación</option>
+                <option value="visita_tecnica">Visita Técnica</option>
               </select>
             </div>
 

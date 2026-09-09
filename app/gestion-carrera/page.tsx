@@ -14,6 +14,7 @@ export default function GestionCarreraPage() {
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
 
@@ -49,6 +50,22 @@ export default function GestionCarreraPage() {
       .then(res => res.ok ? res.json() : { profesores: [] })
       .then(data => setProfesores(data.profesores || []))
       .catch(() => setProfesores([]));
+
+    // Los 3 proyectos de investigación propios del grupo (Internacionalización,
+    // Desarrollo de Habilidades Lingüísticas, Mentoring) — no todo lo que tenga
+    // area='investigacion' en la tabla `proyectos` (esa también incluye RED LEA,
+    // que es una red no un proyecto propio, y Docencia Innovadora, que no tiene
+    // líder de investigación propio, ver lib/data.ts:liderProyectoPropio).
+    const PROYECTOS_INVESTIGACION_IDS = ['internacionalizacion', 'desarrollo_habilidades', 'mentoring'];
+    fetch('/api/proyectos?all=true')
+      .then(res => res.ok ? res.json() : [])
+      .then((rows: any[]) => setProyectosInvestigacion(
+        (Array.isArray(rows) ? rows : [])
+          .filter(p => PROYECTOS_INVESTIGACION_IDS.includes(p.id))
+          .sort((a, b) => PROYECTOS_INVESTIGACION_IDS.indexOf(a.id) - PROYECTOS_INVESTIGACION_IDS.indexOf(b.id))
+          .map(p => ({ id: p.id, nombre_oficial: p.nombre_oficial }))
+      ))
+      .catch(() => setProyectosInvestigacion([]));
   }, [router]);
 
   const toggleResponsable = (id: number) => {
@@ -186,6 +203,7 @@ export default function GestionCarreraPage() {
                 <option value="evento_fisico">Evento Físico</option>
                 <option value="encuentro_comunitario">Encuentro Comunitario</option>
                 <option value="evento_formacion">Evento de Formación</option>
+                <option value="visita_tecnica">Visita Técnica</option>
               </select>
             </div>
           </div>
@@ -193,7 +211,12 @@ export default function GestionCarreraPage() {
           {form.categoria === 'investigacion' && (
             <div>
               <label className="block text-sm font-medium text-gray-700">¿Qué proyecto de investigación?</label>
-              <input type="text" name="proyecto" value={form.proyecto} onChange={handleChange} placeholder="Ej. Innovaciones Pedagógicas" className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+              <select name="proyecto" required value={form.proyecto} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                <option value="">Selecciona un proyecto...</option>
+                {proyectosInvestigacion.map(p => (
+                  <option key={p.id} value={p.nombre_oficial}>{p.nombre_oficial}</option>
+                ))}
+              </select>
             </div>
           )}
           {form.categoria === 'asignatura' && (
