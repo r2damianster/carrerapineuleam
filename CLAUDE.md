@@ -774,6 +774,7 @@ Desde la Sesión 26, `members.projects` (`text[]`, migrado directo en Neon vía 
 | member_14 | Ulbio Farfán Corrales | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) — email real confirmado contra `usuarios` (Sesión 27), no adivinado | docencia_innovadora | 14 |
 | member_15 | Gabriel Bazurto Alcívar | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) | docencia_innovadora | 15 |
 | member_16 | Jorge Corral Joniaux | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 35) | docencia_innovadora | 16 |
+| member_17 | Betty Marisol Yánez García | Miembro de Docencia Innovadora e Interdisciplinaria (Sesión 37) — `usuarios.id=29`, email confirmado por el usuario, apellidos "Yánez García" (no adivinados) | docencia_innovadora | 17 |
 
 ⚠️ **`member_13` (Laura Mena) ya existía en Neon sin estar documentada aquí** — encontrada recién en Sesión 35 al auditar la tabla real antes de agregar gente nueva. Mismo patrón que la tabla `proyectos` (Sesión 32): alguien (probablemente Antigravity) la agregó fuera de una sesión documentada. Regla reafirmada: **antes de insertar en `members`, consultar primero el estado real de Neon** — esta tabla de referencia puede estar desincronizada.
 
