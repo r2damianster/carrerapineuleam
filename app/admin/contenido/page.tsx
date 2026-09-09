@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import DataTable from '@/components/admin/DataTable';
 
 interface ContenidoRow {
@@ -80,8 +81,13 @@ export default function AdminContenidoPage() {
   const [errorIA, setErrorIA] = useState('');
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
   const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
+  const [imagenFile, setImagenFile] = useState<File | null>(null);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
 
   const [formData, setFormData] = useState(FORM_INICIAL);
+
+  const localFileUrl = useMemo(() => (imagenFile ? URL.createObjectURL(imagenFile) : null), [imagenFile]);
+  const previewUrl = localFileUrl || formData.imagen || null;
 
   useEffect(() => {
     loadRows();
@@ -136,6 +142,7 @@ export default function AdminContenidoPage() {
     setFormData(FORM_INICIAL);
     setEditingRow(null);
     setErrorIA('');
+    setImagenFile(null);
     setShowForm(false);
   };
 
@@ -165,6 +172,7 @@ export default function AdminContenidoPage() {
       publicar_actividades: row.publicar_actividades || false,
     });
     setErrorIA('');
+    setImagenFile(null);
     setShowForm(true);
   };
 
@@ -247,7 +255,24 @@ export default function AdminContenidoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const photos = formData.imagen ? [formData.imagen] : [];
+    let imagenUrl = formData.imagen;
+    if (imagenFile) {
+      setSubiendoImagen(true);
+      try {
+        const uploadForm = new FormData();
+        uploadForm.append('file', imagenFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadForm });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Error subiendo la imagen');
+        imagenUrl = uploadData.url;
+      } catch (error: any) {
+        setSubiendoImagen(false);
+        alert(error.message || 'Error subiendo la imagen');
+        return;
+      }
+      setSubiendoImagen(false);
+    }
+    const photos = imagenUrl ? [imagenUrl] : [];
     const slug = formData.slug || generateSlug(formData.titulo);
 
     try {
@@ -439,14 +464,26 @@ export default function AdminContenidoPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen destacada (URL)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen destacada</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImagenFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-uleam-blue/10 file:text-uleam-blue hover:file:bg-uleam-blue/20"
+              />
+              <p className="mt-1 text-xs text-gray-500">O pegá una URL directamente:</p>
               <input
                 type="text"
                 value={formData.imagen}
-                onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                onChange={(e) => { setFormData({ ...formData, imagen: e.target.value }); setImagenFile(null); }}
+                className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 placeholder="/images/activities/foto.jpeg"
               />
+              {previewUrl && (
+                <div className="relative mt-3 h-40 w-full max-w-xs overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                  <Image src={previewUrl} alt="Vista previa" fill className="object-cover" unoptimized />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -610,8 +647,8 @@ export default function AdminContenidoPage() {
           </div>
 
           <div className="mt-6 flex gap-4">
-            <button type="submit" className="flex-1 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition">
-              {editingRow ? 'Actualizar' : 'Crear'}
+            <button type="submit" disabled={subiendoImagen} className="flex-1 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition disabled:opacity-50">
+              {subiendoImagen ? 'Subiendo imagen...' : editingRow ? 'Actualizar' : 'Crear'}
             </button>
             <button type="button" onClick={resetForm} className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition">
               Cancelar
