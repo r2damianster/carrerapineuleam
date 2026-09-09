@@ -25,12 +25,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const order = typeof body.order === 'number' ? body.order : null;
     const aprobar = !!body.aprobar;
     // Al aprobar una difusión pendiente (origen='difusion'), por defecto se
-    // publica como actividad — si no se manda publicar_actividades explícito,
-    // aprobar=true implica publicar_actividades=true (si no, la fila quedaba
-    // aprobada pero invisible en ambas secciones, el bug que motivó este flag).
-    const publicarNoticias = typeof body.publicar_noticias === 'boolean' ? body.publicar_noticias : null;
-    const publicarActividades = typeof body.publicar_actividades === 'boolean'
-      ? body.publicar_actividades
+    // publica como noticia — si no se manda publicar_noticias explícito,
+    // aprobar=true implica publicar_noticias=true (si no, la fila quedaba
+    // aprobada pero invisible, el bug que motivó este flag). Antes (hasta
+    // Sesión 36) el default era publicar_actividades=true, porque
+    // ActivityGallery leía actividades_difusion directo — desde que esa
+    // galería se migró al Banco de Fotos (fotos table), "actividades" quedó
+    // sin ningún componente público que la lea; Noticias es el único canal
+    // público real que queda para este flujo.
+    const publicarActividades = typeof body.publicar_actividades === 'boolean' ? body.publicar_actividades : null;
+    const publicarNoticias = typeof body.publicar_noticias === 'boolean'
+      ? body.publicar_noticias
       : (aprobar ? true : null);
 
     const sql = neon(process.env.DATABASE_URL!);
