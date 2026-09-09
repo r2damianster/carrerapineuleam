@@ -3,7 +3,13 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 
 // PATCH cubre dos usos, según qué venga en el body:
-// - aprobar/enriquecer un registro de difusión pendiente (fotos, is_featured, slug, categoria)
+// - aprobar/enriquecer un registro de difusión pendiente (origen='difusion') —
+//   incluye los campos propios del registro de docente: tipo, hora,
+//   audiencia_alcanzada, profesores_responsables, proyecto/asignatura (según
+//   categoria investigacion/vinculacion/asignatura). Antes de esta versión
+//   ninguno de estos 6 campos era editable por PATCH (aunque sí existían en
+//   la fila, intactos) ni se mostraba en el formulario de admin — el docente
+//   los registraba pero el admin no podía verlos ni corregirlos ahí.
 // - editar un registro creado directo desde /admin (noticia/actividad)
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -18,6 +24,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const observaciones = body.observaciones ?? null;
     const fecha = body.fecha ?? null;
     const categoria = body.categoria ?? null;
+    const proyecto = body.proyecto ?? null;
+    const asignatura = body.asignatura ?? null;
+    const tipo = body.tipo ?? null;
+    const hora = body.hora ?? null;
+    const audiencia_alcanzada = typeof body.audiencia_alcanzada === 'number' ? body.audiencia_alcanzada : null;
+    const profesoresResponsables = Array.isArray(body.profesores_responsables)
+      ? body.profesores_responsables.map((id: any) => parseInt(id, 10)).filter((id: number) => !isNaN(id))
+      : null;
     const photos = body.photos ?? null;
     const slug = body.slug ?? null;
     const external_link = body.external_link ?? null;
@@ -47,6 +61,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           observaciones = COALESCE(${observaciones}, observaciones),
           fecha = COALESCE(${fecha}, fecha),
           categoria = COALESCE(${categoria}, categoria),
+          proyecto = COALESCE(${proyecto}, proyecto),
+          asignatura = COALESCE(${asignatura}, asignatura),
+          tipo = COALESCE(${tipo}, tipo),
+          hora = COALESCE(${hora}, hora),
+          audiencia_alcanzada = COALESCE(${audiencia_alcanzada}, audiencia_alcanzada),
+          profesores_responsables = COALESCE(${profesoresResponsables}, profesores_responsables),
           photos = COALESCE(${photos}, photos),
           slug = COALESCE(${slug}, slug),
           external_link = COALESCE(${external_link}, external_link),

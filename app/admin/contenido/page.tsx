@@ -11,6 +11,12 @@ interface ContenidoRow {
   observaciones?: string;
   fecha: string;
   categoria?: string;
+  proyecto?: string;
+  asignatura?: string;
+  tipo?: string;
+  hora?: string;
+  audiencia_alcanzada?: number;
+  profesores_responsables?: number[];
   photos: string[];
   is_featured: boolean;
   slug?: string;
@@ -21,12 +27,28 @@ interface ContenidoRow {
 
 type Filtro = 'todos' | 'pendientes' | 'noticias' | 'actividades';
 
+const TIPO_LABEL: Record<string, string> = {
+  podcast: 'Podcast',
+  evento_fisico: 'Evento físico',
+  encuentro_comunitario: 'Encuentro comunitario',
+  evento_formacion: 'Evento de formación',
+  visita_tecnica: 'Visita Técnica',
+};
+
+const PROYECTOS_INVESTIGACION_IDS = ['internacionalizacion', 'desarrollo_habilidades', 'mentoring'];
+
 const FORM_INICIAL = {
   titulo: '',
   descripcion: '',
   observaciones: '',
   fecha: new Date().toISOString().split('T')[0],
   categoria: 'evento',
+  proyecto: '',
+  asignatura: '',
+  tipo: 'evento_fisico',
+  hora: '',
+  audiencia_alcanzada: '',
+  profesoresResponsables: [] as number[],
   imagen: '',
   slug: '',
   is_featured: false,
@@ -41,6 +63,13 @@ const FORM_INICIAL = {
 // uno viviendo en su propia pantalla con un checkbox "también publicar en la
 // otra" — eso fue justo la causa de que una visita técnica quedara invisible
 // (se activó el canal equivocado sin que nadie lo notara).
+//
+// Cuando origen==='difusion' (lo registró un docente/estudiante vía
+// /gestion-carrera o /vinculacion/difusion) el form muestra los campos
+// propios de ese registro (tipo de evento, categoría investigación/
+// vinculación/asignatura + proyecto, hora, asistentes, profesores
+// responsables) — antes de esto el edit solo tenía la categoría de "actividad
+// admin" (taller/evento/...) y esos 6 campos ni se mostraban ni se guardaban.
 export default function AdminContenidoPage() {
   const [rows, setRows] = useState<ContenidoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +78,28 @@ export default function AdminContenidoPage() {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [generandoIA, setGenerandoIA] = useState(false);
   const [errorIA, setErrorIA] = useState('');
+  const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
 
   const [formData, setFormData] = useState(FORM_INICIAL);
 
   useEffect(() => {
     loadRows();
+
+    fetch('/api/profesores')
+      .then(res => res.ok ? res.json() : { profesores: [] })
+      .then(data => setProfesores(data.profesores || []))
+      .catch(() => setProfesores([]));
+
+    fetch('/api/proyectos?all=true')
+      .then(res => res.ok ? res.json() : [])
+      .then((rows: any[]) => setProyectosInvestigacion(
+        (Array.isArray(rows) ? rows : [])
+          .filter(p => PROYECTOS_INVESTIGACION_IDS.includes(p.id))
+          .sort((a, b) => PROYECTOS_INVESTIGACION_IDS.indexOf(a.id) - PROYECTOS_INVESTIGACION_IDS.indexOf(b.id))
+          .map(p => ({ id: p.id, nombre_oficial: p.nombre_oficial }))
+      ))
+      .catch(() => setProyectosInvestigacion([]));
   }, []);
 
   const loadRows = async () => {
@@ -96,6 +142,8 @@ export default function AdminContenidoPage() {
   const generateSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+  const esDifusion = editingRow?.origen === 'difusion';
+
   const handleEdit = (row: ContenidoRow) => {
     setEditingRow(row);
     setFormData({
@@ -103,7 +151,13 @@ export default function AdminContenidoPage() {
       descripcion: row.descripcion || '',
       observaciones: row.observaciones || '',
       fecha: row.fecha?.slice(0, 10) || '',
-      categoria: row.categoria || 'evento',
+      categoria: row.categoria || (row.origen === 'difusion' ? 'vinculacion' : 'evento'),
+      proyecto: row.proyecto || '',
+      asignatura: row.asignatura || '',
+      tipo: row.tipo || 'evento_fisico',
+      hora: row.hora || '',
+      audiencia_alcanzada: row.audiencia_alcanzada != null ? String(row.audiencia_alcanzada) : '',
+      profesoresResponsables: row.profesores_responsables || [],
       imagen: row.photos?.[0] || '',
       slug: row.slug || '',
       is_featured: row.is_featured || false,
@@ -112,6 +166,15 @@ export default function AdminContenidoPage() {
     });
     setErrorIA('');
     setShowForm(true);
+  };
+
+  const toggleResponsable = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      profesoresResponsables: prev.profesoresResponsables.includes(id)
+        ? prev.profesoresResponsables.filter(r => r !== id)
+        : [...prev.profesoresResponsables, id],
+    }));
   };
 
   const handleDelete = async (row: ContenidoRow) => {
@@ -157,8 +220,13 @@ export default function AdminContenidoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           titulo: formData.titulo,
+          tipo: esDifusion ? formData.tipo : undefined,
           categoria: formData.categoria,
+          proyecto: formData.proyecto,
+          asignatura: formData.asignatura,
           fecha: formData.fecha,
+          hora: esDifusion ? formData.hora : undefined,
+          audiencia_alcanzada: esDifusion ? formData.audiencia_alcanzada : undefined,
           descripcion_actual: formData.descripcion,
           observaciones_actual: formData.observaciones,
         }),
@@ -195,6 +263,14 @@ export default function AdminContenidoPage() {
           is_featured: formData.is_featured,
           publicar_noticias: formData.publicar_noticias,
           publicar_actividades: formData.publicar_actividades,
+          ...(esDifusion ? {
+            proyecto: formData.categoria === 'investigacion' ? formData.proyecto : '',
+            asignatura: formData.categoria === 'asignatura' ? formData.asignatura : '',
+            tipo: formData.tipo,
+            hora: formData.hora,
+            audiencia_alcanzada: formData.audiencia_alcanzada ? parseInt(formData.audiencia_alcanzada, 10) : null,
+            profesores_responsables: formData.profesoresResponsables,
+          } : {}),
         });
       } else {
         const res = await fetch('/api/actividades-difusion', {
@@ -383,6 +459,104 @@ export default function AdminContenidoPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
                 />
               </div>
+              {esDifusion && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hora</label>
+                  <input
+                    type="time"
+                    value={formData.hora}
+                    onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            {esDifusion ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de evento</label>
+                    <select
+                      value={formData.tipo}
+                      onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                    >
+                      {Object.entries(TIPO_LABEL).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                    <select
+                      value={formData.categoria}
+                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                    >
+                      <option value="investigacion">Investigación</option>
+                      <option value="vinculacion">Vinculación</option>
+                      <option value="asignatura">Asignatura</option>
+                    </select>
+                  </div>
+                </div>
+
+                {formData.categoria === 'investigacion' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Qué proyecto de investigación?</label>
+                    <select
+                      value={formData.proyecto}
+                      onChange={(e) => setFormData({ ...formData, proyecto: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                    >
+                      <option value="">Selecciona un proyecto...</option>
+                      {proyectosInvestigacion.map(p => (
+                        <option key={p.id} value={p.nombre_oficial}>{p.nombre_oficial}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {formData.categoria === 'asignatura' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la asignatura</label>
+                    <input
+                      type="text"
+                      value={formData.asignatura}
+                      onChange={(e) => setFormData({ ...formData, asignatura: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">N° Asistentes</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.audiencia_alcanzada}
+                    onChange={(e) => setFormData({ ...formData, audiencia_alcanzada: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Profesor(es) Responsable(s)</label>
+                  <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1">
+                    {profesores.length === 0 && <p className="text-sm text-gray-400">Cargando profesores...</p>}
+                    {profesores.map(profesor => (
+                      <label key={profesor.id} className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={formData.profesoresResponsables.includes(profesor.id)}
+                          onChange={() => toggleResponsable(profesor.id)}
+                        />
+                        {profesor.nombres} {profesor.apellidos}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
                 <select
@@ -398,7 +572,7 @@ export default function AdminContenidoPage() {
                   <option value="otro">Otro</option>
                 </select>
               </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-2">
               <input
