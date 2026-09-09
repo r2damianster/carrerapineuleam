@@ -28,6 +28,7 @@ export default function AdminPhotosPage() {
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingFoto, setEditingFoto] = useState<Foto | null>(null);
+  const [lightboxFoto, setLightboxFoto] = useState<Foto | null>(null);
 
   const [formData, setFormData] = useState({
     file: null as File | null,
@@ -74,6 +75,7 @@ export default function AdminPhotosPage() {
         body: JSON.stringify({ activo: !foto.activo }),
       });
       if (!res.ok) throw new Error('Failed to toggle');
+      setLightboxFoto((prev) => (prev && prev.id === foto.id ? { ...prev, activo: !prev.activo } : prev));
       loadFotos();
     } catch (error) {
       console.error('Error toggling foto:', error);
@@ -190,7 +192,13 @@ export default function AdminPhotosPage() {
       label: 'Foto',
       render: (item: Foto) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.url} alt={item.titulo || ''} className="w-16 h-16 object-cover rounded-lg border" />
+        <img
+          src={item.url}
+          alt={item.titulo || ''}
+          onClick={() => setLightboxFoto(item)}
+          className="w-16 h-16 object-cover rounded-lg border cursor-zoom-in hover:opacity-80 transition"
+          title="Ver en grande"
+        />
       ),
     },
     { key: 'titulo', label: 'Título' },
@@ -359,6 +367,48 @@ export default function AdminPhotosPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {lightboxFoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxFoto(null)}
+        >
+          <div
+            className="max-w-3xl w-full bg-white rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxFoto.url}
+              alt={lightboxFoto.titulo || ''}
+              className="w-full max-h-[75vh] object-contain bg-gray-100"
+            />
+            <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-gray-800">{lightboxFoto.titulo || '(sin título)'}</p>
+                {lightboxFoto.descripcion && (
+                  <p className="text-sm text-gray-500 mt-1">{lightboxFoto.descripcion}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">{(lightboxFoto.ubicaciones || []).join(', ') || 'Sin ubicación asignada'}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleToggleActivo(lightboxFoto)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold ${lightboxFoto.activo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                >
+                  {lightboxFoto.activo ? 'Visible en el sitio — ocultar' : 'Oculta — hacer visible'}
+                </button>
+                <button
+                  onClick={() => setLightboxFoto(null)}
+                  className="px-4 py-2 rounded-lg text-sm font-bold bg-uleam-blue text-white hover:bg-uleam-blue/90"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
