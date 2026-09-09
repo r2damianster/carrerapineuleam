@@ -9,6 +9,8 @@ export default function GestionCarreraPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [generandoIA, setGenerandoIA] = useState(false);
+  const [errorIA, setErrorIA] = useState('');
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
@@ -55,6 +57,44 @@ export default function GestionCarreraPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const generarConIA = async () => {
+    if (!form.titulo) {
+      setErrorIA('Escribe al menos el título del evento antes de generar con IA.');
+      return;
+    }
+    setGenerandoIA(true);
+    setErrorIA('');
+    try {
+      const res = await fetch('/api/difusion/generar-texto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo: form.titulo,
+          tipo: form.tipo,
+          categoria: form.categoria,
+          proyecto: form.proyecto,
+          asignatura: form.asignatura,
+          fecha: form.fecha,
+          hora: form.hora,
+          audiencia_alcanzada: form.audiencia_alcanzada,
+          descripcion_actual: form.descripcion,
+          observaciones_actual: form.observaciones,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error generando texto con IA');
+      setForm(prev => ({
+        ...prev,
+        descripcion: data.descripcion || prev.descripcion,
+        observaciones: data.observaciones || prev.observaciones,
+      }));
+    } catch (error: any) {
+      setErrorIA(error.message);
+    } finally {
+      setGenerandoIA(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -208,8 +248,20 @@ export default function GestionCarreraPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Descripción</label>
-            <textarea name="descripcion" rows={3} value={form.descripcion} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">Descripción</label>
+              <button
+                type="button"
+                onClick={generarConIA}
+                disabled={generandoIA}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+              >
+                {generandoIA ? 'Generando...' : form.descripcion ? '✨ Mejorar con IA' : '✨ Generar con IA'}
+              </button>
+            </div>
+            <textarea name="descripcion" rows={3} value={form.descripcion} onChange={handleChange} placeholder="Escribe una descripción breve (opcional) y la IA la mejora, o déjala vacía y la IA la redacta desde cero." className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            {errorIA && <p className="mt-1 text-xs text-red-600">{errorIA}</p>}
+            <p className="mt-1 text-xs text-gray-500">Usa el título, tipo, categoría, fecha y asistentes ya ingresados (y lo que escribas aquí) para redactar/mejorar descripción y observaciones — revísalo antes de guardar.</p>
           </div>
 
           <div>
