@@ -55,12 +55,20 @@ export async function POST(request: Request) {
 
     const periodo_academico = calcularPeriodoAcademico(new Date(fecha));
 
+    // `evidencia_url` en tipo 'podcast' suele ser una captura de métricas
+    // (analytics de Spotify/YouTube), no una foto presentable — no la usamos
+    // como imagen pública. En el resto de tipos (evento_fisico, visita_tecnica,
+    // encuentro_comunitario, evento_formacion) sí es la foto real del evento,
+    // así que la copiamos a `photos[]` (lo que leen NewsSection/ActivityGallery
+    // como imagen destacada) — si no, quedaba subida a Cloudinary pero invisible.
+    const photos = evidencia_url && tipo !== 'podcast' ? [evidencia_url] : [];
+
     await sql`
       INSERT INTO actividades_difusion
-        (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url,
+        (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url, photos,
          categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables, periodo_academico)
       VALUES
-        (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null},
+        (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null}, ${photos},
          ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds}, ${periodo_academico})
     `;
 

@@ -21,12 +21,30 @@ export async function GET(request: Request) {
     const origen = searchParams.get('origen'); // 'noticia' | 'actividad' | 'difusion'
     const seccion = searchParams.get('seccion'); // 'noticias' | 'actividades'
     const pendientes = searchParams.get('pendientes') === 'true';
-    // ?all=true (usado solo por /admin/news y /admin/activities) trae también
-    // las filas con publicar_noticias/publicar_actividades=false (ocultas sin
-    // borrar) para que el admin las siga viendo y pueda reactivarlas — el
-    // sitio público nunca lo manda.
+    const admin = searchParams.get('admin') === 'true';
+    // ?all=true (histórico, ya no lo usa ningún admin desde que /admin/news y
+    // /admin/activities se fusionaron en /admin/contenido — ese usa ?admin=true
+    // en su lugar) trae también las filas con publicar_noticias/
+    // publicar_actividades=false. Se deja funcionando por si `seccion` se
+    // vuelve a necesitar con este filtro — el sitio público nunca lo manda.
     const incluirOcultas = searchParams.get('all') === 'true';
     const sql = neon(process.env.DATABASE_URL!);
+
+    // ?admin=true -> panel unificado /admin/contenido: trae TODO (pendiente y
+    // publicado, en cualquier canal) en una sola consulta. Antes cada pantalla
+    // (news/activities) pedía ?seccion=X&all=true, que con all=true colapsa a
+    // "aprobado_sitio=true" sin filtrar por canal (ambas veían casi el mismo
+    // set completo igual) — esto reemplaza esa duplicidad con una consulta honesta.
+    if (admin) {
+      const usuario = await getAppSessionFromCookies();
+      if (!usuario || !usuario.modulos_acceso.includes('contenido_sitio')) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      }
+      const rows = await sql`
+        SELECT * FROM actividades_difusion ORDER BY fecha DESC NULLS LAST
+      `;
+      return NextResponse.json(rows);
+    }
 
     if (pendientes) {
       const usuario = await getAppSessionFromCookies();
@@ -83,7 +101,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, order, publicar_noticias, publicar_actividades } = await request.json();
+    const { origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, order, publicar_noticias, publicar_actividades } = await request.json();
     if (!titulo || !fecha || !origen) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -91,9 +109,9 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const [nueva] = await sql`
       INSERT INTO actividades_difusion
-        (origen, titulo, descripcion, fecha, categoria, photos, slug, external_link, project_id, is_featured, "order", aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables, publicar_noticias, publicar_actividades)
+        (origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, "order", aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables, publicar_noticias, publicar_actividades)
       VALUES
-        (${origen}, ${titulo}, ${descripcion || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${order ?? 0}, true, ${Number(usuario.id)}, now(), '{}', ${!!publicar_noticias}, ${!!publicar_actividades})
+        (${origen}, ${titulo}, ${descripcion || null}, ${observaciones || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${order ?? 0}, true, ${Number(usuario.id)}, now(), '{}', ${!!publicar_noticias}, ${!!publicar_actividades})
       RETURNING *
     `;
     return NextResponse.json(nueva, { status: 201 });

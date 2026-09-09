@@ -36,9 +36,11 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
     const fileBase64 = `data:${file.type};base64,${buffer.toString("base64")}`;
 
-    // Subir a Cloudinary
+    // Subir a Cloudinary — forzamos JPG (ej. fotos .heic de iPhone no las
+    // renderiza casi ningún navegador si se guardan en su formato original).
     const uploadResponse = await cloudinary.uploader.upload(fileBase64, {
       folder: "pine_project_uploads", // Carpeta en Cloudinary
+      format: "jpg",
     });
 
     // Devolver la URL segura y el public_id (necesario para poder borrar

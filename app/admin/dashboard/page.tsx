@@ -17,21 +17,20 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [membersRes, videosRes, categoriesRes, publicationsRes, newsRes, activitiesRes] = await Promise.all([
+        const [membersRes, videosRes, categoriesRes, publicationsRes, contenidoRes] = await Promise.all([
           fetch('/api/members').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/videos').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/video-categories').then((r) => (r.ok ? r.json() : [])),
           fetch('/api/publications').then((r) => (r.ok ? r.json() : [])),
-          fetch('/api/actividades-difusion?seccion=noticias').then((r) => (r.ok ? r.json() : [])),
-          fetch('/api/actividades-difusion?seccion=actividades').then((r) => (r.ok ? r.json() : [])),
+          fetch('/api/actividades-difusion?admin=true').then((r) => (r.ok ? r.json() : [])),
         ]);
 
         setStats({
           members: membersRes.length,
           videos: videosRes.length,
           publications: publicationsRes.length,
-          news: newsRes.length,
-          activities: activitiesRes.length,
+          news: contenidoRes.filter((r: any) => r.publicar_noticias).length,
+          activities: contenidoRes.filter((r: any) => r.publicar_actividades).length,
           categories: categoriesRes.length,
         });
       } catch (error) {
@@ -49,8 +48,8 @@ export default function AdminDashboardPage() {
     { label: 'Podcast', value: stats.videos, icon: '🎬', color: 'bg-red-500', link: '/admin/videos' },
     { label: 'Categorías', value: stats.categories, icon: '📁', color: 'bg-purple-500', link: '/admin/categories' },
     { label: 'Publicaciones', value: stats.publications, icon: '📄', color: 'bg-green-500', link: '/admin/publications' },
-    { label: 'Noticias', value: stats.news, icon: '📰', color: 'bg-yellow-500', link: '/admin/news' },
-    { label: 'Actividades y Difusión', value: stats.activities, icon: '📸', color: 'bg-pink-500', link: '/admin/activities' },
+    { label: 'Noticias', value: stats.news, icon: '📰', color: 'bg-yellow-500', link: '/admin/contenido' },
+    { label: 'Actividades y Difusión', value: stats.activities, icon: '📸', color: 'bg-pink-500', link: '/admin/contenido' },
   ];
 
   if (loading) {
@@ -109,8 +108,8 @@ export default function AdminDashboardPage() {
           <Link href="/admin/videos/new" className="px-4 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-center font-medium">
             + Nuevo Podcast
           </Link>
-          <Link href="/admin/news/new" className="px-4 py-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-center font-medium">
-            + Nueva Noticia
+          <Link href="/admin/contenido" className="px-4 py-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-center font-medium">
+            + Nuevo Contenido
           </Link>
           <Link href="/admin/publications/new" className="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition text-center font-medium">
             + Nueva Publicación
@@ -123,8 +122,8 @@ export default function AdminDashboardPage() {
         <h3 className="text-xl font-bold mb-2">ℹ️ Información</h3>
         <p className="text-gray-200 text-sm">
           Migración a base de datos real (Neon) completa — <strong>todo el contenido del sitio persiste de forma permanente</strong>.
-          Noticias/Actividades comparten tabla con el registro de Difusión interna (ver &quot;Actividades y Difusión&quot; para aprobar
-          lo pendiente antes de que salga en la web pública).
+          Noticias, Actividades y Difusión interna comparten una sola pantalla (&quot;Contenido y Difusión&quot;) — ahí se aprueba
+          lo pendiente antes de que salga en la web pública.
         </p>
       </div>
     </div>

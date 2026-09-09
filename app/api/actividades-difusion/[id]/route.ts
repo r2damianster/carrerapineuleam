@@ -15,6 +15,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const body = await request.json();
     const titulo = body.titulo ?? null;
     const descripcion = body.descripcion ?? null;
+    const observaciones = body.observaciones ?? null;
     const fecha = body.fecha ?? null;
     const categoria = body.categoria ?? null;
     const photos = body.photos ?? null;
@@ -43,6 +44,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       UPDATE actividades_difusion
       SET titulo = COALESCE(${titulo}, titulo),
           descripcion = COALESCE(${descripcion}, descripcion),
+          observaciones = COALESCE(${observaciones}, observaciones),
           fecha = COALESCE(${fecha}, fecha),
           categoria = COALESCE(${categoria}, categoria),
           photos = COALESCE(${photos}, photos),
