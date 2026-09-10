@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
-      SELECT nombre_invitado, expira_en, max_usos, usos_actuales, activo
+      SELECT nombre_invitado, tipo_contenido, expira_en, max_usos, usos_actuales, activo
       FROM enlaces_difusion WHERE token = ${params.token}
     `;
 
@@ -45,6 +45,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
       success: true,
       data: {
         nombre_invitado: enlace.nombre_invitado,
+        tipo_contenido: enlace.tipo_contenido,
         profesores,
         proyectos,
       },
@@ -86,7 +87,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     await client.query('BEGIN');
 
     const { rows: enlaceRows } = await client.query(
-      `SELECT creado_por, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
+      `SELECT creado_por, tipo_contenido, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
       [params.token]
     );
     if (enlaceRows.length === 0) {
@@ -99,6 +100,23 @@ export async function POST(request: Request, { params }: { params: { token: stri
     if (!enlace.activo || expirado || agotado) {
       await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Este enlace ya no está disponible' }, { status: 410 });
+    }
+
+    // El profesor eligió al generar el enlace si es para podcast (video) o
+    // evento (foto) — se valida acá, no se confía en lo que mande el
+    // cliente: un enlace de 'evento' no puede registrar tipo='podcast' y
+    // viceversa, ni traer youtube_video_id si es de 'evento'.
+    if (enlace.tipo_contenido === 'podcast' && tipo !== 'podcast') {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Este enlace es solo para registrar un podcast' }, { status: 400 });
+    }
+    if (enlace.tipo_contenido === 'evento' && tipo === 'podcast') {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Este enlace es solo para registrar un evento' }, { status: 400 });
+    }
+    if (enlace.tipo_contenido !== 'podcast' && youtube_video_id) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Este enlace no permite subir video' }, { status: 400 });
     }
 
     const { rows: profesoresValidos } = await client.query(

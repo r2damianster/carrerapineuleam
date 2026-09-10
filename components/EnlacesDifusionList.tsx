@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 interface Enlace {
   token: string;
   nombre_invitado: string;
+  tipo_contenido: 'evento' | 'podcast';
   expira_en: string;
   max_usos: number | null;
   usos_actuales: number;
@@ -64,6 +65,9 @@ export default function EnlacesDifusionList() {
                 <li key={e.token} className="flex items-center justify-between gap-2 text-sm">
                   <div>
                     <span className="font-medium text-gray-700">{e.nombre_invitado}</span>{' '}
+                    <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
+                      {e.tipo_contenido === 'podcast' ? 'Podcast' : 'Evento'}
+                    </span>{' '}
                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${st.color}`}>{st.label}</span>
                     <p className="text-xs text-gray-400">
                       Vence {new Date(e.expira_en).toLocaleDateString('es-EC')} · Usos: {e.usos_actuales}{e.max_usos !== null ? `/${e.max_usos}` : ''}

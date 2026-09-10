@@ -21,6 +21,7 @@ function enUnaSemana(): string {
 
 export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProps) {
   const [nombreInvitado, setNombreInvitado] = useState('');
+  const [tipoContenido, setTipoContenido] = useState<'evento' | 'podcast'>('evento');
   const [expiraFecha, setExpiraFecha] = useState(enUnaSemana());
   const [usoUnico, setUsoUnico] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre_invitado: nombreInvitado.trim(),
+          tipo_contenido: tipoContenido,
           expira_en: `${expiraFecha}T23:59:59`,
           uso_unico: usoUnico,
         }),
@@ -93,6 +95,24 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
               <input type="text" value={nombreInvitado} onChange={e => setNombreInvitado(e.target.value)}
                 placeholder="Nombre de la persona"
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">¿Qué puede registrar con este enlace?</label>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setTipoContenido('evento')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold border ${tipoContenido === 'evento' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-700 border-gray-300'}`}>
+                  Evento (foto)
+                </button>
+                <button type="button" onClick={() => setTipoContenido('podcast')}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold border ${tipoContenido === 'podcast' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-700 border-gray-300'}`}>
+                  Podcast (video)
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                {tipoContenido === 'podcast'
+                  ? 'El formulario le pedirá subir el video del podcast a YouTube — sin opción de registrar un evento.'
+                  : 'El formulario le pedirá una foto del evento — sin opción de subir video de podcast.'}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Válido hasta</label>

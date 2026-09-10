@@ -6,12 +6,12 @@ import SubirVideoDifusion from '@/components/SubirVideoDifusion';
 
 type EnlaceInfo = {
   nombre_invitado: string;
+  tipo_contenido: 'evento' | 'podcast';
   profesores: { id: number; nombres: string; apellidos: string }[];
   proyectos: { id: string; nombre_oficial: string }[];
 };
 
 const TIPO_LABEL: Record<string, string> = {
-  podcast: 'Podcast',
   evento_fisico: 'Evento Físico',
   encuentro_comunitario: 'Encuentro Comunitario',
   evento_formacion: 'Evento de Formación',
@@ -53,6 +53,9 @@ export default function EnlaceDifusionPublicoPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setEnlace(data.data);
+        if (data.data.tipo_contenido === 'podcast') {
+          setForm(prev => ({ ...prev, tipo: 'podcast' }));
+        }
       })
       .catch(err => setErrorCarga(err.message || 'Este enlace ya no está disponible'))
       .finally(() => setLoading(false));
@@ -181,12 +184,16 @@ export default function EnlaceDifusionPublicoPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Tipo de Evento</label>
-              <select name="tipo" value={form.tipo} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                {Object.entries(TIPO_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-gray-700">Tipo</label>
+              {enlace.tipo_contenido === 'podcast' ? (
+                <p className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-50 text-gray-600">Podcast</p>
+              ) : (
+                <select name="tipo" value={form.tipo} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                  {Object.entries(TIPO_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -249,7 +256,7 @@ export default function EnlaceDifusionPublicoPage() {
             <textarea name="observaciones" rows={2} value={form.observaciones} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
           </div>
 
-          {form.tipo === 'podcast' && (
+          {enlace.tipo_contenido === 'podcast' ? (
             <SubirVideoDifusion
               titulo={form.titulo}
               descripcion={form.descripcion}
@@ -257,12 +264,12 @@ export default function EnlaceDifusionPublicoPage() {
               onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
               onVideoQuitado={() => setVideo(null)}
             />
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Foto del evento</label>
+              <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-gray-500" />
+            </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Foto / Captura (opcional)</label>
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-gray-500" />
-          </div>
 
           <div className="p-4 rounded-md bg-yellow-50 text-yellow-800 text-sm">
             Este registro quedará pendiente de revisión del equipo de la carrera antes de publicarse.

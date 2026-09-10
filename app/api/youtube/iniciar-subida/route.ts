@@ -29,12 +29,14 @@ export async function POST(request: Request) {
 
     if (!autorizado && enlace_token) {
       const [enlace] = await sql`
-        SELECT expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = ${enlace_token}
+        SELECT tipo_contenido, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = ${enlace_token}
       `;
       if (enlace) {
         const expirado = new Date(enlace.expira_en).getTime() <= Date.now();
         const agotado = enlace.max_usos !== null && enlace.usos_actuales >= enlace.max_usos;
-        autorizado = enlace.activo && !expirado && !agotado;
+        // Solo enlaces generados para "podcast" habilitan subir video — uno
+        // de "evento" (foto) no debe poder subir a YouTube aunque esté vigente.
+        autorizado = enlace.tipo_contenido === 'podcast' && enlace.activo && !expirado && !agotado;
       }
     }
 
