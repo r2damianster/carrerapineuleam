@@ -14,6 +14,8 @@ export default function VinculacionEspaciosPage() {
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [espacios, setEspacios] = useState<any[]>([]);
   const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '' });
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '' });
 
   const esProfesor = usuario ? ['profesor', 'admin'].includes(usuario.rol) : false;
 
@@ -67,6 +69,49 @@ export default function VinculacionEspaciosPage() {
     }
   };
 
+  const empezarEdicion = (e: any) => {
+    setEditandoId(e.id);
+    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id) });
+  };
+
+  const handleGuardarEdicion = async (id: number) => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch(`/api/espacios/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage('Espacio actualizado');
+      setEditandoId(null);
+      fetchData();
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEliminar = async (id: number, nombre: string) => {
+    if (!confirm(`¿Eliminar el espacio "${nombre}"? Se quita también la asignación de sus instructores.`)) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch(`/api/espacios/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage('Espacio eliminado');
+      fetchData();
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
   }
@@ -107,13 +152,41 @@ export default function VinculacionEspaciosPage() {
         {espacios.length === 0 && <p className="text-gray-500 text-sm">Todavía no hay espacios.</p>}
         <ul className="space-y-2">
           {espacios.map(e => (
-            <li key={e.id}>
-              <Link href={`/vinculacion/espacios/${e.id}`} className="block p-3 border rounded shadow-sm hover:bg-gray-50">
-                <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
-                <span className="text-sm text-gray-500">
-                  {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
-                </span>
-              </Link>
+            <li key={e.id} className="border rounded shadow-sm">
+              {editandoId === e.id ? (
+                <div className="p-3 space-y-2">
+                  <input className="w-full px-2 py-1 rounded border border-gray-300" value={editForm.nombre} onChange={ev => setEditForm({ ...editForm, nombre: ev.target.value })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select className="px-2 py-1 rounded border border-gray-300" value={editForm.tipo} onChange={ev => setEditForm({ ...editForm, tipo: ev.target.value })}>
+                      <option value="comunidad">Encuentro Comunitario / Club</option>
+                      <option value="aula">Aula Virtual/Física</option>
+                      <option value="podcast">Podcast</option>
+                    </select>
+                    <select className="px-2 py-1 rounded border border-gray-300" value={editForm.ciclo_id} onChange={ev => setEditForm({ ...editForm, ciclo_id: ev.target.value })}>
+                      {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleGuardarEdicion(e.id)} disabled={loading} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Guardar</button>
+                    <button onClick={() => setEditandoId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-2 p-3 hover:bg-gray-50">
+                  <Link href={`/vinculacion/espacios/${e.id}`} className="flex-1">
+                    <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
+                    <span className="text-sm text-gray-500">
+                      {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
+                    </span>
+                  </Link>
+                  {esProfesor && (
+                    <div className="flex gap-2 shrink-0 text-sm">
+                      <button onClick={() => empezarEdicion(e)} className="text-blue-600 hover:underline">Editar</button>
+                      <button onClick={() => handleEliminar(e.id, e.nombre)} className="text-red-600 hover:underline">Eliminar</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
