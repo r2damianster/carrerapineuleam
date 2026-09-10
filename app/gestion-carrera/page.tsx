@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SubirVideoDifusion from '@/components/SubirVideoDifusion';
+import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
+import EnlacesDifusionList from '@/components/EnlacesDifusionList';
 
 export default function GestionCarreraPage() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function GestionCarreraPage() {
   const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
+  const [modulosAcceso, setModulosAcceso] = useState<string[]>([]);
+  const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
 
   const [form, setForm] = useState({
     titulo: '',
@@ -40,6 +44,7 @@ export default function GestionCarreraPage() {
           return;
         }
         setCheckingSession(false);
+        setModulosAcceso(data.usuario.modulos_acceso || []);
         if (data.usuario.rol === 'profesor') {
           setResponsables([parseInt(data.usuario.id, 10)]);
         }
@@ -67,6 +72,10 @@ export default function GestionCarreraPage() {
       ))
       .catch(() => setProyectosInvestigacion([]));
   }, [router]);
+
+  // Acceso temporal para externos (sin cuenta) — solo profesores con módulo
+  // vinculacion/investigacion/contenido_sitio, ver lib/permisos-enlace-difusion.ts
+  const puedeGenerarEnlace = modulosAcceso.some(m => ['vinculacion', 'investigacion', 'contenido_sitio'].includes(m));
 
   const toggleResponsable = (id: number) => {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
@@ -167,13 +176,23 @@ export default function GestionCarreraPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
             &larr; Volver al Portal PINE
           </Link>
+          {puedeGenerarEnlace && (
+            <button
+              type="button"
+              onClick={() => setMostrarModalEnlace(true)}
+              className="text-sm font-semibold text-uleam-blue hover:underline"
+            >
+              🔗 Acceso temporal para externos
+            </button>
+          )}
         </div>
         <h2 className="text-3xl font-bold text-center text-indigo-900 mb-2">Gestión de Carrera</h2>
         <p className="text-center text-gray-600 mb-8">Registro de Eventos y Difusión</p>
+        {puedeGenerarEnlace && <EnlacesDifusionList />}
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -302,6 +321,7 @@ export default function GestionCarreraPage() {
           </button>
         </form>
       </div>
+      {mostrarModalEnlace && <EnlaceDifusionModal onClose={() => setMostrarModalEnlace(false)} />}
     </div>
   );
 }

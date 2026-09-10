@@ -18,6 +18,8 @@ interface ContenidoRow {
   hora?: string;
   audiencia_alcanzada?: number;
   profesores_responsables?: number[];
+  registrador_externo_nombre?: string;
+  registrador_externo_contacto?: string;
   photos: string[];
   is_featured: boolean;
   slug?: string;
@@ -149,7 +151,11 @@ export default function AdminContenidoPage() {
   const generateSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-  const esDifusion = editingRow?.origen === 'difusion';
+  // 'externo_temporal' (Sesión 37: acceso temporal para externos sin cuenta,
+  // ver lib/permisos-enlace-difusion.ts) se registra con el mismo formulario
+  // que 'difusion' (tipo, categoría, proyecto/asignatura, hora, asistentes,
+  // profesores responsables) — solo cambia quién lo llenó.
+  const esDifusion = editingRow?.origen === 'difusion' || editingRow?.origen === 'externo_temporal';
 
   const handleEdit = (row: ContenidoRow) => {
     setEditingRow(row);
@@ -158,7 +164,7 @@ export default function AdminContenidoPage() {
       descripcion: row.descripcion || '',
       observaciones: row.observaciones || '',
       fecha: row.fecha?.slice(0, 10) || '',
-      categoria: row.categoria || (row.origen === 'difusion' ? 'vinculacion' : 'evento'),
+      categoria: row.categoria || (['difusion', 'externo_temporal'].includes(row.origen) ? 'vinculacion' : 'evento'),
       proyecto: row.proyecto || '',
       asignatura: row.asignatura || '',
       tipo: row.tipo || 'evento_fisico',
@@ -334,9 +340,14 @@ export default function AdminContenidoPage() {
       key: 'origen',
       label: 'Origen',
       render: (item: ContenidoRow) => (
-        <span className="px-2 py-1 bg-pink-100 text-pink-700 rounded text-xs font-medium capitalize">
-          {item.origen}{item.categoria ? ` · ${item.categoria}` : ''}
-        </span>
+        <div className="space-y-1">
+          <span className={`inline-block px-2 py-1 rounded text-xs font-medium capitalize ${item.origen === 'externo_temporal' ? 'bg-orange-100 text-orange-700' : 'bg-pink-100 text-pink-700'}`}>
+            {item.origen === 'externo_temporal' ? 'Externo (sin cuenta)' : item.origen}{item.categoria ? ` · ${item.categoria}` : ''}
+          </span>
+          {item.origen === 'externo_temporal' && item.registrador_externo_nombre && (
+            <p className="text-xs text-gray-500">Registrado por: {item.registrador_externo_nombre}</p>
+          )}
+        </div>
       ),
     },
     {

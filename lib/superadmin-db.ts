@@ -1,7 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL as string);
-
 /**
  * Capa de acceso a datos del panel /superadmin. Nombres de tabla/columna
  * SIEMPRE se validan contra information_schema antes de interpolarse en un
@@ -9,6 +7,12 @@ const sql = neon(process.env.DATABASE_URL as string);
  * identificadores, así que el whitelist contra el catálogo real de Postgres
  * es lo que evita inyección vía nombre de tabla/columna. Los valores de
  * datos van siempre parametrizados ($1, $2...) vía sql.query().
+ *
+ * `neon()` se instancia dentro de cada función (no a nivel de módulo): un
+ * neon() a nivel de módulo se ejecuta apenas Next importa este archivo —
+ * incluido durante "Collecting page data" en el build — y si DATABASE_URL
+ * no es válido en ese entorno (ej. Preview de Vercel, distinto de
+ * Production) tumba el build completo, no solo estas funciones.
  */
 
 function quoteIdent(identifier: string): string {
@@ -23,6 +27,7 @@ export interface ColumnInfo {
 }
 
 export async function listTables(): Promise<string[]> {
+  const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -32,6 +37,7 @@ export async function listTables(): Promise<string[]> {
 }
 
 export async function assertValidTable(table: string): Promise<void> {
+  const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql`
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = ${table}
@@ -40,6 +46,7 @@ export async function assertValidTable(table: string): Promise<void> {
 }
 
 export async function getTableColumns(table: string): Promise<ColumnInfo[]> {
+  const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql`
     SELECT column_name, data_type, is_nullable, column_default
     FROM information_schema.columns
@@ -50,6 +57,7 @@ export async function getTableColumns(table: string): Promise<ColumnInfo[]> {
 }
 
 export async function getPrimaryKeyColumn(table: string): Promise<string | null> {
+  const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql`
     SELECT a.attname AS column_name
     FROM pg_index i
@@ -71,6 +79,7 @@ export async function getRows(
   table: string,
   opts: { page: number; limit: number; sortColumn?: string; sortDir?: 'asc' | 'desc' }
 ): Promise<RowsPage> {
+  const sql = neon(process.env.DATABASE_URL as string);
   await assertValidTable(table);
   const columns = await getTableColumns(table);
   const validColumns = new Set(columns.map((c) => c.column_name));
@@ -102,6 +111,7 @@ export async function getRows(
 }
 
 export async function insertRow(table: string, data: Record<string, any>): Promise<Record<string, any>> {
+  const sql = neon(process.env.DATABASE_URL as string);
   await assertValidTable(table);
   const columns = await getTableColumns(table);
   const validColumns = new Set(columns.map((c) => c.column_name));
@@ -124,6 +134,7 @@ export async function updateRow(
   pkValue: any,
   data: Record<string, any>
 ): Promise<Record<string, any>> {
+  const sql = neon(process.env.DATABASE_URL as string);
   await assertValidTable(table);
   const columns = await getTableColumns(table);
   const validColumns = new Set(columns.map((c) => c.column_name));
@@ -146,6 +157,7 @@ export async function updateRow(
 }
 
 export async function deleteRow(table: string, pkValue: any): Promise<Record<string, any>> {
+  const sql = neon(process.env.DATABASE_URL as string);
   await assertValidTable(table);
   const primaryKey = await getPrimaryKeyColumn(table);
   if (!primaryKey) throw new Error(`Tabla "${table}" no tiene primary key — borrado por fila no soportada`);
@@ -167,6 +179,7 @@ export function isDestructiveSql(query: string): boolean {
 }
 
 export async function runRawSql(query: string): Promise<any[]> {
+  const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql.query(query);
   return rows as any[];
 }

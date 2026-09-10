@@ -22,8 +22,6 @@ export async function requireSuperadmin(): Promise<AppSession | null> {
   return usuario;
 }
 
-const sql = neon(process.env.DATABASE_URL as string);
-
 export async function logSuperadminAction(params: {
   actor: AppSession;
   tipo_accion: 'sql' | 'crud_insert' | 'crud_update' | 'crud_delete';
@@ -32,6 +30,13 @@ export async function logSuperadminAction(params: {
   resultado?: string;
 }): Promise<void> {
   const { actor, tipo_accion, tabla_afectada, detalle, resultado } = params;
+  // Instanciado dentro de la función (no a nivel de módulo): un neon() a
+  // nivel de módulo se ejecuta apenas Next importa este archivo — incluido
+  // durante "Collecting page data" en el build — y si DATABASE_URL no es
+  // válido en ese entorno (ej. Preview de Vercel, distinto de Production)
+  // tumba el build completo, no solo esta función. Mismo patrón que el
+  // resto del repo (neon() siempre dentro del handler que lo usa).
+  const sql = neon(process.env.DATABASE_URL as string);
   await sql`
     INSERT INTO superadmin_audit_log (actor_id, actor_email, tipo_accion, tabla_afectada, detalle, resultado)
     VALUES (${Number(actor.id)}, ${actor.email}, ${tipo_accion}, ${tabla_afectada ?? null}, ${detalle}, ${resultado ?? null})

@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.11 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-08 (Sesión 36 — Docencia/RED LEA/Club de Inglés unificadas al Banco de Fotos, `fotos.ubicaciones` deja de ser exclusivo de portada. Ver detalle abajo)
+**Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
+**Última sesión:** 2026-09-10 (Sesión 37 — Acceso temporal para que externos sin cuenta registren eventos/podcast, siempre pendiente de aprobación. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -104,6 +104,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `informes_mensuales` | Historial de informes mensuales de Investigación generados (`/investigacion/informes`) | Ver `### Módulo Informes Mensuales de Investigación` arriba — módulo documentado recién en Sesión 33 pese a existir desde antes |
 | `modalidades_titulacion`, `rubricas`, `evaluaciones`, `evaluacion_observaciones`, `evaluacion_indicadores` | Pares Lectores (`/utilidades/pares-lectores`) | Creadas por `scripts/migrate-utilidades.js`, ver `### Módulo /utilidades` arriba |
 | `superadmin_audit_log` | Log de auditoría de cada acción del módulo Superadmin | Ver `### Módulo Superadmin` arriba — módulo entero sin documentar hasta Sesión 33 |
+| `enlaces_difusion` | Enlaces/QR temporales sin login para que alguien SIN cuenta registre un evento/podcast (Sesión 37) | `token` UUID, `creado_por` (profesor que lo generó), `expira_en`, `max_usos`/`usos_actuales`, `activo` (revocable). Consumida por `/api/enlaces-difusion/**`. Las filas que crea en `actividades_difusion` nacen con `origen='externo_temporal'` y `aprobado_sitio=false` forzado en el servidor — misma cola de moderación de `/admin/contenido` que el resto de difusión. |
 
 **⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
 
@@ -161,6 +162,35 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 37 — 2026-09-10)
+
+### Acceso temporal para que externos sin cuenta registren eventos/podcast
+
+A pedido del usuario: había personas (estudiantes externos, colaboradores puntuales de un evento) que no están en `usuarios` ni asignadas en Vinculación, pero que podrían aportar un evento/podcast al sitio. Antes la única forma de registrar difusión (`POST /api/difusion`) exigía sesión — se planificó y construyó un mecanismo de acceso temporal, siguiendo el mismo patrón ya probado de `enlaces_evaluacion` (Sesión 28: token UUID no adivinable, expiración, sin necesidad de crear usuario).
+
+- **Quién puede generar el enlace** (decisión explícita del usuario, no todos los que ya registran difusión): profesores con `modulos_acceso` `vinculacion` o `investigacion`, más `contenido_sitio` — nunca estudiantes-instructores ni `admin`-only. `lib/permisos-enlace-difusion.ts:puedeGenerarEnlaceDifusion()`.
+- **Tabla nueva `enlaces_difusion`** (`scripts/migrate-enlaces-difusion.js`, aplicada vía Neon MCP): token, creador, nombre del invitado (trazabilidad), expiración, `max_usos` (uso único o ilimitado dentro de la ventana), `activo` (revocable manualmente).
+- **`actividades_difusion` gana columnas `registrador_externo_nombre`/`registrador_externo_contacto`** (mismo ALTER) — el externo no tiene `usuarios.id`, así que `registrador_id` queda `NULL` en estas filas (ya era nullable) y se guarda su nombre/contacto en su lugar, sin crear una cuenta fantasma.
+- **Regla dura forzada en el servidor:** toda fila creada por este flujo nace con `origen='externo_temporal'` y `aprobado_sitio=false` — el cliente no puede sobreescribirlo, cae en la misma cola de moderación de `/admin/contenido` (antes `/admin/activities`, fusionado en sesión no documentada, ver nota abajo) que ya existía para `origen='difusion'`.
+- **Endpoints:** `POST /api/enlaces-difusion` (protegido, genera token) + `GET` (lista los enlaces propios, o todos si `contenido_sitio`); `GET /api/enlaces-difusion/[token]` (público, valida vigencia y devuelve listas de profesores/proyectos para el formulario, ya que el visitante no tiene sesión para pedirlas a `/api/profesores`); `POST /api/enlaces-difusion/[token]` (público, inserta la actividad, transacción con `SELECT ... FOR UPDATE` igual que el postest de `enlaces_evaluacion` para evitar doble gasto de `max_usos`); `PATCH /api/enlaces-difusion/[token]` (protegido, revoca — solo el creador o `contenido_sitio`).
+- **Página pública nueva `/vinculacion/publico-difusion/[token]`** — mismo formulario que ya usa `/gestion-carrera` (tipo, categoría, proyecto/asignatura, fecha/hora, asistentes, profesores responsables — validados contra la lista real, nunca texto libre — foto opcional), más los campos de nombre/contacto del externo.
+- **UI de generación:** `components/EnlaceDifusionModal.tsx` (botón "🔗 Acceso temporal para externos" en `/vinculacion/difusion` y `/gestion-carrera`, visible solo si `puedeGenerarEnlaceDifusion`) + `components/EnlacesDifusionList.tsx` (panel colapsable "Ver enlaces generados" con estado Activo/Expirado/Agotado/Revocado y botón Revocar).
+- **`/admin/contenido`** (nota: esta es la pantalla real de moderación desde una fusión de sesión no documentada — CLAUDE.md hasta ahora seguía hablando de `/admin/news`/`/admin/activities` por separado; corregido en las referencias de esta sección) — `origen='externo_temporal'` se edita con el mismo formulario que `'difusion'` (`esDifusion` ahora cubre ambos) y la columna Origen muestra un badge distinto ("Externo (sin cuenta)") más el nombre de quien lo registró.
+- **Verificación:** migración confirmada en Neon (`dark-feather-21824720`) vía MCP con `SELECT` de columnas después de cada `ALTER`/`CREATE`. `npx tsc --noEmit` limpio. `npm run build` completo sin errores (confirmado que el fallo de "No database connection string" en `/api/superadmin/**` durante `next build` es preexistente y ocurre igual en la rama sin estos cambios — no está relacionado; se reprodujo pasando un `DATABASE_URL` de relleno solo para la fase de build local).
+
+### Follow-up en el mismo PR: `neon()` a nivel de módulo tumbaba el build en Preview de Vercel
+
+Al abrir el PR de este feature (el primer PR real del repo — todo el historial anterior de `main` son auto-commits/push directo, nunca había pasado por un deploy Preview) el check de Vercel salió en rojo: `/api/superadmin/audit`, `/api/superadmin/sql` y `/api/superadmin/tables/[table]/rows` (ninguno tocado por el PR) tumbaban el build completo en la fase "Collecting page data" con `Database connection string provided to neon() is not a valid URL`. Producción (`main`) no tenía el problema porque ahí `DATABASE_URL` sí resuelve válido — pero el bug de fondo es real independientemente del entorno.
+
+**Causa raíz:** 3 archivos rompían el patrón que sigue el resto del repo (`const sql = neon(process.env.DATABASE_URL!)` siempre **dentro** del handler/función que lo usa) — tenían `neon()` instanciado a **nivel de módulo**, que se ejecuta apenas Next importa el archivo (incluido durante el build, no solo en request real): `lib/superadmin-auth.ts` (línea suelta antes de `logSuperadminAction`), `lib/superadmin-db.ts` (una sola instancia módulo-scope reusada por sus 9 funciones exportadas), `app/utilidades/_lib/db.ts` (`export const sql = neon(...)`, importado por `docentes.ts`/`titulacionDb.ts`/`titulacionLogic.ts`, ~20 call-sites).
+
+- `superadmin-auth.ts`/`superadmin-db.ts`: se movió `neon()` dentro de cada función (mismo patrón del resto del repo) — sin cambios en las llamadas `sql\`...\``/`sql.query(...)`.
+- `_lib/db.ts`: en vez de tocar los ~20 call-sites de los 3 archivos que lo importan, `sql` se volvió un `Proxy` que instancia `neon()` de forma perezosa en el primer uso real (`obtenerCliente()`) — los archivos consumidores siguen haciendo `import { sql } from "./db"` sin ningún cambio.
+- **Regla nueva para este proyecto:** `neon()` **nunca** a nivel de módulo — siempre dentro de la función/handler que lo usa (o detrás de un getter/Proxy perezoso si hay que exportarlo como un valor reusado por varios archivos). Un `neon()` a nivel de módulo revienta el build entero con solo importarse, no solo la ruta que lo usa.
+- **Verificación:** `npx tsc --noEmit` limpio (hubo que ajustar el tipado del Proxy en `_lib/db.ts` — `ReturnType<typeof neon>` resolvía a una firma sobrecargada demasiado amplia que rompía un `const [fila] = await sql\`...\`` en `titulacionLogic.ts`; se resolvió tipando desde `ReturnType` de una función concreta de un solo argumento). `npm run build` completo **sin pasar ningún `DATABASE_URL`** (ni siquiera de relleno) — confirma que el build ya no depende de que la variable exista o sea válida en tiempo de build.
 
 ---
 
@@ -943,6 +973,7 @@ git push
 6. **No tocar `middleware.ts`** sin entender la lógica de auth — ahora protege bastante más que `/admin/*` (ver `## Portal PINE`)
 7. **Dos fuentes de verdad distintas:** `lib/data.ts` (sitio público estático) vs Neon Postgres (Portal PINE, operativo) — no confundirlas
 8. **Antes de tocar el esquema de Neon:** correr una consulta de auditoría (`information_schema.tables`/`columns`) primero — hay historial de cambios hechos fuera de git que desincronizan `scripts/migrate.js` de la realidad
+8b. **`neon()` nunca a nivel de módulo** — siempre dentro de la función/handler que lo usa (ver `### Follow-up en el mismo PR: neon() a nivel de módulo...`, Sesión 37). Un `neon()` fuera de una función se ejecuta apenas Next importa ese archivo, incluido durante el build (`next build`/Vercel) — si `DATABASE_URL` no está disponible o es inválido en ese momento, tumba el build entero, no solo la ruta que lo usa. Si un cliente `sql` necesita reusarse desde varios archivos, exportarlo detrás de un getter/Proxy perezoso (ver `app/utilidades/_lib/db.ts`), no como `export const sql = neon(...)` directo.
 9. **Actualizar este CLAUDE.md** cuando cambien el equipo, publicaciones, estructura, o el esquema/flujo del Portal PINE
 10. **Trabajo en paralelo con Antigravity:** revisar `git log origin/main..HEAD` y `git fetch` antes de asumir que el repo está como lo dejaste — Antigravity pushea directo a `main` sin avisar
 11. **Antes de editar el sitio público (páginas de proyecto, footer, equipo, textos):** leer `.claude/skills/carrerapine-workflow/SKILL.md` (Sesión 26) — codifica el flujo completo: contenido contextual por proyecto en vez de genérico, i18n obligatorio en `lib/i18n.tsx` (nunca texto español hardcodeado en componentes del sitio público), reglas para tocar Neon, sincronizar ambas ramas git, y verificar el deployment en Vercel antes de reportar algo como terminado. Después de un cambio de contenido, considerar invocar el agente `.claude/agents/content-consistency-reviewer.md` para verificar que no quedó texto sin traducir o contenido genérico donde debía ser contextual.
@@ -955,6 +986,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-08 (Sesión 36)
-**Versión:** 0.10.11
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
+**Última actualización:** 2026-09-10 (Sesión 37)
+**Versión:** 0.10.12
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
