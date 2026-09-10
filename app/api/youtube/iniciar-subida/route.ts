@@ -7,26 +7,47 @@ import { obtenerAccessToken, iniciarSesionReanudable } from '@/lib/youtube';
 // solo si el profesor le activó el permiso desde Administrar Pasantes
 // (usuarios.modulos_acceso incluye 'subir_video'). La aprobación ocurre
 // después en /admin/videos, no aquí.
+//
+// Tercera vía (Sesión 37): quien tiene un enlace_token de enlaces_difusion
+// vigente (ver /api/enlaces-difusion) también puede iniciar la subida — el
+// canal de YouTube es institucional (un solo refresh_token compartido en
+// youtube_canal_auth, ver lib/youtube.ts), no ligado a la sesión de quien
+// sube, así que no hay diferencia técnica entre "estudiante autorizado" y
+// "externo con enlace vigente". El video igual queda pendiente de
+// aprobación en /admin/videos antes de ser público.
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    const autorizado = usuario && (
+    const { title, description, fileSize, mimeType, enlace_token } = await request.json();
+
+    let autorizado = !!usuario && (
       ['profesor', 'admin'].includes(usuario.rol) ||
       (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'))
     );
+
+    const sql = neon(process.env.DATABASE_URL!);
+
+    if (!autorizado && enlace_token) {
+      const [enlace] = await sql`
+        SELECT expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = ${enlace_token}
+      `;
+      if (enlace) {
+        const expirado = new Date(enlace.expira_en).getTime() <= Date.now();
+        const agotado = enlace.max_usos !== null && enlace.usos_actuales >= enlace.max_usos;
+        autorizado = enlace.activo && !expirado && !agotado;
+      }
+    }
+
     if (!autorizado) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { title, description, fileSize, mimeType } = await request.json();
     if (!title || !fileSize || !mimeType) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
     if (!mimeType.startsWith('video/')) {
       return NextResponse.json({ error: 'El archivo debe ser un video' }, { status: 400 });
     }
-
-    const sql = neon(process.env.DATABASE_URL!);
 
     let accessToken: string;
     try {

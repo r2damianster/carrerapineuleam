@@ -8,13 +8,17 @@ interface SubirVideoDifusionProps {
   descripcion?: string;
   onVideoSubido: (youtubeVideoId: string, categoryId: string) => void;
   onVideoQuitado: () => void;
+  // Presente solo en el flujo público de enlaces_difusion (Sesión 37) — sin
+  // sesión, /api/youtube/iniciar-subida lo valida como autorización
+  // alternativa (el canal de YouTube es institucional, no por-usuario).
+  enlaceToken?: string;
 }
 
 // Se muestra dentro de Difusión/Eventos cuando el tipo elegido es "podcast" —
 // mismo mecanismo de app/portal/subir-video/page.tsx (subida reanudable
 // directo navegador→YouTube, sin pasar por nuestro servidor), reusado acá
 // para no duplicar el formulario en una página aparte.
-export default function SubirVideoDifusion({ titulo, descripcion, onVideoSubido, onVideoQuitado }: SubirVideoDifusionProps) {
+export default function SubirVideoDifusion({ titulo, descripcion, onVideoSubido, onVideoQuitado, enlaceToken }: SubirVideoDifusionProps) {
   const [categorias, setCategorias] = useState<VideoCategory[]>([]);
   const [categoria, setCategoria] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -62,7 +66,7 @@ export default function SubirVideoDifusion({ titulo, descripcion, onVideoSubido,
       const iniciarRes = await fetch('/api/youtube/iniciar-subida', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: titulo || 'Sin título', description: descripcion || '', fileSize: file.size, mimeType: file.type }),
+        body: JSON.stringify({ title: titulo || 'Sin título', description: descripcion || '', fileSize: file.size, mimeType: file.type, enlace_token: enlaceToken }),
       });
       const iniciarJson = await iniciarRes.json();
       if (!iniciarRes.ok) throw new Error(iniciarJson.error || 'Error iniciando la subida');

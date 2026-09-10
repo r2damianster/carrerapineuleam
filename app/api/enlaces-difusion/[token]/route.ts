@@ -64,7 +64,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     registrador_externo_nombre, registrador_externo_contacto,
     titulo, tipo, fecha, hora, audiencia_alcanzada, evidencia_url,
     categoria, proyecto, asignatura, descripcion, observaciones,
-    profesores_responsables,
+    profesores_responsables, youtube_video_id, video_category,
   } = body;
 
   if (!registrador_externo_nombre || !registrador_externo_nombre.trim()) {
@@ -86,7 +86,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     await client.query('BEGIN');
 
     const { rows: enlaceRows } = await client.query(
-      `SELECT expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
+      `SELECT creado_por, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
       [params.token]
     );
     if (enlaceRows.length === 0) {
@@ -126,6 +126,21 @@ export async function POST(request: Request, { params }: { params: { token: stri
         responsablesIds, periodo_academico, registrador_externo_nombre.trim(), registrador_externo_contacto || null,
       ]
     );
+
+    // Video del podcast (opcional, Sesión 37) — ya se subió a YouTube en el
+    // navegador vía /api/youtube/iniciar-subida (autorizado con este mismo
+    // token). Se registra en `videos` como propuesta pendiente, atribuida al
+    // profesor que generó el enlace (enlace.creado_por) — el externo no tiene
+    // usuarios.id, pero el profesor ya lo vetó al generar el acceso. Mismo
+    // patrón/columnas que lib/registrarVideoPropuesto.ts, adaptado a client.query.
+    if (youtube_video_id && video_category) {
+      const videoId = `video_${Date.now()}`;
+      await client.query(
+        `INSERT INTO videos (id, title, youtube_url, embed_id, description, category, "order", is_featured, tags, aprobado_sitio, propuesto_por)
+         VALUES ($1, $2, $3, $4, $5, $6, 0, false, $7, false, $8)`,
+        [videoId, titulo, `https://youtu.be/${youtube_video_id}`, youtube_video_id, descripcion || null, video_category, ['vinculacion'], enlace.creado_por]
+      );
+    }
 
     await client.query(`UPDATE enlaces_difusion SET usos_actuales = usos_actuales + 1 WHERE token = $1`, [params.token]);
 

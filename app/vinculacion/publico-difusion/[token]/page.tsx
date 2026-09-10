@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import SubirVideoDifusion from '@/components/SubirVideoDifusion';
 
 type EnlaceInfo = {
   nombre_invitado: string;
@@ -29,6 +30,7 @@ export default function EnlaceDifusionPublicoPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [responsables, setResponsables] = useState<number[]>([]);
+  const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
 
   const [form, setForm] = useState({
     registrador_externo_nombre: '',
@@ -96,6 +98,7 @@ export default function EnlaceDifusionPublicoPage() {
           audiencia_alcanzada: form.audiencia_alcanzada ? parseInt(form.audiencia_alcanzada, 10) : null,
           evidencia_url,
           profesores_responsables: responsables,
+          ...(video ? { youtube_video_id: video.youtubeVideoId, video_category: video.categoryId } : {}),
         }),
       });
       const data = await res.json();
@@ -245,6 +248,16 @@ export default function EnlaceDifusionPublicoPage() {
             <label className="block text-sm font-medium text-gray-700">Observaciones (opcional)</label>
             <textarea name="observaciones" rows={2} value={form.observaciones} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
           </div>
+
+          {form.tipo === 'podcast' && (
+            <SubirVideoDifusion
+              titulo={form.titulo}
+              descripcion={form.descripcion}
+              enlaceToken={Array.isArray(token) ? token[0] : token}
+              onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
+              onVideoQuitado={() => setVideo(null)}
+            />
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto / Captura (opcional)</label>
