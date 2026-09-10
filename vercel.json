@@ -1,3 +1,11 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "claude/*": false,
+      "innovacion_web_carrera_proyecto": false
+    }
+  },
+  "ignoreCommand": "bash vercel-ignore-build.sh"
 }
