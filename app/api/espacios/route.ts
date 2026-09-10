@@ -19,7 +19,8 @@ export async function GET(request: Request) {
     const espacios = usuario.rol === 'estudiante'
       ? await sql`
           SELECT e.*, c.nombre as ciclo_nombre,
-                 (SELECT COUNT(*) FROM inscripciones_espacio ie WHERE ie.espacio_id = e.id) as inscritos
+                 (SELECT COUNT(*) FROM inscripciones_espacio ie WHERE ie.espacio_id = e.id) as inscritos,
+                 (SELECT COUNT(*) FROM espacio_instructores ei2 WHERE ei2.espacio_id = e.id) as instructores
           FROM espacios_enseñanza e
           JOIN espacio_instructores ei ON ei.espacio_id = e.id AND ei.usuario_id = ${usuario.id}
           LEFT JOIN ciclos_academicos c ON e.ciclo_id = c.id
@@ -28,7 +29,8 @@ export async function GET(request: Request) {
         `
       : await sql`
           SELECT e.*, c.nombre as ciclo_nombre,
-                 (SELECT COUNT(*) FROM inscripciones_espacio ie WHERE ie.espacio_id = e.id) as inscritos
+                 (SELECT COUNT(*) FROM inscripciones_espacio ie WHERE ie.espacio_id = e.id) as inscritos,
+                 (SELECT COUNT(*) FROM espacio_instructores ei2 WHERE ei2.espacio_id = e.id) as instructores
           FROM espacios_enseñanza e
           LEFT JOIN ciclos_academicos c ON e.ciclo_id = c.id
           WHERE (${area}::text IS NULL OR e.area = ${area})

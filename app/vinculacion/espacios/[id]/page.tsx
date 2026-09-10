@@ -16,6 +16,8 @@ export default function EspacioInstructoresPage() {
   const [estudiantes, setEstudiantes] = useState<any[]>([]);
   const [instructoresActuales, setInstructoresActuales] = useState<any[]>([]);
   const [selectedInstructores, setSelectedInstructores] = useState<number[]>([]);
+  const [espacio, setEspacio] = useState<{ id: number; nombre: string } | null>(null);
+  const [supervisor, setSupervisor] = useState<{ nombres: string; apellidos: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -38,7 +40,11 @@ export default function EspacioInstructoresPage() {
     ]);
     const [dataEstudiantes, dataInstructores] = await Promise.all([resEstudiantes.json(), resInstructores.json()]);
     if (dataEstudiantes.success) setEstudiantes(dataEstudiantes.data);
-    if (dataInstructores.success) setInstructoresActuales(dataInstructores.data);
+    if (dataInstructores.success) {
+      setInstructoresActuales(dataInstructores.data);
+      setEspacio(dataInstructores.espacio ?? null);
+      setSupervisor(dataInstructores.supervisor ?? null);
+    }
   };
 
   const handleAsignarInstructores = async (e: React.FormEvent) => {
@@ -74,7 +80,10 @@ export default function EspacioInstructoresPage() {
             &larr; Volver a Espacios
           </Link>
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Asignar Estudiantes Instructores</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-1">{espacio?.nombre ?? 'Asignar Estudiantes Instructores'}</h1>
+        <p className="text-gray-500 text-sm mb-6">
+          {espacio ? 'Asignar Estudiantes Instructores' : ' '}
+        </p>
 
         {message && <div className="p-4 mb-4 bg-blue-100 text-blue-800 rounded">{message}</div>}
 
@@ -95,7 +104,16 @@ export default function EspacioInstructoresPage() {
 
           <h4 className="font-semibold mt-6">Instructores actuales</h4>
           <ul className="text-sm text-gray-600 space-y-1">
-            {instructoresActuales.map(i => <li key={i.id}>{i.nombres} {i.apellidos}</li>)}
+            {instructoresActuales.map(i => (
+              <li key={i.id}>
+                {i.nombres} {i.apellidos}
+                {supervisor && (
+                  <span className="text-emerald-600 ml-2">
+                    — Supervisor: {supervisor.nombres} {supervisor.apellidos}
+                  </span>
+                )}
+              </li>
+            ))}
             {instructoresActuales.length === 0 && <li className="text-gray-400">Ninguno todavía</li>}
           </ul>
         </form>

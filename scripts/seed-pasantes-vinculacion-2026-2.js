@@ -14,6 +14,10 @@
 // para quien corresponda.
 //
 // node --env-file=.env.local scripts/seed-pasantes-vinculacion-2026-2.js
+//
+// Ya ejecutado (datos en Neon). Libro1.xlsx se borro del repo despues de
+// importar (traia nombres/correos reales de estudiantes) -- este script
+// queda como referencia de lo que se hizo, no se puede re-correr tal cual.
 import { neon } from '@neondatabase/serverless';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';

@@ -110,7 +110,9 @@ export default function VinculacionEspaciosPage() {
             <li key={e.id}>
               <Link href={`/vinculacion/espacios/${e.id}`} className="block p-3 border rounded shadow-sm hover:bg-gray-50">
                 <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
-                <span className="text-sm text-gray-500">{e.inscritos} beneficiarios inscritos</span>
+                <span className="text-sm text-gray-500">
+                  {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
+                </span>
               </Link>
             </li>
           ))}

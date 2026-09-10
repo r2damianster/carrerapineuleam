@@ -12,18 +12,35 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const espacio_id = searchParams.get('espacio_id');
     if (!espacio_id) {
-      return NextResponse.json({ success: true, data: [] });
+      return NextResponse.json({ success: true, data: [], espacio: null, supervisor: null });
     }
 
     const sql = neon(process.env.DATABASE_URL!);
-    const instructores = await sql`
-      SELECT u.id, u.nombres, u.apellidos
-      FROM espacio_instructores ei
-      JOIN usuarios u ON ei.usuario_id = u.id
-      WHERE ei.espacio_id = ${parseInt(espacio_id)}
-      ORDER BY u.apellidos
-    `;
-    return NextResponse.json({ success: true, data: instructores });
+    const [instructores, espacioRows] = await Promise.all([
+      sql`
+        SELECT u.id, u.nombres, u.apellidos
+        FROM espacio_instructores ei
+        JOIN usuarios u ON ei.usuario_id = u.id
+        WHERE ei.espacio_id = ${parseInt(espacio_id)}
+        ORDER BY u.apellidos
+      `,
+      sql`
+        SELECT e.id, e.nombre, s.nombres AS supervisor_nombres, s.apellidos AS supervisor_apellidos
+        FROM espacios_enseñanza e
+        LEFT JOIN usuarios s ON s.id = e.profesor_id
+        WHERE e.id = ${parseInt(espacio_id)}
+      `,
+    ]);
+
+    const espacioRow = espacioRows[0] || null;
+    return NextResponse.json({
+      success: true,
+      data: instructores,
+      espacio: espacioRow ? { id: espacioRow.id, nombre: espacioRow.nombre } : null,
+      supervisor: espacioRow?.supervisor_nombres
+        ? { nombres: espacioRow.supervisor_nombres, apellidos: espacioRow.supervisor_apellidos }
+        : null,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
