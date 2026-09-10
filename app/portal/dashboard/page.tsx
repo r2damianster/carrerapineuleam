@@ -58,6 +58,20 @@ export default async function PortalDashboard() {
               </div>
             )}
 
+            {/* Pasante de vinculación con funciones de investigación asignadas —
+                tarjeta aparte porque la de "Registros de Vinculación" de arriba
+                está gateada a modulos_acceso:vinculacion, que un pasante nunca tiene
+                (esa lista es solo para profesores). */}
+            {rol === 'estudiante' && modulos_acceso.includes('investigacion') && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Investigación (Vinculación)</h3>
+                <p className="text-gray-600 mb-4 text-sm">Reporta las actividades de investigación que realizas además de tus horas de vinculación.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/vinculacion/investigacion-actividades" className="text-emerald-600 hover:underline">» Reportar Actividades</Link>
+                </div>
+              </div>
+            )}
+
             {/* Vinculación — Gestión: solo profesor/admin */}
             {modulos_acceso.includes('vinculacion') && esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
@@ -66,6 +80,7 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
+                  <Link href="/vinculacion/investigacion-actividades" className="text-purple-600 hover:underline">» Ver Actividades de Investigación</Link>
                 </div>
               </div>
             )}

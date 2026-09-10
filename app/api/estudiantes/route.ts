@@ -43,14 +43,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombres, apellidos, email, puede_subir_video } = await request.json();
+    const { nombres, apellidos, email, puede_subir_video, tiene_investigacion } = await request.json();
     if (!nombres || !apellidos || !email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
     const sql = neon(process.env.DATABASE_URL!);
     const placeholderHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
-    const modulosAcceso = puede_subir_video ? ['subir_video'] : [];
+    const modulosAcceso = [
+      ...(puede_subir_video ? ['subir_video'] : []),
+      ...(tiene_investigacion ? ['investigacion'] : []),
+    ];
 
     const [nuevo] = await sql`
       INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, activado)

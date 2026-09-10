@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/difusion',
     '/vinculacion/test-mcer',
     '/vinculacion/encuesta',
+    '/vinculacion/investigacion-actividades',
     '/investigacion/espacios',
     '/investigacion/informes',
     '/gestion-carrera',
@@ -83,6 +84,14 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/portal/subir-video') &&
       !['profesor', 'admin'].includes(session.rol) &&
       !(session.rol === 'estudiante' && session.modulos_acceso.includes('subir_video'))
+    ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (
+      pathname.startsWith('/vinculacion/investigacion-actividades') &&
+      !(session.rol === 'estudiante' && session.modulos_acceso.includes('investigacion')) &&
+      !(['profesor', 'admin'].includes(session.rol) && session.modulos_acceso.includes('vinculacion'))
     ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
