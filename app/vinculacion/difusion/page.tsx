@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SubirVideoDifusion from '@/components/SubirVideoDifusion';
+import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
+import EnlacesDifusionList from '@/components/EnlacesDifusionList';
 
 export default function DifusionPage() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function DifusionPage() {
   const [responsables, setResponsables] = useState<number[]>([]);
   const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[] } | null>(null);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
+  const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -31,6 +34,11 @@ export default function DifusionPage() {
     ['profesor', 'admin'].includes(usuario.rol) ||
     (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'))
   );
+
+  // Acceso temporal para externos (sin cuenta) — solo profesores con módulo
+  // vinculacion/investigacion/contenido_sitio, ver lib/permisos-enlace-difusion.ts
+  const puedeGenerarEnlace = !!usuario && ['profesor', 'admin'].includes(usuario.rol) &&
+    usuario.modulos_acceso.some(m => ['vinculacion', 'investigacion', 'contenido_sitio'].includes(m));
 
   const toggleResponsable = (id: number) => {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
@@ -126,14 +134,24 @@ export default function DifusionPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
             &larr; Volver al Portal PINE
           </Link>
+          {puedeGenerarEnlace && (
+            <button
+              type="button"
+              onClick={() => setMostrarModalEnlace(true)}
+              className="text-sm font-semibold text-uleam-blue hover:underline"
+            >
+              🔗 Acceso temporal para externos
+            </button>
+          )}
         </div>
         <h2 className="text-3xl font-bold text-center text-indigo-900 mb-2">Registro de Difusión</h2>
         <p className="text-center text-gray-600 mb-8">Sube tus podcasts o eventos y reporta la audiencia alcanzada</p>
-        
+        {puedeGenerarEnlace && <EnlacesDifusionList />}
+
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
             {message}
@@ -215,6 +233,7 @@ export default function DifusionPage() {
           </div>
         </form>
       </div>
+      {mostrarModalEnlace && <EnlaceDifusionModal onClose={() => setMostrarModalEnlace(false)} />}
     </div>
   );
 }
