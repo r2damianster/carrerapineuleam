@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { comprimirAudioParaTranscripcion } from "../_lib/comprimirAudioCliente";
+import { comprimirAudioParaTranscripcion, obtenerDuracionAudio } from "../_lib/comprimirAudioCliente";
 
 interface ParticipanteForm {
   titulo: string;
@@ -22,6 +22,13 @@ interface Docente {
 const MAX_PARTICIPANTES = 9;
 const MAX_AUDIO_MB_ACTA = 4;
 const MAX_AUDIO_BYTES_ACTA = MAX_AUDIO_MB_ACTA * 1024 * 1024;
+
+function formatoTiempo(segundos: number): string {
+  const s = Math.max(0, Math.round(segundos));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
+}
 
 async function enriquecer(contexto: string, texto: string): Promise<string> {
   const r = await fetch("/utilidades/api/ia-enriquecer", {
@@ -82,6 +89,22 @@ export default function ActaTecnicaPage() {
   const [progresoCompresion, setProgresoCompresion] = useState(0);
   const [avisoAudio, setAvisoAudio] = useState('');
 
+  const [audioOriginalFile, setAudioOriginalFile] = useState<File | null>(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState('');
+  const [mostrarCortador, setMostrarCortador] = useState(false);
+  const [duracionAudioSegundos, setDuracionAudioSegundos] = useState(0);
+  const [rangoInicio, setRangoInicio] = useState(0);
+  const [rangoFin, setRangoFin] = useState(0);
+  const [cortando, setCortando] = useState(false);
+  const [progresoCorte, setProgresoCorte] = useState(0);
+
+  useEffect(() => {
+    if (!audioOriginalFile) { setAudioPreviewUrl(''); return; }
+    const url = URL.createObjectURL(audioOriginalFile);
+    setAudioPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [audioOriginalFile]);
+
   function actualizarParticipante(idx: number, campo: keyof ParticipanteForm, valor: string) {
     setParticipantes((prev) => prev.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
   }
@@ -125,6 +148,8 @@ export default function ActaTecnicaPage() {
     setAvisoAudio('');
     setTranscript('');
     setProgresoCompresion(0);
+    setMostrarCortador(false);
+    setAudioOriginalFile(null);
     if (!archivo) {
       setAudioReunion(null);
       return;
@@ -145,8 +170,15 @@ export default function ActaTecnicaPage() {
       const comprimido = await comprimirAudioParaTranscripcion(archivo, setProgresoCompresion);
       if (comprimido.size > MAX_AUDIO_BYTES_ACTA) {
         const pesoComprimidoMb = (comprimido.size / (1024 * 1024)).toFixed(1);
-        setAudioError(`Incluso comprimido, el audio pesa ${pesoComprimidoMb}MB — sigue superando el límite de ${MAX_AUDIO_MB_ACTA}MB. La reunión es demasiado larga; sube solo el fragmento clave.`);
+        setAudioError(`Incluso comprimido, el audio pesa ${pesoComprimidoMb}MB — sigue superando el límite de ${MAX_AUDIO_MB_ACTA}MB. Selecciona abajo el tramo que quieres transcribir.`);
         setAvisoAudio('');
+
+        const duracion = await obtenerDuracionAudio(archivo);
+        setAudioOriginalFile(archivo);
+        setDuracionAudioSegundos(duracion);
+        setRangoInicio(0);
+        setRangoFin(duracion);
+        setMostrarCortador(true);
         return;
       }
       const nombreBase = archivo.name.replace(/\.[^.]+$/, '');
@@ -158,6 +190,33 @@ export default function ActaTecnicaPage() {
       setAvisoAudio('');
     } finally {
       setComprimiendo(false);
+    }
+  }
+
+  async function cortarYComprimir() {
+    if (!audioOriginalFile) return;
+    setCortando(true);
+    setProgresoCorte(0);
+    setAudioError('');
+    try {
+      const comprimido = await comprimirAudioParaTranscripcion(audioOriginalFile, setProgresoCorte, {
+        inicioSegundos: rangoInicio,
+        finSegundos: rangoFin,
+      });
+      if (comprimido.size > MAX_AUDIO_BYTES_ACTA) {
+        const pesoMb = (comprimido.size / (1024 * 1024)).toFixed(1);
+        setAudioError(`El tramo seleccionado (${formatoTiempo(rangoFin - rangoInicio)}) sigue pesando ${pesoMb}MB — supera el límite de ${MAX_AUDIO_MB_ACTA}MB. Achica el rango.`);
+        setAudioReunion(null);
+        return;
+      }
+      const nombreBase = audioOriginalFile.name.replace(/\.[^.]+$/, '');
+      const archivoRecorte = new File([comprimido], `${nombreBase}-recorte.mp3`, { type: 'audio/mp3' });
+      setAudioReunion(archivoRecorte);
+      setAvisoAudio(`Tramo de ${formatoTiempo(rangoFin - rangoInicio)} comprimido a ${(comprimido.size / (1024 * 1024)).toFixed(1)}MB. Listo para transcribir.`);
+    } catch (e) {
+      setAudioError(`No se pudo cortar/comprimir el tramo: ${(e as Error).message}`);
+    } finally {
+      setCortando(false);
     }
   }
 
@@ -337,6 +396,34 @@ export default function ActaTecnicaPage() {
             </div>
           )}
           {audioError && <p className="mt-2 text-sm text-red-600">{audioError}</p>}
+
+          {mostrarCortador && audioOriginalFile && (
+            <div className="mt-3 space-y-2 rounded-md border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
+              <p className="font-semibold">✂️ Recorta el tramo que quieres transcribir (duración total: {formatoTiempo(duracionAudioSegundos)})</p>
+              {audioPreviewUrl && <audio controls src={audioPreviewUrl} className="w-full" />}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="text-xs">Inicio: {formatoTiempo(rangoInicio)}
+                  <input type="range" min={0} max={Math.max(0, duracionAudioSegundos - 1)} step={1} value={rangoInicio} disabled={cortando}
+                    onChange={(e) => setRangoInicio(Math.min(Number(e.target.value), rangoFin - 1))} className="w-full" />
+                </label>
+                <label className="text-xs">Fin: {formatoTiempo(rangoFin)}
+                  <input type="range" min={1} max={duracionAudioSegundos} step={1} value={rangoFin} disabled={cortando}
+                    onChange={(e) => setRangoFin(Math.max(Number(e.target.value), rangoInicio + 1))} className="w-full" />
+                </label>
+              </div>
+              <p className="text-xs text-blue-700">Tramo seleccionado: {formatoTiempo(rangoFin - rangoInicio)}</p>
+              <button type="button" onClick={cortarYComprimir} disabled={cortando}
+                className="rounded bg-blue-700 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
+                {cortando ? `Cortando y comprimiendo... ${progresoCorte}%` : '✂️ Cortar y comprimir este tramo'}
+              </button>
+              {cortando && (
+                <div className="h-2 w-full overflow-hidden rounded-full bg-blue-200">
+                  <div className="h-full rounded-full bg-blue-700 transition-all" style={{ width: `${progresoCorte}%` }} />
+                </div>
+              )}
+            </div>
+          )}
+
           {transcript && (
             <details className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
               <summary className="cursor-pointer font-semibold">Ver transcripción completa (verifica que la IA entendió bien)</summary>

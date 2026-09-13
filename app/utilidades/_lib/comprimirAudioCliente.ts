@@ -16,21 +16,47 @@ function flotanteAInt16(muestras: Float32Array): Int16Array {
   return resultado;
 }
 
-/** Decodifica, baja a mono+16kHz, y re-codifica a MP3 de bitrate bajo. Todo en el navegador, no toca el servidor. */
+function recortarAudioBuffer(buffer: AudioBuffer, inicioSeg: number, finSeg: number): AudioBuffer {
+  const inicioMuestra = Math.max(0, Math.floor(inicioSeg * buffer.sampleRate));
+  const finMuestra = Math.min(buffer.length, Math.ceil(finSeg * buffer.sampleRate));
+  const largo = Math.max(1, finMuestra - inicioMuestra);
+  const recortado = new AudioBuffer({ length: largo, numberOfChannels: buffer.numberOfChannels, sampleRate: buffer.sampleRate });
+  for (let canal = 0; canal < buffer.numberOfChannels; canal++) {
+    recortado.copyToChannel(buffer.getChannelData(canal).subarray(inicioMuestra, finMuestra), canal);
+  }
+  return recortado;
+}
+
+/** Decodifica un audio y devuelve su duración en segundos, sin comprimir. Para poblar el selector de recorte. */
+export async function obtenerDuracionAudio(archivo: File): Promise<number> {
+  const arrayBuffer = await archivo.arrayBuffer();
+  const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+  const contexto = new AudioContextCtor();
+  const buffer = await contexto.decodeAudioData(arrayBuffer);
+  await contexto.close();
+  return buffer.duration;
+}
+
+/** Decodifica, opcionalmente recorta un rango, baja a mono+16kHz, y re-codifica a MP3 de bitrate bajo. Todo en el navegador, no toca el servidor. */
 export async function comprimirAudioParaTranscripcion(
   archivo: File,
-  onProgreso?: (porcentaje: number) => void
+  onProgreso?: (porcentaje: number) => void,
+  rango?: { inicioSegundos: number; finSegundos: number }
 ): Promise<Blob> {
   const arrayBuffer = await archivo.arrayBuffer();
   const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
   const contextoDecodificacion = new AudioContextCtor();
-  const bufferOriginal = await contextoDecodificacion.decodeAudioData(arrayBuffer);
+  const bufferDecodificado = await contextoDecodificacion.decodeAudioData(arrayBuffer);
   await contextoDecodificacion.close();
 
-  const largoObjetivo = Math.ceil(bufferOriginal.duration * SAMPLE_RATE_OBJETIVO);
+  const bufferATrabajar = rango
+    ? recortarAudioBuffer(bufferDecodificado, rango.inicioSegundos, rango.finSegundos)
+    : bufferDecodificado;
+
+  const largoObjetivo = Math.ceil(bufferATrabajar.duration * SAMPLE_RATE_OBJETIVO);
   const contextoOffline = new OfflineAudioContext(1, largoObjetivo, SAMPLE_RATE_OBJETIVO);
   const fuente = contextoOffline.createBufferSource();
-  fuente.buffer = bufferOriginal;
+  fuente.buffer = bufferATrabajar;
   fuente.connect(contextoOffline.destination);
   fuente.start();
   const bufferMono16k = await contextoOffline.startRendering();
