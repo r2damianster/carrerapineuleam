@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { comprimirAudioParaTranscripcion } from "../_lib/comprimirAudioCliente";
 
 interface ParticipanteForm {
   titulo: string;
@@ -77,6 +78,9 @@ export default function ActaTecnicaPage() {
   const [audioError, setAudioError] = useState('');
   const [transcribiendo, setTranscribiendo] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [comprimiendo, setComprimiendo] = useState(false);
+  const [progresoCompresion, setProgresoCompresion] = useState(0);
+  const [avisoAudio, setAvisoAudio] = useState('');
 
   function actualizarParticipante(idx: number, campo: keyof ParticipanteForm, valor: string) {
     setParticipantes((prev) => prev.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
@@ -116,20 +120,45 @@ export default function ActaTecnicaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miId, docentes]);
 
-  function elegirAudio(archivo: File | null) {
+  async function elegirAudio(archivo: File | null) {
     setAudioError('');
+    setAvisoAudio('');
     setTranscript('');
+    setProgresoCompresion(0);
     if (!archivo) {
       setAudioReunion(null);
       return;
     }
-    if (archivo.size > MAX_AUDIO_BYTES_ACTA) {
-      const pesoMb = (archivo.size / (1024 * 1024)).toFixed(1);
-      setAudioError(`El programa solo permite audios de hasta ${MAX_AUDIO_MB_ACTA}MB. Este archivo pesa ${pesoMb}MB — súbelo comprimido o recorta la parte clave de la reunión.`);
-      setAudioReunion(null);
+
+    // Cabe dentro del límite tal cual está — no hace falta tocarlo.
+    if (archivo.size <= MAX_AUDIO_BYTES_ACTA) {
+      setAudioReunion(archivo);
       return;
     }
-    setAudioReunion(archivo);
+
+    // Supera el límite: se avisa y se comprime automáticamente antes de intentar subirlo.
+    const pesoOriginalMb = (archivo.size / (1024 * 1024)).toFixed(1);
+    setAudioReunion(null);
+    setComprimiendo(true);
+    setAvisoAudio(`Tu audio pesa ${pesoOriginalMb}MB y supera el límite de ${MAX_AUDIO_MB_ACTA}MB. Se está comprimiendo automáticamente (mono, baja calidad — suficiente para transcribir, no para escuchar). Esto puede tardar hasta un minuto según la duración.`);
+    try {
+      const comprimido = await comprimirAudioParaTranscripcion(archivo, setProgresoCompresion);
+      if (comprimido.size > MAX_AUDIO_BYTES_ACTA) {
+        const pesoComprimidoMb = (comprimido.size / (1024 * 1024)).toFixed(1);
+        setAudioError(`Incluso comprimido, el audio pesa ${pesoComprimidoMb}MB — sigue superando el límite de ${MAX_AUDIO_MB_ACTA}MB. La reunión es demasiado larga; sube solo el fragmento clave.`);
+        setAvisoAudio('');
+        return;
+      }
+      const nombreBase = archivo.name.replace(/\.[^.]+$/, '');
+      const archivoComprimido = new File([comprimido], `${nombreBase}-comprimido.mp3`, { type: 'audio/mp3' });
+      setAudioReunion(archivoComprimido);
+      setAvisoAudio(`Comprimido de ${pesoOriginalMb}MB a ${(comprimido.size / (1024 * 1024)).toFixed(1)}MB. Listo para transcribir.`);
+    } catch (e) {
+      setAudioError(`No se pudo comprimir el audio: ${(e as Error).message}`);
+      setAvisoAudio('');
+    } finally {
+      setComprimiendo(false);
+    }
   }
 
   async function transcribirAudioReunion() {
@@ -289,12 +318,24 @@ export default function ActaTecnicaPage() {
             Límite estricto: <strong>{MAX_AUDIO_MB_ACTA}MB</strong> (limitación de la plataforma, no de la IA). Un audio más grande no se acepta — comprime o sube solo el fragmento clave.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <input type="file" accept="audio/*,video/mp4" onChange={(e) => elegirAudio(e.target.files?.[0] ?? null)} className="ht-input" />
-            <button type="button" onClick={transcribirAudioReunion} disabled={!audioReunion || transcribiendo}
+            <input type="file" accept="audio/*,video/mp4" disabled={comprimiendo} onChange={(e) => elegirAudio(e.target.files?.[0] ?? null)} className="ht-input" />
+            <button type="button" onClick={transcribirAudioReunion} disabled={!audioReunion || transcribiendo || comprimiendo}
               className="rounded bg-[#003366] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
               {transcribiendo ? 'Transcribiendo...' : '🎙️ Transcribir y prellenar'}
             </button>
           </div>
+
+          {avisoAudio && (
+            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              <p>{avisoAudio}</p>
+              {comprimiendo && (
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-amber-200">
+                  <div className="h-full rounded-full bg-amber-600 transition-all" style={{ width: `${progresoCompresion}%` }} />
+                </div>
+              )}
+              {comprimiendo && <p className="mt-1 text-xs text-amber-700">{progresoCompresion}%</p>}
+            </div>
+          )}
           {audioError && <p className="mt-2 text-sm text-red-600">{audioError}</p>}
           {transcript && (
             <details className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
