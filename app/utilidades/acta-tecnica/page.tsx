@@ -19,6 +19,8 @@ interface Docente {
 }
 
 const MAX_PARTICIPANTES = 9;
+const MAX_AUDIO_MB_ACTA = 4;
+const MAX_AUDIO_BYTES_ACTA = MAX_AUDIO_MB_ACTA * 1024 * 1024;
 
 async function enriquecer(contexto: string, texto: string): Promise<string> {
   const r = await fetch("/utilidades/api/ia-enriquecer", {
@@ -71,6 +73,11 @@ export default function ActaTecnicaPage() {
   const [fotos, setFotos] = useState<File[]>([]);
   const [generando, setGenerando] = useState(false);
 
+  const [audioReunion, setAudioReunion] = useState<File | null>(null);
+  const [audioError, setAudioError] = useState('');
+  const [transcribiendo, setTranscribiendo] = useState(false);
+  const [transcript, setTranscript] = useState('');
+
   function actualizarParticipante(idx: number, campo: keyof ParticipanteForm, valor: string) {
     setParticipantes((prev) => prev.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
   }
@@ -108,6 +115,44 @@ export default function ActaTecnicaPage() {
     if (!elaboradoNombre) seleccionarElaborador(miId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miId, docentes]);
+
+  function elegirAudio(archivo: File | null) {
+    setAudioError('');
+    setTranscript('');
+    if (!archivo) {
+      setAudioReunion(null);
+      return;
+    }
+    if (archivo.size > MAX_AUDIO_BYTES_ACTA) {
+      const pesoMb = (archivo.size / (1024 * 1024)).toFixed(1);
+      setAudioError(`El programa solo permite audios de hasta ${MAX_AUDIO_MB_ACTA}MB. Este archivo pesa ${pesoMb}MB — súbelo comprimido o recorta la parte clave de la reunión.`);
+      setAudioReunion(null);
+      return;
+    }
+    setAudioReunion(archivo);
+  }
+
+  async function transcribirAudioReunion() {
+    if (!audioReunion) return;
+    setTranscribiendo(true);
+    setAudioError('');
+    try {
+      const fd = new FormData();
+      fd.append('audio', audioReunion);
+      const r = await fetch('/utilidades/acta-tecnica/api/transcribir-audio', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error transcribiendo el audio');
+
+      setTranscript(d.data.transcript);
+      if (d.data.aspectos) setNotasAspectos(prev => prev ? `${prev}\n${d.data.aspectos}` : d.data.aspectos);
+      if (d.data.desarrollo) setNotasReunion(prev => prev ? `${prev}\n${d.data.desarrollo}` : d.data.desarrollo);
+      if (d.data.compromisos) setNotasCompromisos(prev => prev ? `${prev}\n${d.data.compromisos}` : d.data.compromisos);
+    } catch (e) {
+      setAudioError((e as Error).message);
+    } finally {
+      setTranscribiendo(false);
+    }
+  }
 
   async function mejorarConIA() {
     if (!notasAspectos && !notasReunion && !notasCompromisos) {
@@ -238,7 +283,29 @@ export default function ActaTecnicaPage() {
         </fieldset>
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
-          <legend className="px-2 font-semibold text-[#003366]">4. Notas para el acta</legend>
+          <legend className="px-2 font-semibold text-[#003366]">4. Audio de la reunión (opcional)</legend>
+          <p className="mb-2 text-xs text-slate-500">
+            Sube una grabación de la reunión y la IA transcribe y prellena los 3 campos de abajo (aspectos, desarrollo y compromisos) — igual puedes editarlos después.
+            Límite estricto: <strong>{MAX_AUDIO_MB_ACTA}MB</strong> (limitación de la plataforma, no de la IA). Un audio más grande no se acepta — comprime o sube solo el fragmento clave.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <input type="file" accept="audio/*,video/mp4" onChange={(e) => elegirAudio(e.target.files?.[0] ?? null)} className="ht-input" />
+            <button type="button" onClick={transcribirAudioReunion} disabled={!audioReunion || transcribiendo}
+              className="rounded bg-[#003366] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
+              {transcribiendo ? 'Transcribiendo...' : '🎙️ Transcribir y prellenar'}
+            </button>
+          </div>
+          {audioError && <p className="mt-2 text-sm text-red-600">{audioError}</p>}
+          {transcript && (
+            <details className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
+              <summary className="cursor-pointer font-semibold">Ver transcripción completa (verifica que la IA entendió bien)</summary>
+              <p className="mt-2 whitespace-pre-wrap">{transcript}</p>
+            </details>
+          )}
+        </fieldset>
+
+        <fieldset className="rounded-lg border border-slate-300 p-4">
+          <legend className="px-2 font-semibold text-[#003366]">5. Notas para el acta</legend>
           <div className="flex flex-col gap-3">
             <label className="text-sm">Puntos del orden del día<textarea required rows={3} value={notasAspectos} onChange={(e) => setNotasAspectos(e.target.value)} className="ht-input" /></label>
             <label className="text-sm">¿Qué sucedió en la reunión? (resumen breve)<textarea required rows={4} value={notasReunion} onChange={(e) => setNotasReunion(e.target.value)} className="ht-input" /></label>
@@ -252,7 +319,7 @@ export default function ActaTecnicaPage() {
         </fieldset>
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
-          <legend className="px-2 font-semibold text-[#003366]">5. Evidencias fotográficas (opcional)</legend>
+          <legend className="px-2 font-semibold text-[#003366]">6. Evidencias fotográficas (opcional)</legend>
           <input type="file" accept="image/*" multiple onChange={(e) => setFotos(Array.from(e.target.files ?? []))} className="ht-input" />
           {fotos.length > 0 && <p className="mt-2 text-xs text-slate-500">{fotos.length} foto(s) seleccionada(s)</p>}
         </fieldset>

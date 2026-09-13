@@ -1,6 +1,6 @@
-const GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
+import { transcribirAudioGroq } from "./groqAudio";
+
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODELO_TRANSCRIPCION = "whisper-large-v3";
 const MODELO_EVALUACION = "openai/gpt-oss-120b";
 
 export type CriteriosRubricaAudio = {
@@ -17,33 +17,6 @@ export type ResultadoAudioMcer = {
   feedback: string;
   criterios: CriteriosRubricaAudio;
 };
-
-/** Transcribe un audio en memoria vía Groq Whisper. El buffer nunca se guarda en disco/Cloudinary. */
-async function transcribirAudio(buffer: Buffer, mimeType: string): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("IA no configurada (GROQ_API_KEY no definida)");
-
-  const formData = new FormData();
-  formData.append("file", new Blob([new Uint8Array(buffer)], { type: mimeType }), "respuesta.webm");
-  formData.append("model", MODELO_TRANSCRIPCION);
-  formData.append("language", "en");
-
-  const respuesta = await fetch(GROQ_TRANSCRIPTION_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: formData,
-  });
-
-  if (!respuesta.ok) {
-    const detalle = await respuesta.text().catch(() => "");
-    throw new Error(`Transcripción falló: ${respuesta.status} ${detalle}`.trim());
-  }
-
-  const json = await respuesta.json();
-  const texto = json?.text;
-  if (typeof texto !== "string") throw new Error("Transcripción sin contenido");
-  return texto.trim();
-}
 
 const RUBRICA_SISTEMA =
   "Eres evaluador de inglés hablado nivel MCER. Solo tienes la TRANSCRIPCIÓN de un audio (no el audio en sí) — nunca evalúes pronunciación/fluidez/entonación, evalúa exclusivamente el texto. " +
@@ -106,7 +79,7 @@ async function evaluarTranscripcion(transcript: string, consigna: string): Promi
 
 /** Transcribe y evalúa un audio corto en un solo paso. No persiste el audio en ningún lugar. */
 export async function evaluarAudioMcer(buffer: Buffer, mimeType: string, consigna: string): Promise<ResultadoAudioMcer> {
-  const transcript = await transcribirAudio(buffer, mimeType);
+  const transcript = await transcribirAudioGroq(buffer, mimeType, { idioma: "en", nombreArchivo: "respuesta.webm" });
   const { score, feedback, criterios } = await evaluarTranscripcion(transcript, consigna);
   return { transcript, score, feedback, criterios };
 }
