@@ -97,6 +97,10 @@ export default function AudioQuestionRecorder({
 
   return (
     <div className="pl-6 space-y-3">
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
+        ⏱ Tendrás máximo <strong>{maxSeconds} segundos</strong> para responder. Al llegar al límite la grabación se detiene sola y se evalúa automáticamente, aunque no hayas terminado de hablar — así que empieza a responder apenas presiones grabar.
+        Esta pregunta es <strong>obligatoria</strong>: si no la grabas, no podrás enviar el test.
+      </div>
       <div className="flex items-center gap-3">
         {!grabando ? (
           <button type="button" onClick={iniciarGrabacion} disabled={evaluando}
