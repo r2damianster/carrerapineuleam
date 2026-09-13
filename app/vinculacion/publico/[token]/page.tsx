@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { mcerQuestions } from '@/lib/questions';
+import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
 import StarRating from '@/components/StarRating';
+import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
+
+const preguntasPuntaje = preguntasCalificables();
 
 type EnlaceInfo = {
   tipo: 'pretest' | 'postest';
@@ -14,9 +17,10 @@ type EnlaceInfo = {
 };
 
 function calculateLevel(score: number) {
-  if (score <= 5) return 'A1';
-  if (score <= 10) return 'A2';
-  if (score <= 15) return 'B1';
+  const pct = score / preguntasPuntaje.length;
+  if (pct <= 0.25) return 'A1';
+  if (pct <= 0.5) return 'A2';
+  if (pct <= 0.75) return 'B1';
   return 'B2';
 }
 
@@ -42,6 +46,7 @@ export default function EnlacePublicoPage() {
   const estudia = ['solo_estudia', 'estudia_trabaja'].includes(datosForm.situacion_ocupacional);
 
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [audioResultado, setAudioResultado] = useState<ResultadoAudioMcer | null>(null);
   const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
   const [aprendizaje, setAprendizaje] = useState(5);
   const [mejora, setMejora] = useState(5);
@@ -77,7 +82,7 @@ export default function EnlacePublicoPage() {
         return;
       }
     }
-    if (enlace.test_tipo === 'mcer' && Object.keys(answers).length < mcerQuestions.length) {
+    if (enlace.test_tipo === 'mcer' && Object.keys(answers).length < preguntasPuntaje.length) {
       setMensaje('Error: Debes responder todas las preguntas');
       return;
     }
@@ -92,8 +97,8 @@ export default function EnlacePublicoPage() {
 
       if (enlace.test_tipo === 'mcer') {
         let score = 0;
-        mcerQuestions.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
-        payload.respuestas_json = answers;
+        preguntasPuntaje.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
+        payload.respuestas_json = { ...answers, _audio: audioResultado };
         payload.puntaje_obtenido = score;
         payload.nivel_asignado = calculateLevel(score);
       } else {
@@ -257,22 +262,29 @@ export default function EnlacePublicoPage() {
             <div className="space-y-6">
               {mcerQuestions.map((q, index) => (
                 <div key={q.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                  {q.passage && (
+                    <p className="mb-3 p-3 bg-gray-50 border-l-4 border-blue-200 text-sm text-gray-600 italic">{q.passage}</p>
+                  )}
                   <p className="font-medium text-gray-900 mb-3">
                     <span className="text-blue-600 mr-2">{index + 1}.</span> {q.text}
                   </p>
-                  <div className="space-y-2 pl-6">
-                    {Object.entries(q.options).map(([key, value]) => (
-                      <label key={key} className="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name={`question_${q.id}`} value={key}
-                          onChange={() => setAnswers({ ...answers, [q.id]: key })}
-                          checked={answers[q.id] === key}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                          required
-                        />
-                        <span className="text-gray-700">{value}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {q.type === 'audio' ? (
+                    <AudioQuestionRecorder consigna={q.text} maxSeconds={q.audioMaxSeconds ?? 30} onResult={setAudioResultado} />
+                  ) : (
+                    <div className="space-y-2 pl-6">
+                      {q.options && Object.entries(q.options).map(([key, value]) => (
+                        <label key={key} className="flex items-center space-x-3 cursor-pointer">
+                          <input type="radio" name={`question_${q.id}`} value={key}
+                            onChange={() => setAnswers({ ...answers, [q.id]: key })}
+                            checked={answers[q.id] === key}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            required
+                          />
+                          <span className="text-gray-700">{value}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

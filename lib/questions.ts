@@ -1,10 +1,19 @@
 export type Question = {
   id: number;
   level: 'A1' | 'A2' | 'B1' | 'B2';
+  /** 'multiple_choice' (default) | 'reading' (lleva passage) | 'audio' (sin options/correct, autoevaluada con IA) */
+  type?: 'multiple_choice' | 'reading' | 'audio';
   text: string;
-  options: { a: string; b: string; c: string; d: string };
-  correct: 'a' | 'b' | 'c' | 'd';
+  /** Solo 'reading': texto corto que se muestra antes de la pregunta */
+  passage?: string;
+  options?: { a: string; b: string; c: string; d: string };
+  correct?: 'a' | 'b' | 'c' | 'd';
+  /** Solo 'audio': segundos máximos de grabación permitidos */
+  audioMaxSeconds?: number;
 };
+
+/** Preguntas con opción/respuesta correcta — las únicas que cuentan para el puntaje MCER. */
+export const preguntasCalificables = () => mcerQuestions.filter(q => q.type !== 'audio');
 
 export const mcerQuestions: Question[] = [
   // Nivel A1 (1-5)
@@ -150,5 +159,52 @@ export const mcerQuestions: Question[] = [
     text: "If I had known you were coming, I ______ a cake.",
     options: { a: "will bake", b: "would bake", c: "would have baked", d: "baked" },
     correct: 'c'
+  },
+  // Nivel B1 — superlativo (21)
+  {
+    id: 21,
+    level: 'B1',
+    text: "Mt. Everest is ______ mountain in the world.",
+    options: { a: "the high", b: "high as", c: "higher than", d: "the highest" },
+    correct: 'd'
+  },
+  // Nivel B2 — segundo condicional (22)
+  {
+    id: 22,
+    level: 'B2',
+    text: "If I went to live in a foreign country, ______ my friends.",
+    options: { a: "I'd miss", b: "I'm missing", c: "I missed", d: "I miss" },
+    correct: 'a'
+  },
+  // Nivel B1 — tag question (23)
+  {
+    id: 23,
+    level: 'B1',
+    text: "You have been to Spain, ______?",
+    options: { a: "have you", b: "you have", c: "haven't you", d: "don't you" },
+    correct: 'c'
+  },
+  // Nivel B2 — lectura inferencial (24)
+  {
+    id: 24,
+    level: 'B2',
+    type: 'reading',
+    passage: "Marco arrived at the office an hour early. He made coffee, organized his desk, and reviewed his notes twice before anyone else arrived.",
+    text: "What can we infer about Marco?",
+    options: {
+      a: "He dislikes his job",
+      b: "He is very disorganized",
+      c: "He is well-prepared and responsible",
+      d: "He was late for work"
+    },
+    correct: 'c'
+  },
+  // Diagnóstico oral — no suma al puntaje MCER, se autoevalúa aparte con IA (25)
+  {
+    id: 25,
+    level: 'B1',
+    type: 'audio',
+    text: "Graba un audio corto (máx. 30 segundos) describiendo tu rutina diaria en inglés.",
+    audioMaxSeconds: 30
   }
 ];

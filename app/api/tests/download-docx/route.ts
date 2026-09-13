@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import { mcerQuestions } from '@/lib/questions';
+import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
 
 export async function GET() {
   try {
+    const totalPuntaje = preguntasCalificables().length;
     const children = [
       new Paragraph({
         text: "Test de Nivelación MCER - Proyecto PINE",
@@ -15,7 +16,7 @@ export async function GET() {
         spacing: { after: 200 }
       }),
       new Paragraph({
-        text: "Fecha: ________________________  Puntaje: _______/20",
+        text: `Fecha: ________________________  Puntaje: _______/${totalPuntaje}`,
         spacing: { after: 400 }
       }),
     ];
@@ -31,9 +32,26 @@ export async function GET() {
           spacing: { before: 200, after: 100 }
         })
       );
-      
+
+      if (q.passage) {
+        children.splice(children.length - 1, 0, new Paragraph({
+          children: [new TextRun({ text: q.passage, italics: true, color: "555555" })],
+          spacing: { before: 100, after: 100 }
+        }));
+      }
+
+      if (q.type === 'audio') {
+        children.push(
+          new Paragraph({
+            text: "    (Pregunta oral — no aplica en la versión impresa, se administra desde el sistema digital)",
+            spacing: { after: 50 }
+          })
+        );
+        return;
+      }
+
       // Opciones
-      Object.entries(q.options).map(([key, value]) => {
+      Object.entries(q.options ?? {}).map(([key, value]) => {
         children.push(
           new Paragraph({
             text: `    ( ${key.toUpperCase()} ) ${value}`,

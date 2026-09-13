@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { mcerQuestions } from '@/lib/questions';
+import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
+import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
+
+const preguntasPuntaje = preguntasCalificables();
 
 export default function TestMcerPage() {
   const router = useRouter();
@@ -18,6 +21,7 @@ export default function TestMcerPage() {
 
   const [form, setForm] = useState({ beneficiario_id: '', tipo: 'inicial' });
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [audioResultado, setAudioResultado] = useState<ResultadoAudioMcer | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
 
@@ -51,9 +55,10 @@ export default function TestMcerPage() {
   }, [espacioId]);
 
   const calculateLevel = (score: number) => {
-    if (score <= 5) return 'A1';
-    if (score <= 10) return 'A2';
-    if (score <= 15) return 'B1';
+    const pct = score / preguntasPuntaje.length;
+    if (pct <= 0.25) return 'A1';
+    if (pct <= 0.5) return 'A2';
+    if (pct <= 0.75) return 'B1';
     return 'B2';
   };
 
@@ -67,7 +72,7 @@ export default function TestMcerPage() {
       setMessage('Error: Selecciona un beneficiario');
       return;
     }
-    if (Object.keys(answers).length < mcerQuestions.length) {
+    if (Object.keys(answers).length < preguntasPuntaje.length) {
       setMessage('Error: Debes responder todas las preguntas');
       return;
     }
@@ -85,7 +90,7 @@ export default function TestMcerPage() {
       }
 
       let score = 0;
-      mcerQuestions.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
+      preguntasPuntaje.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
       const level = calculateLevel(score);
 
       const res = await fetch('/api/tests', {
@@ -97,14 +102,15 @@ export default function TestMcerPage() {
           tipo: form.tipo,
           puntaje_obtenido: score,
           nivel_asignado: level,
-          respuestas_json: answers,
+          respuestas_json: { ...answers, _audio: audioResultado },
           evidencia_url,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage(`¡Test registrado! Puntaje: ${score}/20. Nivel asignado: ${level}`);
+      setMessage(`¡Test registrado! Puntaje: ${score}/${preguntasPuntaje.length}. Nivel asignado: ${level}`);
       setAnswers({});
+      setAudioResultado(null);
       setFile(null);
       window.scrollTo(0, 0);
     } catch (err: any) {
@@ -199,23 +205,30 @@ export default function TestMcerPage() {
           <div className="space-y-6">
             {mcerQuestions.map((q, index) => (
               <div key={q.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                {q.passage && (
+                  <p className="mb-3 p-3 bg-gray-50 border-l-4 border-blue-200 text-sm text-gray-600 italic">{q.passage}</p>
+                )}
                 <p className="font-medium text-gray-900 mb-3">
                   <span className="text-blue-600 mr-2">{index + 1}.</span> {q.text}
                   <span className="text-xs text-gray-400 ml-2">({q.level})</span>
                 </p>
-                <div className="space-y-2 pl-6">
-                  {Object.entries(q.options).map(([key, value]) => (
-                    <label key={key} className="flex items-center space-x-3 cursor-pointer">
-                      <input type="radio" name={`question_${q.id}`} value={key}
-                        onChange={() => setAnswers({ ...answers, [q.id]: key })}
-                        checked={answers[q.id] === key}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                        required
-                      />
-                      <span className="text-gray-700">{value}</span>
-                    </label>
-                  ))}
-                </div>
+                {q.type === 'audio' ? (
+                  <AudioQuestionRecorder consigna={q.text} maxSeconds={q.audioMaxSeconds ?? 30} onResult={setAudioResultado} />
+                ) : (
+                  <div className="space-y-2 pl-6">
+                    {q.options && Object.entries(q.options).map(([key, value]) => (
+                      <label key={key} className="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name={`question_${q.id}`} value={key}
+                          onChange={() => setAnswers({ ...answers, [q.id]: key })}
+                          checked={answers[q.id] === key}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          required
+                        />
+                        <span className="text-gray-700">{value}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
