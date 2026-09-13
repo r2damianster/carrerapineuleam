@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
+import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
 import StarRating from '@/components/StarRating';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
 
 const preguntasPuntaje = preguntasCalificables();
+const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
 
 type EnlaceInfo = {
   tipo: 'pretest' | 'postest';
@@ -15,14 +16,6 @@ type EnlaceInfo = {
   beneficiario_nombre: string | null;
   instructores: { id: number; nombre: string }[];
 };
-
-function calculateLevel(score: number) {
-  const pct = score / preguntasPuntaje.length;
-  if (pct <= 0.25) return 'A1';
-  if (pct <= 0.5) return 'A2';
-  if (pct <= 0.75) return 'B1';
-  return 'B2';
-}
 
 export default function EnlacePublicoPage() {
   const { token } = useParams<{ token: string }>();
@@ -86,6 +79,10 @@ export default function EnlacePublicoPage() {
       setMensaje('Error: Debes responder todas las preguntas');
       return;
     }
+    if (enlace.test_tipo === 'mcer' && preguntasAudio.length > 0 && !audioResultado) {
+      setMensaje('Error: Debes grabar y evaluar la respuesta oral');
+      return;
+    }
 
     setEnviando(true);
     setMensaje('');
@@ -96,11 +93,10 @@ export default function EnlacePublicoPage() {
       }
 
       if (enlace.test_tipo === 'mcer') {
-        let score = 0;
-        preguntasPuntaje.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
-        payload.respuestas_json = { ...answers, _audio: audioResultado };
-        payload.puntaje_obtenido = score;
-        payload.nivel_asignado = calculateLevel(score);
+        const resultado = calcularResultadoMcer(answers, audioResultado?.score ?? null);
+        payload.respuestas_json = { ...answers, _audio: audioResultado, _desglose: resultado.desglose };
+        payload.puntaje_obtenido = resultado.score;
+        payload.nivel_asignado = resultado.level;
       } else {
         payload.nivel_satisfaccion = nivelSatisfaccion;
         payload.aprendizaje = aprendizaje;

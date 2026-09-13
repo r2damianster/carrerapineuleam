@@ -2,7 +2,12 @@
 
 import { useRef, useState } from 'react';
 
-export type ResultadoAudioMcer = { transcript: string; score: number; feedback: string };
+export type ResultadoAudioMcer = {
+  transcript: string;
+  score: number;
+  feedback: string;
+  criterios: { gramatica: number; vocabulario: number; coherencia: number; tarea: number };
+};
 
 export default function AudioQuestionRecorder({
   consigna,
@@ -110,9 +115,15 @@ export default function AudioQuestionRecorder({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {resultado && (
-        <div className="p-3 bg-gray-50 border rounded-md text-sm space-y-1">
+        <div className="p-3 bg-gray-50 border rounded-md text-sm space-y-2">
           <p className="text-gray-500 italic">Transcripción: "{resultado.transcript || '(vacío)'}"</p>
-          <p><span className="font-semibold">Puntaje IA:</span> {resultado.score}/100</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="bg-white border rounded p-2"><span className="block font-semibold text-gray-600">Gramática</span>{resultado.criterios.gramatica}/25</div>
+            <div className="bg-white border rounded p-2"><span className="block font-semibold text-gray-600">Vocabulario</span>{resultado.criterios.vocabulario}/25</div>
+            <div className="bg-white border rounded p-2"><span className="block font-semibold text-gray-600">Coherencia</span>{resultado.criterios.coherencia}/25</div>
+            <div className="bg-white border rounded p-2"><span className="block font-semibold text-gray-600">Tarea</span>{resultado.criterios.tarea}/25</div>
+          </div>
+          <p><span className="font-semibold">Puntaje oral (cuenta al promedio final):</span> {resultado.score}/100</p>
           <p className="text-gray-700">{resultado.feedback}</p>
         </div>
       )}

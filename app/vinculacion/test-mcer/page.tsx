@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
+import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
 
 const preguntasPuntaje = preguntasCalificables();
+const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
 
 export default function TestMcerPage() {
   const router = useRouter();
@@ -54,14 +55,6 @@ export default function TestMcerPage() {
       .then(d => { if (d.success) setBeneficiarios(d.data); });
   }, [espacioId]);
 
-  const calculateLevel = (score: number) => {
-    const pct = score / preguntasPuntaje.length;
-    if (pct <= 0.25) return 'A1';
-    if (pct <= 0.5) return 'A2';
-    if (pct <= 0.75) return 'B1';
-    return 'B2';
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!espacioId) {
@@ -74,6 +67,10 @@ export default function TestMcerPage() {
     }
     if (Object.keys(answers).length < preguntasPuntaje.length) {
       setMessage('Error: Debes responder todas las preguntas');
+      return;
+    }
+    if (preguntasAudio.length > 0 && !audioResultado) {
+      setMessage('Error: Debes grabar y evaluar la respuesta oral');
       return;
     }
     setLoading(true);
@@ -89,9 +86,7 @@ export default function TestMcerPage() {
         evidencia_url = uploadJson.url;
       }
 
-      let score = 0;
-      preguntasPuntaje.forEach(q => { if (answers[q.id] === q.correct) score += 1; });
-      const level = calculateLevel(score);
+      const resultado = calcularResultadoMcer(answers, audioResultado?.score ?? null);
 
       const res = await fetch('/api/tests', {
         method: 'POST',
@@ -100,15 +95,21 @@ export default function TestMcerPage() {
           beneficiario_id: parseInt(form.beneficiario_id),
           espacio_id: parseInt(espacioId),
           tipo: form.tipo,
-          puntaje_obtenido: score,
-          nivel_asignado: level,
-          respuestas_json: { ...answers, _audio: audioResultado },
+          puntaje_obtenido: resultado.score,
+          nivel_asignado: resultado.level,
+          respuestas_json: { ...answers, _audio: audioResultado, _desglose: resultado.desglose },
           evidencia_url,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage(`¡Test registrado! Puntaje: ${score}/${preguntasPuntaje.length}. Nivel asignado: ${level}`);
+      const d = resultado.desglose;
+      const fmt = (v: number | null) => v === null ? '—' : Math.round(v);
+      setMessage(
+        `¡Test registrado! Puntaje final: ${resultado.score}/100 ` +
+        `(Gramática: ${fmt(d.grammar)}%, Lectura: ${fmt(d.reading)}%, Oral: ${fmt(d.speaking)}%). ` +
+        `Nivel asignado: ${resultado.level}`
+      );
       setAnswers({});
       setAudioResultado(null);
       setFile(null);

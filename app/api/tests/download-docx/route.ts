@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import { mcerQuestions, preguntasCalificables } from '@/lib/questions';
+import { mcerQuestions } from '@/lib/questions';
 
 export async function GET() {
   try {
-    const totalPuntaje = preguntasCalificables().length;
     const children = [
       new Paragraph({
         text: "Test de Nivelación MCER - Proyecto PINE",
@@ -16,7 +15,7 @@ export async function GET() {
         spacing: { after: 200 }
       }),
       new Paragraph({
-        text: `Fecha: ________________________  Puntaje: _______/${totalPuntaje}`,
+        text: "Fecha: ________________________  Puntaje: _______/100 (promedio Gramática + Lectura + Oral)",
         spacing: { after: 400 }
       }),
     ];

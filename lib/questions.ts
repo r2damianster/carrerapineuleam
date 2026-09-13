@@ -12,8 +12,53 @@ export type Question = {
   audioMaxSeconds?: number;
 };
 
-/** Preguntas con opción/respuesta correcta — las únicas que cuentan para el puntaje MCER. */
+/** Preguntas con radio button (todas menos la de audio) — usado para exigir que estén todas respondidas antes de enviar. */
 export const preguntasCalificables = () => mcerQuestions.filter(q => q.type !== 'audio');
+
+export type HabilidadMcer = 'grammar' | 'reading' | 'speaking';
+
+export function habilidadDePregunta(q: Question): HabilidadMcer {
+  if (q.type === 'reading') return 'reading';
+  if (q.type === 'audio') return 'speaking';
+  return 'grammar';
+}
+
+export type ResultadoMcer = {
+  /** Promedio final 0-100 entre las habilidades presentes en el banco (gramática/lectura/oral) */
+  score: number;
+  level: 'A1' | 'A2' | 'B1' | 'B2';
+  desglose: { grammar: number | null; reading: number | null; speaking: number | null };
+};
+
+/**
+ * Puntaje final MCER = promedio simple de 3 componentes (gramática, lectura, oral),
+ * cada uno normalizado a 0-100 — no un conteo crudo de aciertos. La pregunta de audio
+ * cuenta con el mismo peso que el bloque de gramática/lectura, no es solo diagnóstico.
+ */
+export function calcularResultadoMcer(answers: Record<number, string>, speakingScore: number | null): ResultadoMcer {
+  const porcentajeCorrectas = (qs: Question[]): number | null => {
+    if (qs.length === 0) return null;
+    const correctas = qs.filter(q => answers[q.id] === q.correct).length;
+    return (correctas / qs.length) * 100;
+  };
+
+  const grammar = porcentajeCorrectas(mcerQuestions.filter(q => habilidadDePregunta(q) === 'grammar'));
+  const reading = porcentajeCorrectas(mcerQuestions.filter(q => habilidadDePregunta(q) === 'reading'));
+  const hayPreguntaOral = mcerQuestions.some(q => habilidadDePregunta(q) === 'speaking');
+  const speaking = hayPreguntaOral ? speakingScore : null;
+
+  const componentes = [grammar, reading, speaking].filter((v): v is number => v !== null);
+  const score = componentes.length > 0 ? Math.round(componentes.reduce((a, b) => a + b, 0) / componentes.length) : 0;
+
+  const pct = score / 100;
+  let level: Question['level'];
+  if (pct <= 0.25) level = 'A1';
+  else if (pct <= 0.5) level = 'A2';
+  else if (pct <= 0.75) level = 'B1';
+  else level = 'B2';
+
+  return { score, level, desglose: { grammar, reading, speaking } };
+}
 
 export const mcerQuestions: Question[] = [
   // Nivel A1 (1-5)
