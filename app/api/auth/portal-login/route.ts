@@ -56,11 +56,13 @@ export async function POST(request: Request) {
 
     const url = new URL(request.url);
     const redirectParam = url.searchParams.get('redirect');
-    // Primer login (cuenta recién activada) sin redirect explícito: aterriza en
-    // "Mi Perfil" en vez del dashboard, para que complete sus datos de una vez.
+    // Primer login (cuenta recién activada) sin redirect explícito: solo el
+    // profesor aterriza en "Mi Perfil" (cédula/título/horario, son campos
+    // suyos) — el pasante (rol estudiante) va directo al dashboard, no tiene
+    // nada que completar ahí para poder inscribir/subir podcast.
     const redirect = redirectParam
       ? decodeURIComponent(redirectParam)
-      : (esPrimeraActivacion ? '/portal/perfil' : '/portal/dashboard');
+      : (esPrimeraActivacion && user.rol === 'profesor' ? '/portal/perfil' : '/portal/dashboard');
 
     const response = NextResponse.json({ success: true, redirect });
     
