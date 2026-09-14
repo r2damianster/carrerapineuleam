@@ -43,8 +43,11 @@ export default async function PortalDashboard() {
             )}
 
 
-            {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor */}
-            {modulos_acceso.includes('vinculacion') && (
+            {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor.
+                El pasante (rol estudiante) nunca tiene modulos_acceso:vinculacion (esa
+                lista es solo para profesores) — su acceso real es por espacio_instructores
+                (lib/permisos-espacio.ts), así que la tarjeta también debe salir por rol. */}
+            {(modulos_acceso.includes('vinculacion') || rol === 'estudiante') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Registros de Vinculación</h3>
                 <p className="text-gray-600 mb-4 text-sm">Asistencia, beneficiarios, test MCER, encuestas y difusión de tu espacio.</p>
@@ -175,7 +178,7 @@ export default async function PortalDashboard() {
 
           </div>
 
-          {modulos_acceso.length === 0 && (
+          {modulos_acceso.length === 0 && rol !== 'estudiante' && (
             <div className="bg-yellow-50 p-6 rounded-lg text-yellow-800 text-center">
               Tu cuenta no tiene módulos asignados aún. Por favor contacta al administrador.
             </div>
