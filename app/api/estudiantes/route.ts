@@ -19,7 +19,13 @@ export async function GET() {
                  json_build_object('id', e.id, 'nombre', e.nombre)
                ) FILTER (WHERE e.id IS NOT NULL),
                '[]'
-             ) AS espacios
+             ) AS espacios,
+             (
+               SELECT COALESCE(SUM(h.horas_total), 0)
+               FROM horas_podcast_pasante h
+               JOIN videos v ON v.id = h.video_id
+               WHERE h.usuario_id = u.id AND v.aprobado_sitio = true
+             ) AS horas_podcast_acreditadas
       FROM usuarios u
       LEFT JOIN espacio_instructores ei ON ei.usuario_id = u.id
       LEFT JOIN espacios_enseñanza e ON e.id = ei.espacio_id AND e.area = 'vinculacion'

@@ -400,6 +400,9 @@ export default function PasantesPage() {
                     ) : (
                       <p className="text-sm text-gray-400 mt-1">Sin espacio asignado</p>
                     )}
+                    {Number(s.horas_podcast_acreditadas) > 0 && (
+                      <p className="text-xs text-indigo-600 mt-1">🎙 {Number(s.horas_podcast_acreditadas)} h acreditadas por podcast de vinculación (episodios aprobados)</p>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => empezarEdicion(s)} className="text-sm text-blue-600 hover:underline">Editar</button>

@@ -4,13 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SelectorAreaProyectoPodcast from '@/components/SelectorAreaProyectoPodcast';
+import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import type { VideoCategory } from '@/types';
-
-const TAGS_DISPONIBLES = [
-  { value: 'docencia', label: 'Docencia' },
-  { value: 'vinculacion', label: 'Vinculación' },
-  { value: 'investigacion', label: 'Investigación' },
-];
 
 export default function SubirVideoPage() {
   const [categorias, setCategorias] = useState<VideoCategory[]>([]);
@@ -23,9 +19,14 @@ export default function SubirVideoPage() {
     title: '',
     description: '',
     category: '',
-    tags: [] as string[],
   });
   const [file, setFile] = useState<File | null>(null);
+  const [area, setArea] = useState('vinculacion');
+  const [proyectoId, setProyectoId] = useState('');
+  const [audienciaAlcanzada, setAudienciaAlcanzada] = useState('');
+  const [participantes, setParticipantes] = useState<number[]>([]);
+  const [invitadosInternos, setInvitadosInternos] = useState<string[]>([]);
+  const [invitadosExternos, setInvitadosExternos] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/video-categories?active=true')
@@ -69,6 +70,10 @@ export default function SubirVideoPage() {
       setMensaje('Error: selecciona una categoría');
       return;
     }
+    if (!proyectoId) {
+      setMensaje('Error: selecciona el proyecto del podcast');
+      return;
+    }
 
     setSubiendo(true);
     setProgreso(0);
@@ -100,16 +105,27 @@ export default function SubirVideoPage() {
           title: form.title,
           description: form.description,
           category: form.category,
-          tags: form.tags,
+          tags: [area],
           youtube_video_id: resultado.id,
+          area_sustantiva: area,
+          proyecto_id: proyectoId,
+          participantes_estudiantes: participantes,
+          invitados_internos: invitadosInternos,
+          invitados_externos: invitadosExternos,
+          audiencia_alcanzada: audienciaAlcanzada ? parseInt(audienciaAlcanzada, 10) : 0,
         }),
       });
       const registrarJson = await registrarRes.json();
       if (!registrarRes.ok) throw new Error(registrarJson.error || 'Error registrando el video');
 
       setMensaje('¡Listo! Tu video se subió a YouTube (no listado) y quedó pendiente de aprobación para aparecer en el sitio.');
-      setForm({ title: '', description: '', category: '', tags: [] });
+      setForm({ title: '', description: '', category: '' });
       setFile(null);
+      setProyectoId('');
+      setAudienciaAlcanzada('');
+      setParticipantes([]);
+      setInvitadosInternos([]);
+      setInvitadosExternos([]);
     } catch (error: any) {
       setMensaje(`Error: ${error.message}`);
     } finally {
@@ -176,27 +192,34 @@ export default function SubirVideoPage() {
               </select>
             </div>
 
+            <SelectorAreaProyectoPodcast
+              area={area}
+              proyectoId={proyectoId}
+              onAreaChange={setArea}
+              onProyectoChange={setProyectoId}
+            />
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Etiquetas (opcional)</label>
-              <div className="space-y-2">
-                {TAGS_DISPONIBLES.map((tag) => (
-                  <label key={tag.value} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.tags.includes(tag.value)}
-                      onChange={(e) => {
-                        const tags = e.target.checked
-                          ? [...form.tags, tag.value]
-                          : form.tags.filter((t) => t !== tag.value);
-                        setForm({ ...form, tags });
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-700">{tag.label}</span>
-                  </label>
-                ))}
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Audiencia en vivo (N° personas, opcional)</label>
+              <input
+                type="number"
+                min="0"
+                value={audienciaAlcanzada}
+                onChange={(e) => setAudienciaAlcanzada(e.target.value)}
+                placeholder="Ej: 15"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+              />
             </div>
+
+            <SelectorParticipantesPodcast
+              areaSustantiva={area}
+              participantes={participantes}
+              invitadosInternos={invitadosInternos}
+              invitadosExternos={invitadosExternos}
+              onParticipantesChange={setParticipantes}
+              onInvitadosInternosChange={setInvitadosInternos}
+              onInvitadosExternosChange={setInvitadosExternos}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Archivo de video *</label>

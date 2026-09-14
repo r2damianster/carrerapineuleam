@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SubirVideoDifusion from '@/components/SubirVideoDifusion';
+import SelectorAreaProyectoPodcast from '@/components/SelectorAreaProyectoPodcast';
+import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
 import EnlacesDifusionList from '@/components/EnlacesDifusionList';
 
@@ -21,6 +23,13 @@ export default function GestionCarreraPage() {
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
   const [modulosAcceso, setModulosAcceso] = useState<string[]>([]);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
+  // Área/proyecto propios del podcast (Sesión 38) — independiente de la
+  // categoría de la actividad de difusión en sí (form.categoria más abajo).
+  const [videoArea, setVideoArea] = useState('vinculacion');
+  const [videoProyectoId, setVideoProyectoId] = useState('');
+  const [participantes, setParticipantes] = useState<number[]>([]);
+  const [invitadosInternos, setInvitadosInternos] = useState<string[]>([]);
+  const [invitadosExternos, setInvitadosExternos] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     titulo: '',
@@ -129,6 +138,10 @@ export default function GestionCarreraPage() {
       setMessage('Error: Debe seleccionar al menos un profesor responsable');
       return;
     }
+    if (form.tipo === 'podcast' && !video) {
+      setMessage('Error: Debe subir el video del podcast (botón "Subir video" de arriba) antes de registrar la actividad');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
@@ -152,7 +165,16 @@ export default function GestionCarreraPage() {
           audiencia_alcanzada: parseInt(form.audiencia_alcanzada),
           evidencia_url,
           profesores_responsables: responsables,
-          ...(video ? { youtube_video_id: video.youtubeVideoId, video_category: video.categoryId, video_tags: [tagPorCategoria[form.categoria] || 'vinculacion'] } : {}),
+          ...(video ? {
+            youtube_video_id: video.youtubeVideoId,
+            video_category: video.categoryId,
+            video_tags: [tagPorCategoria[form.categoria] || 'vinculacion'],
+            video_area_sustantiva: videoArea,
+            video_proyecto_id: videoProyectoId,
+            video_participantes: participantes,
+            video_invitados_internos: invitadosInternos,
+            video_invitados_externos: invitadosExternos,
+          } : {}),
         }),
       });
       const data = await res.json();
@@ -162,6 +184,10 @@ export default function GestionCarreraPage() {
       setForm({ titulo: '', tipo: 'evento_formacion', categoria: 'vinculacion', proyecto: '', asignatura: '', audiencia_alcanzada: '', descripcion: '', fecha: '', hora: '', observaciones: '' });
       setFile(null);
       setVideo(null);
+      setVideoProyectoId('');
+      setParticipantes([]);
+      setInvitadosInternos([]);
+      setInvitadosExternos([]);
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -281,12 +307,29 @@ export default function GestionCarreraPage() {
           </div>
 
           {form.tipo === 'podcast' && (
-            <SubirVideoDifusion
-              titulo={form.titulo}
-              descripcion={form.descripcion}
-              onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
-              onVideoQuitado={() => setVideo(null)}
-            />
+            <>
+              <SelectorAreaProyectoPodcast
+                area={videoArea}
+                proyectoId={videoProyectoId}
+                onAreaChange={setVideoArea}
+                onProyectoChange={setVideoProyectoId}
+              />
+              <SubirVideoDifusion
+                titulo={form.titulo}
+                descripcion={form.descripcion}
+                onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
+                onVideoQuitado={() => setVideo(null)}
+              />
+              <SelectorParticipantesPodcast
+                areaSustantiva={videoArea}
+                participantes={participantes}
+                invitadosInternos={invitadosInternos}
+                invitadosExternos={invitadosExternos}
+                onParticipantesChange={setParticipantes}
+                onInvitadosInternosChange={setInvitadosInternos}
+                onInvitadosExternosChange={setInvitadosExternos}
+              />
+            </>
           )}
 
           <div>

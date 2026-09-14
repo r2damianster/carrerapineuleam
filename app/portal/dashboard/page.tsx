@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { neon } from '@neondatabase/serverless';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
@@ -18,6 +19,20 @@ export default async function PortalDashboard() {
   const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = rol === 'profesor' || rol === 'admin';
   const proyectoPropio = liderProyectoPropio[email];
+
+  // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
+  // episodios ya aprobados en /admin/videos, ver lib/horasPodcast.ts.
+  let horasPodcastAcreditadas = 0;
+  if (rol === 'estudiante') {
+    const sql = neon(process.env.DATABASE_URL!);
+    const [fila] = await sql`
+      SELECT COALESCE(SUM(h.horas_total), 0) AS total
+      FROM horas_podcast_pasante h
+      JOIN videos v ON v.id = h.video_id
+      WHERE h.usuario_id = ${parseInt(session.id, 10)} AND v.aprobado_sitio = true
+    `;
+    horasPodcastAcreditadas = Number(fila?.total || 0);
+  }
 
   return (
     <>
@@ -72,6 +87,16 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/investigacion-actividades" className="text-emerald-600 hover:underline">» Reportar Actividades</Link>
                 </div>
+              </div>
+            )}
+
+            {/* Horas acreditables de podcast (Sesión 38) — solo pasante, solo
+                si ya participó en al menos un episodio aprobado. */}
+            {rol === 'estudiante' && horasPodcastAcreditadas > 0 && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">🎙 Mis Horas de Podcast</h3>
+                <p className="text-gray-600 mb-2 text-sm">Horas acreditables por tu participación en podcasts de Vinculación (solo episodios ya aprobados).</p>
+                <p className="text-3xl font-bold text-amber-600">{horasPodcastAcreditadas} h</p>
               </div>
             )}
 

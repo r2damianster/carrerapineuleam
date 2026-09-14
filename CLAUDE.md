@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-10 (Sesión 37 — Acceso temporal para que externos sin cuenta registren eventos/podcast, siempre pendiente de aprobación. Ver detalle abajo)
+**Última sesión:** 2026-09-14 (Sesión 38 — 2 bugs reales de pasantes (redirect a perfil de docente, dashboard sin tarjetas) + área/proyecto seleccionable en podcasts + horas acreditables de podcast de Vinculación. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -105,6 +105,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `modalidades_titulacion`, `rubricas`, `evaluaciones`, `evaluacion_observaciones`, `evaluacion_indicadores` | Pares Lectores (`/utilidades/pares-lectores`) | Creadas por `scripts/migrate-utilidades.js`, ver `### Módulo /utilidades` arriba |
 | `superadmin_audit_log` | Log de auditoría de cada acción del módulo Superadmin | Ver `### Módulo Superadmin` arriba — módulo entero sin documentar hasta Sesión 33 |
 | `enlaces_difusion` | Enlaces/QR temporales sin login para que alguien SIN cuenta registre un evento/podcast (Sesión 37) | `token` UUID, `creado_por` (profesor que lo generó), `expira_en`, `max_usos`/`usos_actuales`, `activo` (revocable). Consumida por `/api/enlaces-difusion/**`. Las filas que crea en `actividades_difusion` nacen con `origen='externo_temporal'` y `aprobado_sitio=false` forzado en el servidor — misma cola de moderación de `/admin/contenido` que el resto de difusión. |
+| `horas_podcast_pasante` | Horas acreditables por participar en un podcast de Vinculación (Sesión 38) | Una fila por pasante por episodio, `video_id`+`usuario_id` UNIQUE. Ver `lib/horasPodcast.ts` para la fórmula. Las horas solo cuentan en el seguimiento (`/portal/dashboard`, `/vinculacion/pasantes`) cuando el `videos.aprobado_sitio` del episodio es `true` — no hay columna propia de estado, se resuelve con JOIN en cada lectura. |
 
 **⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
 
@@ -162,6 +163,41 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 38 — 2026-09-14)
+
+### 2 bugs reales de pasante reportados por el usuario, corregidos
+
+- **Primer login del pasante caía en `/portal/perfil`** (cédula/ORCID/título/horario tutorías — campos de docente, sin sentido para un pasante) en vez de ir directo al dashboard a poder inscribir/subir podcast. `app/api/auth/portal-login/route.ts`: el redirect de primera activación ahora solo aplica a `rol === 'profesor'`.
+- **Dashboard del pasante sin ninguna tarjeta** (reportado con caso real: Alisson Parrales, sin opciones al entrar). Causa: la tarjeta "Registros de Vinculación" (`app/portal/dashboard/page.tsx`) estaba gateada por `modulos_acceso.includes('vinculacion')`, módulo que un pasante **nunca** tiene (`POST /api/estudiantes` solo asigna `subir_video`/`investigacion` opcionalmente) — su acceso real es por `espacio_instructores` (`lib/permisos-espacio.ts`), no por `modulos_acceso`. Corregido: la tarjeta también sale si `rol === 'estudiante'`.
+
+### `router.push('/')` tras registrar difusión — salía a la web pública sin avisar
+
+Reportado con caso real: Keyla subió un podcast de Vinculación, dio clic en "Registrar" y la pantalla saltó directo a la web pública de la carrera, sin pasar por el portal — parecía un error/crash. Verificado en Neon: la actividad **sí se guardó** (`actividades_difusion` id 29, pendiente de aprobación como siempre), el salto era el `router.push('/')` intencional pero confuso 2s después de guardar (`app/vinculacion/difusion/page.tsx`). Corregido: ya no navega, reinicia el formulario en la misma página. Además se detectó que el video de YouTube nunca quedó adjunto — el botón "Subir video" (dentro de `SubirVideoDifusion`) es un paso aparte del botón "Registrar", y el formulario dejaba enviarse sin video (campo opcional por diseño) sin avisar. Corregido en `/vinculacion/difusion` y `/gestion-carrera`: si el tipo es podcast y el usuario puede subir video, ahora es obligatorio completarlo antes de registrar.
+
+### Área/proyecto seleccionable en podcasts + participantes + horas acreditables de Vinculación
+
+A pedido explícito del usuario, en el mismo hilo del caso de Keyla: (1) todo podcast debe indicar su área (docencia/investigación/vinculación) y de ahí el proyecto específico, y además sumarse siempre al proyecto Innovaciones Pedagógicas e Internacionalización; (2) debe poder marcarse qué otros pasantes participaron (ej. Keyla + Michelle); (3) solo para podcasts de Vinculación, sistema de horas acreditables según esta tabla (confirmada por el usuario):
+
+| Categoría | Horas |
+|---|---|
+| Solitario / Entre Estudiantes | 3 h |
+| Con Invitado Interno | 5 h |
+| Con Invitado Externo | 8 h |
+| Panelista adicional interno/externo | +1 h / +2 h c/u |
+| Bono audiencia 1-10 / 11-20 / >20 | +1 h / +2 h / +3 h |
+
+Decisiones confirmadas por el usuario: el tipo de episodio (solitario/interno/externo) se **deriva automáticamente** de a quién se marca como invitado (sin selector manual aparte, evita inconsistencias); el proyecto de Docencia se autoselecciona sin dropdown (hoy solo existe uno); las horas quedan pendientes hasta que el video se **aprueba** en `/admin/videos` (se resuelve en la lectura vía `JOIN videos.aprobado_sitio`, no en el endpoint de aprobación).
+
+- **Esquema** (`scripts/migrate-podcast-horas.js`, aplicado vía Neon MCP): `videos.proyecto_id` pasó de `TEXT` a `TEXT[]` (los 5 valores existentes se preservaron) — siempre incluye el proyecto elegido + `'internacionalizacion'`. Nuevas columnas `videos.participantes_estudiantes INTEGER[]`, `invitados_internos TEXT[]`, `invitados_externos TEXT[]`. Tabla nueva `horas_podcast_pasante` (una fila por participante por episodio, con el desglose completo del cálculo).
+- **`lib/horasPodcast.ts`** (nuevo) — función pura `calcularHorasPodcast()` con la tabla exacta, y `registrarHorasPodcast()` que inserta una fila por cada pasante participante.
+- **`lib/registrarVideoPropuesto.ts`** y **`POST /api/videos`** extendidos para aceptar área/proyecto/participantes/invitados/audiencia y disparar `registrarHorasPodcast()` cuando el área es `vinculacion`.
+- **Componentes nuevos:** `components/SelectorAreaProyectoPodcast.tsx` (área + proyecto, usa `proyectos.grupo_nav` para filtrar, autoselecciona si hay 1 solo) y `components/SelectorParticipantesPodcast.tsx` (checkboxes de pasantes vía `GET /api/estudiantes-lista` — nuevo endpoint liviano, cualquier logueado — + listas libres de invitados internos/externos).
+- **3 puntos de entrada actualizados:** `/vinculacion/difusion` (área fija `vinculacion`, con selector de participantes), `/gestion-carrera` (selector de área libre, independiente de la categoría de la actividad en sí), `/portal/subir-video` (reemplazó las etiquetas libres de docencia/vinculación/investigación por el selector real de área+proyecto, sumó campo de audiencia y selector de participantes).
+- **Seguimiento de horas:** tarjeta "🎙 Mis Horas de Podcast" en `/portal/dashboard` para el pasante (solo si tiene horas > 0, solo episodios aprobados); línea "🎙 N h acreditadas" en cada tarjeta de `/vinculacion/pasantes` para el profesor (`GET /api/estudiantes` ahora trae `horas_podcast_acreditadas` por subquery).
+- **Verificación:** `npx tsc --noEmit` y `npm run build` limpios. Migración confirmada con `SELECT` de los 5 valores de `proyecto_id` migrados correctamente antes/después del drop+rename.
 
 ---
 
@@ -989,6 +1025,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-10 (Sesión 37)
+**Última actualización:** 2026-09-14 (Sesión 38)
 **Versión:** 0.10.12
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

@@ -29,6 +29,11 @@ export async function POST(request: Request) {
       youtube_video_id,
       video_category,
       video_tags,
+      video_area_sustantiva,
+      video_proyecto_id,
+      video_participantes,
+      video_invitados_internos,
+      video_invitados_externos,
     } = data;
     const registrador_id = usuario.id;
 
@@ -88,6 +93,14 @@ export async function POST(request: Request) {
         description: descripcion,
         category: video_category,
         tags: Array.isArray(video_tags) ? video_tags : [],
+        areaSustantiva: video_area_sustantiva || null,
+        proyectoId: video_proyecto_id || null,
+        participantesEstudiantes: Array.isArray(video_participantes)
+          ? video_participantes.map((id: any) => Number(id)).filter((id: number) => !isNaN(id))
+          : [],
+        invitadosInternos: Array.isArray(video_invitados_internos) ? video_invitados_internos : [],
+        invitadosExternos: Array.isArray(video_invitados_externos) ? video_invitados_externos : [],
+        audienciaAlcanzada: audiencia_alcanzada || 0,
       });
     }
 

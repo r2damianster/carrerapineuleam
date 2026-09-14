@@ -1,8 +1,18 @@
+import { registrarHorasPodcast } from './horasPodcast';
+
 // Inserta una fila en `videos` a partir de un video ya subido a YouTube (vía
 // iniciarSesionReanudable, ver lib/youtube.ts) — nace con aprobado_sitio=false,
 // pendiente de aprobación en /admin/videos. Compartido entre POST /api/videos
 // (subida desde /portal/subir-video) y POST /api/difusion (subida integrada en
 // Difusión/Eventos, tipo "podcast") para no duplicar la lógica.
+//
+// areaSustantiva/proyectoIds (Sesión 38): el área elegida en el formulario
+// (docencia/investigacion/vinculacion) determina el proyecto específico, pero
+// TODO podcast se suma además al proyecto de Innovaciones Pedagógicas e
+// Internacionalización — proyectoIds siempre incluye 'internacionalizacion'
+// salvo que ya sea el elegido. participantesEstudiantes/invitados* alimentan
+// el cálculo de horas acreditables (lib/horasPodcast.ts), que solo se
+// registra cuando areaSustantiva === 'vinculacion'.
 export async function registrarVideoPropuesto(
   sql: any,
   {
@@ -12,6 +22,12 @@ export async function registrarVideoPropuesto(
     description,
     category,
     tags,
+    areaSustantiva,
+    proyectoId,
+    participantesEstudiantes,
+    invitadosInternos,
+    invitadosExternos,
+    audienciaAlcanzada,
   }: {
     usuarioId: number;
     youtubeVideoId: string;
@@ -19,14 +35,39 @@ export async function registrarVideoPropuesto(
     description?: string | null;
     category: string;
     tags?: string[];
+    areaSustantiva?: string | null;
+    proyectoId?: string | null;
+    participantesEstudiantes?: number[];
+    invitadosInternos?: string[];
+    invitadosExternos?: string[];
+    audienciaAlcanzada?: number;
   }
 ) {
   const id = `video_${Date.now()}`;
   const url_final = `https://youtu.be/${youtubeVideoId}`;
+  const proyectoIds = proyectoId
+    ? Array.from(new Set([proyectoId, 'internacionalizacion']))
+    : null;
+
   const [nuevo] = await sql`
-    INSERT INTO videos (id, title, youtube_url, embed_id, description, category, "order", is_featured, tags, aprobado_sitio, propuesto_por)
-    VALUES (${id}, ${title}, ${url_final}, ${youtubeVideoId}, ${description || null}, ${category}, 0, false, ${tags || []}, false, ${usuarioId})
+    INSERT INTO videos
+      (id, title, youtube_url, embed_id, description, category, "order", is_featured, tags, aprobado_sitio, propuesto_por,
+       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos)
+    VALUES
+      (${id}, ${title}, ${url_final}, ${youtubeVideoId}, ${description || null}, ${category}, 0, false, ${tags || []}, false, ${usuarioId},
+       ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []})
     RETURNING *
   `;
+
+  if (areaSustantiva === 'vinculacion' && participantesEstudiantes && participantesEstudiantes.length > 0) {
+    await registrarHorasPodcast(sql, {
+      videoId: id,
+      participantesEstudiantes,
+      invitadosInternos: invitadosInternos || [],
+      invitadosExternos: invitadosExternos || [],
+      audienciaAlcanzada: audienciaAlcanzada || 0,
+    });
+  }
+
   return nuevo;
 }

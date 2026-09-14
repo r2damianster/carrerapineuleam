@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SubirVideoDifusion from '@/components/SubirVideoDifusion';
+import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
 import EnlacesDifusionList from '@/components/EnlacesDifusionList';
 
@@ -17,6 +18,12 @@ export default function DifusionPage() {
   const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[] } | null>(null);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
+  // Este formulario es específicamente de Vinculación — el área del podcast
+  // queda fija a 'vinculacion' (mismo id de proyecto en la tabla `proyectos`),
+  // solo se pide con quién se hizo (Sesión 38).
+  const [participantes, setParticipantes] = useState<number[]>([]);
+  const [invitadosInternos, setInvitadosInternos] = useState<string[]>([]);
+  const [invitadosExternos, setInvitadosExternos] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -105,7 +112,16 @@ export default function DifusionPage() {
         audiencia_alcanzada: parseInt(formData.audiencia_alcanzada),
         evidencia_url,
         profesores_responsables: responsables,
-        ...(video ? { youtube_video_id: video.youtubeVideoId, video_category: video.categoryId, video_tags: ['vinculacion'] } : {}),
+        ...(video ? {
+          youtube_video_id: video.youtubeVideoId,
+          video_category: video.categoryId,
+          video_tags: ['vinculacion'],
+          video_area_sustantiva: 'vinculacion',
+          video_proyecto_id: 'vinculacion',
+          video_participantes: participantes,
+          video_invitados_internos: invitadosInternos,
+          video_invitados_externos: invitadosExternos,
+        } : {}),
       };
 
       const res = await fetch('/api/difusion', {
@@ -126,6 +142,9 @@ export default function DifusionPage() {
       setResponsables([]);
       setFile(null);
       setVideo(null);
+      setParticipantes([]);
+      setInvitadosInternos([]);
+      setInvitadosExternos([]);
 
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
@@ -216,11 +235,22 @@ export default function DifusionPage() {
           </div>
 
           {formData.tipo === 'podcast' && puedeSubirVideo && (
-            <SubirVideoDifusion
-              titulo={formData.titulo}
-              onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
-              onVideoQuitado={() => setVideo(null)}
-            />
+            <>
+              <SubirVideoDifusion
+                titulo={formData.titulo}
+                onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
+                onVideoQuitado={() => setVideo(null)}
+              />
+              <SelectorParticipantesPodcast
+                areaSustantiva="vinculacion"
+                participantes={participantes}
+                invitadosInternos={invitadosInternos}
+                invitadosExternos={invitadosExternos}
+                onParticipantesChange={setParticipantes}
+                onInvitadosInternosChange={setInvitadosInternos}
+                onInvitadosExternosChange={setInvitadosExternos}
+              />
+            </>
           )}
 
           <div className="pt-4 border-t">

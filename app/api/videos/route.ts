@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { registrarHorasPodcast } from '@/lib/horasPodcast';
 
 function extractEmbedId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=|\/sandalsResorts#\w\/\w\/.*\/))([^\/&\?]{10,12})/);
@@ -88,7 +89,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { title, youtube_url, description, category, published_date, order, is_featured, tags, youtube_video_id } = await request.json();
+    const {
+      title, youtube_url, description, category, published_date, order, is_featured, tags, youtube_video_id,
+      area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada,
+    } = await request.json();
     if (!title || !category) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -101,12 +105,31 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
     const id = `video_${Date.now()}`;
+    const proyectoIds = proyecto_id ? Array.from(new Set([proyecto_id, 'internacionalizacion'])) : null;
+    const participantesIds = Array.isArray(participantes_estudiantes)
+      ? participantes_estudiantes.map((pid: any) => Number(pid)).filter((pid: number) => !isNaN(pid))
+      : [];
     const [nuevo] = await sql`
-      INSERT INTO videos (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por)
-      VALUES (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || null}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
-              ${esAdminContenido}, ${esAdminContenido ? null : Number(usuario.id)})
+      INSERT INTO videos
+        (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por,
+         area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos)
+      VALUES
+        (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || null}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
+         ${esAdminContenido}, ${esAdminContenido ? null : Number(usuario.id)},
+         ${area_sustantiva || null}, ${proyectoIds}, ${participantesIds}, ${invitados_internos || []}, ${invitados_externos || []})
       RETURNING *
     `;
+
+    if (area_sustantiva === 'vinculacion' && participantesIds.length > 0) {
+      await registrarHorasPodcast(sql, {
+        videoId: id,
+        participantesEstudiantes: participantesIds,
+        invitadosInternos: invitados_internos || [],
+        invitadosExternos: invitados_externos || [],
+        audienciaAlcanzada: audiencia_alcanzada || 0,
+      });
+    }
+
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
