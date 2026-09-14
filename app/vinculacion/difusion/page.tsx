@@ -73,6 +73,10 @@ export default function DifusionPage() {
       setMessage('Error: Debe seleccionar al menos un profesor responsable');
       return;
     }
+    if (formData.tipo === 'podcast' && puedeSubirVideo && !video) {
+      setMessage('Error: Debe subir el video del podcast (botón "Subir video" de arriba) antes de registrar la actividad');
+      return;
+    }
 
     setLoading(true);
     setMessage('');
@@ -114,12 +118,15 @@ export default function DifusionPage() {
       if (!res.ok) throw new Error(data.error);
 
       setMessage(`¡Actividad de difusión registrada correctamente!`);
-      
-      // Reiniciar
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
-      
+
+      // Reiniciar el formulario en la misma página — antes esto mandaba a la
+      // web pública (router.push('/')), que parecía sacar a la persona del
+      // portal sin avisar. Se queda acá para poder registrar otra actividad.
+      setFormData({ titulo: '', tipo: 'podcast', fecha: '', audiencia_alcanzada: '' });
+      setResponsables([]);
+      setFile(null);
+      setVideo(null);
+
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
