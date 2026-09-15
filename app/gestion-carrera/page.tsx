@@ -21,6 +21,7 @@ export default function GestionCarreraPage() {
   const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
+  const [videoResetKey, setVideoResetKey] = useState(0);
   const [modulosAcceso, setModulosAcceso] = useState<string[]>([]);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
   // Área/proyecto propios del podcast (Sesión 38) — independiente de la
@@ -184,6 +185,7 @@ export default function GestionCarreraPage() {
       setForm({ titulo: '', tipo: 'evento_formacion', categoria: 'vinculacion', proyecto: '', asignatura: '', audiencia_alcanzada: '', descripcion: '', fecha: '', hora: '', observaciones: '' });
       setFile(null);
       setVideo(null);
+      setVideoResetKey((k) => k + 1);
       setVideoProyectoId('');
       setParticipantes([]);
       setInvitadosInternos([]);
@@ -315,6 +317,7 @@ export default function GestionCarreraPage() {
                 onProyectoChange={setVideoProyectoId}
               />
               <SubirVideoDifusion
+                key={videoResetKey}
                 titulo={form.titulo}
                 descripcion={form.descripcion}
                 onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}

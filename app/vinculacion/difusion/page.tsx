@@ -17,6 +17,7 @@ export default function DifusionPage() {
   const [responsables, setResponsables] = useState<number[]>([]);
   const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[] } | null>(null);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
+  const [videoResetKey, setVideoResetKey] = useState(0);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
   // Este formulario es específicamente de Vinculación — el área del podcast
   // queda fija a 'vinculacion' (mismo id de proyecto en la tabla `proyectos`),
@@ -142,6 +143,7 @@ export default function DifusionPage() {
       setResponsables([]);
       setFile(null);
       setVideo(null);
+      setVideoResetKey((k) => k + 1);
       setParticipantes([]);
       setInvitadosInternos([]);
       setInvitadosExternos([]);
@@ -237,6 +239,7 @@ export default function DifusionPage() {
           {formData.tipo === 'podcast' && puedeSubirVideo && (
             <>
               <SubirVideoDifusion
+                key={videoResetKey}
                 titulo={formData.titulo}
                 onVideoSubido={(youtubeVideoId, categoryId) => setVideo({ youtubeVideoId, categoryId })}
                 onVideoQuitado={() => setVideo(null)}
