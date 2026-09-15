@@ -5,6 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 // mismatches en preview deployments.
 export const YOUTUBE_REDIRECT_URI = 'https://carrerapineuleam.vercel.app/api/youtube/oauth-callback';
 export const YOUTUBE_UPLOAD_SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
+export const SITE_ORIGIN = 'https://carrerapineuleam.vercel.app';
 
 export function getOAuthClient() {
   return new OAuth2Client(
@@ -66,6 +67,12 @@ export async function iniciarSesionReanudable({
         'Content-Type': 'application/json',
         'X-Upload-Content-Type': mimeType,
         'X-Upload-Content-Length': String(fileSize),
+        // El PUT de los bytes lo hace el navegador directo a Google (no pasa
+        // por Vercel, límite de ~4.5MB del body). Para que Google autorice esa
+        // llamada cross-origin hay que declarar el Origin ya en esta llamada
+        // inicial (server-to-server) — si no, el PUT del navegador falla con
+        // CORS aunque el access_token/refresh_token sean válidos.
+        Origin: SITE_ORIGIN,
       },
       body: JSON.stringify({
         snippet: { title, description },
