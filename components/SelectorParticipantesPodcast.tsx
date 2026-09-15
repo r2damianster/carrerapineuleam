@@ -124,9 +124,7 @@ export default function SelectorParticipantesPodcast({
         </div>
       </div>
 
-      {areaSustantiva === 'vinculacion' && (
-        <p className="text-xs text-indigo-600">Las horas acreditables de este episodio se calculan automáticamente según quién participó y la audiencia reportada, y quedan pendientes hasta que el video se apruebe en el sitio.</p>
-      )}
+      <p className="text-xs text-indigo-600">Los pasantes marcados reciben horas acreditables de Vinculación por este episodio (sin importar el área elegida arriba), calculadas según quién participó y la audiencia reportada — quedan pendientes hasta que el video se apruebe en el sitio.</p>
     </div>
   );
 }

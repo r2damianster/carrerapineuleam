@@ -11,8 +11,14 @@ import { registrarHorasPodcast } from './horasPodcast';
 // TODO podcast se suma además al proyecto de Innovaciones Pedagógicas e
 // Internacionalización — proyectoIds siempre incluye 'internacionalizacion'
 // salvo que ya sea el elegido. participantesEstudiantes/invitados* alimentan
-// el cálculo de horas acreditables (lib/horasPodcast.ts), que solo se
-// registra cuando areaSustantiva === 'vinculacion'.
+// el cálculo de horas acreditables (lib/horasPodcast.ts).
+//
+// Sesión 40: las horas ya NO dependen de areaSustantiva === 'vinculacion' —
+// un pasante puede adscribir su podcast a cualquier área (docencia,
+// investigación o vinculación), y de todos modos se acredita como horas de
+// Vinculación en cuanto queda marcado como participante. Antes, elegir mal
+// el área (ej. "investigación" por error) dejaba a ese pasante sin horas —
+// caso real: video_1789480797649, corregido a mano en Neon.
 export async function registrarVideoPropuesto(
   sql: any,
   {
@@ -59,7 +65,7 @@ export async function registrarVideoPropuesto(
     RETURNING *
   `;
 
-  if (areaSustantiva === 'vinculacion' && participantesEstudiantes && participantesEstudiantes.length > 0) {
+  if (participantesEstudiantes && participantesEstudiantes.length > 0) {
     await registrarHorasPodcast(sql, {
       videoId: id,
       participantesEstudiantes,

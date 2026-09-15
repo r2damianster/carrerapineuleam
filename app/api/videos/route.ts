@@ -116,6 +116,13 @@ export async function POST(request: Request) {
     const participantesIds = Array.isArray(participantes_estudiantes)
       ? participantes_estudiantes.map((pid: any) => Number(pid)).filter((pid: number) => !isNaN(pid))
       : [];
+    // Sesión 40: si quien sube es un pasante, se autoincluye como participante
+    // aunque no se haya marcado a sí mismo en el checklist — evita que se
+    // quede sin horas por un simple olvido en el formulario (caso real: Keyla
+    // Pin Bello subió un episodio sin marcarse, video_1789480797649).
+    if (usuario.rol === 'estudiante' && !participantesIds.includes(Number(usuario.id))) {
+      participantesIds.push(Number(usuario.id));
+    }
     const [nuevo] = await sql`
       INSERT INTO videos
         (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por,
@@ -127,7 +134,11 @@ export async function POST(request: Request) {
       RETURNING *
     `;
 
-    if (area_sustantiva === 'vinculacion' && participantesIds.length > 0) {
+    // Sesión 40: las horas de podcast ya no dependen del área elegida — un
+    // pasante puede adscribir su episodio a docencia/investigación/vinculación
+    // y de todos modos cuenta como horas de Vinculación en cuanto hay
+    // participantes marcados (ver lib/registrarVideoPropuesto.ts).
+    if (participantesIds.length > 0) {
       await registrarHorasPodcast(sql, {
         videoId: id,
         participantesEstudiantes: participantesIds,

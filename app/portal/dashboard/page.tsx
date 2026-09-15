@@ -90,13 +90,17 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Horas acreditables de podcast (Sesión 38) — solo pasante, solo
-                si ya participó en al menos un episodio aprobado. */}
-            {rol === 'estudiante' && horasPodcastAcreditadas > 0 && (
+            {/* Mi Avance (Sesión 40) — siempre visible para el pasante, aunque
+                todavía no haya registrado nada: horas, espacios asignados,
+                beneficiarios, asistencias, evaluaciones y encuestas de su
+                espacio. Antes solo existía esta tarjeta de horas de podcast y
+                solo aparecía si ya tenía horas>0 — quedaba sin nada que ver. */}
+            {rol === 'estudiante' && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">🎙 Mis Horas de Podcast</h3>
-                <p className="text-gray-600 mb-2 text-sm">Horas acreditables por tu participación en podcasts de Vinculación (solo episodios ya aprobados).</p>
-                <p className="text-3xl font-bold text-amber-600">{horasPodcastAcreditadas} h</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">📊 Mi Avance</h3>
+                <p className="text-gray-600 mb-2 text-sm">Tus horas acreditables, espacios asignados, beneficiarios y evaluaciones registradas.</p>
+                <p className="text-3xl font-bold text-amber-600 mb-3">{horasPodcastAcreditadas} h <span className="text-sm font-normal text-gray-500">de podcast</span></p>
+                <Link href="/portal/mi-avance" className="text-amber-600 hover:underline">» Ver mi avance completo</Link>
               </div>
             )}
 

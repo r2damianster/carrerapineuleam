@@ -30,6 +30,7 @@ export async function middleware(request: NextRequest) {
     '/portal/dashboard',
     '/portal/perfil',
     '/portal/subir-video',
+    '/portal/mi-avance',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',
