@@ -260,6 +260,11 @@ function AdminVideosPage() {
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <p className="font-bold text-gray-800">{video.title}</p>
+                {video.proponente && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Subido por: {video.proponente.nombres} {video.proponente.apellidos} ({video.proponente.email})
+                  </p>
+                )}
                 {video.description && <p className="text-sm text-gray-600 mt-1">{video.description}</p>}
                 {video.embed_id && (
                   <a href={`https://youtu.be/${video.embed_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-uleam-blue hover:underline">

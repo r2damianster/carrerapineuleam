@@ -26,14 +26,21 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
       }
       const pendientes = await sql`
-        SELECT v.*, row_to_json(c.*) AS category_expand
-        FROM videos v LEFT JOIN video_categories c ON c.id = v.category
+        SELECT v.*, row_to_json(c.*) AS category_expand,
+               u.nombres AS proponente_nombres, u.apellidos AS proponente_apellidos, u.email AS proponente_email
+        FROM videos v
+        LEFT JOIN video_categories c ON c.id = v.category
+        LEFT JOIN usuarios u ON u.id = v.propuesto_por
         WHERE v.aprobado_sitio = false
         ORDER BY v.created DESC
       `;
       return NextResponse.json(pendientes.map((r: any) => {
-        const { category_expand, ...video } = r;
-        return { ...video, expand: { category: category_expand } };
+        const { category_expand, proponente_nombres, proponente_apellidos, proponente_email, ...video } = r;
+        return {
+          ...video,
+          expand: { category: category_expand },
+          proponente: proponente_nombres ? { nombres: proponente_nombres, apellidos: proponente_apellidos, email: proponente_email } : null,
+        };
       }));
     }
 

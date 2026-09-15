@@ -92,6 +92,9 @@ export interface Video {
   fecha_aprobacion?: string | null;
   created: string;
   updated: string;
+  // Solo presente en GET /api/videos?pendientes=true — quién lo subió, para
+  // que contenido_sitio pueda identificarlo antes de aprobar/rechazar.
+  proponente?: { nombres: string; apellidos: string; email: string } | null;
 }
 
 export interface News {
