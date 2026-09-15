@@ -1,6 +1,4 @@
 import Header from '@/components/Header';
-import QRPromoModal from '@/components/QRPromoModal';
-import QRFloatingButton from '@/components/QRFloatingButton';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import About from '@/components/About';
@@ -20,9 +18,7 @@ export const metadata = {
 export default function PineProjectPage() {
   return (
     <>
-      <QRPromoModal />
-      <QRFloatingButton />
-      <Header />
+      <Header logoSrc="/images/logos/logo-proyecto.png" logoAlt="Logo Proyecto" />
       <main>
         <Hero />
         <About />

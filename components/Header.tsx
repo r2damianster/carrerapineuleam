@@ -43,7 +43,7 @@ function hrefDeProyecto(p: ProyectoNav): string {
   return RUTA_CONOCIDA[p.id] || `/proyectos/${p.slug}`;
 }
 
-export default function Header({ siteName, logoSrc = '/images/logos/logo-proyecto.png', logoAlt = 'Logo Proyecto' }: HeaderProps = {}) {
+export default function Header({ siteName, logoSrc = '/images/logos/logo-carrera-pine.jpg', logoAlt = 'Logo Carrera PINE' }: HeaderProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);

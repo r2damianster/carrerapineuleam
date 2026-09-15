@@ -4,10 +4,14 @@ import HubProjectsSection from '@/components/HubProjectsSection';
 import NewsSection from '@/components/NewsSection';
 import ConnectionsSection from '@/components/ConnectionsSection';
 import PhotoCarousel from '@/components/PhotoCarousel';
+import QRPromoModal from '@/components/QRPromoModal';
+import QRFloatingButton from '@/components/QRFloatingButton';
 
 export default function HubPage() {
   return (
     <>
+      <QRPromoModal />
+      <QRFloatingButton />
       <Header />
       <main>
         <PhotoCarousel ubicacion="portada" />
