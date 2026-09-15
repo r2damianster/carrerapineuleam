@@ -1,5 +1,3 @@
-import { registrarHorasPodcast } from './horasPodcast';
-
 // Inserta una fila en `videos` a partir de un video ya subido a YouTube (vía
 // iniciarSesionReanudable, ver lib/youtube.ts) — nace con aprobado_sitio=false,
 // pendiente de aprobación en /admin/videos. Compartido entre POST /api/videos
@@ -10,8 +8,13 @@ import { registrarHorasPodcast } from './horasPodcast';
 // (docencia/investigacion/vinculacion) determina el proyecto específico, pero
 // TODO podcast se suma además al proyecto de Innovaciones Pedagógicas e
 // Internacionalización — proyectoIds siempre incluye 'internacionalizacion'
-// salvo que ya sea el elegido. participantesEstudiantes/invitados* alimentan
-// el cálculo de horas acreditables (lib/horasPodcast.ts).
+// salvo que ya sea el elegido. participantesEstudiantes/invitados*/
+// audienciaAlcanzada se guardan en la fila del video (no se calculan horas
+// acá) — alimentan el cálculo de horas acreditables (lib/horasPodcast.ts)
+// recién cuando el profesor aprueba el video en /admin/videos
+// (app/api/videos/[id]/route.ts), no al subirlo. Antes se insertaban al
+// subir, contando aunque el video siguiera pendiente de aprobación — el
+// pasante veía horas que en realidad el profesor todavía no había validado.
 //
 // Sesión 40: las horas ya NO dependen de areaSustantiva === 'vinculacion' —
 // un pasante puede adscribir su podcast a cualquier área (docencia,
@@ -58,22 +61,12 @@ export async function registrarVideoPropuesto(
   const [nuevo] = await sql`
     INSERT INTO videos
       (id, title, youtube_url, embed_id, description, category, "order", is_featured, tags, aprobado_sitio, propuesto_por,
-       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos)
+       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada)
     VALUES
       (${id}, ${title}, ${url_final}, ${youtubeVideoId}, ${description || null}, ${category}, 0, false, ${tags || []}, false, ${usuarioId},
-       ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []})
+       ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []}, ${audienciaAlcanzada || 0})
     RETURNING *
   `;
-
-  if (participantesEstudiantes && participantesEstudiantes.length > 0) {
-    await registrarHorasPodcast(sql, {
-      videoId: id,
-      participantesEstudiantes,
-      invitadosInternos: invitadosInternos || [],
-      invitadosExternos: invitadosExternos || [],
-      audienciaAlcanzada: audienciaAlcanzada || 0,
-    });
-  }
 
   return nuevo;
 }

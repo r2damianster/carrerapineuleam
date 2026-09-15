@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { calcularHorasPodcast } from '@/lib/horasPodcast';
 
 // Resumen de avance/cumplimiento de un pasante (rol estudiante) — pensado
 // para que vea de un vistazo, aunque todavía no haya registrado nada, en
@@ -54,12 +55,33 @@ export async function GET() {
       FROM actividades_difusion WHERE registrador_id = ${usuarioId}
     `;
 
+    // Horas ya confirmadas (Sesión 40): solo existen filas en
+    // horas_podcast_pasante para videos ya aprobados — se insertan recién al
+    // aprobar (app/api/videos/[id]/route.ts), no al subir.
     const [horasPodcastRow] = await sql`
       SELECT COALESCE(SUM(h.horas_total), 0)::float AS total, COUNT(*)::int AS episodios
       FROM horas_podcast_pasante h
       JOIN videos v ON v.id = h.video_id
       WHERE h.usuario_id = ${usuarioId} AND v.aprobado_sitio = true
     `;
+
+    // Horas pendientes: episodios donde el pasante ya quedó marcado como
+    // participante pero el profesor todavía no aprueba el video en
+    // /admin/videos — se calculan al vuelo (calcularHorasPodcast) porque
+    // todavía no tienen fila en horas_podcast_pasante.
+    const videosPendientes = await sql`
+      SELECT id, invitados_internos, invitados_externos, audiencia_alcanzada
+      FROM videos
+      WHERE aprobado_sitio = false AND ${usuarioId} = ANY(participantes_estudiantes)
+    `;
+    const horasPodcastPendientes = videosPendientes.reduce((total: number, v: any) => {
+      const desglose = calcularHorasPodcast({
+        invitadosInternosCount: v.invitados_internos?.length || 0,
+        invitadosExternosCount: v.invitados_externos?.length || 0,
+        audienciaAlcanzada: v.audiencia_alcanzada || 0,
+      });
+      return total + desglose.horasTotal;
+    }, 0);
 
     const tieneInvestigacion = usuario.modulos_acceso.includes('investigacion');
     const [horasInvestigacionRow] = tieneInvestigacion
@@ -73,7 +95,7 @@ export async function GET() {
       evaluacionesMcer: mcerRow.total,
       encuestasEnTuEspacio: encuestasRow.total,
       difusion: difusionRow,
-      horasPodcast: horasPodcastRow,
+      horasPodcast: { ...horasPodcastRow, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,
     });
   } catch (error: any) {

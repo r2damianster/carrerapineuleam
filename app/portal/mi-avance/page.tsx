@@ -18,7 +18,7 @@ interface Avance {
   evaluacionesMcer: number;
   encuestasEnTuEspacio: number;
   difusion: { aprobadas: number; pendientes: number; podcasts: number };
-  horasPodcast: { total: number; episodios: number };
+  horasPodcast: { total: number; episodios: number; pendientes: number; episodiosPendientes: number };
   horasInvestigacion: { total: number; reportes: number } | null;
 }
 
@@ -87,6 +87,14 @@ export default function MiAvancePage() {
                     sub={`${avance.horasPodcast.episodios} episodio(s) aprobado(s)`}
                     color="border-amber-500"
                   />
+                  {avance.horasPodcast.episodiosPendientes > 0 && (
+                    <Tile
+                      label="⏳ Horas pendientes de aprobación"
+                      value={`${avance.horasPodcast.pendientes} h`}
+                      sub={`${avance.horasPodcast.episodiosPendientes} episodio(s) esperando que el profesor los apruebe en el sitio`}
+                      color="border-orange-400"
+                    />
+                  )}
                   {avance.horasInvestigacion && (
                     <Tile
                       label="🔬 Horas de Investigación"

@@ -126,19 +126,23 @@ export async function POST(request: Request) {
     const [nuevo] = await sql`
       INSERT INTO videos
         (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por,
-         area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos)
+         area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada)
       VALUES
         (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || null}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
          ${esAdminContenido}, ${esAdminContenido ? null : Number(usuario.id)},
-         ${area_sustantiva || null}, ${proyectoIds}, ${participantesIds}, ${invitados_internos || []}, ${invitados_externos || []})
+         ${area_sustantiva || null}, ${proyectoIds}, ${participantesIds}, ${invitados_internos || []}, ${invitados_externos || []}, ${audiencia_alcanzada || 0})
       RETURNING *
     `;
 
     // Sesión 40: las horas de podcast ya no dependen del área elegida — un
     // pasante puede adscribir su episodio a docencia/investigación/vinculación
     // y de todos modos cuenta como horas de Vinculación en cuanto hay
-    // participantes marcados (ver lib/registrarVideoPropuesto.ts).
-    if (participantesIds.length > 0) {
+    // participantes marcados (ver lib/registrarVideoPropuesto.ts). Pero solo
+    // se acreditan de inmediato si el video ya nace aprobado (lo crea
+    // contenido_sitio directo) — si queda pendiente, las horas se calculan
+    // recién cuando el profesor lo aprueba en /admin/videos (app/api/videos/[id]/route.ts),
+    // no al subirlo.
+    if (esAdminContenido && participantesIds.length > 0) {
       await registrarHorasPodcast(sql, {
         videoId: id,
         participantesEstudiantes: participantesIds,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { obtenerAccessToken, actualizarPrivacidad } from '@/lib/youtube';
+import { registrarHorasPodcast } from '@/lib/horasPodcast';
 
 function extractEmbedId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=|\/sandalsResorts#\w\/\w\/.*\/))([^\/&\?]{10,12})/);
@@ -33,6 +34,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         RETURNING *
       `;
       if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+
+      // Horas de podcast (Sesión 40): se calculan recién acá, al aprobar —
+      // no al subir. Antes se insertaban en registrarVideoPropuesto/POST
+      // /api/videos apenas se subía, contando aunque el profesor todavía no
+      // hubiera revisado nada. participantes_estudiantes/invitados*/
+      // audiencia_alcanzada ya quedaron guardados en la fila del video desde
+      // que se propuso.
+      if (actualizado.participantes_estudiantes && actualizado.participantes_estudiantes.length > 0) {
+        await registrarHorasPodcast(sql, {
+          videoId: actualizado.id,
+          participantesEstudiantes: actualizado.participantes_estudiantes,
+          invitadosInternos: actualizado.invitados_internos || [],
+          invitadosExternos: actualizado.invitados_externos || [],
+          audienciaAlcanzada: actualizado.audiencia_alcanzada || 0,
+        });
+      }
 
       if (body.hacerPublicoEnYoutube && actualizado.embed_id) {
         try {

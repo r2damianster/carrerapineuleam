@@ -102,10 +102,14 @@ export default function AudioQuestionRecorder({
         Esta pregunta es <strong>obligatoria</strong>: si no la grabas, no podrás enviar el test.
       </div>
       <div className="flex items-center gap-3">
-        {!grabando ? (
+        {resultado ? (
+          <span className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-green-700 bg-green-50 border border-green-200">
+            ✅ Respuesta grabada — una sola oportunidad por pregunta
+          </span>
+        ) : !grabando ? (
           <button type="button" onClick={iniciarGrabacion} disabled={evaluando}
             className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50">
-            🎤 {resultado ? 'Grabar de nuevo' : 'Grabar respuesta'}
+            🎤 Grabar respuesta
           </button>
         ) : (
           <button type="button" onClick={detenerGrabacion}

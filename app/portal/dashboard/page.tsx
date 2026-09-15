@@ -21,17 +21,28 @@ export default async function PortalDashboard() {
   const proyectoPropio = liderProyectoPropio[email];
 
   // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
-  // episodios ya aprobados en /admin/videos, ver lib/horasPodcast.ts.
+  // episodios ya aprobados en /admin/videos, ver lib/horasPodcast.ts. Las
+  // horas se calculan recién al aprobar (Sesión 40), no al subir — episodiosPendientes
+  // cuenta cuántos le faltan por aprobar al profesor, para que el pasante
+  // sepa por qué todavía no ve esas horas.
   let horasPodcastAcreditadas = 0;
+  let episodiosPendientes = 0;
   if (rol === 'estudiante') {
     const sql = neon(process.env.DATABASE_URL!);
+    const usuarioId = parseInt(session.id, 10);
     const [fila] = await sql`
       SELECT COALESCE(SUM(h.horas_total), 0) AS total
       FROM horas_podcast_pasante h
       JOIN videos v ON v.id = h.video_id
-      WHERE h.usuario_id = ${parseInt(session.id, 10)} AND v.aprobado_sitio = true
+      WHERE h.usuario_id = ${usuarioId} AND v.aprobado_sitio = true
     `;
     horasPodcastAcreditadas = Number(fila?.total || 0);
+
+    const [pendientesFila] = await sql`
+      SELECT COUNT(*) AS total FROM videos
+      WHERE aprobado_sitio = false AND ${usuarioId} = ANY(participantes_estudiantes)
+    `;
+    episodiosPendientes = Number(pendientesFila?.total || 0);
   }
 
   return (
@@ -99,7 +110,10 @@ export default async function PortalDashboard() {
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">📊 Mi Avance</h3>
                 <p className="text-gray-600 mb-2 text-sm">Tus horas acreditables, espacios asignados, beneficiarios y evaluaciones registradas.</p>
-                <p className="text-3xl font-bold text-amber-600 mb-3">{horasPodcastAcreditadas} h <span className="text-sm font-normal text-gray-500">de podcast</span></p>
+                <p className="text-3xl font-bold text-amber-600 mb-1">{horasPodcastAcreditadas} h <span className="text-sm font-normal text-gray-500">de podcast</span></p>
+                {episodiosPendientes > 0 && (
+                  <p className="text-xs text-orange-600 mb-3">⏳ Tienes {episodiosPendientes} episodio(s) esperando aprobación del profesor — sus horas se suman cuando se apruebe.</p>
+                )}
                 <Link href="/portal/mi-avance" className="text-amber-600 hover:underline">» Ver mi avance completo</Link>
               </div>
             )}
