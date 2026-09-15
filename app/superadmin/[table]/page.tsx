@@ -49,6 +49,7 @@ export default function SuperadminTablePage() {
       if (rowsRes.error) throw new Error(rowsRes.error);
       setColumns(schemaRes.columns);
       setPrimaryKey(schemaRes.primaryKey);
+      setDescription(schemaRes.description ?? null);
       setRows(rowsRes.rows);
       setTotal(rowsRes.total);
     } catch (err: any) {
@@ -125,6 +126,26 @@ export default function SuperadminTablePage() {
     }
   };
 
+  const guardarDescripcion = async () => {
+    setSavingDescription(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/superadmin/tables/${table}/schema`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: descriptionDraft }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDescription(descriptionDraft.trim() || null);
+      setEditingDescription(false);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSavingDescription(false);
+    }
+  };
+
   const crearFila = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -171,6 +192,48 @@ export default function SuperadminTablePage() {
           >
             {creating ? 'Cancelar' : '+ Nueva fila'}
           </button>
+        </div>
+
+        <div className="bg-white rounded shadow p-3 mb-4">
+          {editingDescription ? (
+            <div className="flex gap-2">
+              <textarea
+                autoFocus
+                className="border rounded px-2 py-1 flex-1 text-sm"
+                rows={2}
+                placeholder="¿Qué guarda esta tabla y para qué se usa? (visible también desde psql/Neon Console)"
+                value={descriptionDraft}
+                onChange={(e) => setDescriptionDraft(e.target.value)}
+              />
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={guardarDescripcion}
+                  disabled={savingDescription}
+                  className="bg-uleam-blue text-white px-3 py-1 rounded text-sm"
+                >
+                  Guardar
+                </button>
+                <button onClick={() => setEditingDescription(false)} className="text-gray-500 text-sm px-2">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                {description || <span className="text-gray-400 italic">Sin descripción — no se sabe qué es ni para qué sirve esta tabla.</span>}
+              </p>
+              <button
+                onClick={() => {
+                  setDescriptionDraft(description ?? '');
+                  setEditingDescription(true);
+                }}
+                className="text-gray-400 hover:text-uleam-blue text-xs whitespace-nowrap"
+              >
+                ✏️ {description ? 'Editar' : 'Agregar descripción'}
+              </button>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-red-600 mb-2 text-sm">{error}</p>}
