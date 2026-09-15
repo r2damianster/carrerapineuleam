@@ -107,9 +107,9 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `enlaces_difusion` | Enlaces/QR temporales sin login para que alguien SIN cuenta registre un evento/podcast (Sesión 37) | `token` UUID, `creado_por` (profesor que lo generó), `expira_en`, `max_usos`/`usos_actuales`, `activo` (revocable). Consumida por `/api/enlaces-difusion/**`. Las filas que crea en `actividades_difusion` nacen con `origen='externo_temporal'` y `aprobado_sitio=false` forzado en el servidor — misma cola de moderación de `/admin/contenido` que el resto de difusión. |
 | `horas_podcast_pasante` | Horas acreditables por participar en un podcast de Vinculación (Sesión 38) | Una fila por pasante por episodio, `video_id`+`usuario_id` UNIQUE. Ver `lib/horasPodcast.ts` para la fórmula. Las horas solo cuentan en el seguimiento (`/portal/dashboard`, `/vinculacion/pasantes`) cuando el `videos.aprobado_sitio` del episodio es `true` — no hay columna propia de estado, se resuelve con JOIN en cada lectura. |
 
-**⚠️ Esquema viejo, huérfano, NO tocar sin decisión explícita:** `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — todas UUID, del módulo de asistencia original (pre-Sesión-19). Tenían 3 cuentas reales (Andy Castillo, Josselyn Mera, Ailys Bailón) que quedaron huérfanas — deben autoregistrarse de nuevo en `/registro`, sus claves viejas no eran recuperables.
+| `actividades_investigacion_pasante` | Horas/actividades de investigación reportadas por un pasante con `modulos_acceso: investigacion` (Sesión 39, sin sesión previa que lo documentara — encontrada en la limpieza de esta sesión, ya era código real en producción) | `POST/GET /api/actividades-investigacion`, UI en `/vinculacion/investigacion-actividades`. Mismo patrón que `horas_podcast_pasante`: una fila por reporte, sin aprobación del profesor. |
 
-**⚠️ Tablas sin usar en ningún lado del código, creadas fuera de git (probablemente por Antigravity vía consola de Neon), sin confirmar con el usuario:** `avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`, `eventos_estudiantes`, `encuesta_satisfaccion` (singular, distinta de `encuestas_satisfaccion`). Apuntan al esquema UUID viejo. **No construir nada sobre ellas sin antes preguntar** — probablemente son la base pensada para expandir Investigación/Vinculación, pero no hay contexto documentado de su diseño.
+**Limpieza de esquema (Sesión 39):** 13 tablas huérfanas/sin-uso confirmadas por auditoría exhaustiva de código (grep de `FROM/JOIN/INTO/UPDATE` en todo `app/`+`lib/`, cero coincidencias) **eliminadas de Neon** — `estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` (esquema UUID viejo pre-Sesión-19, tenían 3 cuentas huérfanas ya inservibles — Andy Castillo, Josselyn Mera, Ailys Bailón, confirmado que debían re-registrarse de todos modos), `avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`, `eventos_estudiantes`, `encuesta_satisfaccion` (singular), `calificaciones_ciclo`, `asistencias_eventos` (las últimas 8, todas con 0 filas, creadas fuera de git). `actividades_investigacion_pasante` estaba en la misma lista de "sin documentar" pero **se confirmó como feature real en uso** (ver fila de arriba) — no se tocó.
 
 ### Variables de entorno requeridas (Neon/Portal)
 `DATABASE_URL` (Neon), `SESSION_SECRET` (firma de `pine_app_session`), `CLOUDINARY_CLOUD_NAME`/`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` (uploads). Todas ya están en Vercel Production — ver `.env.local.example` para desarrollo local.
@@ -163,6 +163,18 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 39 — 2026-09-15)
+
+### Descripción de tabla en Superadmin + limpieza de 13 tablas huérfanas/sin-uso en Neon
+
+A pedido del usuario: (1) `/superadmin` no tenía forma de anotar qué es y para qué sirve cada tabla — se agregó edición inline (lápiz ✏️) en el listado (`/superadmin`) y en el detalle de cada tabla (`/superadmin/[table]`), guardada como comentario **nativo de Postgres** (`COMMENT ON TABLE ... IS ...`, vía `lib/superadmin-db.ts:setTableComment()`/`getTableComment()`) — no una columna/tabla propia, así queda visible también desde psql/Neon Console para cualquiera que explore la base fuera de este panel. Las 35 tablas reales (post-limpieza) ya tienen descripción sembrada.
+- `PATCH /api/superadmin/tables` (por nombre de tabla en el body) y `PATCH /api/superadmin/tables/[table]/schema` (misma acción, para la página de detalle) — ambas auditadas en `superadmin_audit_log` (`tipo_accion: crud_update`).
+- **Auditoría exhaustiva pidió el usuario** sobre las tablas "huérfanas"/"sin usar" que CLAUDE.md ya documentaba con advertencia — antes de borrar nada se corrió `grep` de `FROM/JOIN/INTO/UPDATE/TABLE <nombre>` en todo `app/`+`lib/` (no solo `lib/db.ts`, todo el árbol) para cada una, más una consulta directa a Neon del esquema real (`information_schema.tables`) para no confiar ciegamente en lo que decía CLAUDE.md — encontró **2 tablas sin documentar que CLAUDE.md no mencionaba**: `actividades_investigacion_pasante` (resultó ser una feature real en producción, `/vinculacion/investigacion-actividades` + `/api/actividades-investigacion` — se agregó a la tabla de referencia, no se tocó) y `asistencias_eventos` (0 filas, cero referencias en código — sí se borró).
+- **13 tablas eliminadas de Neon** (`DROP TABLE ... CASCADE`, orden hijos→padres respetando FKs): las 6 del esquema UUID viejo (`estudiantes`, `espacios`, `beneficiarios`, `bitacora_asistencia`, `bitacora_estudiantes`, `bitacora_beneficiarios` — tenían 3 cuentas reales huérfanas, ya inservibles, confirmado en Sesión 19 que debían re-registrarse) + 7 vacías creadas fuera de git (`avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`, `eventos_estudiantes`, `encuesta_satisfaccion` singular, `calificaciones_ciclo`, `asistencias_eventos`). Confirmado antes de borrar que ningún FK externo (de una tabla viva) apuntaba hacia este cluster — todas sus relaciones eran internas al mismo grupo de 13. `scripts/migrate.js` (el schema original) no se tocó — ya estaba documentado como desactualizado vs. la realidad, queda como referencia histórica, no se ejecuta en el flujo normal.
+- **Verificación:** conteo de tablas en Neon confirmado 48→35 tras el drop. `npx tsc --noEmit` y `npm run build` limpios.
 
 ---
 
@@ -1025,6 +1037,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-14 (Sesión 38)
-**Versión:** 0.10.12
+**Última actualización:** 2026-09-15 (Sesión 39)
+**Versión:** 0.10.13
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
