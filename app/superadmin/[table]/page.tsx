@@ -27,6 +27,11 @@ export default function SuperadminTablePage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  const [description, setDescription] = useState<string | null>(null);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [savingDescription, setSavingDescription] = useState(false);
+
   const [editingPk, setEditingPk] = useState<any>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [creating, setCreating] = useState(false);

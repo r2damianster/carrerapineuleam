@@ -19,6 +19,10 @@ function quoteIdent(identifier: string): string {
   return '"' + identifier.replace(/"/g, '""') + '"';
 }
 
+function quoteLiteral(value: string): string {
+  return "'" + value.replace(/'/g, "''") + "'";
+}
+
 export interface ColumnInfo {
   column_name: string;
   data_type: string;
@@ -26,14 +30,45 @@ export interface ColumnInfo {
   column_default: string | null;
 }
 
-export async function listTables(): Promise<string[]> {
+export interface TableInfo {
+  table_name: string;
+  description: string | null;
+}
+
+export async function listTables(): Promise<TableInfo[]> {
   const sql = neon(process.env.DATABASE_URL as string);
   const rows = await sql`
-    SELECT table_name FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-    ORDER BY table_name
+    SELECT c.relname AS table_name, obj_description(c.oid, 'pg_class') AS description
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind = 'r'
+    ORDER BY c.relname
   `;
-  return rows.map((r: any) => r.table_name);
+  return rows as unknown as TableInfo[];
+}
+
+export async function getTableComment(table: string): Promise<string | null> {
+  const sql = neon(process.env.DATABASE_URL as string);
+  await assertValidTable(table);
+  const rows = await sql`
+    SELECT obj_description((quote_ident('public') || '.' || quote_ident(${table}))::regclass, 'pg_class') AS description
+  `;
+  return (rows[0] as any)?.description ?? null;
+}
+
+/**
+ * Guarda la descripción de una tabla usando el comentario nativo de
+ * Postgres (`COMMENT ON TABLE ... IS ...`) en vez de una columna/tabla
+ * propia — así queda visible también para cualquiera que explore la Neon
+ * con otra herramienta (psql, Neon Console, etc.), no solo desde /superadmin.
+ * `comment` vacío/null limpia el comentario (IS NULL).
+ */
+export async function setTableComment(table: string, comment: string | null): Promise<void> {
+  const sql = neon(process.env.DATABASE_URL as string);
+  await assertValidTable(table);
+  const trimmed = comment?.trim() || null;
+  const literal = trimmed === null ? 'NULL' : quoteLiteral(trimmed);
+  await sql.query(`COMMENT ON TABLE ${quoteIdent(table)} IS ${literal}`);
 }
 
 export async function assertValidTable(table: string): Promise<void> {
