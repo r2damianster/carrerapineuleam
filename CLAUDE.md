@@ -181,10 +181,6 @@ A pedido del usuario: `/vinculacion/asistencia` ya tomaba asistencia de benefici
 - **Bug colateral encontrado y corregido de paso:** `GET /api/espacios/instructores` exigía `rol` profesor/admin — pero `/vinculacion/test-mcer` y `/vinculacion/encuesta` (Sesión 42, fusión postest+encuesta) ya la llamaban **como estudiante** para listar instructores a calificar en un postest; fallaba en 401 silencioso (`d.success` nunca `true`) y la lista de instructores a calificar quedaba vacía para un pasante aplicando su propio postest. Corregido: el gate ahora es `puedeOperarEspacio()` (profesor/admin de vinculación, o el estudiante-instructor asignado a ese espacio específico) en vez de por rol.
 - **Verificación:** tabla confirmada en Neon vía MCP (`information_schema.columns`). `npx tsc --noEmit` limpio. `npm run build` completo sin errores, rutas `/vinculacion/asistencia` y `/vinculacion/supervisar` compilan. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones previas; `asistencia_espacio` sigue sin registros reales en producción para un smoke test end-to-end con datos reales.
 
----
-
-## Cambios Recientes (Sesión 43 — 2026-09-16)
-
 ### Registro de beneficiario fusionado con el Pre-Test MCER (obligatorio) + menú de Vinculación reordenado
 
 A pedido explícito del usuario, siguiendo la misma lógica que ya se aplicó en Sesión 42 al postest+encuesta: "sin evaluación pretest no hay registro" — un beneficiario nuevo ya no puede quedar registrado sin su Pre-Test, en ningún flujo (panel autenticado o QR público). El QR público (`/api/enlaces/[token]/pretest`, Sesión 28) ya bundleaba registro+test desde siempre; lo que faltaba era llevar el panel autenticado a la misma paridad — hasta ahora `/vinculacion/beneficiarios` (registro) y la rama pretest de `/vinculacion/test-mcer` eran 2 pasos separados y opcionales.
