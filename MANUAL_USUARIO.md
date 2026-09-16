@@ -51,6 +51,7 @@ Después de que tu profesor te da de alta y activas tu cuenta (primer login), en
   - Si trabaja: qué rol ejerce
   - Si estudia: nivel educativo (universidad / colegio / escuela) — si es universidad, además carrera y curso/semestre
 - El beneficiario queda registrado y asignado a tu espacio en el mismo paso. No inicia sesión — es solo su ficha de datos.
+- 🆕 **QR Auto-registro + Pre-Test:** botón que genera un link/QR para el espacio — cada beneficiario se registra él mismo desde su celular y responde el Pre-Test MCER en la misma pantalla, sin login.
 
 ### » Test MCER (`/vinculacion/test-mcer`)
 1. Botón **"📄 Descargar Test en Word"** — imprímelo y dáselo al beneficiario en papel.

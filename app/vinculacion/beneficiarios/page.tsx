@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 
 export default function BeneficiariosPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function BeneficiariosPage() {
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [todosBeneficiarios, setTodosBeneficiarios] = useState<any[]>([]);
   const [selectedBens, setSelectedBens] = useState<number[]>([]);
+  const [modalEnlace, setModalEnlace] = useState(false);
 
   const [nuevoForm, setNuevoForm] = useState({
     nombres: '', apellidos: '', contacto: '', email: '',
@@ -131,11 +133,28 @@ export default function BeneficiariosPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Espacio</label>
-          <select required value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue mb-6">
+          <select required value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue mb-4">
             <option value="">Selecciona tu espacio...</option>
             {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
           </select>
         </div>
+
+        <div className="mb-6 text-center">
+          <button type="button" disabled={!espacioId} onClick={() => setModalEnlace(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
+            🔗 QR Auto-registro + Pre-Test (sin login)
+          </button>
+          <p className="text-xs text-gray-500 mt-1">Cada beneficiario abre el link/QR desde su celular, se registra él mismo y toma el Pre-Test MCER en la misma pantalla — sin que tengas que registrarlo uno por uno aquí.</p>
+        </div>
+
+        {modalEnlace && espacioId && (
+          <EnlaceEvaluacionModal
+            espacioId={espacioId}
+            testTipo="mcer"
+            tipo="pretest"
+            onClose={() => setModalEnlace(false)}
+          />
+        )}
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>

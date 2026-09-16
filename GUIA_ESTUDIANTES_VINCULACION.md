@@ -70,6 +70,9 @@ Hay **2 pestañas**:
 
 > El beneficiario queda automáticamente inscrito en el espacio que elegiste arriba — no hace falta un paso extra.
 
+### 3.3 🆕 Alternativa: QR de auto-registro + Pre-Test (sin login)
+En vez de registrar a cada beneficiario tú mismo, puedes generar un **link/QR único para todo el espacio**: botón **"🔗 QR Auto-registro + Pre-Test (sin login)"** (arriba de la página, se habilita al elegir un espacio) → clic en **"Generar enlace y QR"** → compártelo (WhatsApp o el QR impreso/proyectado). Cada beneficiario lo abre desde su propio celular, llena sus datos (los mismos de la pestaña "Registrar nuevo") y responde el Pre-Test MCER en la misma pantalla — un solo botón "Enviar" hace ambas cosas. Útil para grupos grandes: no necesitas transcribir uno por uno. El mismo link sirve para todos, no es de un solo uso, hasta la fecha de expiración que elijas.
+
 ---
 
 ## 4. Aplicar el Test de Nivelación MCER
@@ -210,7 +213,7 @@ Portal PINE (login con correo institucional)
    Dashboard
         │
         ├─ Registros de Vinculación
-        │     ├─ Registrar Beneficiarios (Asignar existente / Registrar nuevo)
+        │     ├─ Registrar Beneficiarios (Asignar existente / Registrar nuevo / 🆕 QR auto-registro + Pre-Test)
         │     ├─ Test MCER (Pre/Post + QR sin login — 🆕 Post-Test siempre incluye la Encuesta)
         │     ├─ Registrar Asistencia (🆕 hora inicio/fin + foto obligatoria → pendiente aprobación → horas acreditables)
         │     ├─ Encuesta (estrellas + calificación por instructor + QR sin login — suelta, fuera del Post-Test)
@@ -224,4 +227,4 @@ Portal PINE (login con correo institucional)
 ---
 
 **Documento generado:** 2026-09-16, a partir del código real de `carrerapineuleam` (rutas, campos y textos exactos de la interfaz vigente en producción).
-**Última actualización:** 2026-09-16 (Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja: primero inscribe al beneficiario, luego le aplica el pre-test, y recién después registra asistencia sesión a sesión. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 5).
+**Última actualización:** 2026-09-16 (Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja: primero inscribe al beneficiario, luego le aplica el pre-test, y recién después registra asistencia sesión a sesión; se agregó el QR de auto-registro + Pre-Test también en la página de Beneficiarios (sección 3.3), reutilizando el mismo mecanismo que ya existía en Test MCER. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 5).
