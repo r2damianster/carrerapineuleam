@@ -44,9 +44,6 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 Después de que tu profesor te da de alta y activas tu cuenta (primer login), entras a `/portal/dashboard` → **"Registros de Vinculación"**. Son páginas independientes, cada una con su propio selector de espacio (si eres instructor de varios, eliges cuál):
 
-### » Registrar Asistencia (`/vinculacion/asistencia`)
-Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece **con el check ya marcado como presente**; desmarca solo a los ausentes. Observaciones opcionales.
-
 ### » Registrar Beneficiarios (`/vinculacion/beneficiarios`)
 - **Asignar existente:** selecciona de la lista general de beneficiarios quiénes participan en tu espacio.
 - **Registrar nuevo:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional — el formulario pregunta distinto según la respuesta:
@@ -60,9 +57,13 @@ Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece **co
 2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio), indica si es *Pre-Test* o *Post-Test*, transcribe sus respuestas.
 3. Sube una foto del test físico resuelto (opcional).
 4. El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
+5. 🆕 Si es **Post-Test**, la Encuesta de Satisfacción (ver más abajo) se vuelve obligatoria en el mismo formulario — se responde junto con el test, un solo envío.
+
+### » Registrar Asistencia (`/vinculacion/asistencia`)
+Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece **con el check ya marcado como presente**; desmarca solo a los ausentes. Observaciones opcionales.
 
 ### » Encuesta (`/vinculacion/encuesta`)
-Selecciona beneficiario + ciclo, calificación de 1 a 5 estrellas, comentarios opcionales.
+Selecciona beneficiario + ciclo, calificación de 1 a 5 estrellas, comentarios opcionales. 🆕 Úsala para una encuesta suelta (fuera del Post-Test) — la del Post-Test ya viene incluida ahí.
 
 ### » Difusión / Evento (`/vinculacion/difusion`)
 Sin selector de espacio — cualquier estudiante registra un podcast/evento: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto, obligatoria).
