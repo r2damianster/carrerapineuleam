@@ -108,16 +108,17 @@ Hay **2 pestañas**:
 2. **Beneficiario Evaluado** → elige de la lista.
 3. **Momento del Test** → elige:
    - **Pre-Test (Inicial)** → al empezar el ciclo/club.
-   - **Post-Test (Final)** → al terminar el ciclo/club.
+   - **Post-Test (Final)** → al terminar el ciclo/club. 🆕 **Al elegir esta opción, la Encuesta de Satisfacción se vuelve obligatoria en el mismo envío** — ver punto 3b.
+3b. 🆕 **Si elegiste Post-Test:** aparece un campo extra **"Ciclo a evaluar (Encuesta)"** (obligatorio) y, después de las preguntas del MCER, un bloque completo de **Encuesta de Satisfacción** (las mismas 4 preguntas de estrellas + calificación por instructor + comentarios que la sección 6) — se llena y se envía todo junto, no hay que ir a la página de Encuesta aparte.
 4. **Foto / Evidencia Física** (opcional) → si aplicaste el test en papel, sube la foto.
-5. Responde **todas** las preguntas del test (opción múltiple + una pregunta de audio que se graba con el micrófono — botón de grabar, máximo el tiempo indicado).
-6. Clic en **"Enviar y Evaluar"**.
+5. Responde **todas** las preguntas del test (opción múltiple + una pregunta de audio que se graba con el micrófono — botón de grabar, máximo el tiempo indicado). Si es Post-Test, responde también el bloque de encuesta del punto 3b.
+6. Clic en **"Enviar y Evaluar"** (dice **"Enviar Test + Encuesta"** cuando es Post-Test).
 
-**Qué pasa después:** el sistema calcula el puntaje y el nivel MCER automáticamente y te muestra el resultado en pantalla (puntaje /100, desglose de Gramática/Lectura/Oral, nivel asignado).
+**Qué pasa después:** el sistema calcula el puntaje y el nivel MCER automáticamente y te muestra el resultado en pantalla (puntaje /100, desglose de Gramática/Lectura/Oral, nivel asignado). En Post-Test, el mensaje confirma también que la encuesta quedó registrada.
 
 ### 5.1 Alternativa: enlace/QR sin login (el beneficiario responde desde su celular)
 - Botón **"🔗 QR Pre-Test (sin login)"** (arriba de la página, se habilita cuando elegiste un espacio) → genera un link/QR temporal para que el beneficiario tome el pre-test él mismo, sin necesitar cuenta.
-- Botón **"🔗 QR Post-Test (sin login)"** (se habilita cuando ya elegiste un beneficiario en el paso 2) → genera un link/QR de un solo uso para el post-test de esa persona.
+- Botón **"🔗 QR Post-Test (sin login)"** (se habilita cuando ya elegiste un beneficiario en el paso 2) → genera un link/QR de un solo uso. 🆕 Al generarlo pide también el **ciclo académico** (porque va a incluir la encuesta) — el beneficiario, al abrir el link, ve y responde el **Test MCER y la Encuesta de Satisfacción juntos en una sola página**, un solo botón "Enviar".
 - En ambos casos: clic en el botón → aparece un modal con el QR y el link → puedes copiarlo o compartirlo por WhatsApp.
 
 ---
@@ -125,6 +126,8 @@ Hay **2 pestañas**:
 ## 6. Encuesta de Satisfacción
 
 **Ruta:** Dashboard → "Registros de Vinculación" → **"» Encuesta"** (`/vinculacion/encuesta`)
+
+> 🆕 **Ya no hace falta venir aquí para la encuesta del Post-Test** — desde que aplicas el Post-Test MCER (sección 5) la encuesta se pide en el mismo formulario, obligatoria. Usa esta página solo para una **encuesta suelta** (a mitad de ciclo, o para reenviarla si algo falló al hacerla junto con el Post-Test).
 
 **Pasos:**
 1. **Espacio** → selecciona tu club/aula.
