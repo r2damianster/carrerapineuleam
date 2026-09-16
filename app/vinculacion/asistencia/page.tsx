@@ -17,6 +17,10 @@ export default function AsistenciaPage() {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [observaciones, setObservaciones] = useState('');
 
+  // Ventana de 48h: no se puede elegir un día futuro ni uno de más de 2 días atrás
+  const fechaMaxima = new Date().toISOString().slice(0, 10);
+  const fechaMinima = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.ok ? res.json() : Promise.reject())
@@ -117,7 +121,16 @@ export default function AsistenciaPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-            <input type="date" required value={fecha} onChange={e => setFecha(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            <input
+              type="date"
+              required
+              value={fecha}
+              min={fechaMinima}
+              max={fechaMaxima}
+              onChange={e => setFecha(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue"
+            />
+            <p className="text-xs text-gray-400 mt-1">Solo puedes registrar asistencia hasta 48 horas después del día del club.</p>
           </div>
 
           <div>

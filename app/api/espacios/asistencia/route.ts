@@ -52,6 +52,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
     }
 
+    // Ventana de 48h: no se puede registrar asistencia de un día futuro ni de más de 2 días atrás
+    // (fecha solo guarda el día, sin hora — se usa el día calendario de Ecuador, UTC-5)
+    const hoyEcuador = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const fechaClub = new Date(`${fecha}T00:00:00Z`);
+    const fechaLimite = new Date(`${hoyEcuador}T00:00:00Z`);
+    const diffDias = Math.floor((fechaLimite.getTime() - fechaClub.getTime()) / (24 * 60 * 60 * 1000));
+    if (diffDias < 0) {
+      return NextResponse.json({ error: 'No puedes registrar asistencia de una fecha futura' }, { status: 400 });
+    }
+    if (diffDias > 2) {
+      return NextResponse.json({ error: 'Solo puedes registrar asistencia hasta 48 horas después del día del club' }, { status: 400 });
+    }
+
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const client = await pool.connect();
     try {
