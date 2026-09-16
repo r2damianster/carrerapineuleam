@@ -98,18 +98,20 @@ Botón **"📄 Descargar Pre-Test en Word"** (arriba de la página) — el docum
 3. 🆕 **Hora de inicio** / **Hora de fin** (obligatorias) → la duración real de la sesión es la que se te acredita como horas al aprobarse.
 4. 🆕 **Foto de evidencia** (**obligatoria**) → sube una foto de la sesión. El sistema la comprime automáticamente antes de subirla (no necesitas reducirla tú ni preocuparte por el tamaño del archivo de tu celular).
 5. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 3).
-6. **Observaciones** (opcional) → texto libre.
-7. Clic en **"Guardar Asistencia"**.
+6. 🆕 **Pasantes de este espacio** (Sesión 43) → todos los instructores asignados a tu espacio salen preseleccionados como presentes; desmarca al que no vino ese día. Solo quien queda marcado como presente acredita horas al aprobarse.
+7. 🆕 **Pasante invitado** (Sesión 43, opcional) → si un compañero de **otro** espacio te apoyó puntualmente esa sesión, búscalo en el desplegable y dale "+ Agregar". Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor.
+8. **Observaciones** (opcional) → texto libre.
+9. Clic en **"Guardar Asistencia"**.
 
 > 📌 Guarda tú también tus propias fotos de evidencia (celular o correo) — a futuro estas fotos servirán para armar tus informes de vinculación, y tu profesor también las usará para el suyo.
 
 **Qué pasa después:** verás el mensaje "queda pendiente de aprobación del profesor". El registro no se pierde ni hay que repetirlo — solo espera a que tu profesor lo revise en su pantalla de Supervisar Asistencia.
 
-### 4.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN)
-Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas tuyas y de cualquier otro instructor asignado al mismo espacio — **pero solo cuando el profesor aprueba el registro**. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 7).
+### 4.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN Sesión 43)
+Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas **solo a quien quedó marcado presente** en esa sesión — titular del espacio o pasante invitado, mismo trato — **y solo cuando el profesor aprueba el registro**. Ya no se acredita a ciegas a todos los instructores asignados al espacio sin importar si asistieron. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 7).
 
 ### 4.2 🆕 Qué revisa tu profesor (para que entiendas por qué puede tardar)
-Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, fecha y horario, cuántos beneficiarios marcaste presentes, y puede **Aprobar** o **Rechazar** (con motivo). No necesitas hacer nada de tu parte salvo esperar — si te rechazan un registro por error de datos, coordina con tu profesor cómo corregirlo.
+Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, fecha y horario, cuántos beneficiarios marcaste presentes, qué pasantes asistieron (titulares e invitados, estos últimos con badge "Invitado"), y puede **Aprobar** o **Rechazar** (con motivo). No necesitas hacer nada de tu parte salvo esperar — si te rechazan un registro por error de datos, coordina con tu profesor cómo corregirlo.
 
 ---
 
@@ -185,7 +187,7 @@ Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula 
 
 ---
 
-## 8. Ver mi avance (horas, espacios, evaluaciones)
+## 7. Ver mi avance (horas, espacios, evaluaciones)
 
 **Ruta:** Dashboard → tarjeta **"📊 Mi Avance"** → **"» Ver mi avance completo"** (`/portal/mi-avance`)
 
@@ -193,11 +195,11 @@ Ahí puedes revisar en un solo lugar: tus horas acreditadas (podcast + 🆕 asis
 
 ---
 
-## 9. Reportar Actividades de Investigación (solo si te habilitaron este módulo)
+## 8. Reportar Actividades de Investigación (solo si te habilitaron este módulo)
 
 **Ruta:** Dashboard → tarjeta "Investigación (Vinculación)" → **"» Reportar Actividades"** (`/vinculacion/investigacion-actividades`)
 
-Úsalo únicamente si tu profesor te asignó también funciones de investigación además de vinculación — es un reporte de horas/actividades aparte, no reemplaza nada de las secciones 3-7.
+Úsalo únicamente si tu profesor te asignó también funciones de investigación además de vinculación — es un reporte de horas/actividades aparte, no reemplaza nada de las secciones 3-6.
 
 ---
 
@@ -210,11 +212,10 @@ Portal PINE (login con correo institucional)
    Dashboard
         │
         ├─ Registros de Vinculación
-        │     ├─ Registrar Beneficiarios (Asignar existente / Registrar nuevo / 🆕 QR auto-registro + Pre-Test)
-        │     ├─ Test MCER (Pre/Post + QR sin login — 🆕 Post-Test siempre incluye la Encuesta)
-        │     ├─ Registrar Asistencia (🆕 hora inicio/fin + foto obligatoria → pendiente aprobación → horas acreditables)
-        │     ├─ Encuesta (estrellas + calificación por instructor + QR sin login — suelta, fuera del Post-Test)
-        │     └─ Difusión / Evento (podcast → video + participantes → horas acreditables)
+        │     ├─ Registrar y evaluar beneficiario (Registrar nuevo + Pre-Test obligatorio / Asignar existente / QR / Word)
+        │     ├─ Asistencia (hora inicio/fin + foto obligatoria → pendiente aprobación → horas acreditables)
+        │     ├─ Evaluación final del beneficiario (Post-Test + Encuesta obligatorios juntos / QR / Word — encuesta suelta aparte si hace falta)
+        │     └─ Registrar podcast o evento (podcast → video + participantes → horas acreditables)
         │
         ├─ 📊 Mi Avance (horas, espacios, beneficiarios, evaluaciones)
         │
@@ -224,4 +225,4 @@ Portal PINE (login con correo institucional)
 ---
 
 **Documento generado:** 2026-09-16, a partir del código real de `carrerapineuleam` (rutas, campos y textos exactos de la interfaz vigente en producción).
-**Última actualización:** 2026-09-16 (Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja: primero inscribe al beneficiario, luego le aplica el pre-test, y recién después registra asistencia sesión a sesión; se agregó el QR de auto-registro + Pre-Test también en la página de Beneficiarios (sección 3.3), reutilizando el mismo mecanismo que ya existía en Test MCER. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 5).
+**Última actualización:** 2026-09-16 (Sesión 43 — fusión de registro+Pre-Test y de Post-Test+Encuesta en el panel autenticado, a paridad con lo que ya hacían los QR públicos: `/vinculacion/beneficiarios` + la rama pretest de `/vinculacion/test-mcer` se reemplazaron por `/vinculacion/registrar-evaluar` (un beneficiario nuevo no puede quedar sin Pre-Test, ahora también a nivel de API, no solo de UI); la rama postest de `/vinculacion/test-mcer` se movió a `/vinculacion/evaluacion-final` (Post-Test + Encuesta en un solo envío); `/vinculacion/encuesta` sigue viva solo para el caso suelto de reenviar la encuesta sin MCER. Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor).

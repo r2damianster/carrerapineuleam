@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-16 (Sesión 42 — postest MCER fusionado con la encuesta de satisfacción, obligatorio en ambos flujos. Ver detalle abajo)
+**Última sesión:** 2026-09-16 (Sesión 43 — registro de beneficiario fusionado con el Pre-Test MCER, obligatorio; menú de Vinculación renombrado/reordenado en el panel. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -68,8 +68,8 @@
 ### Flujo real de Vinculación (confirmado con el usuario, Sesión 19)
 Dos conceptos separados, **no anidados uno dentro del otro**:
 - **"Espacio" = Gestión, solo profesor** (hoy: Arturo, Cynthia). `/vinculacion/espacios` crea/lista espacios (ej. "Club de Inglés A"); `/vinculacion/espacios/[id]` asigna estudiantes como instructores de ese espacio (única función que queda ahí).
-- **"Registro" = tarea diaria, estudiante-instructor o profesor de respaldo.** Cuatro páginas propias, cada una con su propio selector de espacio (un estudiante puede tener varios asignados): `/vinculacion/asistencia`, `/vinculacion/beneficiarios` (asignar existente + registrar uno nuevo), `/vinculacion/test-mcer`, `/vinculacion/encuesta`. Todas reusan las mismas APIs (`/api/espacios/asignar`, `/api/tests`, `/api/encuestas`, `/api/espacios/asistencia`) — el cambio fue solo de UI (páginas planas en vez de tabs dentro del espacio), la lógica de permisos (`puedeOperarEspacio`) no cambió.
-- **Beneficiario nunca tiene cuenta.** `POST /api/beneficiarios` los crea sin password real (email/password_hash autogenerados, inutilizables — `usuarios.email`/`password_hash` son `NOT NULL`+`UNIQUE` en Neon) y los asigna al espacio en el mismo paso. Esto reemplazó el plan original de usar `/registro?rol=beneficiario` (que sí les daba cuenta/password) — descartado a propósito, y desde Sesión 22 esa opción ya no existe ni en el código.
+- **"Registro" = tarea diaria, estudiante-instructor o profesor de respaldo.** Desde Sesión 43: `/vinculacion/asistencia`, `/vinculacion/registrar-evaluar` (registro nuevo + Pre-Test MCER obligatorio en un solo envío, o asignar beneficiario ya existente), `/vinculacion/evaluacion-final` (Post-Test MCER + Encuesta obligatorios juntos), más `/vinculacion/encuesta` (solo para el caso suelto de reenviar la encuesta sin MCER). Todas reusan las mismas APIs de siempre (`/api/espacios/asignar`, `/api/tests`, `/api/encuestas`, `/api/espacios/asistencia`) más el endpoint transaccional nuevo `POST /api/beneficiarios/registrar-y-evaluar` — la lógica de permisos (`puedeOperarEspacio`) no cambió.
+- **Beneficiario nunca tiene cuenta.** Desde Sesión 43, un beneficiario nuevo solo se crea junto con su Pre-Test — `POST /api/beneficiarios` ya no acepta crear uno sin evaluación (el handler se eliminó a propósito); la única vía es la transacción de `POST /api/beneficiarios/registrar-y-evaluar` (o el flujo público equivalente de `/api/enlaces/[token]/pretest`), que inserta usuario+perfil+inscripción+evaluación inicial en un solo `BEGIN/COMMIT`. Sin password real (email/password_hash autogenerados, inutilizables — `usuarios.email`/`password_hash` son `NOT NULL`+`UNIQUE` en Neon). Esto reemplazó el plan original de usar `/registro?rol=beneficiario` (que sí les daba cuenta/password) — descartado a propósito, y desde Sesión 22 esa opción ya no existe ni en el código.
 
 ### Pasantes (estudiantes-instructores) — alta por el profesor, activación en el primer login
 `/vinculacion/pasantes` (solo profesor/admin con módulo `vinculacion`) es un **CRUD completo** — crear, editar, eliminar. Crear un pasante nuevo solo pide nombres/apellidos/email (`POST /api/estudiantes`); queda con `usuarios.activado = false` y un `password_hash` placeholder inutilizable. **No hay pantalla de registro para el pasante** — la primera vez que intenta entrar en `/portal/login` con ese email, `app/api/auth/portal-login/route.ts` detecta `activado = false` y guarda lo que escribió en el campo de password como su clave definitiva (`activado` pasa a `true`), en vez de compararla contra una existente. De ahí en adelante el login es el de siempre (`bcrypt.compare`). Esto es la implementación real del "estudiante debe tener lista fija" que quedaba pendiente — ya no es un array hardcodeado, es una fila en `usuarios` con `activado=false`.
@@ -164,6 +164,40 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 43 — 2026-09-16)
+
+### Asistencia: pasantes titulares + pasante invitado, horas por asistencia real (no a ciegas)
+
+A pedido del usuario: `/vinculacion/asistencia` ya tomaba asistencia de beneficiarios (todos preseleccionados, desmarcar ausente), pero las horas acreditables (Sesión 41) se daban a **todos** los `espacio_instructores` del espacio sin importar si asistieron ese día — no había forma de registrar la asistencia real del pasante, ni de sumar a un pasante de **otro** espacio que ayudó puntualmente ("pasante invitado").
+
+- **Tabla nueva `asistencia_instructores`** (`scripts/migrate-asistencia-instructores.js`, aplicada vía Neon MCP): una fila por pasante que **sí** asistió a esa sesión — mismo patrón que `asistencia_beneficiarios` (solo se insertan presentes, nunca ausentes). `tipo` (`titular`\|`invitado`) es solo trazabilidad/UI, no cambia el cálculo de horas.
+- **`lib/horasAsistencia.ts:registrarHorasAsistencia()`** ya no lee `espacio_instructores` a ciegas — lee `asistencia_instructores` de ese registro y acredita horas solo a quien quedó marcado presente (titular o invitado, mismo trato). Fallback al comportamiento viejo (todos los `espacio_instructores`) solo si el registro no tiene filas en la tabla nueva (aprobaciones pendientes de antes de esta sesión).
+- **`/vinculacion/asistencia`** — dos secciones nuevas debajo de beneficiarios: (1) "Pasantes de este espacio" (checklist de `espacio_instructores`, todos preseleccionados presentes, se desmarca el que no vino — vía `GET /api/espacios/instructores`, ahora reusada como recién explicado); (2) "Pasante invitado" — selector con **todos** los pasantes activos de Vinculación (`GET /api/estudiantes-lista`, ya existía para el selector de participantes de podcast), filtrado para no repetir a los que ya son titulares del espacio, se agregan de a uno con botón "+ Agregar" y se quitan con "Quitar". `POST /api/espacios/asistencia` valida server-side: cada `instructor_presente` debe pertenecer a `espacio_instructores` de ese espacio, cada `invitado_presente` debe ser `usuarios.rol='estudiante' AND activado=true`, y rechaza si un id aparece en ambas listas.
+- **`/vinculacion/supervisar`** y `GET /api/vinculacion/supervisar-asistencia` muestran ahora "Pasantes que asistieron" (de `asistencia_instructores`, con badge "Invitado" cuando aplica) — distinto del campo `instructores` que ya existía (esos son los asignados al espacio en general, no quién vino ese día específico).
+- **Aprobación sigue siendo una sola acción** (Aprobar/Rechazar en `/vinculacion/supervisar`) — no hay un flujo de aprobación separada por "supervisor del pasante invitado": el modelo de datos no tiene supervisor asignado por persona, solo `modulos_acceso: vinculacion` global (cualquier profesor con ese módulo puede aprobar cualquier registro). Decisión explícita, confirmada con el usuario antes de implementar — si a futuro se necesita aprobación en 2 pasos por invitado, es una feature aparte.
+- **Bug colateral encontrado y corregido de paso:** `GET /api/espacios/instructores` exigía `rol` profesor/admin — pero `/vinculacion/test-mcer` y `/vinculacion/encuesta` (Sesión 42, fusión postest+encuesta) ya la llamaban **como estudiante** para listar instructores a calificar en un postest; fallaba en 401 silencioso (`d.success` nunca `true`) y la lista de instructores a calificar quedaba vacía para un pasante aplicando su propio postest. Corregido: el gate ahora es `puedeOperarEspacio()` (profesor/admin de vinculación, o el estudiante-instructor asignado a ese espacio específico) en vez de por rol.
+- **Verificación:** tabla confirmada en Neon vía MCP (`information_schema.columns`). `npx tsc --noEmit` limpio. `npm run build` completo sin errores, rutas `/vinculacion/asistencia` y `/vinculacion/supervisar` compilan. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones previas; `asistencia_espacio` sigue sin registros reales en producción para un smoke test end-to-end con datos reales.
+
+---
+
+## Cambios Recientes (Sesión 43 — 2026-09-16)
+
+### Registro de beneficiario fusionado con el Pre-Test MCER (obligatorio) + menú de Vinculación reordenado
+
+A pedido explícito del usuario, siguiendo la misma lógica que ya se aplicó en Sesión 42 al postest+encuesta: "sin evaluación pretest no hay registro" — un beneficiario nuevo ya no puede quedar registrado sin su Pre-Test, en ningún flujo (panel autenticado o QR público). El QR público (`/api/enlaces/[token]/pretest`, Sesión 28) ya bundleaba registro+test desde siempre; lo que faltaba era llevar el panel autenticado a la misma paridad — hasta ahora `/vinculacion/beneficiarios` (registro) y la rama pretest de `/vinculacion/test-mcer` eran 2 pasos separados y opcionales.
+
+- **`/vinculacion/registrar-evaluar`** (nueva, reemplaza `/vinculacion/beneficiarios` + la rama pretest de `/vinculacion/test-mcer`, ambas eliminadas) — un solo formulario/envío: datos del beneficiario + Pre-Test MCER completo. Mantiene la pestaña "Asignar beneficiario existente" (sin test, porque esa persona ya tiene uno de otro espacio/ciclo — la regla de "sin pretest no hay registro" aplica solo a beneficiarios *nuevos*).
+- **`POST /api/beneficiarios/registrar-y-evaluar`** (nuevo, transaccional — `Pool`+`BEGIN/COMMIT`, mismo patrón que `/api/enlaces/[token]/pretest`) — inserta usuario+perfil+inscripción+evaluación inicial en un solo paso; si el Pre-Test falla, no queda un beneficiario a medias.
+- **`POST /api/beneficiarios` (el viejo endpoint que creaba un beneficiario sin test) se eliminó** — no solo se sacó del menú, se borró el handler. La regla queda forzada también a nivel de API, no solo de UI: nadie puede registrar un beneficiario nuevo sin pasar por el Pre-Test.
+- **`/vinculacion/evaluacion-final`** (nueva, reemplaza la rama postest+encuesta que vivía dentro de `/vinculacion/test-mcer`, ya fusionadas desde Sesión 42 pero mezcladas con la rama pretest en la misma página) — Post-Test MCER + Encuesta en un solo envío, sin selector de "Momento del Test" (siempre es postest aquí). Reusa `/api/tests` + `/api/encuestas` igual que antes (llamadas secuenciales, no transacción server-side — mismo comportamiento y mismo aviso si la encuesta falla tras guardar el test, documentado en Sesión 42).
+- **`/vinculacion/encuesta` no se tocó** — sigue viva solo para el caso suelto de reenviar la encuesta sin MCER (botones QR Pre-Encuesta/Post-Encuesta independientes), ahora enlazada desde el pie de `/vinculacion/evaluacion-final` en vez de aparecer como tarjeta propia del menú principal.
+- **Menú de "Registros de Vinculación"** (`/portal/dashboard`, `/portal/mi-avance`) renombrado de 5 links a 4: Registrar Beneficiarios + Test MCER → **"Registrar y evaluar beneficiario"**; Registrar Asistencia → **"Asistencia"**; Encuesta (como tarjeta separada) desaparece, absorbida en → **"Evaluación final del beneficiario"**; Difusión/Evento → **"Registrar podcast o evento"**.
+- **`GET /api/tests/download-docx`** ahora acepta `?tipo=pretest|postest` (default `pretest`): el Word de pretest trae también los campos de datos del beneficiario en blanco (antes solo tenía una línea de nombre) porque registro y evaluación van siempre juntos; el de postest agrega al final un bloque de encuesta en blanco (4 preguntas 1-5 + comentarios) — sin listar instructores por nombre (decisión explícita del usuario: "el postest solo corresponde al beneficiario").
+- **`middleware.ts`** — `protectedRoutes` y el chequeo de rol actualizados: `/vinculacion/beneficiarios`/`/vinculacion/test-mcer` reemplazadas por `/vinculacion/registrar-evaluar`/`/vinculacion/evaluacion-final`.
+- **Verificación:** `npx tsc --noEmit` y `npm run build` limpios (rutas viejas ya no aparecen en la salida del build, las 2 nuevas sí). `MANUAL_USUARIO.md` y `GUIA_ESTUDIANTES_VINCULACION.md` reescritos con las rutas/pasos nuevos. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones previas.
 
 ---
 
@@ -815,7 +849,7 @@ carreraPINE/                       ← RAÍZ = Next.js app
 │   ├── vinculacion/                # Gestión (profesor) vs Registro (estudiante+profesor) — ver ## Portal PINE
 │   │   ├── espacios/               # Gestión: crear/listar espacios; [id] = asignar instructores (única función que queda ahí)
 │   │   ├── pasantes/               # Gestión: vista agregada de estudiantes-instructores, solo profesor/admin
-│   │   ├── asistencia/, beneficiarios/, test-mcer/, encuesta/, difusion/  # Registro: páginas planas, selector de espacio propio (difusion no tiene selector)
+│   │   ├── asistencia/, registrar-evaluar/, evaluacion-final/, encuesta/, difusion/  # Registro: páginas planas, selector de espacio propio (difusion no tiene selector). registrar-evaluar = registro+Pre-Test obligatorio; evaluacion-final = Post-Test+Encuesta obligatorios; encuesta = solo reenvío suelto (Sesión 43)
 │   │   ├── publico/[token]/        # Pretest/postest públicos sin login vía enlace/QR (Sesión 28)
 │   │   └── dinamicas-linguisticas/ # Página PÚBLICA de contenido (no confundir con nada de arriba)
 │   ├── investigacion/
@@ -1076,6 +1110,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-16 (Sesión 42)
-**Versión:** 0.10.15
+**Última actualización:** 2026-09-16 (Sesión 43)
+**Versión:** 0.10.16
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
