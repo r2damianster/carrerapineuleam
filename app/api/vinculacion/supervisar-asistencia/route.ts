@@ -35,7 +35,12 @@ export async function GET(request: Request) {
           SELECT COALESCE(json_agg(json_build_object('id', iu.id, 'nombre', iu.nombres || ' ' || iu.apellidos)), '[]')
           FROM espacio_instructores ei JOIN usuarios iu ON iu.id = ei.usuario_id
           WHERE ei.espacio_id = ae.espacio_id
-        ) AS instructores
+        ) AS instructores,
+        (
+          SELECT COALESCE(json_agg(json_build_object('id', au.id, 'nombre', au.nombres || ' ' || au.apellidos, 'tipo', ai.tipo)), '[]')
+          FROM asistencia_instructores ai JOIN usuarios au ON au.id = ai.usuario_id
+          WHERE ai.asistencia_id = ae.id
+        ) AS asistentes_instructor
       FROM asistencia_espacio ae
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por

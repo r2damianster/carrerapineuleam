@@ -9,7 +9,7 @@ import { solicitarPublicacionPerfil } from '@/lib/perfilSync';
 // (el profesor pre-crea el email, el pasante activa su cuenta al hacer login
 // la primera vez). Ver app/api/estudiantes/route.ts.
 // 'beneficiario' tampoco — nunca tiene cuenta, lo crea el instructor/profesor
-// desde /vinculacion/beneficiarios (POST /api/beneficiarios).
+// desde /vinculacion/registrar-evaluar (POST /api/beneficiarios/registrar-y-evaluar).
 const PUBLIC_ROLES = ['profesor'];
 const GENEROS_VALIDOS = ['femenino', 'masculino', 'otro', 'prefiero_no_decir'];
 

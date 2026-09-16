@@ -25,6 +25,7 @@ interface Registro {
   registrado_por_apellidos: string;
   num_beneficiarios: number;
   instructores: Instructor[];
+  asistentes_instructor: { id: number; nombre: string; tipo: 'titular' | 'invitado' }[];
 }
 
 const ESTADO_BADGE: Record<string, string> = {
@@ -209,6 +210,18 @@ export default function SupervisarAsistenciaPage() {
                   <p className="text-sm text-gray-700">Beneficiarios presentes: <strong>{r.num_beneficiarios}</strong></p>
                   {r.instructores.length > 0 && (
                     <p className="text-xs text-gray-500">Instructores del espacio: {r.instructores.map(i => i.nombre).join(', ')}</p>
+                  )}
+                  {r.asistentes_instructor?.length > 0 && (
+                    <p className="text-sm text-gray-700 mt-1">
+                      Pasantes que asistieron:{' '}
+                      {r.asistentes_instructor.map((a, idx) => (
+                        <span key={a.id}>
+                          {idx > 0 && ', '}
+                          <strong>{a.nombre}</strong>
+                          {a.tipo === 'invitado' && <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Invitado</span>}
+                        </span>
+                      ))}
+                    </p>
                   )}
                   {r.observaciones && <p className="text-sm text-gray-600 mt-1 italic">"{r.observaciones}"</p>}
                   {r.estado_aprobacion === 'rechazado' && r.motivo_rechazo && (

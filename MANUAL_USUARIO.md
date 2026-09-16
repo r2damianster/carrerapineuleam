@@ -16,7 +16,7 @@ No todos los roles se autoregistran — depende de quién eres:
 |---|---|
 | **Profesor** | Se autoregistra en [/registro](https://carrerapineuleam.vercel.app/registro), pero **solo si su correo está en la lista autorizada del proyecto** (contacta al líder si sale "correo no autorizado"). |
 | **Estudiante / Pasante-instructor de vinculación** | **No hay pantalla de registro.** Tu profesor te da de alta desde Administrar Pasantes (solo nombres/apellidos/email). La primera vez que entras en [/portal/login](https://carrerapineuleam.vercel.app/portal/login) con ese correo, la clave que escribas queda guardada como tu contraseña definitiva — de ahí en adelante entras normal. |
-| **Beneficiario / Participante** | **Nunca tiene cuenta ni contraseña.** Lo registra su instructor o profesor desde `/vinculacion/beneficiarios` como parte de sus datos, no como usuario del sistema. |
+| **Beneficiario / Participante** | **Nunca tiene cuenta ni contraseña.** Lo registra su instructor o profesor desde `/vinculacion/registrar-evaluar` como parte de sus datos, no como usuario del sistema — siempre junto con su Pre-Test. |
 
 Tras entrar llegas a `/portal/dashboard`, donde ves solo las tarjetas que te corresponden según tu rol y tus módulos asignados.
 
@@ -44,32 +44,29 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 Después de que tu profesor te da de alta y activas tu cuenta (primer login), entras a `/portal/dashboard` → **"Registros de Vinculación"**. Son páginas independientes, cada una con su propio selector de espacio (si eres instructor de varios, eliges cuál):
 
-### » Registrar Beneficiarios (`/vinculacion/beneficiarios`)
-- **Asignar existente:** selecciona de la lista general de beneficiarios quiénes participan en tu espacio.
-- **Registrar nuevo:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional — el formulario pregunta distinto según la respuesta:
-  - Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia
-  - Si trabaja: qué rol ejerce
-  - Si estudia: nivel educativo (universidad / colegio / escuela) — si es universidad, además carrera y curso/semestre
-- El beneficiario queda registrado y asignado a tu espacio en el mismo paso. No inicia sesión — es solo su ficha de datos.
-- 🆕 **QR Auto-registro + Pre-Test:** botón que genera un link/QR para el espacio — cada beneficiario se registra él mismo desde su celular y responde el Pre-Test MCER en la misma pantalla, sin login.
+### » Registrar y evaluar beneficiario (`/vinculacion/registrar-evaluar`)
+Un beneficiario nuevo **siempre** se registra junto con su Pre-Test MCER — no queda registrado sin evaluación, es un solo envío obligatorio en la misma pantalla:
+- **Registrar nuevo + Pre-Test:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional (Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia — si trabaja, qué rol; si estudia, nivel educativo y, si es universidad, carrera y curso), seguido de las preguntas del Pre-Test MCER. El beneficiario no inicia sesión — es solo su ficha de datos.
+- **Asignar beneficiario existente:** para alguien que ya es beneficiario en otro espacio/ciclo — ya tiene su Pre-Test de antes, solo se le suma a este espacio, sin repetir la evaluación.
+- **QR Auto-registro + Pre-Test:** botón que genera un link/QR para el espacio — cada beneficiario se registra él mismo desde su celular y responde el Pre-Test en la misma pantalla, sin login.
+- **📄 Descargar Pre-Test en Word:** para aplicarlo en papel — trae también los campos de datos del beneficiario en blanco, ya que el registro y el Pre-Test van siempre juntos.
 
-### » Test MCER (`/vinculacion/test-mcer`)
-1. Botón **"📄 Descargar Test en Word"** — imprímelo y dáselo al beneficiario en papel.
-2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio), indica si es *Pre-Test* o *Post-Test*, transcribe sus respuestas.
-3. Sube una foto del test físico resuelto (opcional).
-4. El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
-5. 🆕 Si es **Post-Test**, la Encuesta de Satisfacción (ver más abajo) se vuelve obligatoria en el mismo formulario — se responde junto con el test, un solo envío.
-
-### » Registrar Asistencia (`/vinculacion/asistencia`)
+### » Asistencia (`/vinculacion/asistencia`)
 Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece **con el check ya marcado como presente**; desmarca solo a los ausentes. Observaciones opcionales.
 
-### » Encuesta (`/vinculacion/encuesta`)
-Selecciona beneficiario + ciclo, calificación de 1 a 5 estrellas, comentarios opcionales. 🆕 Úsala para una encuesta suelta (fuera del Post-Test) — la del Post-Test ya viene incluida ahí.
+### » Evaluación final del beneficiario (`/vinculacion/evaluacion-final`)
+El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo envío (el beneficiario ya está registrado de antes, aquí no se piden sus datos):
+1. Botón **"📄 Descargar Evaluación Final en Word"** — para aplicarla en papel (MCER + encuesta en blanco).
+2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio) y el ciclo académico a evaluar, transcribe sus respuestas del MCER.
+3. Sube una foto de la evaluación física resuelta (opcional). El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
+4. Sigue la Encuesta de Satisfacción (satisfacción general, aprendizaje, mejora, recursos, calificación por instructor, comentarios) — obligatoria en el mismo envío.
+5. **QR Evaluación Final:** genera un link/QR para que el beneficiario tome el Post-Test + encuesta él mismo desde su celular, sin login.
+6. ¿Necesitas reenviar solo la encuesta suelta (sin MCER, ej. si el Post-Test ya se tomó antes)? Hay un link a `/vinculacion/encuesta` al pie de la página, para ese caso puntual.
 
-### » Difusión / Evento (`/vinculacion/difusion`)
+### » Registrar podcast o evento (`/vinculacion/difusion`)
 Sin selector de espacio — cualquier estudiante registra un podcast/evento: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto, obligatoria).
 
-> Todo lo de arriba (excepto Difusión) solo funciona **dentro de tu espacio asignado** — si intentas operar un espacio donde no eres instructor, el sistema te lo bloquea.
+> Todo lo de arriba (excepto Registrar podcast o evento) solo funciona **dentro de tu espacio asignado** — si intentas operar un espacio donde no eres instructor, el sistema te lo bloquea.
 
 ---
 

@@ -141,11 +141,10 @@ export default function MiAvancePage() {
               </div>
 
               <div className="flex flex-wrap gap-3 pt-2">
-                <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline text-sm">» Registrar Asistencia</Link>
-                <Link href="/vinculacion/beneficiarios" className="text-blue-600 hover:underline text-sm">» Registrar Beneficiarios</Link>
-                <Link href="/vinculacion/test-mcer" className="text-blue-600 hover:underline text-sm">» Test MCER</Link>
-                <Link href="/vinculacion/encuesta" className="text-blue-600 hover:underline text-sm">» Encuesta</Link>
-                <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline text-sm">» Difusión / Evento</Link>
+                <Link href="/vinculacion/registrar-evaluar" className="text-blue-600 hover:underline text-sm">» Registrar y evaluar beneficiario</Link>
+                <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline text-sm">» Asistencia</Link>
+                <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline text-sm">» Evaluación final del beneficiario</Link>
+                <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline text-sm">» Registrar podcast o evento</Link>
               </div>
             </div>
           )}

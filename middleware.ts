@@ -34,11 +34,11 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',
-    '/vinculacion/beneficiarios',
+    '/vinculacion/registrar-evaluar',
     '/vinculacion/pasantes',
     '/vinculacion/supervisar',
     '/vinculacion/difusion',
-    '/vinculacion/test-mcer',
+    '/vinculacion/evaluacion-final',
     '/vinculacion/encuesta',
     '/vinculacion/investigacion-actividades',
     '/investigacion/espacios',
@@ -70,8 +70,8 @@ export async function middleware(request: NextRequest) {
     if (
       (pathname.startsWith('/vinculacion/espacios') ||
        pathname.startsWith('/vinculacion/asistencia') ||
-       pathname.startsWith('/vinculacion/beneficiarios') ||
-       pathname.startsWith('/vinculacion/test-mcer') ||
+       pathname.startsWith('/vinculacion/registrar-evaluar') ||
+       pathname.startsWith('/vinculacion/evaluacion-final') ||
        pathname.startsWith('/vinculacion/encuesta')) &&
       !['profesor', 'admin', 'estudiante'].includes(session.rol)
     ) {

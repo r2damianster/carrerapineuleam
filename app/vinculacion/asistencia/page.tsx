@@ -55,6 +55,11 @@ export default function AsistenciaPage() {
   const [espacioId, setEspacioId] = useState('');
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [presentes, setPresentes] = useState<number[]>([]);
+  const [instructoresTitulares, setInstructoresTitulares] = useState<any[]>([]);
+  const [presentesInstructores, setPresentesInstructores] = useState<number[]>([]);
+  const [pasantesTodos, setPasantesTodos] = useState<any[]>([]);
+  const [invitadoSeleccion, setInvitadoSeleccion] = useState('');
+  const [invitados, setInvitados] = useState<number[]>([]);
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFin, setHoraFin] = useState('');
@@ -75,6 +80,9 @@ export default function AsistenciaPage() {
           return;
         }
         setCheckingSession(false);
+        fetch('/api/estudiantes-lista').then(r => r.json()).then(d => {
+          if (d.estudiantes) setPasantesTodos(d.estudiantes);
+        });
         return fetch('/api/espacios?area=vinculacion').then(r => r.json()).then(d => {
           if (d.success) {
             setEspacios(d.data);
@@ -88,6 +96,8 @@ export default function AsistenciaPage() {
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
+      setInstructoresTitulares([]);
+      setInvitados([]);
       return;
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
@@ -98,7 +108,27 @@ export default function AsistenciaPage() {
           setPresentes(d.data.map((b: any) => b.id));
         }
       });
+    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setInstructoresTitulares(d.data);
+          setPresentesInstructores(d.data.map((i: any) => i.id));
+        }
+      });
+    setInvitados([]);
+    setInvitadoSeleccion('');
   }, [espacioId]);
+
+  const pasantesInvitables = pasantesTodos.filter(
+    (p) => !instructoresTitulares.some((i) => i.id === p.id) && !invitados.includes(p.id)
+  );
+
+  const agregarInvitado = () => {
+    if (!invitadoSeleccion) return;
+    setInvitados([...invitados, parseInt(invitadoSeleccion)]);
+    setInvitadoSeleccion('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +175,8 @@ export default function AsistenciaPage() {
           hora_inicio: horaInicio,
           hora_fin: horaFin,
           beneficiarios_presentes: presentes,
+          instructores_presentes: presentesInstructores,
+          invitados_presentes: invitados,
           observaciones,
           foto_url: fotoUrl,
           foto_public_id: fotoPublicId,
@@ -154,6 +186,8 @@ export default function AsistenciaPage() {
       if (!res.ok) throw new Error(data.error);
       setMessage('Asistencia registrada exitosamente — queda pendiente de aprobación del profesor.');
       setPresentes([]);
+      setPresentesInstructores(instructoresTitulares.map((i: any) => i.id));
+      setInvitados([]);
       setObservaciones('');
       setHoraInicio('');
       setHoraFin('');
@@ -241,6 +275,50 @@ export default function AsistenciaPage() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Pasantes de este espacio</label>
+            <div className="border border-gray-300 rounded-lg p-4 space-y-1">
+              {instructoresTitulares.length === 0 && <p className="text-gray-400 text-sm">{espacioId ? 'Sin pasantes asignados a este espacio.' : 'Selecciona un espacio primero.'}</p>}
+              {instructoresTitulares.map(i => (
+                <label key={i.id} className="flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={presentesInstructores.includes(i.id)} onChange={(e) => {
+                    if (e.target.checked) setPresentesInstructores([...presentesInstructores, i.id]);
+                    else setPresentesInstructores(presentesInstructores.filter(id => id !== i.id));
+                  }} className="w-5 h-5 accent-uleam-blue" />
+                  <span className="text-gray-700">{i.nombres} {i.apellidos}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Solo quien queda marcado como presente acredita horas al aprobarse el registro.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Pasante invitado (apoyo de otro espacio, opcional)</label>
+            <div className="flex gap-2 mb-2">
+              <select value={invitadoSeleccion} onChange={e => setInvitadoSeleccion(e.target.value)} className="flex-1 px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue">
+                <option value="">Selecciona un pasante...</option>
+                {pasantesInvitables.map((p: any) => <option key={p.id} value={p.id}>{p.nombres} {p.apellidos}</option>)}
+              </select>
+              <button type="button" onClick={agregarInvitado} disabled={!invitadoSeleccion} className="px-4 py-2 bg-uleam-blue/10 text-uleam-blue font-semibold rounded-lg hover:bg-uleam-blue/20 disabled:opacity-50">
+                + Agregar
+              </button>
+            </div>
+            {invitados.length > 0 && (
+              <div className="border border-gray-300 rounded-lg p-4 space-y-1">
+                {invitados.map(id => {
+                  const p = pasantesTodos.find((x: any) => x.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between px-2 py-2 rounded hover:bg-gray-50">
+                      <span className="text-gray-700">{p ? `${p.nombres} ${p.apellidos}` : id}</span>
+                      <button type="button" onClick={() => setInvitados(invitados.filter(x => x !== id))} className="text-red-600 text-sm hover:underline">Quitar</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-xs text-gray-400 mt-1">Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor.</p>
           </div>
 
           <div>

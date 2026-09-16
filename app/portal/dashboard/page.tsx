@@ -82,13 +82,12 @@ export default async function PortalDashboard() {
             {(modulos_acceso.includes('vinculacion') || rol === 'estudiante') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Registros de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Asistencia, beneficiarios, test MCER, encuestas y difusión de tu espacio.</p>
+                <p className="text-gray-600 mb-4 text-sm">Registro+Pre-Test, asistencia, evaluación final y difusión de tu espacio.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/beneficiarios" className="text-blue-600 hover:underline">» Registrar Beneficiarios</Link>
-                  <Link href="/vinculacion/test-mcer" className="text-blue-600 hover:underline">» Test MCER</Link>
-                  <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Registrar Asistencia</Link>
-                  <Link href="/vinculacion/encuesta" className="text-blue-600 hover:underline">» Encuesta</Link>
-                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Difusión / Evento</Link>
+                  <Link href="/vinculacion/registrar-evaluar" className="text-blue-600 hover:underline">» Registrar y evaluar beneficiario</Link>
+                  <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Asistencia</Link>
+                  <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline">» Evaluación final del beneficiario</Link>
+                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast o evento</Link>
                 </div>
               </div>
             )}

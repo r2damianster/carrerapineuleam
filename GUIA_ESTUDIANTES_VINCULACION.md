@@ -32,28 +32,26 @@
 
 Al entrar verás tarjetas según lo que tengas asignado. Como pasante de Vinculación verás normalmente:
 
-- **Registros de Vinculación** — beneficiarios, test MCER, asistencia, encuesta, difusión (el corazón de tu trabajo diario, ver secciones 3-7).
+- **Registros de Vinculación** — registrar y evaluar beneficiarios, asistencia, evaluación final, podcast/evento (el corazón de tu trabajo diario, ver secciones 3-6).
 - **📊 Mi Avance** — tus horas acreditables (podcast 🆕 + asistencia, ver 5.1), espacios asignados, beneficiarios y evaluaciones que ya registraste. Botón **"» Ver mi avance completo"** → `/portal/mi-avance`.
 - **Investigación (Vinculación)** *(solo si tu profesor te habilitó este módulo)* — botón **"» Reportar Actividades"** para registrar horas/actividades de investigación aparte de tus horas de vinculación.
 
 ---
 
-## 3. Registrar/Asignar Beneficiarios
+## 3. Registrar y evaluar beneficiario
 
-**Ruta:** Dashboard → "Registros de Vinculación" → **"» Registrar Beneficiarios"** (`/vinculacion/beneficiarios`)
+**Ruta:** Dashboard → "Registros de Vinculación" → **"» Registrar y evaluar beneficiario"** (`/vinculacion/registrar-evaluar`)
+
+🆕 **Regla del sistema (Sesión 43): un beneficiario nuevo nunca queda registrado sin su Pre-Test.** Registro y evaluación van en un solo envío obligatorio — ya no son 2 páginas separadas.
 
 **Primero:** selecciona tu **Espacio** en el desplegable de arriba.
 
 Hay **2 pestañas**:
 
-### 3.1 Pestaña "Asignar existente"
-Úsala cuando el beneficiario **ya está registrado** en el sistema (de otro espacio o ciclo) y solo necesita entrar al tuyo.
-1. Marca con ✅ los beneficiarios que quieres agregar a tu espacio (lista con checkboxes).
-2. Clic en **"Asignar Seleccionados"**.
-3. Abajo puedes ver "Ya inscritos en este espacio" con el conteo actual.
+### 3.1 Pestaña "Registrar nuevo + Pre-Test" (la que usarás casi siempre)
+Úsala cuando el beneficiario **nunca ha estado en el sistema**. Es un solo formulario largo, con 2 partes:
 
-### 3.2 Pestaña "Registrar nuevo"
-Úsala cuando el beneficiario **nunca ha estado en el sistema**.
+**Parte 1 — Datos del beneficiario:**
 1. **Nombres** / **Apellidos** (obligatorio).
 2. **Contacto (teléfono)**.
 3. **Email** (opcional).
@@ -66,42 +64,31 @@ Hay **2 pestañas**:
    - *Desempleado y no estudia*
    - Si eligió una opción "trabaja" → aparece **"Rol que ejerce"**.
    - Si eligió una opción "estudia" → aparece **"Nivel educativo"** (Universidad / Colegio / Escuela); si es Universidad, además **"Carrera"** y **"Curso/semestre"**.
-7. Clic en **"Registrar y Asignar a este Espacio"**.
 
-> El beneficiario queda automáticamente inscrito en el espacio que elegiste arriba — no hace falta un paso extra.
+**Parte 2 — Pre-Test MCER (obligatorio, en la misma pantalla):**
+7. Responde **todas** las preguntas del test (opción múltiple + una pregunta de audio que se graba con el micrófono — botón de grabar, máximo el tiempo indicado).
+8. **Foto / Evidencia Física** (opcional) → si aplicaste el test en papel, sube la foto.
+9. Clic en **"Registrar y Evaluar Beneficiario"**.
 
-### 3.3 🆕 Alternativa: QR de auto-registro + Pre-Test (sin login)
-En vez de registrar a cada beneficiario tú mismo, puedes generar un **link/QR único para todo el espacio**: botón **"🔗 QR Auto-registro + Pre-Test (sin login)"** (arriba de la página, se habilita al elegir un espacio) → clic en **"Generar enlace y QR"** → compártelo (WhatsApp o el QR impreso/proyectado). Cada beneficiario lo abre desde su propio celular, llena sus datos (los mismos de la pestaña "Registrar nuevo") y responde el Pre-Test MCER en la misma pantalla — un solo botón "Enviar" hace ambas cosas. Útil para grupos grandes: no necesitas transcribir uno por uno. El mismo link sirve para todos, no es de un solo uso, hasta la fecha de expiración que elijas.
+**Qué pasa después:** el beneficiario queda registrado, inscrito en tu espacio y con su Pre-Test calculado (puntaje /100, desglose Gramática/Lectura/Oral, nivel A1/A2/B1/B2), todo en un solo paso. Si algo falla a mitad de camino, el sistema no deja un registro a medias — no verás un beneficiario "sin evaluación".
 
----
+### 3.2 Pestaña "Asignar beneficiario existente"
+Úsala cuando el beneficiario **ya está registrado** en el sistema (de otro espacio o ciclo) — ya tiene su Pre-Test de antes, no se repite.
+1. Marca con ✅ los beneficiarios que quieres agregar a tu espacio (lista con checkboxes).
+2. Clic en **"Asignar Seleccionados"**.
+3. Abajo puedes ver "Ya inscritos en este espacio" con el conteo actual.
 
-## 4. Aplicar el Test de Nivelación MCER
+### 3.3 Alternativa: QR de auto-registro + Pre-Test (sin login)
+En vez de registrar a cada beneficiario tú mismo, puedes generar un **link/QR único para todo el espacio**: botón **"🔗 QR Auto-registro + Pre-Test (sin login)"** (arriba de la página, se habilita al elegir un espacio) → clic en **"Generar enlace y QR"** → compártelo (WhatsApp o el QR impreso/proyectado). Cada beneficiario lo abre desde su propio celular, llena sus datos y responde el Pre-Test MCER en la misma pantalla — un solo botón "Enviar" hace ambas cosas. Útil para grupos grandes: no necesitas transcribir uno por uno. El mismo link sirve para todos, no es de un solo uso, hasta la fecha de expiración que elijas.
 
-**Ruta:** Dashboard → "Registros de Vinculación" → **"» Test MCER"** (`/vinculacion/test-mcer`)
-
-**Pasos:**
-1. **Espacio** → selecciona el club/aula (si solo tienes uno asignado, se autoselecciona).
-2. **Beneficiario Evaluado** → elige de la lista (primero debe estar registrado, ver sección 3).
-3. **Momento del Test** → elige:
-   - **Pre-Test (Inicial)** → al empezar el ciclo/club.
-   - **Post-Test (Final)** → al terminar el ciclo/club. 🆕 **Al elegir esta opción, la Encuesta de Satisfacción se vuelve obligatoria en el mismo envío** — ver punto 3b.
-3b. 🆕 **Si elegiste Post-Test:** aparece un campo extra **"Ciclo a evaluar (Encuesta)"** (obligatorio) y, después de las preguntas del MCER, un bloque completo de **Encuesta de Satisfacción** (las mismas 4 preguntas de estrellas + calificación por instructor + comentarios que la sección 6) — se llena y se envía todo junto, no hay que ir a la página de Encuesta aparte.
-4. **Foto / Evidencia Física** (opcional) → si aplicaste el test en papel, sube la foto.
-5. Responde **todas** las preguntas del test (opción múltiple + una pregunta de audio que se graba con el micrófono — botón de grabar, máximo el tiempo indicado). Si es Post-Test, responde también el bloque de encuesta del punto 3b.
-6. Clic en **"Enviar y Evaluar"** (dice **"Enviar Test + Encuesta"** cuando es Post-Test).
-
-**Qué pasa después:** el sistema calcula el puntaje y el nivel MCER automáticamente y te muestra el resultado en pantalla (puntaje /100, desglose de Gramática/Lectura/Oral, nivel asignado). En Post-Test, el mensaje confirma también que la encuesta quedó registrada.
-
-### 4.1 Alternativa: enlace/QR sin login (el beneficiario responde desde su celular)
-- Botón **"🔗 QR Pre-Test (sin login)"** (arriba de la página, se habilita cuando elegiste un espacio) → genera un link/QR temporal para que el beneficiario tome el pre-test él mismo, sin necesitar cuenta.
-- Botón **"🔗 QR Post-Test (sin login)"** (se habilita cuando ya elegiste un beneficiario en el paso 2) → genera un link/QR de un solo uso. 🆕 Al generarlo pide también el **ciclo académico** (porque va a incluir la encuesta) — el beneficiario, al abrir el link, ve y responde el **Test MCER y la Encuesta de Satisfacción juntos en una sola página**, un solo botón "Enviar".
-- En ambos casos: clic en el botón → aparece un modal con el QR y el link → puedes copiarlo o compartirlo por WhatsApp.
+### 3.4 Alternativa en papel: descargar el Pre-Test en Word
+Botón **"📄 Descargar Pre-Test en Word"** (arriba de la página) — el documento trae también los campos de datos del beneficiario en blanco (nombres, contacto, edad, situación ocupacional...), porque el registro y el Pre-Test se aplican siempre juntos. Imprímelo, aplícalo en papel, y transcribe las respuestas en la pestaña 3.1.
 
 ---
 
-## 5. Registrar Asistencia
+## 4. Asistencia
 
-**Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Registrar Asistencia"** (`/vinculacion/asistencia`)
+**Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Asistencia"** (`/vinculacion/asistencia`)
 
 > 🆕 **ACTUALIZACIÓN (Sesión 41, 2026-09-16):** ahora se piden hora de inicio/fin y **foto obligatoria** de la sesión, y el registro **queda pendiente de aprobación del profesor** — tus horas como instructor se acreditan recién cuando se aprueba (ver 5.1 y 5.2).
 
@@ -118,41 +105,51 @@ En vez de registrar a cada beneficiario tú mismo, puedes generar un **link/QR �
 
 **Qué pasa después:** verás el mensaje "queda pendiente de aprobación del profesor". El registro no se pierde ni hay que repetirlo — solo espera a que tu profesor lo revise en su pantalla de Supervisar Asistencia.
 
-### 5.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN)
-Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas tuyas y de cualquier otro instructor asignado al mismo espacio — **pero solo cuando el profesor aprueba el registro**. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 8).
+### 4.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN)
+Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas tuyas y de cualquier otro instructor asignado al mismo espacio — **pero solo cuando el profesor aprueba el registro**. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 7).
 
-### 5.2 🆕 Qué revisa tu profesor (para que entiendas por qué puede tardar)
+### 4.2 🆕 Qué revisa tu profesor (para que entiendas por qué puede tardar)
 Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, fecha y horario, cuántos beneficiarios marcaste presentes, y puede **Aprobar** o **Rechazar** (con motivo). No necesitas hacer nada de tu parte salvo esperar — si te rechazan un registro por error de datos, coordina con tu profesor cómo corregirlo.
 
 ---
 
-## 6. Encuesta de Satisfacción
+## 5. Evaluación final del beneficiario
 
-**Ruta:** Dashboard → "Registros de Vinculación" → **"» Encuesta"** (`/vinculacion/encuesta`)
+**Ruta:** Dashboard → "Registros de Vinculación" → **"» Evaluación final del beneficiario"** (`/vinculacion/evaluacion-final`)
 
-> 🆕 **Ya no hace falta venir aquí para la encuesta del Post-Test** — desde que aplicas el Post-Test MCER (sección 4) la encuesta se pide en el mismo formulario, obligatoria. Usa esta página solo para una **encuesta suelta** (a mitad de ciclo, o para reenviarla si algo falló al hacerla junto con el Post-Test).
+🆕 **El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo envío obligatorio** — el beneficiario ya está registrado de antes (sección 3), aquí no se piden sus datos otra vez.
 
 **Pasos:**
-1. **Espacio** → selecciona tu club/aula.
-2. **Beneficiario** → a quién le tomas la encuesta.
-3. **Ciclo / Semestre a evaluar** → selecciona el ciclo académico.
-4. Califica con **estrellas (1-5)** cada pregunta:
+1. **Espacio** → selecciona el club/aula (si solo tienes uno asignado, se autoselecciona).
+2. **Beneficiario Evaluado** → elige de la lista (debe estar registrado, ver sección 3).
+3. **Ciclo a evaluar (Encuesta)** → obligatorio, selecciona el ciclo académico.
+4. **Foto / Evidencia Física** (opcional) → si aplicaste el test en papel, sube la foto.
+5. Responde **todas** las preguntas del Post-Test MCER (opción múltiple + la pregunta de audio grabada con el micrófono).
+6. Sigue el bloque de **Encuesta de Satisfacción** (obligatorio, en la misma pantalla): califica con **estrellas (1-5)**:
    - ¿Qué tan satisfecho está el beneficiario con el programa?
    - ¿Sintió que aprendió?
    - ¿Sintió que mejoró su nivel de inglés?
    - ¿Cómo calificaría los recursos/materiales usados?
-5. **Calificación por instructor** → aparece automáticamente una fila de estrellas por cada estudiante-instructor del espacio (incluyéndote a ti si eres uno de ellos) — el beneficiario califica a cada instructor.
-6. **Comentarios adicionales** (opcional) → texto libre.
-7. Clic en **"Enviar Encuesta"**.
+   - **Calificación por instructor** → una fila de estrellas por cada estudiante-instructor del espacio (incluyéndote a ti si eres uno de ellos).
+   - **Comentarios adicionales** (opcional).
+7. Clic en **"Enviar Evaluación Final"**.
 
-### 6.1 Alternativa QR (igual que en MCER)
-Botones **"🔗 QR Pre-Encuesta"** y **"🔗 QR Post-Encuesta"** arriba de la página — mismo mecanismo: genera link/QR para que el beneficiario responda desde su propio celular sin cuenta.
+**Qué pasa después:** el sistema calcula el puntaje y nivel del Post-Test (puntaje /100, desglose Gramática/Lectura/Oral, nivel asignado) y confirma que la encuesta también quedó registrada.
+
+### 5.1 Alternativa: enlace/QR sin login (el beneficiario responde desde su celular)
+Botón **"🔗 QR Evaluación Final (sin login)"** (se habilita cuando ya elegiste un beneficiario) → genera un link/QR de un solo uso. El beneficiario, al abrirlo, ve y responde el **Post-Test MCER y la Encuesta de Satisfacción juntos en una sola página**, un solo botón "Enviar". Clic en el botón → aparece un modal con el QR y el link → puedes copiarlo o compartirlo por WhatsApp.
+
+### 5.2 Alternativa en papel: descargar la Evaluación Final en Word
+Botón **"📄 Descargar Evaluación Final en Word"** (arriba de la página) — trae el nombre del beneficiario, las preguntas del MCER y la encuesta en blanco al final. Imprímela, aplícala en papel, y transcribe las respuestas en el formulario.
+
+### 5.3 ¿Solo necesitas reenviar la encuesta suelta?
+Si el Post-Test ya se tomó antes y solo falta la encuesta (o quieres una encuesta a mitad de ciclo, sin MCER), hay un link **"Ir a Encuesta suelta"** al pie de esta página → te lleva a `/vinculacion/encuesta`, con sus propios botones de QR Pre-Encuesta/Post-Encuesta.
 
 ---
 
-## 7. Registrar Difusión (Evento o Podcast)
+## 6. Registrar podcast o evento
 
-**Ruta:** Dashboard → "Registros de Vinculación" → **"» Difusión / Evento"** (`/vinculacion/difusion`)
+**Ruta:** Dashboard → "Registros de Vinculación" → **"» Registrar podcast o evento"** (`/vinculacion/difusion`)
 
 **Pasos:**
 1. **Título del Evento / Podcast**.
@@ -173,7 +170,7 @@ Botones **"🔗 QR Pre-Encuesta"** y **"🔗 QR Post-Encuesta"** arriba de la p�
 
 **Qué pasa después:** la actividad queda **pendiente de aprobación** por el administrador del sitio antes de aparecer en la web pública — es normal que no la veas de inmediato en `carrerapineuleam.vercel.app`.
 
-### 7.1 Horas acreditables por podcast (solo Vinculación)
+### 6.1 Horas acreditables por podcast (solo Vinculación)
 Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula automáticamente tus horas acreditables según esta tabla — **no hay que pedirlas aparte**:
 
 | Categoría (se detecta sola según los invitados que agregaste) | Horas |

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeOperarEspacio } from '@/lib/permisos-espacio';
 
 export async function GET(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    if (!usuario) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -13,6 +14,12 @@ export async function GET(request: Request) {
     const espacio_id = searchParams.get('espacio_id');
     if (!espacio_id) {
       return NextResponse.json({ success: true, data: [], espacio: null, supervisor: null });
+    }
+    // Antes solo profesor/admin — bloqueaba en silencio a un estudiante-instructor
+    // pidiendo esta lista (ej. test-mcer/encuesta al calificar instructores en un
+    // postest, Sesión 42). Ahora cualquiera que pueda operar el espacio.
+    if (!(await puedeOperarEspacio(usuario, parseInt(espacio_id)))) {
+      return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
     }
 
     const sql = neon(process.env.DATABASE_URL!);

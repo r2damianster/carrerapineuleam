@@ -40,13 +40,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { espacio_id, fecha, beneficiarios_presentes, observaciones, hora_inicio, hora_fin, foto_url, foto_public_id } = await request.json();
+    const {
+      espacio_id, fecha, beneficiarios_presentes, observaciones, hora_inicio, hora_fin, foto_url, foto_public_id,
+      instructores_presentes, invitados_presentes,
+    } = await request.json();
 
     if (!espacio_id || !fecha) {
       return NextResponse.json({ error: 'espacio_id y fecha son requeridos' }, { status: 400 });
     }
     if (!Array.isArray(beneficiarios_presentes) || beneficiarios_presentes.length === 0) {
       return NextResponse.json({ error: 'Selecciona al menos un beneficiario presente' }, { status: 400 });
+    }
+    const titulares: number[] = Array.isArray(instructores_presentes) ? instructores_presentes : [];
+    const invitados: number[] = Array.isArray(invitados_presentes) ? invitados_presentes : [];
+    const repetidos = invitados.filter((id) => titulares.includes(id));
+    if (repetidos.length > 0) {
+      return NextResponse.json({ error: 'Un pasante ya titular del espacio no puede marcarse también como invitado' }, { status: 400 });
     }
     if (!hora_inicio || !hora_fin) {
       return NextResponse.json({ error: 'Hora de inicio y de fin son requeridas' }, { status: 400 });
@@ -79,6 +88,25 @@ export async function POST(request: Request) {
     try {
       await client.query('BEGIN');
 
+      if (titulares.length > 0) {
+        const { rows: validos } = await client.query(
+          `SELECT usuario_id FROM espacio_instructores WHERE espacio_id = $1 AND usuario_id = ANY($2::int[])`,
+          [espacio_id, titulares]
+        );
+        if (validos.length !== titulares.length) {
+          throw new Error('Uno o más instructores no pertenecen a este espacio');
+        }
+      }
+      if (invitados.length > 0) {
+        const { rows: validos } = await client.query(
+          `SELECT id FROM usuarios WHERE rol = 'estudiante' AND activado = true AND id = ANY($1::int[])`,
+          [invitados]
+        );
+        if (validos.length !== invitados.length) {
+          throw new Error('Uno o más pasantes invitados no son válidos');
+        }
+      }
+
       const { rows: [asistencia] } = await client.query(
         `INSERT INTO asistencia_espacio (espacio_id, fecha, observaciones, registrado_por, hora_inicio, hora_fin, foto_url, foto_public_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
@@ -89,6 +117,19 @@ export async function POST(request: Request) {
         await client.query(
           `INSERT INTO asistencia_beneficiarios (asistencia_id, beneficiario_id) VALUES ($1, $2)`,
           [asistencia.id, beneficiarioId]
+        );
+      }
+
+      for (const usuarioId of titulares) {
+        await client.query(
+          `INSERT INTO asistencia_instructores (asistencia_id, usuario_id, tipo) VALUES ($1, $2, 'titular')`,
+          [asistencia.id, usuarioId]
+        );
+      }
+      for (const usuarioId of invitados) {
+        await client.query(
+          `INSERT INTO asistencia_instructores (asistencia_id, usuario_id, tipo) VALUES ($1, $2, 'invitado')`,
+          [asistencia.id, usuarioId]
         );
       }
 

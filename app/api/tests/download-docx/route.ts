@@ -87,6 +87,22 @@ export async function GET(request: Request) {
       });
     });
 
+    if (tipo === 'postest') {
+      children.push(
+        new Paragraph({
+          text: "Encuesta de Satisfacción",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({ text: "¿Qué tan satisfecho está el beneficiario con el programa? (1-5): _______", spacing: { after: 100 } }),
+        new Paragraph({ text: "¿Sintió que aprendió? (1-5): _______", spacing: { after: 100 } }),
+        new Paragraph({ text: "¿Sintió que mejoró su nivel de inglés? (1-5): _______", spacing: { after: 100 } }),
+        new Paragraph({ text: "¿Cómo calificaría los recursos/materiales usados? (1-5): _______", spacing: { after: 200 } }),
+        new Paragraph({ text: "Comentarios adicionales: ____________________________________________________________", spacing: { after: 100 } }),
+        new Paragraph({ text: "____________________________________________________________________________________", spacing: { after: 100 } }),
+      );
+    }
+
     const doc = new Document({
       sections: [{
         properties: {},
@@ -95,11 +111,12 @@ export async function GET(request: Request) {
     });
 
     const buffer = await Packer.toBuffer(doc);
+    const filename = tipo === 'postest' ? 'Evaluacion_Final_PINE.docx' : 'Registro_PreTest_PINE.docx';
 
     return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
-        'Content-Disposition': `attachment; filename="Test_MCER_PINE.docx"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       },
     });
