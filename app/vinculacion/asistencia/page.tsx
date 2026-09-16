@@ -278,7 +278,7 @@ export default function AsistenciaPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pasantes de este espacio</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Pasante que Asistió a la Sesión</label>
             <div className="border border-gray-300 rounded-lg p-4 space-y-1">
               {instructoresTitulares.length === 0 && <p className="text-gray-400 text-sm">{espacioId ? 'Sin pasantes asignados a este espacio.' : 'Selecciona un espacio primero.'}</p>}
               {instructoresTitulares.map(i => (
