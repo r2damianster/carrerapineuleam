@@ -11,7 +11,7 @@ import StarRating from '@/components/StarRating';
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
 
-export default function TestMcerPage() {
+export default function EvaluacionFinalPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -23,14 +23,12 @@ export default function TestMcerPage() {
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [instructores, setInstructores] = useState<any[]>([]);
 
-  const [form, setForm] = useState({ beneficiario_id: '', tipo: 'inicial', ciclo_id: '' });
+  const [form, setForm] = useState({ beneficiario_id: '', ciclo_id: '' });
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [audioResultado, setAudioResultado] = useState<ResultadoAudioMcer | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
+  const [modalEnlace, setModalEnlace] = useState(false);
 
-  // El postest (Post-Test/Final) siempre trae la encuesta de satisfacción obligatoria en el mismo envío.
-  const esPostest = form.tipo === 'final';
   const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
   const [aprendizaje, setAprendizaje] = useState(5);
   const [mejora, setMejora] = useState(5);
@@ -62,7 +60,7 @@ export default function TestMcerPage() {
           }
         });
       })
-      .catch(() => router.push('/portal/login?redirect=/vinculacion/test-mcer'));
+      .catch(() => router.push('/portal/login?redirect=/vinculacion/evaluacion-final'));
   }, [router]);
 
   useEffect(() => {
@@ -84,6 +82,8 @@ export default function TestMcerPage() {
       });
   }, [espacioId]);
 
+  const beneficiarioSeleccionado = beneficiarios.find(b => String(b.id) === form.beneficiario_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!espacioId) {
@@ -94,16 +94,16 @@ export default function TestMcerPage() {
       setMessage('Error: Selecciona un beneficiario');
       return;
     }
+    if (!form.ciclo_id) {
+      setMessage('Error: La evaluación final incluye la encuesta de satisfacción — selecciona el ciclo académico a evaluar');
+      return;
+    }
     if (Object.keys(answers).length < preguntasPuntaje.length) {
-      setMessage('Error: Debes responder todas las preguntas');
+      setMessage('Error: Debes responder todas las preguntas del test');
       return;
     }
     if (preguntasAudio.length > 0 && !audioResultado) {
       setMessage('Error: Debes grabar y evaluar la respuesta oral');
-      return;
-    }
-    if (esPostest && !form.ciclo_id) {
-      setMessage('Error: El post-test incluye la encuesta de satisfacción — selecciona el ciclo académico a evaluar');
       return;
     }
     setLoading(true);
@@ -127,7 +127,7 @@ export default function TestMcerPage() {
         body: JSON.stringify({
           beneficiario_id: parseInt(form.beneficiario_id),
           espacio_id: parseInt(espacioId),
-          tipo: form.tipo,
+          tipo: 'final',
           puntaje_obtenido: resultado.score,
           nivel_asignado: resultado.level,
           respuestas_json: { ...answers, _audio: audioResultado, _desglose: resultado.desglose },
@@ -139,32 +139,30 @@ export default function TestMcerPage() {
       const d = resultado.desglose;
       const fmt = (v: number | null) => v === null ? '—' : Math.round(v);
       let mensajeFinal =
-        `¡Test registrado! Puntaje final: ${resultado.score}/100 ` +
+        `¡Evaluación final registrada! Puntaje: ${resultado.score}/100 ` +
         `(Gramática: ${fmt(d.grammar)}%, Lectura: ${fmt(d.reading)}%, Oral: ${fmt(d.speaking)}%). ` +
-        `Nivel asignado: ${resultado.level}`;
+        `Nivel asignado: ${resultado.level}.`;
 
-      if (esPostest) {
-        const resEncuesta = await fetch('/api/encuestas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            beneficiario_id: parseInt(form.beneficiario_id),
-            espacio_id: parseInt(espacioId),
-            ciclo_id: parseInt(form.ciclo_id),
-            nivel_satisfaccion: nivelSatisfaccion,
-            aprendizaje,
-            mejora,
-            recursos,
-            comentarios,
-            calificaciones_instructores: calificacionesInstructores,
-          }),
-        });
-        const dataEncuesta = await resEncuesta.json();
-        if (!resEncuesta.ok) {
-          mensajeFinal += ` — Atención: el test se guardó pero la encuesta falló (${dataEncuesta.error}). Vuelve a enviarla desde /vinculacion/encuesta.`;
-        } else {
-          mensajeFinal += ' Encuesta de satisfacción también registrada.';
-        }
+      const resEncuesta = await fetch('/api/encuestas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          beneficiario_id: parseInt(form.beneficiario_id),
+          espacio_id: parseInt(espacioId),
+          ciclo_id: parseInt(form.ciclo_id),
+          nivel_satisfaccion: nivelSatisfaccion,
+          aprendizaje,
+          mejora,
+          recursos,
+          comentarios,
+          calificaciones_instructores: calificacionesInstructores,
+        }),
+      });
+      const dataEncuesta = await resEncuesta.json();
+      if (!resEncuesta.ok) {
+        mensajeFinal += ` — Atención: el test se guardó pero la encuesta falló (${dataEncuesta.error}). Vuelve a enviarla desde /vinculacion/encuesta.`;
+      } else {
+        mensajeFinal += ' Encuesta de satisfacción también registrada.';
       }
 
       setMessage(mensajeFinal);
@@ -198,37 +196,29 @@ export default function TestMcerPage() {
             &larr; Volver al Portal PINE
           </Link>
         </div>
-        <h2 className="text-3xl font-bold text-center text-blue-900 mb-2">Test de Nivelación MCER</h2>
+        <h2 className="text-3xl font-bold text-center text-blue-900 mb-2">Evaluación Final del Beneficiario</h2>
         <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-8">
-          <p className="text-gray-600">Aplicado por estudiantes a beneficiarios del programa</p>
+          <p className="text-gray-600">Post-Test MCER + Encuesta de Satisfacción, en un solo envío</p>
           <div className="flex flex-wrap gap-2 justify-center">
-            <button type="button" disabled={!espacioId} onClick={() => setModalEnlace({ tipo: 'pretest' })}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
-              🔗 QR Pre-Test (sin login)
-            </button>
             <button type="button" disabled={!form.beneficiario_id}
-              onClick={() => setModalEnlace({
-                tipo: 'postest',
-                beneficiarioId: parseInt(form.beneficiario_id),
-                beneficiarioNombre: beneficiarios.find(b => String(b.id) === form.beneficiario_id) ? `${beneficiarios.find(b => String(b.id) === form.beneficiario_id).nombres} ${beneficiarios.find(b => String(b.id) === form.beneficiario_id).apellidos}` : undefined,
-              })}
+              onClick={() => setModalEnlace(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
-              🔗 QR Post-Test (sin login)
+              🔗 QR Evaluación Final (sin login)
             </button>
-            <a href="/api/tests/download-docx" target="_blank" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-              📄 Descargar Test en Word
+            <a href="/api/tests/download-docx?tipo=postest" target="_blank" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+              📄 Descargar Evaluación Final en Word
             </a>
           </div>
         </div>
 
-        {modalEnlace && espacioId && (
+        {modalEnlace && espacioId && form.beneficiario_id && (
           <EnlaceEvaluacionModal
             espacioId={espacioId}
             testTipo="mcer"
-            tipo={modalEnlace.tipo}
-            beneficiarioId={modalEnlace.beneficiarioId}
-            beneficiarioNombre={modalEnlace.beneficiarioNombre}
-            onClose={() => setModalEnlace(null)}
+            tipo="postest"
+            beneficiarioId={parseInt(form.beneficiario_id)}
+            beneficiarioNombre={beneficiarioSeleccionado ? `${beneficiarioSeleccionado.nombres} ${beneficiarioSeleccionado.apellidos}` : undefined}
+            onClose={() => setModalEnlace(false)}
           />
         )}
 
@@ -255,28 +245,20 @@ export default function TestMcerPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-blue-900">Momento del Test</label>
-              <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                <option value="inicial">Pre-Test (Inicial)</option>
-                <option value="final">Post-Test (Final)</option>
+              <label className="block text-sm font-bold text-blue-900">Ciclo a evaluar (Encuesta)</label>
+              <select required value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                <option value="">Selecciona...</option>
+                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-bold text-blue-900">Foto / Evidencia Física</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm text-gray-500" />
             </div>
-            {esPostest && (
-              <div>
-                <label className="block text-sm font-bold text-blue-900">Ciclo a evaluar (Encuesta)</label>
-                <select required value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  <option value="">Selecciona...</option>
-                  {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-              </div>
-            )}
           </div>
 
           <div className="space-y-6">
+            <h3 className="text-xl font-bold text-center text-uleam-blue">Post-Test MCER</h3>
             {mcerQuestions.map((q, index) => (
               <div key={q.id} className="p-4 border rounded-lg hover:bg-gray-50">
                 {q.passage && (
@@ -307,39 +289,41 @@ export default function TestMcerPage() {
             ))}
           </div>
 
-          {esPostest && (
-            <div className="pt-6 border-t space-y-6">
-              <h3 className="text-xl font-bold text-center text-uleam-blue">Encuesta de Satisfacción (obligatoria en Post-Test)</h3>
-              <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
-              <StarRating label="¿Sintió que aprendió?" value={aprendizaje} onChange={setAprendizaje} />
-              <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={mejora} onChange={setMejora} />
-              <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
-              {instructores.length > 0 && (
-                <div className="pt-4 border-t space-y-6">
-                  <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
-                  {instructores.map(i => (
-                    <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
-                      value={calificacionesInstructores[i.id] ?? 5}
-                      onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
-                  ))}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
-                <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}
-                  placeholder="¿Qué le gustó más? ¿Qué podemos mejorar?"
-                  className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
-                ></textarea>
+          <div className="pt-6 border-t space-y-6">
+            <h3 className="text-xl font-bold text-center text-uleam-blue">Encuesta de Satisfacción (obligatoria)</h3>
+            <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
+            <StarRating label="¿Sintió que aprendió?" value={aprendizaje} onChange={setAprendizaje} />
+            <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={mejora} onChange={setMejora} />
+            <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
+            {instructores.length > 0 && (
+              <div className="pt-4 border-t space-y-6">
+                <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
+                {instructores.map(i => (
+                  <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
+                    value={calificacionesInstructores[i.id] ?? 5}
+                    onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
+                ))}
               </div>
+            )}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
+              <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}
+                placeholder="¿Qué le gustó más? ¿Qué podemos mejorar?"
+                className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
+              ></textarea>
             </div>
-          )}
+          </div>
 
           <div className="pt-4 border-t">
             <button type="submit" disabled={loading} className="w-full md:w-auto md:px-12 mx-auto flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
-              {loading ? 'Calculando Resultados...' : esPostest ? 'Enviar Test + Encuesta' : 'Enviar y Evaluar'}
+              {loading ? 'Calculando Resultados...' : 'Enviar Evaluación Final'}
             </button>
           </div>
         </form>
+
+        <p className="text-center text-xs text-gray-400 mt-8">
+          ¿Solo necesitas reenviar la encuesta suelta (sin MCER)? <Link href="/vinculacion/encuesta" className="text-blue-600 hover:underline">Ir a Encuesta suelta</Link>
+        </p>
       </div>
     </div>
   );

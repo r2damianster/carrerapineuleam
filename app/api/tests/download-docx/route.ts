@@ -2,23 +2,50 @@ import { NextResponse } from 'next/server';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { mcerQuestions } from '@/lib/questions';
 
-export async function GET() {
+// tipo=pretest (default): formato para Registrar y Evaluar Beneficiario — trae
+// también los campos de datos del beneficiario en blanco, porque en el
+// pretest el registro y la evaluación van juntos (sin registro no hay pretest).
+// tipo=postest: formato para Evaluación Final — el beneficiario ya está
+// registrado de antes, solo lleva su nombre + MCER + la encuesta de
+// satisfacción en blanco al final (misma fusión postest+encuesta del sistema).
+export async function GET(request: Request) {
   try {
-    const children = [
-      new Paragraph({
-        text: "Test de Nivelación MCER - Proyecto PINE",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { after: 300 }
-      }),
-      new Paragraph({
-        text: "Nombre del Beneficiario: ____________________________________",
-        spacing: { after: 200 }
-      }),
-      new Paragraph({
-        text: "Fecha: ________________________  Puntaje: _______/100 (promedio Gramática + Lectura + Oral)",
-        spacing: { after: 400 }
-      }),
-    ];
+    const { searchParams } = new URL(request.url);
+    const tipo = searchParams.get('tipo') === 'postest' ? 'postest' : 'pretest';
+
+    const children = tipo === 'pretest'
+      ? [
+          new Paragraph({
+            text: "Registro y Pre-Test MCER - Proyecto PINE",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          }),
+          new Paragraph({ text: "Nombres: ________________________________  Apellidos: ________________________________", spacing: { after: 150 } }),
+          new Paragraph({ text: "Contacto: _____________________________  Email (opcional): _____________________________", spacing: { after: 150 } }),
+          new Paragraph({ text: "Edad: ________  Tiene discapacidad: Sí ( ) No ( )  ¿Cuál?: ________________________________", spacing: { after: 150 } }),
+          new Paragraph({ text: "Situación ocupacional: Solo estudia ( )  Estudia y trabaja ( )  Solo trabaja ( )  Desempleado y no estudia ( )", spacing: { after: 150 } }),
+          new Paragraph({ text: "Si trabaja — Rol que ejerce: ________________________________", spacing: { after: 150 } }),
+          new Paragraph({ text: "Si estudia — Nivel educativo: Universidad ( )  Colegio ( )  Escuela ( )   Carrera: ______________  Curso/semestre: ______________", spacing: { after: 200 } }),
+          new Paragraph({
+            text: "Fecha: ________________________  Puntaje: _______/100 (promedio Gramática + Lectura + Oral)",
+            spacing: { after: 400 }
+          }),
+        ]
+      : [
+          new Paragraph({
+            text: "Evaluación Final (Post-Test MCER + Encuesta) - Proyecto PINE",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 300 }
+          }),
+          new Paragraph({
+            text: "Nombre del Beneficiario: ____________________________________",
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: "Fecha: ________________________  Puntaje: _______/100 (promedio Gramática + Lectura + Oral)",
+            spacing: { after: 400 }
+          }),
+        ];
 
     mcerQuestions.forEach((q, i) => {
       // Pregunta
