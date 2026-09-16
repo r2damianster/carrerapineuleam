@@ -33,7 +33,7 @@
 Al entrar verás tarjetas según lo que tengas asignado. Como pasante de Vinculación verás normalmente:
 
 - **Registros de Vinculación** — asistencia, beneficiarios, test MCER, encuesta, difusión (el corazón de tu trabajo diario, ver secciones 3-7).
-- **📊 Mi Avance** — tus horas acreditables (incluye horas de podcast), espacios asignados, beneficiarios y evaluaciones que ya registraste. Botón **"» Ver mi avance completo"** → `/portal/mi-avance`.
+- **📊 Mi Avance** — tus horas acreditables (podcast 🆕 + asistencia, ver 3.1), espacios asignados, beneficiarios y evaluaciones que ya registraste. Botón **"» Ver mi avance completo"** → `/portal/mi-avance`.
 - **Investigación (Vinculación)** *(solo si tu profesor te habilitó este módulo)* — botón **"» Reportar Actividades"** para registrar horas/actividades de investigación aparte de tus horas de vinculación.
 
 ---
@@ -42,12 +42,24 @@ Al entrar verás tarjetas según lo que tengas asignado. Como pasante de Vincula
 
 **Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Registrar Asistencia"** (`/vinculacion/asistencia`)
 
+> 🆕 **ACTUALIZACIÓN (Sesión 41, 2026-09-16):** ahora se piden hora de inicio/fin, foto opcional, y el registro **queda pendiente de aprobación del profesor** — tus horas como instructor se acreditan recién cuando se aprueba (ver 3.1 y 3.2).
+
 **Pasos:**
 1. **Espacio** → selecciona tu club/aula del desplegable.
 2. **Fecha** → elige la fecha de la sesión.
-3. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 4).
-4. **Observaciones** (opcional) → texto libre.
-5. Clic en **"Guardar Asistencia"**.
+3. 🆕 **Hora de inicio** / **Hora de fin** (obligatorias) → la duración real de la sesión es la que se te acredita como horas al aprobarse.
+4. 🆕 **Foto de evidencia** (opcional) → sube una foto de la sesión.
+5. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 4).
+6. **Observaciones** (opcional) → texto libre.
+7. Clic en **"Guardar Asistencia"**.
+
+**Qué pasa después:** verás el mensaje "queda pendiente de aprobación del profesor". El registro no se pierde ni hay que repetirlo — solo espera a que tu profesor lo revise en su pantalla de Supervisar Asistencia.
+
+### 3.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN)
+Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas tuyas y de cualquier otro instructor asignado al mismo espacio — **pero solo cuando el profesor aprueba el registro**. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 8).
+
+### 3.2 🆕 Qué revisa tu profesor (para que entiendas por qué puede tardar)
+Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, fecha y horario, cuántos beneficiarios marcaste presentes, y puede **Aprobar** o **Rechazar** (con motivo). No necesitas hacer nada de tu parte salvo esperar — si te rechazan un registro por error de datos, coordina con tu profesor cómo corregirlo.
 
 ---
 
@@ -172,7 +184,7 @@ Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula 
 
 **Ruta:** Dashboard → tarjeta **"📊 Mi Avance"** → **"» Ver mi avance completo"** (`/portal/mi-avance`)
 
-Ahí puedes revisar en un solo lugar: tus horas acreditadas (incluye podcast), en qué espacios estás asignado, qué beneficiarios has registrado/atendido, y las evaluaciones (MCER/encuestas) que ya cargaste.
+Ahí puedes revisar en un solo lugar: tus horas acreditadas (podcast + 🆕 asistencia — con aviso de cuántas sesiones te faltan por aprobación), en qué espacios estás asignado, qué beneficiarios has registrado/atendido, y las evaluaciones (MCER/encuestas) que ya cargaste.
 
 ---
 
@@ -193,7 +205,7 @@ Portal PINE (login con correo institucional)
    Dashboard
         │
         ├─ Registros de Vinculación
-        │     ├─ Registrar Asistencia
+        │     ├─ Registrar Asistencia (🆕 hora inicio/fin + foto → pendiente aprobación → horas acreditables)
         │     ├─ Registrar Beneficiarios (Asignar existente / Registrar nuevo)
         │     ├─ Test MCER (Pre/Post + QR sin login)
         │     ├─ Encuesta (estrellas + calificación por instructor + QR sin login)
@@ -207,3 +219,4 @@ Portal PINE (login con correo institucional)
 ---
 
 **Documento generado:** 2026-09-16, a partir del código real de `carrerapineuleam` (rutas, campos y textos exactos de la interfaz vigente en producción).
+**Última actualización:** 2026-09-16 (Sesión 41 — asistencia con hora inicio/fin, foto y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 3).
