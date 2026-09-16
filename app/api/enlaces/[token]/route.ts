@@ -32,8 +32,9 @@ export async function GET(request: Request, { params }: { params: { token: strin
       return NextResponse.json({ error: 'Este enlace ya no está disponible' }, { status: 410 });
     }
 
+    // El postest de MCER siempre trae la encuesta de satisfacción en el mismo formulario — necesita la misma lista de instructores para calificar.
     let instructores: { id: number; nombre: string }[] = [];
-    if (enlace.test_tipo === 'encuesta') {
+    if (enlace.test_tipo === 'encuesta' || (enlace.tipo === 'postest' && enlace.test_tipo === 'mcer')) {
       const filas = await sql`
         SELECT u.id, u.nombres, u.apellidos
         FROM espacio_instructores ei

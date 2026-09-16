@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-16 (Sesión 41 — asistencia gana hora_inicio/hora_fin + foto + aprobación del profesor, y acredita horas al instructor solo al aprobarse. Ver detalle abajo)
+**Última sesión:** 2026-09-16 (Sesión 42 — postest MCER fusionado con la encuesta de satisfacción, obligatorio en ambos flujos. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -164,6 +164,24 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 42 — 2026-09-16)
+
+### Postest MCER fusionado con la encuesta de satisfacción (obligatorio)
+
+A pedido del usuario: al aplicar el postest de MCER, ahora siempre se aplica también la encuesta de satisfacción en el mismo envío — no es opcional, un beneficiario que termina el ciclo no puede quedar sin encuesta. Confirmado con el usuario que aplica a **ambos flujos** (panel autenticado del instructor y QR público sin login), y que es **obligatorio** (no un checkbox opcional). Pretest y la encuesta suelta (standalone, sin ir pegada a un postest) no se tocaron — siguen funcionando igual que antes.
+
+- **Sin migración de schema** — se reusa `enlaces_evaluacion.ciclo_id` (ya existía, nullable) y `encuestas_satisfaccion`/`encuesta_evaluaciones_instructor` tal cual. La "fusión" es lógica de aplicación: cuando `tipo='postest' AND test_tipo='mcer'`, el flujo entero (generación de enlace, formulario público, panel del instructor) también exige y guarda la encuesta.
+- **`POST /api/enlaces`** — ahora exige `ciclo_id` también para `tipo='postest' && test_tipo='mcer'` (antes solo lo exigía `test_tipo='encuesta'`).
+- **`components/EnlaceEvaluacionModal.tsx`** — pide el ciclo académico también al generar un QR de Post-Test MCER (antes solo en encuestas), título del modal dice "MCER + Encuesta" en ese caso.
+- **`GET /api/enlaces/[token]`** — devuelve la lista de instructores del espacio también cuando es postest+mcer (antes solo en encuesta), para poder calificarlos en el mismo formulario.
+- **`POST /api/enlaces/[token]/postest`** (transacción) — inserta en `evaluaciones_mcer` **y** en `encuestas_satisfaccion`+`encuesta_evaluaciones_instructor` en el mismo `BEGIN/COMMIT` cuando es postest+mcer, en vez de la rama `if/else` mutuamente excluyente de antes.
+- **`/vinculacion/publico/[token]`** — cuando el enlace es postest+mcer, renderiza el test MCER completo **y** el bloque de encuesta (4 estrellas + calificación por instructor + comentarios) en la misma página, un solo botón "Enviar" que manda ambos payloads juntos.
+- **`/vinculacion/test-mcer`** (panel autenticado) — al elegir "Post-Test (Final)" aparece un selector de ciclo académico obligatorio y, antes del botón de envío, el mismo bloque de encuesta que ya existía en `/vinculacion/encuesta`. Al enviar: primero `POST /api/tests` (MCER), si es postest **encadena** `POST /api/encuestas` (llamadas secuenciales, no transacción server-side — si la encuesta falla tras guardar el test, el mensaje lo avisa explícitamente y pide reenviarla desde `/vinculacion/encuesta`, no se pierde el test ya guardado).
+- **No se tocó:** el botón "QR Post-Encuesta (sin login)" de `/vinculacion/encuesta` sigue existiendo como enlace independiente (solo encuesta, sin MCER) — útil si un instructor necesita reenviar solo la encuesta a alguien. Tampoco se tocó el pretest (`tipo='pretest'`) en ninguno de sus dos `test_tipo`.
+- **Verificación:** `npx tsc --noEmit` y `npm run build` limpios, rutas nuevas/tocadas compilan sin error. No se probó clic-a-clic en navegador (mismo límite de sandbox de sesiones previas) — `enlaces_evaluacion` no tiene postests reales en producción todavía para un smoke test end-to-end con datos reales.
 
 ---
 
@@ -1058,6 +1076,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-16 (Sesión 41)
-**Versión:** 0.10.14
+**Última actualización:** 2026-09-16 (Sesión 42)
+**Versión:** 0.10.15
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

@@ -47,6 +47,9 @@ export default function EnlacePublicoPage() {
   const [comentarios, setComentarios] = useState('');
   const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
 
+  // El postest de MCER siempre trae la encuesta de satisfacción obligatoria en el mismo envío.
+  const combinaEncuesta = enlace?.tipo === 'postest' && enlace?.test_tipo === 'mcer';
+
   useEffect(() => {
     fetch(`/api/enlaces/${token}`)
       .then(async res => {
@@ -97,7 +100,8 @@ export default function EnlacePublicoPage() {
         payload.respuestas_json = { ...answers, _audio: audioResultado, _desglose: resultado.desglose };
         payload.puntaje_obtenido = resultado.score;
         payload.nivel_asignado = resultado.level;
-      } else {
+      }
+      if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
         payload.nivel_satisfaccion = nivelSatisfaccion;
         payload.aprendizaje = aprendizaje;
         payload.mejora = mejora;
@@ -145,7 +149,7 @@ export default function EnlacePublicoPage() {
         <div className="max-w-md text-center bg-white p-8 rounded-xl shadow-md border-t-4 border-green-500">
           <h2 className="text-xl font-bold text-green-700 mb-2">¡Listo!</h2>
           <p className="text-gray-600">
-            {enlace.test_tipo === 'mcer' ? 'Tu test fue registrado.' : 'Tu encuesta fue registrada.'} Gracias por participar.
+            {combinaEncuesta ? 'Tu test y tu encuesta fueron registrados.' : enlace.test_tipo === 'mcer' ? 'Tu test fue registrado.' : 'Tu encuesta fue registrada.'} Gracias por participar.
           </p>
         </div>
       </div>
@@ -156,7 +160,7 @@ export default function EnlacePublicoPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
         <h2 className="text-3xl font-bold text-center text-uleam-blue mb-1">
-          {enlace.test_tipo === 'mcer' ? 'Test de Nivelación MCER' : 'Encuesta de Satisfacción'}
+          {combinaEncuesta ? 'Test de Nivelación MCER + Encuesta de Satisfacción' : enlace.test_tipo === 'mcer' ? 'Test de Nivelación MCER' : 'Encuesta de Satisfacción'}
         </h2>
         <p className="text-center text-gray-600 mb-8">
           {enlace.espacio_nombre}
@@ -254,7 +258,7 @@ export default function EnlacePublicoPage() {
             </div>
           )}
 
-          {enlace.test_tipo === 'mcer' ? (
+          {enlace.test_tipo === 'mcer' && (
             <div className="space-y-6">
               {mcerQuestions.map((q, index) => (
                 <div key={q.id} className="p-4 border rounded-lg hover:bg-gray-50">
@@ -284,8 +288,13 @@ export default function EnlacePublicoPage() {
                 </div>
               ))}
             </div>
-          ) : (
+          )}
+
+          {(enlace.test_tipo === 'encuesta' || combinaEncuesta) && (
             <div className="pt-2 space-y-6">
+              {combinaEncuesta && (
+                <h3 className="text-xl font-bold text-center text-uleam-blue pt-4 border-t">Encuesta de Satisfacción</h3>
+              )}
               <StarRating label="¿Qué tan satisfecho estás con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
               <StarRating label="¿Sientes que aprendiste?" value={aprendizaje} onChange={setAprendizaje} />
               <StarRating label="¿Sientes que mejoraste tu nivel de inglés?" value={mejora} onChange={setMejora} />

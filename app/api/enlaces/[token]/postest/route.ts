@@ -41,8 +41,10 @@ export async function POST(request: Request, { params }: { params: { token: stri
       await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Faltan respuestas del test' }, { status: 400 });
     }
+    // Todo postest de MCER trae la encuesta de satisfacción obligatoria en el mismo envío.
+    const combinaEncuesta = enlace.tipo === 'postest' && enlace.test_tipo === 'mcer';
     let idsInstructores: number[] = [];
-    if (enlace.test_tipo === 'encuesta') {
+    if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
       if (![nivel_satisfaccion, aprendizaje, mejora, recursos].every(esRating)) {
         await client.query('ROLLBACK');
         return NextResponse.json({ error: 'Todas las calificaciones deben estar entre 1 y 5' }, { status: 400 });
@@ -65,7 +67,8 @@ export async function POST(request: Request, { params }: { params: { token: stri
          VALUES ($1, $2, 'final', $3, $4, $5, CURRENT_DATE)`,
         [enlace.beneficiario_id, enlace.creado_por, puntaje_obtenido, nivel_asignado, JSON.stringify(respuestas_json)]
       );
-    } else {
+    }
+    if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
       const { rows: [encuesta] } = await client.query(
         `INSERT INTO encuestas_satisfaccion (beneficiario_id, ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios)
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,

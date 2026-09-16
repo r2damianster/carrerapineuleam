@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
+import StarRating from '@/components/StarRating';
 
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
@@ -19,12 +20,23 @@ export default function TestMcerPage() {
   const [espacios, setEspacios] = useState<any[]>([]);
   const [espacioId, setEspacioId] = useState('');
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
+  const [ciclos, setCiclos] = useState<any[]>([]);
+  const [instructores, setInstructores] = useState<any[]>([]);
 
-  const [form, setForm] = useState({ beneficiario_id: '', tipo: 'inicial' });
+  const [form, setForm] = useState({ beneficiario_id: '', tipo: 'inicial', ciclo_id: '' });
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [audioResultado, setAudioResultado] = useState<ResultadoAudioMcer | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
+
+  // El postest (Post-Test/Final) siempre trae la encuesta de satisfacción obligatoria en el mismo envío.
+  const esPostest = form.tipo === 'final';
+  const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
+  const [aprendizaje, setAprendizaje] = useState(5);
+  const [mejora, setMejora] = useState(5);
+  const [recursos, setRecursos] = useState(5);
+  const [comentarios, setComentarios] = useState('');
+  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -35,10 +47,18 @@ export default function TestMcerPage() {
           return;
         }
         setCheckingSession(false);
-        return fetch('/api/espacios?area=vinculacion').then(r => r.json()).then(d => {
-          if (d.success) {
-            setEspacios(d.data);
-            if (d.data.length === 1) setEspacioId(String(d.data[0].id));
+        return Promise.all([
+          fetch('/api/espacios?area=vinculacion').then(r => r.json()),
+          fetch('/api/docencia/ciclos').then(r => r.json()),
+        ]).then(([espaciosData, ciclosData]) => {
+          if (espaciosData.success) {
+            setEspacios(espaciosData.data);
+            if (espaciosData.data.length === 1) setEspacioId(String(espaciosData.data[0].id));
+          }
+          if (ciclosData.success) {
+            setCiclos(ciclosData.data);
+            const cicloActual = ciclosData.data.find((c: any) => c.nombre === '2026-2');
+            if (cicloActual) setForm(prev => ({ ...prev, ciclo_id: String(cicloActual.id) }));
           }
         });
       })
@@ -48,11 +68,20 @@ export default function TestMcerPage() {
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
+      setInstructores([]);
       return;
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setBeneficiarios(d.data); });
+    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setInstructores(d.data);
+          setCalificacionesInstructores(Object.fromEntries(d.data.map((i: any) => [i.id, 5])));
+        }
+      });
   }, [espacioId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,6 +100,10 @@ export default function TestMcerPage() {
     }
     if (preguntasAudio.length > 0 && !audioResultado) {
       setMessage('Error: Debes grabar y evaluar la respuesta oral');
+      return;
+    }
+    if (esPostest && !form.ciclo_id) {
+      setMessage('Error: El post-test incluye la encuesta de satisfacción — selecciona el ciclo académico a evaluar');
       return;
     }
     setLoading(true);
@@ -105,14 +138,45 @@ export default function TestMcerPage() {
       if (!res.ok) throw new Error(data.error);
       const d = resultado.desglose;
       const fmt = (v: number | null) => v === null ? '—' : Math.round(v);
-      setMessage(
+      let mensajeFinal =
         `¡Test registrado! Puntaje final: ${resultado.score}/100 ` +
         `(Gramática: ${fmt(d.grammar)}%, Lectura: ${fmt(d.reading)}%, Oral: ${fmt(d.speaking)}%). ` +
-        `Nivel asignado: ${resultado.level}`
-      );
+        `Nivel asignado: ${resultado.level}`;
+
+      if (esPostest) {
+        const resEncuesta = await fetch('/api/encuestas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            beneficiario_id: parseInt(form.beneficiario_id),
+            espacio_id: parseInt(espacioId),
+            ciclo_id: parseInt(form.ciclo_id),
+            nivel_satisfaccion: nivelSatisfaccion,
+            aprendizaje,
+            mejora,
+            recursos,
+            comentarios,
+            calificaciones_instructores: calificacionesInstructores,
+          }),
+        });
+        const dataEncuesta = await resEncuesta.json();
+        if (!resEncuesta.ok) {
+          mensajeFinal += ` — Atención: el test se guardó pero la encuesta falló (${dataEncuesta.error}). Vuelve a enviarla desde /vinculacion/encuesta.`;
+        } else {
+          mensajeFinal += ' Encuesta de satisfacción también registrada.';
+        }
+      }
+
+      setMessage(mensajeFinal);
       setAnswers({});
       setAudioResultado(null);
       setFile(null);
+      setNivelSatisfaccion(5);
+      setAprendizaje(5);
+      setMejora(5);
+      setRecursos(5);
+      setComentarios('');
+      setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
       window.scrollTo(0, 0);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -201,6 +265,15 @@ export default function TestMcerPage() {
               <label className="block text-sm font-bold text-blue-900">Foto / Evidencia Física</label>
               <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm text-gray-500" />
             </div>
+            {esPostest && (
+              <div>
+                <label className="block text-sm font-bold text-blue-900">Ciclo a evaluar (Encuesta)</label>
+                <select required value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                  <option value="">Selecciona...</option>
+                  {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -234,9 +307,36 @@ export default function TestMcerPage() {
             ))}
           </div>
 
+          {esPostest && (
+            <div className="pt-6 border-t space-y-6">
+              <h3 className="text-xl font-bold text-center text-uleam-blue">Encuesta de Satisfacción (obligatoria en Post-Test)</h3>
+              <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
+              <StarRating label="¿Sintió que aprendió?" value={aprendizaje} onChange={setAprendizaje} />
+              <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={mejora} onChange={setMejora} />
+              <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
+              {instructores.length > 0 && (
+                <div className="pt-4 border-t space-y-6">
+                  <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
+                  {instructores.map(i => (
+                    <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
+                      value={calificacionesInstructores[i.id] ?? 5}
+                      onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
+                  ))}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
+                <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}
+                  placeholder="¿Qué le gustó más? ¿Qué podemos mejorar?"
+                  className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
+                ></textarea>
+              </div>
+            </div>
+          )}
+
           <div className="pt-4 border-t">
             <button type="submit" disabled={loading} className="w-full md:w-auto md:px-12 mx-auto flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
-              {loading ? 'Calculando Resultados...' : 'Enviar y Evaluar'}
+              {loading ? 'Calculando Resultados...' : esPostest ? 'Enviar Test + Encuesta' : 'Enviar y Evaluar'}
             </button>
           </div>
         </form>

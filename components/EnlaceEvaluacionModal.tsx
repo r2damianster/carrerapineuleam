@@ -29,14 +29,17 @@ export default function EnlaceEvaluacionModal({
   const [url, setUrl] = useState('');
   const [copiado, setCopiado] = useState(false);
 
+  // El postest de MCER siempre viene con la encuesta de satisfacción en el mismo enlace — necesita ciclo académico igual que una encuesta suelta.
+  const requiereCiclo = testTipo === 'encuesta' || (testTipo === 'mcer' && tipo === 'postest');
+
   useEffect(() => {
-    if (testTipo === 'encuesta') {
+    if (requiereCiclo) {
       fetch('/api/docencia/ciclos').then(r => r.json()).then(d => { if (d.success) setCiclos(d.data); });
     }
-  }, [testTipo]);
+  }, [requiereCiclo]);
 
   const generar = async () => {
-    if (testTipo === 'encuesta' && !cicloId) {
+    if (requiereCiclo && !cicloId) {
       setError('Selecciona el ciclo académico a evaluar');
       return;
     }
@@ -90,7 +93,7 @@ export default function EnlaceEvaluacionModal({
         </button>
 
         <h2 className="mb-1 text-lg font-bold text-uleam-blue">
-          Enlace de {tipo === 'pretest' ? 'Pre-Test' : 'Post-Test'} {testTipo === 'mcer' ? 'MCER' : '(Encuesta)'}
+          Enlace de {tipo === 'pretest' ? 'Pre-Test' : 'Post-Test'} {testTipo === 'mcer' ? (tipo === 'postest' ? 'MCER + Encuesta' : 'MCER') : '(Encuesta)'}
         </h2>
         <p className="mb-4 text-sm text-gray-600">
           {beneficiarioNombre ? `Para ${beneficiarioNombre}` : 'Compártelo con los nuevos beneficiarios del grupo'}
@@ -100,7 +103,7 @@ export default function EnlaceEvaluacionModal({
 
         {!url && (
           <div className="space-y-4 text-left">
-            {testTipo === 'encuesta' && (
+            {requiereCiclo && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ciclo académico a evaluar</label>
                 <select value={cicloId} onChange={e => setCicloId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue">

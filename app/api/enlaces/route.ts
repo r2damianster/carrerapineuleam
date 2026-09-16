@@ -29,7 +29,9 @@ export async function POST(request: Request) {
     if (tipo === 'postest' && !beneficiario_id) {
       return NextResponse.json({ error: 'El postest requiere un beneficiario' }, { status: 400 });
     }
-    if (test_tipo === 'encuesta' && !ciclo_id) {
+    // El postest de MCER siempre incluye la encuesta de satisfacción en el mismo enlace (obligatoria) — igual que una encuesta suelta, necesita ciclo académico.
+    const requiereCiclo = test_tipo === 'encuesta' || (tipo === 'postest' && test_tipo === 'mcer');
+    if (requiereCiclo && !ciclo_id) {
       return NextResponse.json({ error: 'La encuesta requiere un ciclo académico' }, { status: 400 });
     }
     if (new Date(expira_en).getTime() <= Date.now()) {
