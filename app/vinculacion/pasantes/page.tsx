@@ -403,6 +403,9 @@ export default function PasantesPage() {
                     {Number(s.horas_podcast_acreditadas) > 0 && (
                       <p className="text-xs text-indigo-600 mt-1">🎙 {Number(s.horas_podcast_acreditadas)} h acreditadas por podcast de vinculación (episodios aprobados)</p>
                     )}
+                    {Number(s.horas_asistencia_acreditadas) > 0 && (
+                      <p className="text-xs text-teal-600 mt-1">🎓 {Number(s.horas_asistencia_acreditadas)} h acreditadas por asistencia (sesiones aprobadas)</p>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => empezarEdicion(s)} className="text-sm text-blue-600 hover:underline">Editar</button>

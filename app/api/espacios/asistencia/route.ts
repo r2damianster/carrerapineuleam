@@ -40,13 +40,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { espacio_id, fecha, beneficiarios_presentes, observaciones } = await request.json();
+    const { espacio_id, fecha, beneficiarios_presentes, observaciones, hora_inicio, hora_fin, foto_url, foto_public_id } = await request.json();
 
     if (!espacio_id || !fecha) {
       return NextResponse.json({ error: 'espacio_id y fecha son requeridos' }, { status: 400 });
     }
     if (!Array.isArray(beneficiarios_presentes) || beneficiarios_presentes.length === 0) {
       return NextResponse.json({ error: 'Selecciona al menos un beneficiario presente' }, { status: 400 });
+    }
+    if (!hora_inicio || !hora_fin) {
+      return NextResponse.json({ error: 'Hora de inicio y de fin son requeridas' }, { status: 400 });
+    }
+    if (hora_fin <= hora_inicio) {
+      return NextResponse.json({ error: 'La hora de fin debe ser posterior a la hora de inicio' }, { status: 400 });
     }
     if (!(await puedeOperarEspacio(usuario, espacio_id))) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
@@ -71,8 +77,9 @@ export async function POST(request: Request) {
       await client.query('BEGIN');
 
       const { rows: [asistencia] } = await client.query(
-        `INSERT INTO asistencia_espacio (espacio_id, fecha, observaciones, registrado_por) VALUES ($1, $2, $3, $4) RETURNING id`,
-        [espacio_id, fecha, observaciones ?? null, usuario.id]
+        `INSERT INTO asistencia_espacio (espacio_id, fecha, observaciones, registrado_por, hora_inicio, hora_fin, foto_url, foto_public_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [espacio_id, fecha, observaciones ?? null, usuario.id, hora_inicio, hora_fin, foto_url ?? null, foto_public_id ?? null]
       );
 
       for (const beneficiarioId of beneficiarios_presentes as number[]) {

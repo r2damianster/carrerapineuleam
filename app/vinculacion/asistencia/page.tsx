@@ -15,7 +15,11 @@ export default function AsistenciaPage() {
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [presentes, setPresentes] = useState<number[]>([]);
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [horaInicio, setHoraInicio] = useState('');
+  const [horaFin, setHoraFin] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [foto, setFoto] = useState<File | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   // Ventana de 48h: no se puede elegir un día futuro ni uno de más de 2 días atrás
   const fechaMaxima = new Date().toISOString().slice(0, 10);
@@ -65,24 +69,53 @@ export default function AsistenciaPage() {
       setMessage('Error: Selecciona al menos un beneficiario presente');
       return;
     }
+    if (!horaInicio || !horaFin) {
+      setMessage('Error: Ingresa hora de inicio y de fin');
+      return;
+    }
+    if (horaFin <= horaInicio) {
+      setMessage('Error: La hora de fin debe ser posterior a la de inicio');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
+      let fotoUrl: string | null = null;
+      let fotoPublicId: string | null = null;
+      if (foto) {
+        setSubiendoFoto(true);
+        const formData = new FormData();
+        formData.append('file', foto);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        setSubiendoFoto(false);
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Error subiendo la foto');
+        fotoUrl = uploadData.url;
+        fotoPublicId = uploadData.public_id;
+      }
+
       const res = await fetch('/api/espacios/asistencia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           espacio_id: parseInt(espacioId),
           fecha,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
           beneficiarios_presentes: presentes,
           observaciones,
+          foto_url: fotoUrl,
+          foto_public_id: fotoPublicId,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage('Asistencia registrada exitosamente');
+      setMessage('Asistencia registrada exitosamente — queda pendiente de aprobación del profesor.');
       setPresentes([]);
       setObservaciones('');
+      setHoraInicio('');
+      setHoraFin('');
+      setFoto(null);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
     } finally {
@@ -133,6 +166,23 @@ export default function AsistenciaPage() {
             <p className="text-xs text-gray-400 mt-1">Solo puedes registrar asistencia hasta 48 horas después del día del club.</p>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hora de inicio</label>
+              <input type="time" required value={horaInicio} onChange={e => setHoraInicio(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hora de fin</label>
+              <input type="time" required value={horaFin} onChange={e => setHoraFin(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 -mt-4">La duración real (hora de fin − hora de inicio) es la que se acredita como horas al aprobarse.</p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Foto de evidencia (opcional)</label>
+            <input type="file" accept="image/*" onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiarios presentes</label>
             <div className="border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto space-y-1">
@@ -155,7 +205,7 @@ export default function AsistenciaPage() {
           </div>
 
           <button type="submit" disabled={loading} className="w-full px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition disabled:opacity-50">
-            {loading ? 'Guardando...' : 'Guardar Asistencia'}
+            {subiendoFoto ? 'Subiendo foto...' : loading ? 'Guardando...' : 'Guardar Asistencia'}
           </button>
         </form>
       </div>

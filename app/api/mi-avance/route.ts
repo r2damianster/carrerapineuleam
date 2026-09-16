@@ -83,6 +83,18 @@ export async function GET() {
       return total + desglose.horasTotal;
     }, 0);
 
+    const [horasAsistenciaRow] = await sql`
+      SELECT COALESCE(SUM(ha.horas), 0)::float AS total, COUNT(*)::int AS sesiones
+      FROM horas_asistencia_instructor ha
+      WHERE ha.usuario_id = ${usuarioId}
+    `;
+    const [asistenciasPendientesRow] = espacioIds.length > 0
+      ? await sql`
+          SELECT COUNT(*)::int AS total FROM asistencia_espacio
+          WHERE espacio_id = ANY(${espacioIds}) AND registrado_por = ${usuarioId} AND estado_aprobacion = 'pendiente'
+        `
+      : [{ total: 0 }];
+
     const tieneInvestigacion = usuario.modulos_acceso.includes('investigacion');
     const [horasInvestigacionRow] = tieneInvestigacion
       ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId}`
@@ -96,6 +108,7 @@ export async function GET() {
       encuestasEnTuEspacio: encuestasRow.total,
       difusion: difusionRow,
       horasPodcast: { ...horasPodcastRow, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
+      horasAsistencia: { ...horasAsistenciaRow, sesionesPendientes: asistenciasPendientesRow.total },
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,
     });
   } catch (error: any) {

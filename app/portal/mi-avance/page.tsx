@@ -19,6 +19,7 @@ interface Avance {
   encuestasEnTuEspacio: number;
   difusion: { aprobadas: number; pendientes: number; podcasts: number };
   horasPodcast: { total: number; episodios: number; pendientes: number; episodiosPendientes: number };
+  horasAsistencia: { total: number; sesiones: number; sesionesPendientes: number };
   horasInvestigacion: { total: number; reportes: number } | null;
 }
 
@@ -92,6 +93,20 @@ export default function MiAvancePage() {
                       label="⏳ Horas pendientes de aprobación"
                       value={`${avance.horasPodcast.pendientes} h`}
                       sub={`${avance.horasPodcast.episodiosPendientes} episodio(s) esperando que el profesor los apruebe en el sitio`}
+                      color="border-orange-400"
+                    />
+                  )}
+                  <Tile
+                    label="🎓 Horas de Asistencia"
+                    value={`${avance.horasAsistencia.total} h`}
+                    sub={`${avance.horasAsistencia.sesiones} sesión(es) aprobada(s)`}
+                    color="border-teal-500"
+                  />
+                  {avance.horasAsistencia.sesionesPendientes > 0 && (
+                    <Tile
+                      label="⏳ Asistencias esperando aprobación"
+                      value={avance.horasAsistencia.sesionesPendientes}
+                      sub="el profesor debe aprobarlas en Supervisar Asistencia para que sumen horas"
                       color="border-orange-400"
                     />
                   )}

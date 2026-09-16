@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/asistencia',
     '/vinculacion/beneficiarios',
     '/vinculacion/pasantes',
+    '/vinculacion/supervisar',
     '/vinculacion/difusion',
     '/vinculacion/test-mcer',
     '/vinculacion/encuesta',
@@ -78,6 +79,13 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith('/vinculacion/pasantes') && !['profesor', 'admin'].includes(session.rol)) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (
+      pathname.startsWith('/vinculacion/supervisar') &&
+      (!['profesor', 'admin'].includes(session.rol) || !session.modulos_acceso.includes('vinculacion'))
+    ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

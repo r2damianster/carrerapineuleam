@@ -27,6 +27,7 @@ export default async function PortalDashboard() {
   // sepa por qué todavía no ve esas horas.
   let horasPodcastAcreditadas = 0;
   let episodiosPendientes = 0;
+  let horasAsistenciaAcreditadas = 0;
   if (rol === 'estudiante') {
     const sql = neon(process.env.DATABASE_URL!);
     const usuarioId = parseInt(session.id, 10);
@@ -43,6 +44,11 @@ export default async function PortalDashboard() {
       WHERE aprobado_sitio = false AND ${usuarioId} = ANY(participantes_estudiantes)
     `;
     episodiosPendientes = Number(pendientesFila?.total || 0);
+
+    const [filaAsistencia] = await sql`
+      SELECT COALESCE(SUM(ha.horas), 0) AS total FROM horas_asistencia_instructor ha WHERE ha.usuario_id = ${usuarioId}
+    `;
+    horasAsistenciaAcreditadas = Number(filaAsistencia?.total || 0);
   }
 
   return (
@@ -110,7 +116,7 @@ export default async function PortalDashboard() {
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">📊 Mi Avance</h3>
                 <p className="text-gray-600 mb-2 text-sm">Tus horas acreditables, espacios asignados, beneficiarios y evaluaciones registradas.</p>
-                <p className="text-3xl font-bold text-amber-600 mb-1">{horasPodcastAcreditadas} h <span className="text-sm font-normal text-gray-500">de podcast</span></p>
+                <p className="text-3xl font-bold text-amber-600 mb-1">{horasPodcastAcreditadas + horasAsistenciaAcreditadas} h <span className="text-sm font-normal text-gray-500">acreditadas ({horasPodcastAcreditadas} podcast + {horasAsistenciaAcreditadas} asistencia)</span></p>
                 {episodiosPendientes > 0 && (
                   <p className="text-xs text-orange-600 mb-3">⏳ Tienes {episodiosPendientes} episodio(s) esperando aprobación del profesor — sus horas se suman cuando se apruebe.</p>
                 )}
@@ -126,6 +132,7 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
+                  <Link href="/vinculacion/supervisar" className="text-purple-600 hover:underline">» Supervisar Asistencia</Link>
                   <Link href="/vinculacion/investigacion-actividades" className="text-purple-600 hover:underline">» Ver Actividades de Investigación</Link>
                 </div>
               </div>

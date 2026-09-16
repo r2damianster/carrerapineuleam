@@ -20,7 +20,7 @@
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
 **Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-14 (Sesión 38 — 2 bugs reales de pasantes (redirect a perfil de docente, dashboard sin tarjetas) + área/proyecto seleccionable en podcasts + horas acreditables de podcast de Vinculación. Ver detalle abajo)
+**Última sesión:** 2026-09-16 (Sesión 41 — asistencia gana hora_inicio/hora_fin + foto + aprobación del profesor, y acredita horas al instructor solo al aprobarse. Ver detalle abajo)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -92,7 +92,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `evaluaciones_mcer` | Resultados del test MCER | `beneficiario_id` es **entero** → `usuarios.id` (se corrigió en Sesión 19, antes era UUID roto contra la tabla vieja `beneficiarios`) |
 | `encuestas_satisfaccion` | Encuestas de satisfacción | |
 | `actividades_difusion` | Eventos/podcasts (Difusión + Gestión de Carrera) | `categoria`/`proyecto`/`asignatura`/`descripcion`/`hora`/`observaciones` + `profesores_responsables integer[]` (Sesión 23, ver abajo) |
-| `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID) |
+| `asistencia_espacio` / `asistencia_beneficiarios` | Bitácora de asistencia por espacio | Reemplaza el módulo viejo `bitacora_asistencia` (UUID). Desde Sesión 41: `asistencia_espacio` gana `hora_inicio`/`hora_fin` (obligatorias), `foto_url`/`foto_public_id` (opcional) y `estado_aprobacion` (`pendiente`\|`aprobado`\|`rechazado`) + `aprobado_por`/`fecha_aprobacion`/`motivo_rechazo` — supervisión en `/vinculacion/supervisar`. |
 | `calificaciones_ciclo` | ⚠️ **Sin usar** | Feature "Calificaciones" del panel docente se eliminó (Sesión 19, decisión del usuario: el test MCER es la única evaluación real). Tabla queda huérfana, no se borró. |
 | `Contribution` / `ContributionAuthor` | Contribuciones académicas de docentes (artículos, libros, capítulos, memorias de evento, propiedad intelectual) | **Nombres con mayúscula, sin snake_case** — a diferencia de todo el resto del esquema, porque se manejan vía Prisma (`prisma/schema.prisma`) sin `@@map`, no SQL crudo. Creadas a mano en Sesión 24 con `scripts/migrate-contribuciones.js` (no con `prisma db push`, ver advertencia en `## Stack Técnico`). Visibilidad: `GET`/`DELETE /api/contribuciones` solo `modulos_acceso: admin`; `POST` cualquier docente (`rol: profesor\|admin`) autenticado. |
 | `fotos` | Banco de fotos administrable (Sesión 32, ampliado Sesión 36) | `ubicaciones TEXT[]` decide dónde aparece cada foto — valores reales hoy: `portada` (`PhotoCarousel`), `docencia-galeria` (`ActivityGallery`), `redlea-galeria` (`RedLEAGaleria`), `club-ingles` (`EnglishClubSection`). `posicion INT` (0-100, Sesión 34) controla el recorte vertical. Ocultar sin borrar vía `activo`, igual que `members`/`publications`/`videos`. |
@@ -106,6 +106,7 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) — nota histórica de Se
 | `superadmin_audit_log` | Log de auditoría de cada acción del módulo Superadmin | Ver `### Módulo Superadmin` arriba — módulo entero sin documentar hasta Sesión 33 |
 | `enlaces_difusion` | Enlaces/QR temporales sin login para que alguien SIN cuenta registre un evento/podcast (Sesión 37) | `token` UUID, `creado_por` (profesor que lo generó), `expira_en`, `max_usos`/`usos_actuales`, `activo` (revocable). Consumida por `/api/enlaces-difusion/**`. Las filas que crea en `actividades_difusion` nacen con `origen='externo_temporal'` y `aprobado_sitio=false` forzado en el servidor — misma cola de moderación de `/admin/contenido` que el resto de difusión. |
 | `horas_podcast_pasante` | Horas acreditables por participar en un podcast de Vinculación (Sesión 38) | Una fila por pasante por episodio, `video_id`+`usuario_id` UNIQUE. Ver `lib/horasPodcast.ts` para la fórmula. Las horas solo cuentan en el seguimiento (`/portal/dashboard`, `/vinculacion/pasantes`) cuando el `videos.aprobado_sitio` del episodio es `true` — no hay columna propia de estado, se resuelve con JOIN en cada lectura. |
+| `horas_asistencia_instructor` | Horas acreditables por sesión de asistencia aprobada (Sesión 41) | Una fila por instructor por sesión, `asistencia_id`+`usuario_id` UNIQUE. Horas = `hora_fin - hora_inicio` real (`lib/horasAsistencia.ts`), acreditadas a todos los instructores del espacio (`espacio_instructores`), sin repartir. A diferencia de podcast, se insertan/borran directamente al aprobar/rechazar en `PATCH /api/vinculacion/supervisar-asistencia/[id]` (no se resuelven por JOIN de un estado ajeno). |
 
 | `actividades_investigacion_pasante` | Horas/actividades de investigación reportadas por un pasante con `modulos_acceso: investigacion` (Sesión 39, sin sesión previa que lo documentara — encontrada en la limpieza de esta sesión, ya era código real en producción) | `POST/GET /api/actividades-investigacion`, UI en `/vinculacion/investigacion-actividades`. Mismo patrón que `horas_podcast_pasante`: una fila por reporte, sin aprobación del profesor. |
 
@@ -163,6 +164,24 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+---
+
+## Cambios Recientes (Sesión 41 — 2026-09-16)
+
+### Supervisión de asistencia: foto + aprobación + horas acreditables al instructor
+
+A pedido del usuario, tras confirmar 2 huecos reales en `asistencia_espacio`: (1) el estudiante-instructor no acreditaba ninguna hora al tomar asistencia (solo se contaban los beneficiarios presentes — sin equivalente a `horas_podcast_pasante`); (2) no existía ningún mecanismo de aprobación ni evidencia fotográfica (a diferencia de `actividades_difusion`, que sí tiene `foto`+`aprobado_sitio`) — cualquier registro del estudiante quedaba firme sin revisión del profesor.
+
+- **Nota al margen encontrada en esta auditoría:** existe una Sesión 40 (módulo `/portal/mi-avance` + `/vinculacion/investigacion-actividades` + `actividades_investigacion_pasante`, cambio de horas de podcast de "al subir" a "al aprobar") que nunca quedó documentada aquí — se detectó al leer el código real (`app/api/mi-avance/route.ts`, `app/portal/dashboard/page.tsx`) para replicar su mismo patrón. No se auditó a fondo (fuera de alcance de este pedido), solo se anota para que quede constancia — pendiente una entrada propia si hace falta el detalle completo.
+- **Schema** (`scripts/migrate-supervisar-asistencia.js`, aplicado vía Neon MCP): `asistencia_espacio` gana `hora_inicio`/`hora_fin` (TIME, obligatorias al registrar — antes la tabla solo guardaba el día, sin hora), `foto_url`/`foto_public_id` (opcional, mismo patrón Cloudinary que `fotos`/`SubirVideoDifusion`), y `estado_aprobacion` (`pendiente`\|`aprobado`\|`rechazado`, default `pendiente`) + `aprobado_por`/`fecha_aprobacion`/`motivo_rechazo`. Tabla nueva `horas_asistencia_instructor` (una fila por instructor por sesión, `UNIQUE(asistencia_id, usuario_id)`).
+- **`lib/horasAsistencia.ts`** (nuevo) — `calcularHorasSesion()` calcula la diferencia real `hora_fin − hora_inicio` (no horas fijas como podcast, porque cada sesión de club dura distinto); `registrarHorasAsistencia()` acredita esa duración a **todos** los instructores actualmente asignados al espacio (`espacio_instructores`), sin repartir. Mismo patrón que `horasPodcast.ts`: las horas se calculan e insertan recién al **aprobar** (`PATCH /api/vinculacion/supervisar-asistencia/[id]`), no al registrar — si el profesor rechaza una sesión ya aprobada, sus horas se retiran (`DELETE FROM horas_asistencia_instructor`).
+- **`POST /api/espacios/asistencia`** ahora exige `hora_inicio`/`hora_fin` (valida `hora_fin > hora_inicio`) y acepta `foto_url`/`foto_public_id` opcionales — la fila nace con `estado_aprobacion='pendiente'` (default de columna).
+- **Endpoints nuevos** `GET /api/vinculacion/supervisar-asistencia` (filtros `estado`/`espacio_id`/`instructor_id`, orden `fecha`\|`beneficiarios`\|`espacio`\|`estudiante`, pendientes siempre primero como criterio base) y `PATCH .../[id]` (`{accion: 'aprobar'|'rechazar', motivo?}`) — protegidos a profesor/admin con `modulos_acceso: vinculacion` (el estudiante-instructor nunca supervisa, solo registra).
+- **Página nueva `/vinculacion/supervisar`** — un bloque por registro: foto (si hay, clic para ampliar), espacio, fecha, hora inicio–fin + horas calculadas, quién registró, beneficiarios presentes, instructores del espacio, observaciones, badge de estado, motivo de rechazo si aplica, y botones Aprobar/Rechazar. Agregada a `middleware.ts` (protegida, mismo gate que el endpoint) y enlazada desde `/portal/dashboard` → "Gestión de Vinculación" → "» Supervisar Asistencia".
+- **`/vinculacion/asistencia`** (formulario de registro) ganó campos de hora inicio/fin (obligatorios) y foto opcional (sube a Cloudinary vía `/api/upload` antes de guardar, igual patrón que el resto del sitio) — el mensaje de éxito ahora aclara que queda pendiente de aprobación.
+- **Horas visibles en 3 lugares**, mismo patrón que podcast: `/vinculacion/pasantes` (línea "🎓 N h acreditadas por asistencia" junto a la de podcast, vía nueva subquery `horas_asistencia_acreditadas` en `GET /api/estudiantes`), `/portal/mi-avance` (tile propio + tile de sesiones pendientes de aprobación) y la tarjeta rápida "📊 Mi Avance" de `/portal/dashboard` (ahora suma podcast+asistencia en un solo total).
+- **Verificación:** migración confirmada en Neon (`dark-feather-21824720`) vía MCP con `information_schema.columns` después del `ALTER`. `npx tsc --noEmit` limpio. `npm run build` completo sin errores, rutas nuevas (`/vinculacion/supervisar`, `/api/vinculacion/supervisar-asistencia[/[id]]`) confirmadas en la salida. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones anteriores; tabla `asistencia_espacio` está vacía en producción (0 registros reales todavía), así que no hay datos reales para un smoke test end-to-end.
 
 ---
 
@@ -1037,6 +1056,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-15 (Sesión 39)
-**Versión:** 0.10.13
+**Última actualización:** 2026-09-16 (Sesión 41)
+**Versión:** 0.10.14
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

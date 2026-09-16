@@ -25,7 +25,12 @@ export async function GET() {
                FROM horas_podcast_pasante h
                JOIN videos v ON v.id = h.video_id
                WHERE h.usuario_id = u.id AND v.aprobado_sitio = true
-             ) AS horas_podcast_acreditadas
+             ) AS horas_podcast_acreditadas,
+             (
+               SELECT COALESCE(SUM(ha.horas), 0)
+               FROM horas_asistencia_instructor ha
+               WHERE ha.usuario_id = u.id
+             ) AS horas_asistencia_acreditadas
       FROM usuarios u
       LEFT JOIN espacio_instructores ei ON ei.usuario_id = u.id
       LEFT JOIN espacios_enseñanza e ON e.id = ei.espacio_id AND e.area = 'vinculacion'
