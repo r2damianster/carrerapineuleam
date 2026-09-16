@@ -42,16 +42,18 @@ Al entrar verás tarjetas según lo que tengas asignado. Como pasante de Vincula
 
 **Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Registrar Asistencia"** (`/vinculacion/asistencia`)
 
-> 🆕 **ACTUALIZACIÓN (Sesión 41, 2026-09-16):** ahora se piden hora de inicio/fin, foto opcional, y el registro **queda pendiente de aprobación del profesor** — tus horas como instructor se acreditan recién cuando se aprueba (ver 3.1 y 3.2).
+> 🆕 **ACTUALIZACIÓN (Sesión 41, 2026-09-16):** ahora se piden hora de inicio/fin y **foto obligatoria** de la sesión, y el registro **queda pendiente de aprobación del profesor** — tus horas como instructor se acreditan recién cuando se aprueba (ver 3.1 y 3.2).
 
 **Pasos:**
 1. **Espacio** → selecciona tu club/aula del desplegable.
 2. **Fecha** → elige la fecha de la sesión.
 3. 🆕 **Hora de inicio** / **Hora de fin** (obligatorias) → la duración real de la sesión es la que se te acredita como horas al aprobarse.
-4. 🆕 **Foto de evidencia** (opcional) → sube una foto de la sesión.
+4. 🆕 **Foto de evidencia** (**obligatoria**) → sube una foto de la sesión. El sistema la comprime automáticamente antes de subirla (no necesitas reducirla tú ni preocuparte por el tamaño del archivo de tu celular).
 5. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 4).
 6. **Observaciones** (opcional) → texto libre.
 7. Clic en **"Guardar Asistencia"**.
+
+> 📌 Guarda tú también tus propias fotos de evidencia (celular o correo) — a futuro estas fotos servirán para armar tus informes de vinculación, y tu profesor también las usará para el suyo.
 
 **Qué pasa después:** verás el mensaje "queda pendiente de aprobación del profesor". El registro no se pierde ni hay que repetirlo — solo espera a que tu profesor lo revise en su pantalla de Supervisar Asistencia.
 
@@ -205,7 +207,7 @@ Portal PINE (login con correo institucional)
    Dashboard
         │
         ├─ Registros de Vinculación
-        │     ├─ Registrar Asistencia (🆕 hora inicio/fin + foto → pendiente aprobación → horas acreditables)
+        │     ├─ Registrar Asistencia (🆕 hora inicio/fin + foto obligatoria → pendiente aprobación → horas acreditables)
         │     ├─ Registrar Beneficiarios (Asignar existente / Registrar nuevo)
         │     ├─ Test MCER (Pre/Post + QR sin login)
         │     ├─ Encuesta (estrellas + calificación por instructor + QR sin login)
@@ -219,4 +221,4 @@ Portal PINE (login con correo institucional)
 ---
 
 **Documento generado:** 2026-09-16, a partir del código real de `carrerapineuleam` (rutas, campos y textos exactos de la interfaz vigente en producción).
-**Última actualización:** 2026-09-16 (Sesión 41 — asistencia con hora inicio/fin, foto y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 3).
+**Última actualización:** 2026-09-16 (Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor; ver bloques 🆕 ACTUALIZACIÓN en sección 3).

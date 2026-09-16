@@ -4,6 +4,47 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+const FOTO_MAX_DIMENSION = 1600;
+const FOTO_CALIDAD = 0.7;
+
+// Comprime en el navegador antes de subir a Cloudinary — una foto de celular
+// puede pesar 5-8MB; reducida a ~1600px + JPEG 0.7 queda normalmente bajo
+// 500KB sin pérdida visible relevante para evidencia de sesión. Evita que el
+// banco de fotos de asistencia (potencialmente 1 por sesión x n espacios)
+// infle el plan gratuito de Cloudinary.
+function comprimirImagen(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > FOTO_MAX_DIMENSION) {
+          height = Math.round(height * (FOTO_MAX_DIMENSION / width));
+          width = FOTO_MAX_DIMENSION;
+        } else if (height > FOTO_MAX_DIMENSION) {
+          width = Math.round(width * (FOTO_MAX_DIMENSION / height));
+          height = FOTO_MAX_DIMENSION;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('No se pudo procesar la imagen')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error('No se pudo comprimir la imagen')); return; }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', FOTO_CALIDAD);
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AsistenciaPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
@@ -77,22 +118,23 @@ export default function AsistenciaPage() {
       setMessage('Error: La hora de fin debe ser posterior a la de inicio');
       return;
     }
+    if (!foto) {
+      setMessage('Error: Sube una foto de evidencia de la sesión');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
-      let fotoUrl: string | null = null;
-      let fotoPublicId: string | null = null;
-      if (foto) {
-        setSubiendoFoto(true);
-        const formData = new FormData();
-        formData.append('file', foto);
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-        const uploadData = await uploadRes.json();
-        setSubiendoFoto(false);
-        if (!uploadRes.ok) throw new Error(uploadData.error || 'Error subiendo la foto');
-        fotoUrl = uploadData.url;
-        fotoPublicId = uploadData.public_id;
-      }
+      setSubiendoFoto(true);
+      const fotoComprimida = await comprimirImagen(foto);
+      const formData = new FormData();
+      formData.append('file', fotoComprimida);
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      setSubiendoFoto(false);
+      if (!uploadRes.ok) throw new Error(uploadData.error || 'Error subiendo la foto');
+      const fotoUrl = uploadData.url;
+      const fotoPublicId = uploadData.public_id;
 
       const res = await fetch('/api/espacios/asistencia', {
         method: 'POST',
@@ -120,6 +162,7 @@ export default function AsistenciaPage() {
       setMessage(`Error: ${err.message}`);
     } finally {
       setLoading(false);
+      setSubiendoFoto(false);
     }
   };
 
@@ -179,8 +222,9 @@ export default function AsistenciaPage() {
           <p className="text-xs text-gray-400 -mt-4">La duración real (hora de fin − hora de inicio) es la que se acredita como horas al aprobarse.</p>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Foto de evidencia (opcional)</label>
-            <input type="file" accept="image/*" onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Foto de evidencia de la sesión</label>
+            <input type="file" accept="image/*" required capture="environment" onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
+            <p className="text-xs text-gray-400 mt-1">Obligatoria. Se comprime automáticamente antes de subirse, no hace falta reducirla tú.</p>
           </div>
 
           <div>

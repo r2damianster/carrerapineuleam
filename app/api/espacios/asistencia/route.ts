@@ -54,6 +54,9 @@ export async function POST(request: Request) {
     if (hora_fin <= hora_inicio) {
       return NextResponse.json({ error: 'La hora de fin debe ser posterior a la hora de inicio' }, { status: 400 });
     }
+    if (!foto_url) {
+      return NextResponse.json({ error: 'La foto de evidencia es obligatoria' }, { status: 400 });
+    }
     if (!(await puedeOperarEspacio(usuario, espacio_id))) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
     }
