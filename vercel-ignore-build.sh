@@ -8,6 +8,17 @@ echo "🔍 Checking if build is needed..."
 
 COMMIT_MSG=$(git log -1 --format="%s")
 
+# Commit que solo toca markdown o docs/ no cambia el runtime: no generar deployment.
+# Cada deployment de este proyecto crea ~300 funciones serverless (cuota de Functions Storage).
+DOC_CHANGED=$(git diff HEAD~1 --name-only 2>/dev/null || echo "")
+if [ -n "$DOC_CHANGED" ]; then
+  NON_DOC_CHANGES=$(echo "$DOC_CHANGED" | grep -vE '(\.md$|^docs/)' || true)
+  if [ -z "$NON_DOC_CHANGES" ]; then
+    echo "⏭ Skipping: commit solo con documentación (.md / docs/)"
+    exit 0
+  fi
+fi
+
 # Si es un auto-commit sin archivos listados, probablemente es trivial
 if [[ "$COMMIT_MSG" == "chore: auto-commit —" ]]; then
   # Verificar si hubo cambios reales en código
