@@ -9,6 +9,7 @@ interface PasanteAnalitica {
   nombres: string;
   apellidos: string;
   cedula: string;
+  email: string;
   espacio_nombre: string;
   espacio_id: number;
   horas_asistencia: number;
@@ -105,7 +106,7 @@ export default function IndicadoresSupervisionPage() {
   }
 
   const pasantesFiltrados = (data?.pasantesAnalitica || []).filter((p) => {
-    const matchNombre = `${p.nombres} ${p.apellidos} ${p.cedula}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchNombre = `${p.nombres} ${p.apellidos} ${p.email || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchEspacio = !espacioFilter || p.espacio_id.toString() === espacioFilter;
     return matchNombre && matchEspacio;
   });
@@ -262,6 +263,7 @@ export default function IndicadoresSupervisionPage() {
                                 <td className="p-3.5 font-semibold text-slate-900">
                                   <div className="text-sm">{p.apellidos} {p.nombres}</div>
                                   <div className="text-[11px] text-slate-400 font-normal">CI: {p.cedula}</div>
+                                  <div className="text-[11px] text-slate-400 font-normal">{p.email}</div>
                                 </td>
                                 <td className="p-3.5">
                                   <span className="inline-block bg-blue-50 text-blue-700 px-2.5 py-1 rounded font-medium border border-blue-100">

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
     if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
@@ -17,11 +17,11 @@ export async function GET(request: Request) {
         u.id AS pasante_id,
         u.nombres,
         u.apellidos,
-        u.cedula,
-        COALESCE(ee.nombre, 'Sin Espacio') AS espacio_nombre,
-        COALESCE(ee.id, 0) AS espacio_id,
+        u.email,
+        COALESCE(e.nombre, 'Sin Espacio') AS espacio_nombre,
+        COALESCE(e.id, 0) AS espacio_id,
         COALESCE(asist.horas_aprobadas, 0)::float AS horas_asistencia,
-        COALESCE(asist.sesiones_pendientes, 0)::int AS asistencias_pendientes,
+        COALESCE(asist_pend.sesiones_pendientes, 0)::int AS asistencias_pendientes,
         COALESCE(pod.horas_podcast, 0)::float AS horas_podcast,
         COALESCE(inv.horas_investigacion, 0)::float AS horas_investigacion,
         (COALESCE(asist.horas_aprobadas, 0) + COALESCE(pod.horas_podcast, 0) + COALESCE(inv.horas_investigacion, 0))::float AS horas_totales,
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         COALESCE(enc.promedio_estrellas, 5.0)::float AS promedio_satisfaccion
       FROM usuarios u
       LEFT JOIN espacio_instructores ei ON ei.usuario_id = u.id
-      LEFT JOIN espacios_enseñanza ee ON ee.id = ei.espacio_id
+      LEFT JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id AND e.area = 'vinculacion'
       LEFT JOIN (
         SELECT 
           usuario_id, 
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
           COUNT(DISTINCT ie.beneficiario_id)::int AS total_beneficiarios
         FROM inscripciones_espacio ie
         GROUP BY ie.espacio_id
-      ) ben ON ben.espacio_id = ee.id
+      ) ben ON ben.espacio_id = e.id
       LEFT JOIN (
         SELECT 
           estudiante_evaluador_id,
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
       FROM evaluaciones_mcer
     `;
 
-    // 4. Alertas de sistema
+    // 4. Alertas de asistencias urgentes
     const asistenciasUrgentes = await sql`
       SELECT 
         ae.id,
@@ -122,7 +122,7 @@ export async function GET(request: Request) {
         u.nombres AS registrador_nombres,
         u.apellidos AS registrador_apellidos
       FROM asistencia_espacio ae
-      JOIN espacios_enseñanza e ON e.id = ae.espacio_id
+      JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por
       WHERE ae.estado_aprobacion = 'pendiente'
       ORDER BY ae.fecha ASC
@@ -143,9 +143,9 @@ export async function GET(request: Request) {
       success: true,
       pasantesAnalitica,
       mcerImpacto,
-      mcerGlobal,
+      mcerGlobal: mcerGlobal || { total_evaluados: 0, total_pre: 0, total_post: 0, prom_pre: 0, prom_post: 0 },
       asistenciasUrgentes,
-      encuestasConsolidado,
+      encuestasConsolidado: encuestasConsolidado || { total_encuestas: 0, satisfaccion_general: 5.0, percepcion_aprendizaje: 5.0, recomienda_curso: 5.0 },
       metaHorasLegal: 96
     });
   } catch (error: any) {
@@ -153,4 +153,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

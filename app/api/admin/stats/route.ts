@@ -14,9 +14,11 @@ export async function GET() {
     
     // 1. Estudiantes de investigación (Meta: 6 en 2 años)
     const investigadores = await sql`
-      SELECT COUNT(*) as total 
-      FROM perfiles_estudiantes 
-      WHERE titulo_investigacion IS NOT NULL AND titulo_investigacion != ''
+      SELECT COUNT(DISTINCT u.id)::int as total 
+      FROM usuarios u 
+      LEFT JOIN actividades_investigacion_pasante a ON a.usuario_id = u.id 
+      WHERE u.rol = 'estudiante' 
+        AND ('investigacion' = ANY(u.modulos_acceso) OR a.id IS NOT NULL)
     `;
 
     // 2. Satisfacción de beneficiarios (Meta: 70% o > 3.5/5.0)
