@@ -75,6 +75,8 @@ export default function AsistenciaPage() {
   const [foto, setFoto] = useState<File | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
+  const [usuarioActualId, setUsuarioActualId] = useState<number | null>(null);
+
   // Ventana de 48h (Ecuador): no se puede elegir un día futuro ni uno de más de 2 días atrás
   const fechaMaxima = hoyEcuador;
   const fechaMinima = new Date(Date.now() - 5 * 60 * 60 * 1000 - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -87,6 +89,7 @@ export default function AsistenciaPage() {
           router.push('/');
           return;
         }
+        if (data.usuario?.id) setUsuarioActualId(data.usuario.id);
         setCheckingSession(false);
         fetch('/api/estudiantes-lista').then(r => r.json()).then(d => {
           if (d.estudiantes) setPasantesTodos(d.estudiantes);
@@ -121,12 +124,18 @@ export default function AsistenciaPage() {
       .then(d => {
         if (d.success) {
           setInstructoresTitulares(d.data);
-          setPresentesInstructores(d.data.map((i: any) => i.id));
+          // Pre-seleccionar ÚNICAMENTE al usuario actualmente logueado si es instructor de este espacio
+          const miIdEnInstructores = usuarioActualId && d.data.some((i: any) => i.id === usuarioActualId);
+          if (miIdEnInstructores) {
+            setPresentesInstructores([usuarioActualId]);
+          } else {
+            setPresentesInstructores([]);
+          }
         }
       });
     setInvitados([]);
     setInvitadoSeleccion('');
-  }, [espacioId]);
+  }, [espacioId, usuarioActualId]);
 
   const pasantesInvitables = pasantesTodos.filter(
     (p) => !instructoresTitulares.some((i) => i.id === p.id) && !invitados.includes(p.id)
@@ -270,7 +279,27 @@ export default function AsistenciaPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiarios presentes</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">Beneficiarios presentes</label>
+              {beneficiarios.length > 0 && (
+                <div className="flex gap-3 text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setPresentes(beneficiarios.map(b => b.id))}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Marcar todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresentes([])}
+                    className="text-gray-500 hover:underline"
+                  >
+                    Desmarcar todos
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto space-y-1">
               {beneficiarios.length === 0 && <p className="text-gray-400 text-sm">{espacioId ? 'Sin beneficiarios inscritos en este espacio.' : 'Selecciona un espacio primero.'}</p>}
               {beneficiarios.map(b => (

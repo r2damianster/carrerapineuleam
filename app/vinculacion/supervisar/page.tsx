@@ -201,7 +201,13 @@ export default function SupervisarAsistenciaPage() {
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[r.estado_aprobacion]}`}>{r.estado_aprobacion}</span>
                     <span className="font-bold text-gray-800">{r.espacio_nombre}</span>
-                    <span className="text-sm text-gray-500">{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-EC')}</span>
+                    <span className="text-sm text-gray-500">
+                      {(() => {
+                        if (!r.fecha) return '';
+                        const dateObj = new Date(r.fecha.includes('T') ? r.fecha : `${r.fecha}T00:00:00`);
+                        return isNaN(dateObj.getTime()) ? r.fecha : dateObj.toLocaleDateString('es-EC');
+                      })()}
+                    </span>
                     {r.hora_inicio && r.hora_fin && (
                       <span className="text-sm text-gray-500">{r.hora_inicio.slice(0,5)}–{r.hora_fin.slice(0,5)}{horas !== null && ` (${horas} h)`}</span>
                     )}
