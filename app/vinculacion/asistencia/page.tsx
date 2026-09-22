@@ -12,8 +12,13 @@ const FOTO_CALIDAD = 0.7;
 // 500KB sin pérdida visible relevante para evidencia de sesión. Evita que el
 // banco de fotos de asistencia (potencialmente 1 por sesión x n espacios)
 // infle el plan gratuito de Cloudinary.
+// Comprime en el navegador antes de subir a Cloudinary — una foto de celular
+// puede pesar 5-8MB; reducida a ~1600px + JPEG 0.7 queda normalmente bajo
+// 500KB sin pérdida visible relevante para evidencia de sesión. Si el navegador
+// no puede comprimir el archivo (ej. HEIC de iPhone o sin soporte en canvas),
+// se hace fallback seguro devolviendo el archivo original para que el servidor lo procese.
 function comprimirImagen(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -30,17 +35,17 @@ function comprimirImagen(file: File): Promise<File> {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('No se pudo procesar la imagen')); return; }
+        if (!ctx) { resolve(file); return; }
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
-          if (!blob) { reject(new Error('No se pudo comprimir la imagen')); return; }
+          if (!blob) { resolve(file); return; }
           resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
         }, 'image/jpeg', FOTO_CALIDAD);
       };
-      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      img.onerror = () => resolve(file);
       img.src = e.target?.result as string;
     };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.onerror = () => resolve(file);
     reader.readAsDataURL(file);
   });
 }
@@ -60,16 +65,19 @@ export default function AsistenciaPage() {
   const [pasantesTodos, setPasantesTodos] = useState<any[]>([]);
   const [invitadoSeleccion, setInvitadoSeleccion] = useState('');
   const [invitados, setInvitados] = useState<number[]>([]);
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  
+  // Fecha actual en Ecuador (UTC-5)
+  const hoyEcuador = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [fecha, setFecha] = useState(() => hoyEcuador);
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFin, setHoraFin] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
-  // Ventana de 48h: no se puede elegir un día futuro ni uno de más de 2 días atrás
-  const fechaMaxima = new Date().toISOString().slice(0, 10);
-  const fechaMinima = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // Ventana de 48h (Ecuador): no se puede elegir un día futuro ni uno de más de 2 días atrás
+  const fechaMaxima = hoyEcuador;
+  const fechaMinima = new Date(Date.now() - 5 * 60 * 60 * 1000 - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -257,7 +265,7 @@ export default function AsistenciaPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto de evidencia de la sesión</label>
-            <input type="file" accept="image/*" required capture="environment" onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
+            <input type="file" accept="image/*,.heic,.heif" required onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
             <p className="text-xs text-gray-400 mt-1">Obligatoria. Se comprime automáticamente antes de subirse, no hace falta reducirla tú.</p>
           </div>
 

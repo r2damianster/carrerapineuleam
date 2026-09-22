@@ -9,7 +9,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
@@ -24,17 +24,21 @@ export async function POST(request: Request) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    if (!file.type.startsWith('image/')) {
+    
+    const isImageMime = file.type && file.type.startsWith('image/');
+    const isImageExt = file.name && /\.(heic|heif|jpg|jpeg|png|webp|gif|bmp)$/i.test(file.name);
+    if (!isImageMime && !isImageExt) {
       return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 });
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json({ error: "El archivo supera el límite de 8MB" }, { status: 400 });
+      return NextResponse.json({ error: "El archivo supera el límite de 15MB" }, { status: 400 });
     }
 
     // Convertir el archivo a un buffer y luego a base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const fileBase64 = `data:${file.type};base64,${buffer.toString("base64")}`;
+    const mimeType = file.type || 'image/jpeg';
+    const fileBase64 = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
     // Subir a Cloudinary — forzamos JPG (ej. fotos .heic de iPhone no las
     // renderiza casi ningún navegador si se guardan en su formato original).
