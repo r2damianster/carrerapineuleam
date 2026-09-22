@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     
     // 1. Estudiantes de investigación (Meta: 6 en 2 años)
     const investigadores = await sql`
@@ -27,21 +27,42 @@ export async function GET() {
       FROM encuestas_satisfaccion
     `;
 
-    // 4. Audiencia de Difusión (Meta: 50 beneficiarios/audiencia)
+    // 3. Audiencia de Difusión (Meta: 50 beneficiarios/audiencia)
     const difusion = await sql`
       SELECT SUM(audiencia_alcanzada) as total_audiencia 
       FROM actividades_difusion
     `;
 
-    // 5. Mejora MCER (Beneficiarios con test inicial y final)
-    // Para simplificar la demo, contamos cuántos test 'final' hay registrados
-    const mejorasMcer = await sql`
-      SELECT COUNT(*) as total_finales
+    // 4. Evaluaciones MCER (Iniciales / Diagnóstico vs Finales)
+    const [evaluacionesMcer] = await sql`
+      SELECT 
+        COUNT(*) FILTER (WHERE tipo = 'inicial')::int as total_iniciales,
+        COUNT(*) FILTER (WHERE tipo = 'final')::int as total_finales
       FROM evaluaciones_mcer
-      WHERE tipo = 'final'
     `;
 
-    // 6. Contribuciones académicas por tipo (artículos regionales/alto impacto, libros, capítulos, etc.)
+    // 5. Beneficiarios (Inscritos en espacios vs Registrados)
+    const [beneficiariosStats] = await sql`
+      SELECT 
+        (SELECT COUNT(*)::int FROM usuarios WHERE rol = 'beneficiario') as total_registrados,
+        (SELECT COUNT(DISTINCT beneficiario_id)::int FROM inscripciones_espacio) as total_inscritos
+    `;
+
+    // 6. Horas totales acreditadas por pasantes
+    const [horasAcreditadas] = await sql`
+      SELECT (
+        COALESCE((SELECT SUM(horas) FROM horas_asistencia_instructor), 0) +
+        COALESCE((SELECT SUM(horas_total) FROM horas_podcast_pasante), 0) +
+        COALESCE((SELECT SUM(horas) FROM actividades_investigacion_pasante), 0)
+      )::float as total_horas
+    `;
+
+    // 7. Espacios de enseñanza activos
+    const [espaciosStats] = await sql`
+      SELECT COUNT(*)::int as total FROM "espacios_enseñanza"
+    `;
+
+    // 8. Contribuciones académicas por tipo (artículos regionales/alto impacto, libros, capítulos, etc.)
     const contribucionesPorTipo = await prisma.contribution.groupBy({
       by: ['tipoPublicacion'],
       _count: { _all: true },
@@ -55,7 +76,12 @@ export async function GET() {
         satisfaccionPromedio: encuestas[0].promedio ? parseFloat(encuestas[0].promedio).toFixed(1) : 0,
         totalEncuestas: parseInt(encuestas[0].total_encuestas),
         audiencia: difusion[0].total_audiencia ? parseInt(difusion[0].total_audiencia) : 0,
-        evaluacionesFinales: parseInt(mejorasMcer[0].total_finales),
+        evaluacionesIniciales: evaluacionesMcer?.total_iniciales || 0,
+        evaluacionesFinales: evaluacionesMcer?.total_finales || 0,
+        totalInscritos: beneficiariosStats?.total_inscritos || 0,
+        totalBeneficiarios: beneficiariosStats?.total_registrados || 0,
+        horasTotalesAcreditadas: horasAcreditadas?.total_horas || 0,
+        espaciosActivos: espaciosStats?.total || 0,
         contribuciones: {
           articulosRegionales: conteoTipo.ARTICULO_REGIONAL || 0,
           articulosAltoImpacto: conteoTipo.ARTICULO_ALTO_IMPACTO || 0,
@@ -68,6 +94,7 @@ export async function GET() {
       }
     });
   } catch (error: any) {
+    console.error('Error fetching admin stats:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
