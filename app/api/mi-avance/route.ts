@@ -139,13 +139,13 @@ export async function GET() {
       ? await sql`
           SELECT 
             enc.id,
-            enc.comentarios_sugerencias,
-            enc.fecha_registro,
-            enc.satisfaccion_general
+            enc.comentarios AS comentarios_sugerencias,
+            enc.fecha AS fecha_registro,
+            enc.nivel_satisfaccion AS satisfaccion_general
           FROM encuestas_satisfaccion enc
           JOIN inscripciones_espacio ie ON ie.beneficiario_id = enc.beneficiario_id
-          WHERE ie.espacio_id = ANY(${espacioIds}) AND enc.comentarios_sugerencias IS NOT NULL AND enc.comentarios_sugerencias != ''
-          ORDER BY enc.fecha_registro DESC
+          WHERE ie.espacio_id = ANY(${espacioIds}) AND enc.comentarios IS NOT NULL AND enc.comentarios != ''
+          ORDER BY enc.fecha DESC
           LIMIT 5
         `
       : [];

@@ -79,7 +79,7 @@ export async function GET() {
       LEFT JOIN (
         SELECT 
           instructor_id, 
-          AVG(estrellas_instructor)::float AS promedio_estrellas
+          AVG(calificacion)::float AS promedio_estrellas
         FROM encuesta_evaluaciones_instructor
         GROUP BY instructor_id
       ) enc ON enc.instructor_id = u.id
@@ -133,9 +133,9 @@ export async function GET() {
     const [encuestasConsolidado] = await sql`
       SELECT 
         COUNT(*)::int AS total_encuestas,
-        COALESCE(ROUND(AVG(satisfaccion_general)::numeric, 2), 5.0)::float AS satisfaccion_general,
-        COALESCE(ROUND(AVG(percepcion_aprendizaje)::numeric, 2), 5.0)::float AS percepcion_aprendizaje,
-        COALESCE(ROUND(AVG(recomienda_curso)::numeric, 2), 5.0)::float AS recomienda_curso
+        COALESCE(ROUND(AVG(nivel_satisfaccion)::numeric, 2), 5.0)::float AS satisfaccion_general,
+        COALESCE(ROUND(AVG(aprendizaje)::numeric, 2), 5.0)::float AS percepcion_aprendizaje,
+        COALESCE(ROUND(AVG(recursos)::numeric, 2), 5.0)::float AS recomienda_curso
       FROM encuestas_satisfaccion
     `;
 
