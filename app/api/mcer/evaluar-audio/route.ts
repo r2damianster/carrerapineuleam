@@ -5,7 +5,7 @@ import { evaluarAudioMcer } from '@/lib/mcerAudio';
 // tanto desde el flujo con sesión como desde el enlace público sin login).
 // El audio llega en memoria y se descarta al terminar esta función — nunca se
 // sube a Cloudinary ni se escribe a disco, solo se guarda transcript+score.
-const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // ~40s de audio comprimido, sobra para un clip de 30s
+const MAX_AUDIO_BYTES = 15 * 1024 * 1024; // Permite audios de hasta 15MB antes del recorte
 
 export async function POST(request: Request) {
   try {
@@ -16,11 +16,13 @@ export async function POST(request: Request) {
     if (!audio) {
       return NextResponse.json({ error: 'No se recibió audio' }, { status: 400 });
     }
-    if (!audio.type.startsWith('audio/')) {
-      return NextResponse.json({ error: 'El archivo no es audio' }, { status: 400 });
+    const isAudioType = audio.type && (audio.type.startsWith('audio/') || audio.type.startsWith('video/'));
+    const isAudioExt = audio.name && /\.(mp3|m4a|wav|ogg|webm|mp4|aac|flac)$/i.test(audio.name);
+    if (!isAudioType && !isAudioExt) {
+      return NextResponse.json({ error: 'El archivo debe ser un audio' }, { status: 400 });
     }
     if (audio.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json({ error: 'El audio supera el límite permitido' }, { status: 400 });
+      return NextResponse.json({ error: 'El archivo de audio supera el límite de 15MB' }, { status: 400 });
     }
     if (typeof consigna !== 'string' || !consigna.trim()) {
       return NextResponse.json({ error: 'Falta la consigna de la pregunta' }, { status: 400 });
