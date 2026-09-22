@@ -142,8 +142,15 @@ export default function SupervisarAsistenciaPage() {
             &larr; Volver al Portal PINE
           </Link>
         </div>
-        <h1 className="text-3xl font-bold text-uleam-blue mb-2">Supervisar Asistencia</h1>
-        <p className="text-gray-600 mb-6">Aprueba o rechaza los registros de asistencia de tus estudiantes-instructores. Las horas acreditables se calculan al aprobar.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-uleam-blue mb-1">Supervisar Asistencia</h1>
+            <p className="text-gray-600 text-sm">Aprueba o rechaza los registros de asistencia de tus estudiantes-instructores. Las horas acreditables se calculan al aprobar.</p>
+          </div>
+          <Link href="/vinculacion/supervisar/indicadores" className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0">
+            <span>📊 Ver Indicadores & Analítica &rarr;</span>
+          </Link>
+        </div>
 
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
 
