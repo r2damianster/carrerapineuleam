@@ -35,6 +35,36 @@ export default function EvaluacionFinalPage() {
   const [recursos, setRecursos] = useState(5);
   const [comentarios, setComentarios] = useState('');
   const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
+  const [enviadoExitoso, setEnviadoExitoso] = useState(false);
+  const [conteo, setConteo] = useState(6);
+  const [resultadoResumen, setResultadoResumen] = useState<{ score: number; level: string; mensaje: string } | null>(null);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (enviadoExitoso && conteo > 0) {
+      timer = setTimeout(() => setConteo(prev => prev - 1), 1000);
+    } else if (enviadoExitoso && conteo === 0) {
+      router.push('/portal/dashboard');
+    }
+    return () => clearTimeout(timer);
+  }, [enviadoExitoso, conteo, router]);
+
+  const resetFormulario = () => {
+    setEnviadoExitoso(false);
+    setConteo(6);
+    setResultadoResumen(null);
+    setMessage('');
+    setForm({ beneficiario_id: '', ciclo_id: '' });
+    setAnswers({});
+    setAudioResultado(null);
+    setFile(null);
+    setNivelSatisfaccion(5);
+    setAprendizaje(5);
+    setMejora(5);
+    setRecursos(5);
+    setComentarios('');
+    setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
+  };
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -165,16 +195,13 @@ export default function EvaluacionFinalPage() {
         mensajeFinal += ' Encuesta de satisfacción también registrada.';
       }
 
-      setMessage(mensajeFinal);
-      setAnswers({});
-      setAudioResultado(null);
-      setFile(null);
-      setNivelSatisfaccion(5);
-      setAprendizaje(5);
-      setMejora(5);
-      setRecursos(5);
-      setComentarios('');
-      setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
+      setResultadoResumen({
+        score: resultado.score,
+        level: resultado.level,
+        mensaje: mensajeFinal,
+      });
+      setEnviadoExitoso(true);
+      setConteo(6);
       window.scrollTo(0, 0);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -186,6 +213,53 @@ export default function EvaluacionFinalPage() {
 
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
+  if (enviadoExitoso && resultadoResumen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="max-w-lg w-full text-center bg-white p-8 rounded-xl shadow-md border-t-4 border-blue-600">
+          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+            ✓
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Evaluación Final Registrada!</h2>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+            <p className="text-sm font-semibold text-blue-900 mb-1">Resultados Obtenidos:</p>
+            <div className="flex justify-between items-center text-sm py-1 border-b border-blue-100">
+              <span className="text-gray-600">Puntaje Final:</span>
+              <span className="font-bold text-blue-900">{resultadoResumen.score} / 100</span>
+            </div>
+            <div className="flex justify-between items-center text-sm py-1 border-b border-blue-100">
+              <span className="text-gray-600">Nivel Asignado:</span>
+              <span className="font-bold text-uleam-blue">{resultadoResumen.level}</span>
+            </div>
+            <p className="text-xs text-gray-600 mt-2 italic">{resultadoResumen.mensaje}</p>
+          </div>
+
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 text-xs text-gray-700 mb-6">
+            Redirigiendo automáticamente al Portal PINE en <span className="font-bold text-sm">{conteo}</span> segundo{conteo !== 1 ? 's' : ''}...
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/portal/dashboard')}
+              className="w-full py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition shadow-sm"
+            >
+              Ir al Portal PINE Ahora
+            </button>
+            <button
+              type="button"
+              onClick={resetFormulario}
+              className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition text-sm"
+            >
+              Evaluar a Otro Beneficiario
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

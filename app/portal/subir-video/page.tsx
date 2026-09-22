@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -9,11 +10,37 @@ import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodc
 import type { VideoCategory } from '@/types';
 
 export default function SubirVideoPage() {
+  const router = useRouter();
   const [categorias, setCategorias] = useState<VideoCategory[]>([]);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [mensaje, setMensaje] = useState('');
+  const [enviadoExitoso, setEnviadoExitoso] = useState(false);
+  const [conteo, setConteo] = useState(5);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (enviadoExitoso && conteo > 0) {
+      timer = setTimeout(() => setConteo(prev => prev - 1), 1000);
+    } else if (enviadoExitoso && conteo === 0) {
+      router.push('/portal/dashboard');
+    }
+    return () => clearTimeout(timer);
+  }, [enviadoExitoso, conteo, router]);
+
+  const resetFormulario = () => {
+    setEnviadoExitoso(false);
+    setConteo(5);
+    setMensaje('');
+    setForm({ title: '', description: '', category: '' });
+    setFile(null);
+    setProyectoId('');
+    setAudienciaAlcanzada('');
+    setParticipantes([]);
+    setInvitadosInternos([]);
+    setInvitadosExternos([]);
+  };
 
   const [form, setForm] = useState({
     title: '',
@@ -118,20 +145,53 @@ export default function SubirVideoPage() {
       const registrarJson = await registrarRes.json();
       if (!registrarRes.ok) throw new Error(registrarJson.error || 'Error registrando el video');
 
-      setMensaje('¡Listo! Tu video se subió a YouTube (no listado) y quedó pendiente de aprobación para aparecer en el sitio.');
-      setForm({ title: '', description: '', category: '' });
-      setFile(null);
-      setProyectoId('');
-      setAudienciaAlcanzada('');
-      setParticipantes([]);
-      setInvitadosInternos([]);
-      setInvitadosExternos([]);
+      setEnviadoExitoso(true);
+      setConteo(5);
     } catch (error: any) {
       setMensaje(`Error: ${error.message}`);
     } finally {
       setSubiendo(false);
     }
   };
+
+  if (enviadoExitoso) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12 mt-16">
+          <div className="max-w-md w-full text-center bg-white p-8 rounded-xl shadow-md border-t-4 border-green-500">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+              ✓
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Video Subido Exitosamente!</h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              Tu video se subió a YouTube (no listado) y quedó pendiente de aprobación para aparecer en la galería del sitio.
+            </p>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-6">
+              Redirigiendo automáticamente al Portal PINE en <span className="font-bold text-sm">{conteo}</span> segundo{conteo !== 1 ? 's' : ''}...
+            </div>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/portal/dashboard')}
+                className="w-full py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition shadow-sm"
+              >
+                Ir al Portal PINE Ahora
+              </button>
+              <button
+                type="button"
+                onClick={resetFormulario}
+                className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition text-sm"
+              >
+                Subir Otro Video
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer context="general" />
+      </>
+    );
+  }
 
   return (
     <>

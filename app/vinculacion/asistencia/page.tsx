@@ -76,6 +76,31 @@ export default function AsistenciaPage() {
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const [usuarioActualId, setUsuarioActualId] = useState<number | null>(null);
+  const [enviadoExitoso, setEnviadoExitoso] = useState(false);
+  const [conteo, setConteo] = useState(5);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (enviadoExitoso && conteo > 0) {
+      timer = setTimeout(() => setConteo(prev => prev - 1), 1000);
+    } else if (enviadoExitoso && conteo === 0) {
+      router.push('/portal/dashboard');
+    }
+    return () => clearTimeout(timer);
+  }, [enviadoExitoso, conteo, router]);
+
+  const resetFormulario = () => {
+    setEnviadoExitoso(false);
+    setConteo(5);
+    setMessage('');
+    setPresentes([]);
+    setPresentesInstructores(instructoresTitulares.map((i: any) => i.id));
+    setInvitados([]);
+    setObservaciones('');
+    setHoraInicio('');
+    setHoraFin('');
+    setFoto(null);
+  };
 
   // Ventana de 48h (Ecuador): no se puede elegir un día futuro ni uno de más de 2 días atrás
   const fechaMaxima = hoyEcuador;
@@ -201,14 +226,8 @@ export default function AsistenciaPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage('Asistencia registrada exitosamente — queda pendiente de aprobación del profesor.');
-      setPresentes([]);
-      setPresentesInstructores(instructoresTitulares.map((i: any) => i.id));
-      setInvitados([]);
-      setObservaciones('');
-      setHoraInicio('');
-      setHoraFin('');
-      setFoto(null);
+      setEnviadoExitoso(true);
+      setConteo(5);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
     } finally {
@@ -219,6 +238,41 @@ export default function AsistenciaPage() {
 
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
+  }
+
+  if (enviadoExitoso) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="max-w-md w-full text-center bg-white p-8 rounded-xl shadow-md border-t-4 border-green-500">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+            ✓
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Asistencia Registrada!</h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            La asistencia fue enviada con éxito y ha quedado pendiente de aprobación del profesor.
+          </p>
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-6">
+            Redirigiendo automáticamente al Portal PINE en <span className="font-bold text-sm">{conteo}</span> segundo{conteo !== 1 ? 's' : ''}...
+          </div>
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/portal/dashboard')}
+              className="w-full py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition shadow-sm"
+            >
+              Ir al Portal PINE Ahora
+            </button>
+            <button
+              type="button"
+              onClick={resetFormulario}
+              className="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition text-sm"
+            >
+              Registrar Otra Asistencia
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
