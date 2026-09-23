@@ -60,7 +60,6 @@ export default function DifusionPage() {
     tipo: 'podcast',
     categoria: 'vinculacion',
     fecha: '',
-    audiencia_alcanzada: ''
     hora: '',
     audiencia_alcanzada: '',
     descripcion: '',
@@ -69,7 +68,6 @@ export default function DifusionPage() {
 
   const [file, setFile] = useState<File | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -161,8 +159,6 @@ export default function DifusionPage() {
         ...(video ? {
           youtube_video_id: video.youtubeVideoId,
           video_category: video.categoryId,
-          video_tags: ['vinculacion'],
-          video_area_sustantiva: 'vinculacion',
           video_tags: [formData.categoria || 'vinculacion'],
           video_area_sustantiva: formData.categoria === 'investigacion' ? 'investigacion' : 'vinculacion',
           video_proyecto_id: 'vinculacion',
@@ -186,7 +182,6 @@ export default function DifusionPage() {
       // Reiniciar el formulario en la misma página — antes esto mandaba a la
       // web pública (router.push('/')), que parecía sacar a la persona del
       // portal sin avisar. Se queda acá para poder registrar otra actividad.
-      setFormData({ titulo: '', tipo: 'podcast', fecha: '', audiencia_alcanzada: '' });
       setFormData({ titulo: '', tipo: 'podcast', categoria: 'vinculacion', fecha: '', hora: '', audiencia_alcanzada: '', descripcion: '', observaciones: '' });
       setResponsables([]);
       setFile(null);
