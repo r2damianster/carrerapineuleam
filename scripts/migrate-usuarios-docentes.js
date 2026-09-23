@@ -49,6 +49,7 @@ const DOCENTES_PINE_PENDIENTES_DE_REGISTRO = [
   // [nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional, es_director, modulos_acceso]
   ['MARÍA CRISTINA', 'BASANTES ROBALINO', 'maria.basantes@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, ['investigacion', 'indicadores', 'utilidades']],
   ['GABRIEL', 'BAZURTO ALCÍVAR', 'gabriel.bazurto@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, []],
+  ['GABRIEL', 'BAZURTO ALCÍVAR', 'gabriel.bazurto@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente / Coordinador de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros', false, []],
   ['LAURA', 'MENA SÁNCHEZ', 'laura.mena@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, []],
   ['ULBIO', 'FARFÁN CORRALES', 'ulbio.farfan@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, ['admin', 'investigacion', 'vinculacion', 'Proyecto_Internacionalizacion', 'indicadores', 'utilidades']],
   ['JORGE', 'CORRAL JONIAUX', 'jorge.corral@uleam.edu.ec', 'Lic.', 'Mg.', 'Docente', false, ['admin', 'investigacion', 'vinculacion', 'Proyecto_Internacionalizacion', 'indicadores', 'utilidades']],

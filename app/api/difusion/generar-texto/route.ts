@@ -6,6 +6,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   investigacion: 'Investigación',
   vinculacion: 'Vinculación',
   asignatura: 'Asignatura',
+  maestria: 'Maestría / Posgrado',
 };
 
 const TIPO_LABEL: Record<string, string> = {

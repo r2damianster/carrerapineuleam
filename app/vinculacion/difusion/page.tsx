@@ -52,17 +52,62 @@ export default function DifusionPage() {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
   };
 
+  const [generandoIA, setGenerandoIA] = useState(false);
+  const [errorIA, setErrorIA] = useState('');
+
   const [formData, setFormData] = useState({
     titulo: '',
     tipo: 'podcast',
+    categoria: 'vinculacion',
     fecha: '',
     audiencia_alcanzada: ''
+    hora: '',
+    audiencia_alcanzada: '',
+    descripcion: '',
+    observaciones: '',
   });
 
   const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const generarConIA = async () => {
+    if (!formData.titulo) {
+      setErrorIA('Escribe al menos el título antes de generar con IA.');
+      return;
+    }
+    setGenerandoIA(true);
+    setErrorIA('');
+    try {
+      const res = await fetch('/api/difusion/generar-texto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo: formData.titulo,
+          tipo: formData.tipo,
+          categoria: formData.categoria,
+          fecha: formData.fecha,
+          hora: formData.hora,
+          audiencia_alcanzada: formData.audiencia_alcanzada,
+          descripcion_actual: formData.descripcion,
+          observaciones_actual: formData.observaciones,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error generando texto con IA');
+      setFormData(prev => ({
+        ...prev,
+        descripcion: data.descripcion || prev.descripcion,
+        observaciones: data.observaciones || prev.observaciones,
+      }));
+    } catch (error: any) {
+      setErrorIA(error.message);
+    } finally {
+      setGenerandoIA(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +163,8 @@ export default function DifusionPage() {
           video_category: video.categoryId,
           video_tags: ['vinculacion'],
           video_area_sustantiva: 'vinculacion',
+          video_tags: [formData.categoria || 'vinculacion'],
+          video_area_sustantiva: formData.categoria === 'investigacion' ? 'investigacion' : 'vinculacion',
           video_proyecto_id: 'vinculacion',
           video_participantes: participantes,
           video_invitados_internos: invitadosInternos,
@@ -140,6 +187,7 @@ export default function DifusionPage() {
       // web pública (router.push('/')), que parecía sacar a la persona del
       // portal sin avisar. Se queda acá para poder registrar otra actividad.
       setFormData({ titulo: '', tipo: 'podcast', fecha: '', audiencia_alcanzada: '' });
+      setFormData({ titulo: '', tipo: 'podcast', categoria: 'vinculacion', fecha: '', hora: '', audiencia_alcanzada: '', descripcion: '', observaciones: '' });
       setResponsables([]);
       setFile(null);
       setVideo(null);
@@ -189,13 +237,26 @@ export default function DifusionPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Título del Evento / Podcast *</label>
+              <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700">Título del Evento / Podcast</label>
               <input type="text" name="titulo" required onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+              <label className="block text-sm font-medium text-gray-700">Categoría *</label>
+              <select name="categoria" value={formData.categoria} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                <option value="vinculacion">Vinculación</option>
+                <option value="investigacion">Investigación</option>
+                <option value="asignatura">Asignatura</option>
+                <option value="maestria">Maestría / Posgrado</option>
+              </select>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700">Tipo de Difusión</label>
+              <label className="block text-sm font-medium text-gray-700">Tipo de Difusión *</label>
               <select name="tipo" value={formData.tipo} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                 <option value="podcast">Podcast</option>
                 <option value="evento_fisico">Evento Físico</option>
@@ -208,11 +269,55 @@ export default function DifusionPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Fecha</label>
               <input type="date" name="fecha" required onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+              <label className="block text-sm font-medium text-gray-700">Fecha *</label>
+              <input type="date" name="fecha" required value={formData.fecha} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Audiencia Alcanzada (N° Personas)</label>
               <input type="number" name="audiencia_alcanzada" min="1" required onChange={handleChange} placeholder="Ej: 150" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+              <label className="block text-sm font-medium text-gray-700">Hora (opcional)</label>
+              <input type="time" name="hora" value={formData.hora} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Audiencia Alcanzada (N° Personas) *</label>
+              <input type="number" name="audiencia_alcanzada" min="1" required value={formData.audiencia_alcanzada} onChange={handleChange} placeholder="Ej: 150" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">Descripción del Evento / Podcast</label>
+              <button
+                type="button"
+                onClick={generarConIA}
+                disabled={generandoIA || !formData.titulo}
+                className="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold rounded-md shadow hover:opacity-90 disabled:opacity-50 transition"
+              >
+                {generandoIA ? 'Generando con IA...' : '✨ Generar / Pulir con IA'}
+              </button>
+            </div>
+            {errorIA && <p className="text-xs text-red-600">{errorIA}</p>}
+            <textarea
+              name="descripcion"
+              rows={4}
+              value={formData.descripcion}
+              onChange={handleChange}
+              placeholder="Describe en 2-4 líneas de qué trató el evento/podcast, objetivos y logros alcanzados (conectado directamente con /admin/contenido)."
+              className="w-full rounded-md border-gray-300 shadow-sm p-3 border text-sm"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones adicionales (opcional)</label>
+              <input
+                type="text"
+                name="observaciones"
+                value={formData.observaciones}
+                onChange={handleChange}
+                placeholder="Notas breves, recordatorios o contexto adicional"
+                className="w-full rounded-md border-gray-300 shadow-sm p-2 border text-sm"
+              />
             </div>
           </div>
 

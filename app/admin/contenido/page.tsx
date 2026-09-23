@@ -545,6 +545,7 @@ export default function AdminContenidoPage() {
                       <option value="investigacion">Investigación</option>
                       <option value="vinculacion">Vinculación</option>
                       <option value="asignatura">Asignatura</option>
+                      <option value="maestria">Maestría / Posgrado</option>
                     </select>
                   </div>
                 </div>
