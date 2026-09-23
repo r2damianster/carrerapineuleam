@@ -44,17 +44,17 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 ## 👩‍🎓 Perfil: Estudiante / Pasante-Instructor de Vinculación
 
-Después de que tu profesor te da de alta y activas tu cuenta (primer login), entras a `/portal/dashboard` → **"Registros de Vinculación"**. Son páginas independientes, cada una con su propio selector de espacio (si eres instructor de varios, eliges cuál):
+> 📌 **Comportamiento General Post-Envío:** Al enviar con éxito cualquier registro (asistencia, beneficiario+Pre-Test, evaluación final o podcast/video), el formulario **se desmonta para evitar registros dobles** y despliega una **tarjeta visual de éxito**. Se inicia un temporizador de **5 a 6 segundos** que redirige automáticamente al Portal PINE (`/portal/dashboard`), con la opción de volver de inmediato o iniciar un nuevo registro.
 
 ### » Registrar y evaluar beneficiario (`/vinculacion/registrar-evaluar`)
 Un beneficiario nuevo **siempre** se registra junto con su Pre-Test MCER — no queda registrado sin evaluación, es un solo envío obligatorio en la misma pantalla:
-- **Registrar nuevo + Pre-Test:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional (Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia — si trabaja, qué rol; si estudia, nivel educativo y, si es universidad, carrera y curso), seguido de las preguntas del Pre-Test MCER. El beneficiario no inicia sesión — es solo su ficha de datos.
+- **Registrar nuevo + Pre-Test:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional (Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia — si trabaja, qué rol; si estudia, nivel educativo y, si es universidad, carrera y curso), seguido de las preguntas del Pre-Test MCER. El beneficiario no inicia sesión — es solo su ficha de datos. Al completar, se muestra el puntaje y nivel asignado antes de redirigir al portal.
 - **Asignar beneficiario existente:** para alguien que ya es beneficiario en otro espacio/ciclo — ya tiene su Pre-Test de antes, solo se le suma a este espacio, sin repetir la evaluación.
 - **QR Auto-registro + Pre-Test:** botón que genera un link/QR para el espacio — cada beneficiario se registra él mismo desde su celular y responde el Pre-Test en la misma pantalla, sin login.
 - **📄 Descargar Pre-Test en Word:** para aplicarlo en papel — trae también los campos de datos del beneficiario en blanco, ya que el registro y el Pre-Test van siempre juntos.
 
 ### » Asistencia (`/vinculacion/asistencia`)
-Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece **con el check ya marcado como presente**; desmarca solo a los ausentes. Observaciones opcionales.
+Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece con su check de presencia. Requiere hora de inicio/fin y foto obligatoria. Al guardar, se desmonta el formulario, muestra el estado *"Pendiente de aprobación"* y redirige en 5s al portal PINE.
 
 ### » Evaluación final del beneficiario (`/vinculacion/evaluacion-final`)
 El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo envío (el beneficiario ya está registrado de antes, aquí no se piden sus datos):
@@ -62,11 +62,12 @@ El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo
 2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio) y el ciclo académico a evaluar, transcribe sus respuestas del MCER.
 3. Sube una foto de la evaluación física resuelta (opcional). El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
 4. Sigue la Encuesta de Satisfacción (satisfacción general, aprendizaje, mejora, recursos, calificación por instructor, comentarios) — obligatoria en el mismo envío.
-5. **QR Evaluación Final:** genera un link/QR para que el beneficiario tome el Post-Test + encuesta él mismo desde su celular, sin login.
-6. ¿Necesitas reenviar solo la encuesta suelta (sin MCER, ej. si el Post-Test ya se tomó antes)? Hay un link a `/vinculacion/encuesta` al pie de la página, para ese caso puntual.
+5. Al enviar, la pantalla de éxito muestra la calificación final obtenida y el nivel A1-B2 asignado, e inicia la cuenta regresiva para regresar al dashboard.
+6. **QR Evaluación Final:** genera un link/QR para que el beneficiario tome el Post-Test + encuesta él mismo desde su celular, sin login.
+7. ¿Necesitas reenviar solo la encuesta suelta (sin MCER, ej. si el Post-Test ya se tomó antes)? Hay un link a `/vinculacion/encuesta` al pie de la página, para ese caso puntual.
 
 ### » Registrar podcast o evento (`/vinculacion/difusion`)
-Sin selector de espacio — cualquier estudiante registra un podcast/evento: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto, obligatoria).
+Sin selector de espacio — cualquier estudiante registra un podcast/evento: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto, obligatoria). Al enviar, confirma que quedó en revisión y redirige al portal.
 
 > Todo lo de arriba (excepto Registrar podcast o evento) solo funciona **dentro de tu espacio asignado** — si intentas operar un espacio donde no eres instructor, el sistema te lo bloquea.
 
@@ -129,7 +130,15 @@ Distinto de todo lo anterior — es para editar el contenido de la página públ
 
 ## 🔐 Superadmin
 
-Módulo aparte, restringido a una sola cuenta (hoy: Arturo) — acceso directo a explorar y modificar cualquier tabla de la base de datos, y ejecutar consultas SQL. No es para uso operativo del día a día, es una herramienta de mantenimiento técnico.
+Módulo de administración avanzada restringido a la cuenta de Superadmin (`/superadmin`). Ofrece acceso a las siguientes herramientas principales:
+
+1. **Explorador de Tablas y Consola SQL (`/superadmin/sql`):** Exploración directa de tablas y ejecución de consultas en Neon Postgres.
+2. **Funcionalidad "Ver como" / Impersonación (`/superadmin/ver-como`):**
+   - Permite al Superadmin navegar por la plataforma asumiendo temporalmente el rol e identidad de cualquier persona registrada (docente, estudiante, beneficiario, admin).
+   - **Filtro 1 (Casillas de Verificación):** Permite filtrar usuarios seleccionando sus roles principales, sus módulos de acceso asignados y detectar **quiénes poseen accesos múltiples (2+ módulos)**.
+   - **Filtro 2 (Búsqueda por Persona):** Búsqueda por nombre, apellido, correo o cédula.
+   - **Barra Flotante Global:** Durante el modo *"Ver como"*, se despliega una barra amarilla superior fija en todo el sitio indicando la persona actual y ofreciendo el botón `↩ Volver a Superadmin` para restaurar la sesión en un solo clic.
+   - **Log de Auditoría (`/superadmin/audit`):** Guarda la trazabilidad completa de cada evento de impersonación.
 
 ---
 

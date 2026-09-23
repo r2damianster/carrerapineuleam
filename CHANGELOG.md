@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (33 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
 
+## [0.12.1] - 2026-09-22 (Sesión 47)
+
+### 🐛 Fixed & Improved
+- **Pantalla de Confirmación de Éxito & Redirección Automática al Portal PINE:**
+  - Se corrigió el comportamiento post-envío en los 5 formularios principales del Portal / Vinculación ([`app/vinculacion/asistencia/page.tsx`](file:///c:/Users/User/Documents/Desarrollo%20Web/carreraPINE/app/vinculacion/asistencia/page.tsx), [`app/vinculacion/encuesta/page.tsx`](file:///c:/Users/User/Documents/Desarrollo%20Web/carreraPINE/app/vinculacion/encuesta/page.tsx), [`app/vinculacion/evaluacion-final/page.tsx`](file:///c:/Users/User/Documents/Desarrollo%20Web/carreraPINE/app/vinculacion/evaluacion-final/page.tsx), [`app/vinculacion/registrar-evaluar/page.tsx`](file:///c:/Users/User/Documents/Desarrollo%20Web/carreraPINE/app/vinculacion/registrar-evaluar/page.tsx), [`app/portal/subir-video/page.tsx`](file:///c:/Users/User/Documents/Desarrollo%20Web/carreraPINE/app/portal/subir-video/page.tsx)).
+  - **Prevención de Registros Duplicados (Double Submit):** Al procesar un envío exitoso, el formulario se desmonta por completo para evitar que el usuario vuelva a hacer clic en el botón de guardar o refresque la página dudando si se procesó.
+  - **Confirmación Visual & Redirección:** Se despliega una tarjeta visual de éxito con los resultados/resumen del registro y un temporizador regresivo de 5 a 6 segundos que redirige automáticamente a `/portal/dashboard`, incorporando botones para "Ir al Portal PINE Ahora" o "Registrar Otro".
+
+---
+
+## [0.12.0] - 2026-09-22 (Sesión 46)
+
+### ✅ Added
+- **Funcionalidad "Ver como" (Impersonación de Usuarios)** en el módulo de Superadmin (`/superadmin/ver-como`):
+  - **Filtro 1 (Roles & Módulos):** Selección mediante casillas de verificación para Roles (`profesor`, `estudiante`, `admin`, `beneficiario`), Módulos de Acceso (`vinculacion`, `investigacion`, `subir_video`, etc.) y toggle para filtrar **usuarios con accesos múltiples (2+ módulos)** vs. acceso único.
+  - **Filtro 2 (Persona):** Búsqueda de texto en tiempo real por nombres, apellidos, correo o cédula.
+  - **Mecanismo de Impersonación Segura:** Firma HMAC en cookie de sesión extendida con `impersonatedBy`. Permite a un Superadmin navegar como cualquier persona del sistema y actualizar su perfil, contribuciones, asistencias o registros.
+  - **Barra Flotante Global (`ImpersonationBanner`):** Banner superior sticky visible en todo el sitio mientras la impersonación está activa, con botón para restaurar la sesión original de Superadmin en un clic (`POST /api/superadmin/impersonate/revert`).
+  - **Log de Auditoría:** Todas las acciones de inicio y reversión de impersonación quedan registradas en `superadmin_audit_log`.
+
+---
+
 ## [0.11.1] - 2026-09-22 (Sesión 45)
 
 ### ✅ Added

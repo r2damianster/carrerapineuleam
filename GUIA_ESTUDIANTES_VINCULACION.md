@@ -105,10 +105,10 @@ Botón **"📄 Descargar Pre-Test en Word"** (arriba de la página) — el docum
 
 > 📌 Guarda tú también tus propias fotos de evidencia (celular o correo) — a futuro estas fotos servirán para armar tus informes de vinculación, y tu profesor también las usará para el suyo.
 
-**Qué pasa después:** verás el mensaje "queda pendiente de aprobación del profesor". El registro no se pierde ni hay que repetirlo — solo espera a que tu profesor lo revise en su pantalla de Supervisar Asistencia.
+**Qué pasa después:** el formulario se desmonta automáticamente para evitar envíos dobles y se muestra una pantalla de confirmación con el mensaje *"Asistencia registrada exitosamente — queda pendiente de aprobación del profesor"*. Un temporizador de 5 segundos te redirigirá automáticamente a tu Dashboard del Portal (`/portal/dashboard`), o puedes presionar "Ir al Portal PINE Ahora" / "Registrar Otra Asistencia".
 
 ### 4.1 🆕 Horas acreditables por asistencia (ACTUALIZACIÓN Sesión 43)
-Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas **solo a quien quedó marcado presente** en esa sesión — titular del espacio o pasante invitado, mismo trato — **y solo cuando el profesor aprueba el registro**. Ya no se acredita a ciegas a todos los instructores asignados al espacio sin importar si asistieron. Si el profesor rechaza una sesión, esas horas no se acreditan (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 7).
+Al registrar cada sesión, la duración (hora de fin − hora de inicio) se acredita como horas **solo a quien quedó marcado presente** en esa sesión — titular del espacio o pasante invitado, mismo trato — **y solo cuando el profesor aprueba el registro**. Ya no se acredita a ciegas a todos los instructores asignados al espacio sin importar si asistieron. Si el profesor rechaza una sesión, esas horas no se acreditad (o se retiran si ya estaban acreditadas). Puedes ver tus horas de asistencia (aprobadas y pendientes) en **"📊 Mi Avance"** (sección 7).
 
 ### 4.2 🆕 Qué revisa tu profesor (para que entiendas por qué puede tardar)
 Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, fecha y horario, cuántos beneficiarios marcaste presentes, qué pasantes asistieron (titulares e invitados, estos últimos con badge "Invitado"), y puede **Aprobar** o **Rechazar** (con motivo). No necesitas hacer nada de tu parte salvo esperar — si te rechazan un registro por error de datos, coordina con tu profesor cómo corregirlo.
@@ -136,7 +136,7 @@ Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, 
    - **Comentarios adicionales** (opcional).
 7. Clic en **"Enviar Evaluación Final"**.
 
-**Qué pasa después:** el sistema calcula el puntaje y nivel del Post-Test (puntaje /100, desglose Gramática/Lectura/Oral, nivel asignado) y confirma que la encuesta también quedó registrada.
+**Qué pasa después:** se despliega una tarjeta de confirmación de éxito con el desglose del puntaje obtenido (/100) y el nivel asignado (A1-B2), confirmando también la encuesta. Se activa una cuenta regresiva de 6 segundos que te lleva de regreso a tu Dashboard (`/portal/dashboard`).
 
 ### 5.1 Alternativa: enlace/QR sin login (el beneficiario responde desde su celular)
 Botón **"🔗 QR Evaluación Final (sin login)"** (se habilita cuando ya elegiste un beneficiario) → genera un link/QR de un solo uso. El beneficiario, al abrirlo, ve y responde el **Post-Test MCER y la Encuesta de Satisfacción juntos en una sola página**, un solo botón "Enviar". Clic en el botón → aparece un modal con el QR y el link → puedes copiarlo o compartirlo por WhatsApp.

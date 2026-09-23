@@ -2,8 +2,8 @@
 
 Sitio público del proyecto de Innovaciones Pedagógicas e Internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM), junto con el **Portal PINE** — el sistema operativo interno para docencia, vinculación e investigación de la carrera.
 
-**Versión:** 0.11.0
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅
+**Versión:** 0.12.1
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅
 **Tech Stack:** Next.js 14 (App Router) + TypeScript + TailwindCSS + Neon (Postgres Serverless) + Cloudinary
 **Sitio en producción:** https://carrerapineuleam.vercel.app
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
@@ -34,7 +34,7 @@ Panel CRUD para el contenido público — Miembros, Publicaciones, Podcast, Noti
 Generador de documentos administrativos de la carrera (Acta Técnica, Oficios, Convocatorias, PATs de Maestría, Pares Lectores) con redacción asistida por IA.
 
 ### Superadmin (`/superadmin`)
-Explorador de tablas + SQL runner sobre toda la base de datos Neon, con doble candado (módulo + email en whitelist). Restringido a una sola cuenta — herramienta de mantenimiento de base de datos, no de uso operativo.
+Explorador de tablas + SQL runner sobre toda la base de datos Neon, con funcionalidad **"Ver como" (Impersonación de Usuarios)** desde `/superadmin/ver-como`, filtros interactivos por rol/módulos (casillas de verificación) y persona, barra flotante global de reversión y log de auditoría. Restringido al Superadmin principal.
 
 Detalle completo de cada módulo, esquema de Neon, roles y permisos: ver [`CLAUDE.md`](./CLAUDE.md).
 

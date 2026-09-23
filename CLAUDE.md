@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.11.1
-**Última sesión:** 2026-09-22 (Sesión 45 — desglose de indicadores MCER semestrales vs globales, corrección de Investigadores Vinculados a 5/6, incorporación de Beneficiarios Inscritos 49/50 y Horas Acreditadas en /pine-dashboard)
+**Versión actual:** 0.12.1
+**Última sesión:** 2026-09-22 (Sesión 47 — Confirmación visual de éxito, prevención de registros dobles y redirección automática con temporizador regresivo de 5-6s al Portal PINE tras enviar asistencia, encuestas, evaluaciones o videos)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -133,7 +133,13 @@ Generador de documentos `.docx` para trámites de la carrera, integrado dentro d
 
 Auditoría de Sesión 33 encontró un módulo completo, funcional y en producción, ausente de CLAUDE.md/ANTIGRAVITY.md/README.md/MANUAL_USUARIO.md desde que se construyó. Es un explorador directo de la base de datos Neon completa — mucho más poder de acceso que cualquier otro módulo del sitio, por eso se documenta aparte con énfasis en el riesgo.
 
-- **Qué hace:** lista todas las tablas (`/superadmin`), ve/edita filas de una tabla elegida con su schema real (`/superadmin/[table]`), corre SQL arbitrario de solo lectura o escritura contra la Neon de producción (`/superadmin/sql`), y guarda un log de auditoría de cada acción (`/superadmin/audit`, tabla `superadmin_audit_log`).
+- **Qué hace:** lista todas las tablas (`/superadmin`), ve/edita filas de una tabla elegida con su schema real (`/superadmin/[table]`), corre SQL arbitrario de solo lectura o escritura contra la Neon de producción (`/superadmin/sql`), permite impersonar cualquier usuario ("Ver como") desde `/superadmin/ver-como`, y guarda un log de auditoría de cada acción (`/superadmin/audit`, tabla `superadmin_audit_log`).
+- **Funcionalidad "Ver como" (Sesión 46):** accesible desde `/superadmin/ver-como` y desde la barra superior de `/superadmin`. Ofrece:
+  - **Filtro 1 (Roles y Módulos):** casillas de verificación para Roles (`profesor`, `estudiante`, `admin`, `beneficiario`), Módulos (`vinculacion`, `investigacion`, `subir_video`, etc.) y selector de **usuarios con múltiples accesos / roles (2+ módulos)**.
+  - **Filtro 2 (Persona):** búsqueda en tiempo real por nombres, apellidos, correo o cédula.
+  - **Mecanismo:** `POST /api/superadmin/impersonate` emite la cookie HMAC con los datos del usuario objetivo y la propiedad `impersonatedBy` conservando los datos del Superadmin original (`lib/session.ts`).
+  - **Barra Flotante Global (`components/ImpersonationBanner.tsx`):** banner amarillo fijo en la parte superior del sitio que indica que el modo *"Ver como"* está activo y expone el botón `↩ Volver a Superadmin` (`POST /api/superadmin/impersonate/revert`).
+  - **Auditoría:** todas las impersonaciones e inicios/cierres registran eventos `impersonate` e `impersonate_revert` en `superadmin_audit_log` (`lib/superadmin-auth.ts`).
 - **Doble candado, redundante a propósito:** `middleware.ts` (Edge runtime, no puede importar `@neondatabase/serverless` directo) exige `modulos_acceso.includes('superadmin')` **y** el email en `SUPERADMIN_EMAILS` (hardcodeado en `lib/superadmin-auth.ts`, hoy solo `arturo.rodriguez@uleam.edu.ec`) — ambos chequeos están duplicados también dentro de cada API route (`app/api/superadmin/**`) porque el middleware por sí solo no alcanza a proteger `/api` en este proyecto (su `matcher` excluye `/api`, ver nota en `### Módulo /utilidades` arriba sobre el mismo patrón).
 - **`lib/superadmin-db.ts`** arma el SQL dinámico (nombre de tabla/columna viene del usuario en el explorador visual) validando cada identificador contra `information_schema` antes de interpolarlo — mitiga inyección SQL en la capa de "explorar tabla", pero el runner de `/superadmin/sql` ejecuta la query tal cual la escriba quien tenga acceso, sin sandbox — es una herramienta de "manos libres" total sobre la Neon de producción, no un CRUD con barandas.
 - **Por qué importa documentarlo:** cualquier cambio futuro a `modulos_acceso` o a la whitelist de emails debe considerar que ese módulo existe — agregar `superadmin` al array de alguien (o a `SUPERADMIN_EMAILS`) le da control total sobre toda la base, no solo sobre "su" área.
