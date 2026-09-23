@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (33 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
 
+## [0.11.0] - 2026-09-22 (Sesión 44)
+
+### ✅ Added
+- **Dashboard Pedagógico del Pasante** (`/portal/mi-avance` y `/api/mi-avance`): barra de progreso de horas reglamentarias con la meta legal de **96 horas**, tabla de beneficiarios por espacio con notas Pre/Post MCER, porcentaje de asistencia de aula con semáforo `<70%` (riesgo de inasistencia) y reseñas cualitativas de alumnos.
+- **Panel de Indicadores & Supervisión Docente** (`/vinculacion/supervisar/indicadores` y `/api/vinculacion/supervisores/indicadores`): panel analítico para profesores supervisores con desglose por pasante (horas acumuladas, beneficiarios a cargo, tests evaluados y promedio de satisfacción), matriz de ganancia pedagógica MCER y semáforo de asistencias pendientes.
+- Botón directo **"📊 Ver Indicadores & Analítica"** en la cabecera de `/vinculacion/supervisar`.
+
+### 🐛 Fixed
+- Corrección de nombres de columnas reales en Neon Postgres para encuestas de satisfacción (`calificacion`, `nivel_satisfaccion`, `comentarios`, `fecha`) y escape con comillas dobles para la tabla `"espacios_enseñanza"`.
+
+---
+
 ## [0.10.8] - 2026-09-08 (Sesión 33)
 
 ### 📚 Documentation

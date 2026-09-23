@@ -31,6 +31,8 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 ### Gestión de Vinculación (solo profesor/admin)
 
+**» Supervisar Asistencia & Indicadores** (`/vinculacion/supervisar` e `/vinculacion/supervisar/indicadores`) — aprueba/rechaza registros de asistencia recibidos con foto evidencia. Incluye el botón **"📊 Ver Indicadores & Analítica"** para acceder al nuevo panel de supervisión por pasante, matriz de ganancia MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
+
 **» Administrar Espacios** (`/vinculacion/espacios`) — crea/lista espacios (clubes, aulas, cohortes). Un espacio es, por ejemplo, "Club de Inglés A", asociado a un ciclo/semestre. Al entrar a un espacio (clic en su nombre) puedes asignar qué pasantes son instructores de ese espacio — la única función que queda ahí; asistencia/beneficiarios/MCER/encuesta se manejan aparte, ver abajo.
 
 **» Administrar Pasantes** (`/vinculacion/pasantes`) — CRUD completo de estudiantes-instructores:

@@ -187,11 +187,17 @@ Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula 
 
 ---
 
-## 7. Ver mi avance (horas, espacios, evaluaciones)
+## 7. Ver mi avance & Espacio de Intervención (horas, beneficiarios, avance MCER)
 
 **Ruta:** Dashboard → tarjeta **"📊 Mi Avance"** → **"» Ver mi avance completo"** (`/portal/mi-avance`)
 
-Ahí puedes revisar en un solo lugar: tus horas acreditadas (podcast + 🆕 asistencia — con aviso de cuántas sesiones te faltan por aprobación), en qué espacios estás asignado, qué beneficiarios has registrado/atendido, y las evaluaciones (MCER/encuestas) que ya cargaste.
+🆕 **ACTUALIZACIÓN (Sesión 44, 2026-09-22):** La pantalla se transformó en un **Dashboard Pedagógico del Pasante**, donde podrás ver de forma inteligente todo lo que sucede en tu espacio de enseñanza:
+
+1. **Meta Reglamentaria de 96 Horas:** Barra de progreso visual que suma tus horas acreditables aprobadas (Asistencias + Podcasts + Investigación) frente a la meta legal de **96 horas**.
+2. **Resultados MCER de tus Alumnos:** Tabla con cada beneficiario de tu espacio, su nota inicial (Pre-Test), su nota final (Post-Test) y su nivel asignado (A1.1, A1.2, A2, etc.), indicándote con una flecha verde quienes han mejorado.
+3. **Semáforo de Asistencia de Aula:** El sistema calcula el % de asistencia de cada uno de tus alumnos. Si un beneficiario tiene menos del **70% de asistencia**, aparecerá marcado con una etiqueta roja de **"Riesgo Inasistencia"** para que puedas contactarlo a tiempo.
+4. **Reseñas y Opiniones de tus Alumnos:** Bloque que te muestra los comentarios anónimos y valoraciones (estrellas) que dejaron los beneficiarios en las encuestas de satisfacción, permitiéndote reflexionar y ajustar tu metodología de clase.
+5. **Botones de Acción Directa:** Enlaces rápidos para tomar asistencia o evaluar beneficiarios en 1-clic.
 
 ---
 
