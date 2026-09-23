@@ -67,7 +67,11 @@ El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo
 7. ¿Necesitas reenviar solo la encuesta suelta (sin MCER, ej. si el Post-Test ya se tomó antes)? Hay un link a `/vinculacion/encuesta` al pie de la página, para ese caso puntual.
 
 ### » Registrar podcast o evento (`/vinculacion/difusion`)
-Sin selector de espacio — cualquier estudiante registra un podcast/evento: título, tipo, fecha, audiencia alcanzada, evidencia (captura o foto, obligatoria). Al enviar, confirma que quedó en revisión y redirige al portal.
+Formulario completo para registrar eventos y podcasts de Vinculación, Investigación, Asignaturas o Maestría:
+- **Campos del registro:** Título, Categoría (Vinculación / Investigación / Asignatura / **Maestría o Posgrado**), Tipo de Difusión (Podcast, Evento Físico, Encuentro Comunitario, Evento de Formación, Visita Técnica), Fecha, Hora opcional, Audiencia alcanzada y Profesores responsables.
+- **Descripción & Observaciones con Inteligencia Artificial:** Incluye áreas de texto libre para describir los objetivos y logros del evento, junto con el botón **✨ Generar / Pulir con IA** para redactar la ficha formal e institucional automáticamente.
+- **Conexión directa con Moderación:** La información registrada llega directamente al panel `/admin/contenido` para revisión, edición y publicación en noticias o actividades del sitio web.
+- **Evidencia obligatoria:** Captura de métricas del podcast o foto del evento. Al enviar, confirma que quedó en revisión y redirige en 5s al portal PINE.
 
 > Todo lo de arriba (excepto Registrar podcast o evento) solo funciona **dentro de tu espacio asignado** — si intentas operar un espacio donde no eres instructor, el sistema te lo bloquea.
 

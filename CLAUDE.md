@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.12.1
-**Última sesión:** 2026-09-22 (Sesión 47 — Confirmación visual de éxito, prevención de registros dobles y redirección automática con temporizador regresivo de 5-6s al Portal PINE tras enviar asistencia, encuestas, evaluaciones o videos)
+**Versión actual:** 0.12.2
+**Última sesión:** 2026-09-23 (Sesión 48 — Descripción y redacción con IA en formulario de difusión, categoría Maestría/Posgrado a nivel global y actualización en DB del rol dual Docente/Coordinador del Sr. Gabriel Bazurto)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -170,6 +170,21 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 | Deploy Vercel | ✅ Auto-deploy activo en push a `main` | 100% |
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
+
+## Cambios Recientes (Sesión 48 — 2026-09-23)
+
+### Formulario de Difusión Enriquecido, Categoría Maestría/Posgrado y Actualización de Rol Docente/Coordinador
+
+- **Formulario de Registro de Difusión (`/vinculacion/difusion`)**:
+  - Incorporadas las áreas de texto de `descripcion` y `observaciones` conectadas a `POST /api/difusion` y moderables/editables desde `/admin/contenido` (`https://carrerapineuleam.vercel.app/admin/contenido`).
+  - Añadido el botón **✨ Generar / Pulir con IA** (`generarConIA` llamando a `/api/difusion/generar-texto`) para redactar automáticamente descripciones formales de eventos/podcasts.
+  - Añadido selector de `hora` (opcional) y soporte para la categoría **Maestría / Posgrado** (`maestria`).
+- **Soporte de Categoría `maestria` (Maestría / Posgrado) a Nivel Global**:
+  - Habilitada la categoría `maestria` en los selectores de `/vinculacion/difusion`, `/gestion-carrera`, `/vinculacion/publico-difusion/[token]` y en el panel de administración `/admin/contenido`.
+  - Registrada la etiqueta `maestria: 'Maestría / Posgrado'` en `CATEGORIA_LABEL` (`/api/difusion/generar-texto`).
+- **Actualización de Datos en DB Neon (Producción) & Seed Script**:
+  - **Evento ID 32** (*Inauguración de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros*): Actualizada su categoría en `actividades_difusion` a `maestria`.
+  - **Sr. Gabriel Bazurto Alcívar (ID 15 en `usuarios`)**: Actualizado su `cargo_institucional` a `'Docente / Coordinador de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros'` en Neon DB y en `scripts/migrate-usuarios-docentes.js` (conservando ambos roles).
 
 ---
 

@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*(nada pendiente al día de la última entrada — ver `CLAUDE.md` para tareas abiertas de módulos específicos, ej. exportación CSV y tests de Contribuciones Académicas)*
+*(nada pendiente al día de la última entrada)*
+
+---
+
+## [0.12.2] - 2026-09-23 (Sesión 48)
+
+### ✅ Added & Improved
+- **Formulario de Registro de Difusión (`/vinculacion/difusion`) Enriquecido:**
+  - Se añadieron las áreas de texto `descripcion` y `observaciones` conectadas a `POST /api/difusion` y moderables/editables desde `/admin/contenido`.
+  - Integrado el botón **✨ Generar / Pulir con IA** (`generarConIA` llamando a `/api/difusion/generar-texto`) para redactar automáticamente descripciones formales e institucionales del evento o podcast.
+  - Selección de hora del evento y de la nueva categoría **Maestría / Posgrado**.
+
+- **Categoría Maestría / Posgrado (`maestria`) a Nivel Global:**
+  - Se habilitó la opción **Maestría / Posgrado** (`maestria`) como categoría de evento seleccionable en `/vinculacion/difusion`, `/gestion-carrera`, `/vinculacion/publico-difusion/[token]` y en el panel de administración `/admin/contenido`.
+  - Actualizado `CATEGORIA_LABEL` en `/api/difusion/generar-texto` para que la IA genere fichas de eventos de posgrado/cuarto nivel.
+
+- **Actualizaciones en Base de Datos Neon (Producción) & Rol Institucional:**
+  - **Evento ID 32** (*Inauguración de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros*): Actualizada la categoría de `investigacion` a `maestria`.
+  - **Sr. Gabriel Bazurto Alcívar (ID 15 en `usuarios`)**: Actualizado `cargo_institucional` a `'Docente / Coordinador de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros'` en Neon DB y en `scripts/migrate-usuarios-docentes.js` (preservando ambos roles: Docente y Coordinador).
 
 ---
 
