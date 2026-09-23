@@ -128,6 +128,13 @@ Investigación (hoy: Jhonny, German, Cristina, Johana) todavía no tiene ninguna
 
 ---
 
+## Cambios Recientes (Sesión 45 — 2026-09-22)
+
+- ✅ **Dashboard PINE (`/pine-dashboard`)**: desglosado indicador MCER en Diagnóstico Semestral (`49/49`) vs Evaluaciones Finales Meta 2 años (`0/100`), e incorporadas tarjetas de Beneficiarios Inscritos (`49/50`), Horas Acreditadas de pasantes y Espacios Activos.
+- ✅ **Fix `/api/admin/stats`**: corrección del conteo de Investigadores Vinculados para consultar los 5 estudiantes reales asignados a investigación en lugar de la columna vacía heredada `perfiles_estudiantes.titulo_investigacion`.
+
+---
+
 ## Cambios Recientes (Sesión 20 — 2026-08-31)
 
 - ✅ **Carga masiva de pasantes por Excel** — nueva dependencia `xlsx` (SheetJS) `^0.18.5`. Endpoint nuevo `POST /api/estudiantes/bulk` (dos modos vía `dryRun`, ver detalle en `## Portal PINE` → sección Pasantes). UI en `/vinculacion/pasantes`: plantilla descargable + input de archivo + tabla de vista previa + confirmación. Alta uno-por-uno y CRUD existentes de esa página no se tocaron.

@@ -4,6 +4,11 @@ export interface AppSession {
   nombres: string;
   rol: string;
   modulos_acceso: string[];
+  impersonatedBy?: {
+    id: string;
+    email: string;
+    nombres: string;
+  };
 }
 
 const SESSION_COOKIE_NAME = 'pine_app_session';

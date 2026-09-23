@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}><LanguageProvider>{children}</LanguageProvider></body>
+      <body className={inter.className}>
+        <LanguageProvider>
+          <ImpersonationBanner />
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   );
 }

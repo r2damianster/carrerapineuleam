@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > ⚠️ **El proyecto abandonó PocketBase por completo** (retirado junto con la carpeta `pocketbase/` en la Sesión 8, 2026-04-26) a favor de **Neon Postgres** (SQL crudo vía `@neondatabase/serverless`), igual para el sitio público que para el Portal PINE. La lista de TODOs de PocketBase que vivía en esta sección quedó sin efecto — nunca se ejecutó, el proyecto tomó otro rumbo arquitectónico. El historial detallado sesión por sesión (33 sesiones y contando) vive en [`CLAUDE.md`](./CLAUDE.md) → `## Cambios Recientes`; este changelog resume los hitos mayores.
 
+## [0.11.1] - 2026-09-22 (Sesión 45)
+
+### ✅ Added
+- **Desglose de Indicadores MCER en `/pine-dashboard`**: separación clara entre **Diagnóstico MCER (Pre-Test) — Semestre Actual** (`evaluacionesIniciales / totalInscritos` -> `49 / 49`) y **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años)** (`evaluacionesFinales / 100` -> `0 / 100`).
+- **Nuevas Métricas Incorporadas en tiempo real**: Tarjeta de **Beneficiarios Inscritos & Atendidos** (`49 / 50`), **Horas Acreditadas de Vinculación y Práctica** (suma acumulada de clases, podcasts e investigación) y **Espacios de Enseñanza Activos**.
+
+### 🐛 Fixed
+- **Conteo de Investigadores Vinculados (`/api/admin/stats`)**: reemplazada la consulta a la columna vacía heredada `perfiles_estudiantes.titulo_investigacion` por el conteo real de estudiantes con módulo `'investigacion'` en `modulos_acceso` o actividades registradas en `actividades_investigacion_pasante` (retornando correctamente los **5 estudiantes** activos).
+
+---
+
 ## [0.11.0] - 2026-09-22 (Sesión 44)
 
 ### ✅ Added

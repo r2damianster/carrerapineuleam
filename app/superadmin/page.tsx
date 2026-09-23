@@ -78,6 +78,9 @@ export default function SuperadminPage() {
             <p className="text-sm text-gray-600">Explorador de tablas + consola SQL. Toda acción queda auditada.</p>
           </div>
           <div className="flex gap-3">
+            <Link href="/superadmin/ver-como" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 font-medium flex items-center gap-1.5 shadow-sm">
+              <span>👁️</span> Ver como (Impersonar)
+            </Link>
             <Link href="/superadmin/sql" className="bg-uleam-blue text-white px-4 py-2 rounded hover:opacity-90">
               Consola SQL
             </Link>

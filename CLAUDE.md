@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.10.12 (nota: `package.json:version` quedó fijo en `0.1.0` desde el arranque del proyecto y nunca se sincronizó con esta versión documental — no afecta funcionalidad, no vale la pena tocarlo salvo que el usuario lo pida)
-**Última sesión:** 2026-09-16 (Sesión 43 — registro de beneficiario fusionado con el Pre-Test MCER, obligatorio; menú de Vinculación renombrado/reordenado en el panel. Ver detalle abajo)
+**Versión actual:** 0.11.1
+**Última sesión:** 2026-09-22 (Sesión 45 — desglose de indicadores MCER semestrales vs globales, corrección de Investigadores Vinculados a 5/6, incorporación de Beneficiarios Inscritos 49/50 y Horas Acreditadas en /pine-dashboard)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -194,6 +194,20 @@ A pedido explícito del usuario, siguiendo la misma lógica que ya se aplicó en
 - **`GET /api/tests/download-docx`** ahora acepta `?tipo=pretest|postest` (default `pretest`): el Word de pretest trae también los campos de datos del beneficiario en blanco (antes solo tenía una línea de nombre) porque registro y evaluación van siempre juntos; el de postest agrega al final un bloque de encuesta en blanco (4 preguntas 1-5 + comentarios) — sin listar instructores por nombre (decisión explícita del usuario: "el postest solo corresponde al beneficiario").
 - **`middleware.ts`** — `protectedRoutes` y el chequeo de rol actualizados: `/vinculacion/beneficiarios`/`/vinculacion/test-mcer` reemplazadas por `/vinculacion/registrar-evaluar`/`/vinculacion/evaluacion-final`.
 - **Verificación:** `npx tsc --noEmit` y `npm run build` limpios (rutas viejas ya no aparecen en la salida del build, las 2 nuevas sí). `MANUAL_USUARIO.md` y `GUIA_ESTUDIANTES_VINCULACION.md` reescritos con las rutas/pasos nuevos. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones previas.
+
+## Cambios Recientes (Sesión 45 — 2026-09-22)
+
+### Desglose de Indicadores MCER, Corrección de Investigadores Vinculados y Métricas Semestrales en Dashboard PINE
+
+- **Fix de Investigadores Vinculados en `/api/admin/stats`:** Se corregió la consulta SQL que antes apuntaba a la columna obsoleta y vacía `perfiles_estudiantes.titulo_investigacion` (devolviendo `0 / 6`). La nueva consulta filtra a los estudiantes reales que poseen el módulo de investigación (`'investigacion' = ANY(modulos_acceso)`) o que han registrado actividades en `actividades_investigacion_pasante`. Ahora retorna los **5 estudiantes** reales vinculados a investigación.
+- **Desglose de Indicadores MCER en `/pine-dashboard`:**
+  - **Diagnóstico MCER (Pre-Test) — Semestre Actual:** Muestra los beneficiarios evaluados con el test inicial sobre el total de beneficiarios inscritos en talleres (`evaluacionesIniciales / totalInscritos` -> `49 / 49`, 100% de cobertura diagnóstica).
+  - **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años):** Muestra el avance respecto a la meta de 100 participantes evaluados al cierre de sus ciclos (`evaluacionesFinales / 100` -> `0 / 100`).
+- **Nuevas Métricas Incorporadas:**
+  - **Beneficiarios Inscritos & Atendidos:** Muestra los beneficiarios asignados a talleres sobre los registrados (`totalInscritos / totalBeneficiarios` -> `49 / 50`).
+  - **Horas Acreditadas de Vinculación y Práctica:** Suma acumulada de horas de pasantes en clases (`horas_asistencia_instructor`), podcasts (`horas_podcast_pasante`) e investigación (`actividades_investigacion_pasante`).
+  - **Espacios de Enseñanza Activos:** Conteo total de aulas/clubes registrados en el proyecto.
+- **Mejora en Analítica de Supervisores:** `/api/vinculacion/supervisores/indicadores` y la vista `/vinculacion/supervisar/indicadores` incluyeron el campo `email` y `CI` del pasante para permitir filtrados completos.
 
 ---
 

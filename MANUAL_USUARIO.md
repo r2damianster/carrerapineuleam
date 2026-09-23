@@ -101,7 +101,15 @@ Tarjeta **"Gestión de Carrera"**, visible a cualquier profesor sin importar su 
 
 ## 📊 Perfil: Indicadores (módulo `admin`)
 
-Solo para quien tiene el módulo `admin` (hoy: Arturo, Jhonny, German, Verónica). Tarjeta **"Indicadores"** → `/pine-dashboard`, agrupado por área (hoy solo Vinculación): mejora de nivel MCER, satisfacción promedio de encuestas, audiencia de difusión, investigadores vinculados — en tiempo real desde la base de datos.
+Solo para quien tiene el módulo `admin` (hoy: Arturo, Jhonny, German, Verónica). Tarjeta **"Indicadores"** → `/pine-dashboard`, agrupado por áreas (Vinculación e Investigación):
+- **Diagnóstico MCER (Pre-Test) — Semestre Actual:** Beneficiarios evaluados en test inicial respecto al total de inscritos en talleres (cobertura diagnóstica en tiempo real).
+- **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años):** Avance de los participantes que culminan su evaluación final al cierre de ciclo respecto a la meta de 100 evaluados.
+- **Beneficiarios Inscritos & Atendidos:** Cantidad de beneficiarios asignados a talleres sobre el total de registrados en la plataforma.
+- **Horas Acreditadas de Vinculación y Práctica:** Suma de horas acumuladas de pasantes en docencia, podcasts e investigación.
+- **Satisfacción Promedio:** Promedio sobre 5.0 obtenido en encuestas de satisfacción.
+- **Audiencia de Difusión:** Alcance semestral acumulado en eventos y podcasts.
+- **Investigadores Vinculados:** Estudiantes de la carrera vinculados a procesos de investigación (con módulo asignado o actividades reportadas).
+- **Contribuciones Académicas:** Desglose por tipo de publicaciones (artículos regionales, alto impacto, libros, capítulos, memorias y propiedad intelectual).
 
 ---
 

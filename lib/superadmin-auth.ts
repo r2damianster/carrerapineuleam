@@ -17,28 +17,25 @@ export const SUPERADMIN_EMAILS = ['arturo.rodriguez@uleam.edu.ec'];
 export async function requireSuperadmin(): Promise<AppSession | null> {
   const usuario = await getAppSessionFromCookies();
   if (!usuario) return null;
-  if (!SUPERADMIN_EMAILS.includes(usuario.email)) return null;
-  if (!usuario.modulos_acceso.includes('superadmin')) return null;
+  const effectiveEmail = usuario.impersonatedBy?.email || usuario.email;
+  if (!SUPERADMIN_EMAILS.includes(effectiveEmail)) return null;
+  if (!usuario.modulos_acceso.includes('superadmin') && !usuario.impersonatedBy) return null;
   return usuario;
 }
 
 export async function logSuperadminAction(params: {
   actor: AppSession;
-  tipo_accion: 'sql' | 'crud_insert' | 'crud_update' | 'crud_delete';
+  tipo_accion: 'sql' | 'crud_insert' | 'crud_update' | 'crud_delete' | 'impersonate' | 'impersonate_revert';
   tabla_afectada?: string;
   detalle: string;
   resultado?: string;
 }): Promise<void> {
   const { actor, tipo_accion, tabla_afectada, detalle, resultado } = params;
-  // Instanciado dentro de la función (no a nivel de módulo): un neon() a
-  // nivel de módulo se ejecuta apenas Next importa este archivo — incluido
-  // durante "Collecting page data" en el build — y si DATABASE_URL no es
-  // válido en ese entorno (ej. Preview de Vercel, distinto de Production)
-  // tumba el build completo, no solo esta función. Mismo patrón que el
-  // resto del repo (neon() siempre dentro del handler que lo usa).
   const sql = neon(process.env.DATABASE_URL as string);
+  const actorId = Number(actor.impersonatedBy?.id || actor.id);
+  const actorEmail = actor.impersonatedBy?.email || actor.email;
   await sql`
     INSERT INTO superadmin_audit_log (actor_id, actor_email, tipo_accion, tabla_afectada, detalle, resultado)
-    VALUES (${Number(actor.id)}, ${actor.email}, ${tipo_accion}, ${tabla_afectada ?? null}, ${detalle}, ${resultado ?? null})
+    VALUES (${actorId}, ${actorEmail}, ${tipo_accion}, ${tabla_afectada ?? null}, ${detalle}, ${resultado ?? null})
   `;
 }
