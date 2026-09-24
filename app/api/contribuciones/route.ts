@@ -75,7 +75,7 @@ const baseSchema = z.object({
 
 export async function GET() {
   const usuario = await getAppSessionFromCookies();
-  if (!usuario || !usuario.modulos_acceso.includes('admin')) {
+  if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const contributions = await prisma.contribution.findMany({

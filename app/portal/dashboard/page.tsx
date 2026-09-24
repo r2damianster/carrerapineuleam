@@ -73,12 +73,8 @@ export default async function PortalDashboard() {
                   <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
                   <Link href="/contribuciones/new" className="text-indigo-600 hover:underline">» Registrar Contribución (artículo, libro, ponencia…)</Link>
                   <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento o Podcast</Link>
-                  {modulos_acceso.includes('admin') && (
-                    <>
-                      <Link href="/contribuciones" className="text-indigo-600 hover:underline">» Ver Contribuciones Registradas</Link>
-                      <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE (metas e indicadores)</Link>
-                    </>
-                  )}
+                  <Link href="/contribuciones" className="text-indigo-600 hover:underline">» Ver Contribuciones Registradas</Link>
+                  <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE (metas e indicadores)</Link>
                 </div>
               </div>
             )}
@@ -96,7 +92,9 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/registrar-evaluar" className="text-blue-600 hover:underline">» Registrar y evaluar beneficiario</Link>
                   <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Asistencia</Link>
                   <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline">» Evaluación final del beneficiario</Link>
-                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast o evento</Link>
+                  {rol === 'estudiante' && (
+                    <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast o evento</Link>
+                  )}
                 </div>
               </div>
             )}

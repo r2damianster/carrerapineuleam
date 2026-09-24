@@ -125,9 +125,9 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
-    // Listado de contribuciones: solo admin. El wizard de registro
-    // (/contribuciones/new/*) queda abierto a cualquier docente autenticado.
-    if (pathname === '/contribuciones' && !session.modulos_acceso.includes('admin')) {
+    // Listado y wizard de contribuciones: cualquier docente autenticado.
+    // Borrar sigue siendo solo admin (DELETE en app/api/contribuciones).
+    if (pathname === '/contribuciones' && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
     if (pathname.startsWith('/contribuciones/new') && !['profesor', 'admin'].includes(session.rol)) {

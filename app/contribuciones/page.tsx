@@ -113,7 +113,7 @@ export default function ContributionsPage() {
           &larr; Volver al Portal PINE
         </Link>
       </div>
-      <h1 className="text-2xl font-bold mb-4">Contribuciones (solo admin)</h1>
+      <h1 className="text-2xl font-bold mb-4">Contribuciones registradas</h1>
       {contributions.length === 0 ? (
         <p>No hay contribuciones registradas.</p>
       ) : (
