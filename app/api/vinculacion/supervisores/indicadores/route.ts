@@ -56,6 +56,7 @@ export async function GET() {
           usuario_id, 
           COALESCE(SUM(horas_total), 0)::float AS horas_podcast
         FROM horas_podcast_pasante
+        WHERE estado_aprobacion = 'aprobado'
         GROUP BY usuario_id
       ) pod ON pod.usuario_id = u.id
       LEFT JOIN (
@@ -63,6 +64,7 @@ export async function GET() {
           usuario_id, 
           COALESCE(SUM(horas), 0)::float AS horas_investigacion
         FROM actividades_investigacion_pasante
+        WHERE estado_aprobacion = 'aprobado'
         GROUP BY usuario_id
       ) inv ON inv.usuario_id = u.id
       LEFT JOIN (

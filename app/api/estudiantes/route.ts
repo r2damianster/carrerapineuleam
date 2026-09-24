@@ -23,8 +23,7 @@ export async function GET() {
              (
                SELECT COALESCE(SUM(h.horas_total), 0)
                FROM horas_podcast_pasante h
-               JOIN videos v ON v.id = h.video_id
-               WHERE h.usuario_id = u.id AND v.aprobado_sitio = true
+               WHERE h.usuario_id = u.id AND h.estado_aprobacion = 'aprobado'
              ) AS horas_podcast_acreditadas,
              (
                SELECT COALESCE(SUM(ha.horas), 0)

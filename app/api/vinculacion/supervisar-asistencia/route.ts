@@ -2,17 +2,16 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { esSuperAdminOLider } from '@/lib/permisos-supervision';
+import { puedeSupervisarVinculacion } from '@/lib/modulos';
+import { resolverSupervisorFiltro, listarSupervisores, listarPeriodos } from '@/lib/alcanceSupervision';
 
-// Solo profesor/admin de vinculación supervisan — el estudiante-instructor
+// Solo supervisores/líder de vinculación — el estudiante-instructor
 // nunca ve esta pantalla, solo registra (ver /vinculacion/asistencia).
-function puedeSupervisar(usuario: { rol: string; modulos_acceso: string[] }) {
-  return ['profesor', 'admin'].includes(usuario.rol) && usuario.modulos_acceso.includes('vinculacion');
-}
 
 export async function GET(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !puedeSupervisar(usuario)) {
+    if (!usuario || !puedeSupervisarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -24,6 +23,8 @@ export async function GET(request: Request) {
     const espacioId = searchParams.get('espacio_id');
     const instructorId = searchParams.get('instructor_id');
     const orden = searchParams.get('orden') || 'fecha';
+    const periodoId = searchParams.get('periodo_id');
+    const supervisorFiltro = resolverSupervisorFiltro(usuario, searchParams.get('supervisor'));
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
 
@@ -51,7 +52,10 @@ export async function GET(request: Request) {
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por
       WHERE e.area = 'vinculacion'
-        AND (${esLider}::boolean IS TRUE OR e.profesor_id = ${usuarioIdNum})
+        AND (${supervisorFiltro}::int IS NULL OR e.profesor_id = ${supervisorFiltro}::int)
+        AND (${periodoId}::text IS NULL OR ae.fecha BETWEEN
+             (SELECT fecha_inicio FROM ciclos_academicos WHERE id = ${periodoId}::int)
+             AND (SELECT fecha_fin FROM ciclos_academicos WHERE id = ${periodoId}::int))
         AND (${estado}::text IS NULL OR ${estado} = 'todos' OR ae.estado_aprobacion = ${estado})
         AND (${espacioId}::text IS NULL OR ae.espacio_id = ${espacioId}::int)
         AND (
@@ -90,7 +94,10 @@ export async function GET(request: Request) {
           ORDER BY u.nombres
         `;
 
-    return NextResponse.json({ success: true, data: registros, espacios, instructores, esLider });
+    const supervisores = esLider ? await listarSupervisores(sql) : [];
+    const periodos = await listarPeriodos(sql);
+
+    return NextResponse.json({ success: true, data: registros, espacios, instructores, esLider, supervisores, periodos });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

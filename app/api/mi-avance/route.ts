@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { calcularHorasPodcast } from '@/lib/horasPodcast';
 
 // Resumen de avance/cumplimiento de un pasante (rol estudiante) — pensado
 // para que vea de un vistazo, aunque todavía no haya registrado nada, en
@@ -55,33 +54,18 @@ export async function GET() {
       FROM actividades_difusion WHERE registrador_id = ${usuarioId}
     `;
 
-    // Horas ya confirmadas (Sesión 40): solo existen filas en
-    // horas_podcast_pasante para videos ya aprobados — se insertan recién al
-    // aprobar (app/api/videos/[id]/route.ts), no al subir.
+    // Horas de podcast (Sesión 50): una fila por participante desde que se propone el
+    // episodio; cuentan solo cuando el supervisor las aprueba (estado_aprobacion).
     const [horasPodcastRow] = await sql`
-      SELECT COALESCE(SUM(h.horas_total), 0)::float AS total, COUNT(*)::int AS episodios
-      FROM horas_podcast_pasante h
-      JOIN videos v ON v.id = h.video_id
-      WHERE h.usuario_id = ${usuarioId} AND v.aprobado_sitio = true
+      SELECT COALESCE(SUM(horas_total) FILTER (WHERE estado_aprobacion = 'aprobado'), 0)::float AS total,
+             COUNT(*) FILTER (WHERE estado_aprobacion = 'aprobado')::int AS episodios,
+             COALESCE(SUM(horas_total) FILTER (WHERE estado_aprobacion = 'pendiente'), 0)::float AS pendientes,
+             COUNT(*) FILTER (WHERE estado_aprobacion = 'pendiente')::int AS episodios_pendientes
+      FROM horas_podcast_pasante
+      WHERE usuario_id = ${usuarioId}
     `;
-
-    // Horas pendientes: episodios donde el pasante ya quedó marcado como
-    // participante pero el profesor todavía no aprueba el video en
-    // /admin/videos — se calculan al vuelo (calcularHorasPodcast) porque
-    // todavía no tienen fila en horas_podcast_pasante.
-    const videosPendientes = await sql`
-      SELECT id, invitados_internos, invitados_externos, audiencia_alcanzada
-      FROM videos
-      WHERE aprobado_sitio = false AND ${usuarioId} = ANY(participantes_estudiantes)
-    `;
-    const horasPodcastPendientes = videosPendientes.reduce((total: number, v: any) => {
-      const desglose = calcularHorasPodcast({
-        invitadosInternosCount: v.invitados_internos?.length || 0,
-        invitadosExternosCount: v.invitados_externos?.length || 0,
-        audienciaAlcanzada: v.audiencia_alcanzada || 0,
-      });
-      return total + desglose.horasTotal;
-    }, 0);
+    const horasPodcastPendientes = horasPodcastRow.pendientes;
+    const videosPendientes = { length: horasPodcastRow.episodios_pendientes };
 
     const [horasAsistenciaRow] = await sql`
       SELECT COALESCE(SUM(ha.horas), 0)::float AS total, COUNT(*)::int AS sesiones
@@ -109,7 +93,7 @@ export async function GET() {
 
     const tieneInvestigacion = usuario.modulos_acceso.includes('investigacion');
     const [horasInvestigacionRow] = tieneInvestigacion
-      ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId}`
+      ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId} AND estado_aprobacion = 'aprobado'`
       : [{ total: 0, reportes: 0 }];
 
     // Detalle de beneficiarios e impacto pedagógico en el espacio del pasante
@@ -169,7 +153,7 @@ export async function GET() {
       evaluacionesMcer: mcerRow.total,
       encuestasEnTuEspacio: encuestasRow.total,
       difusion: difusionRow,
-      horasPodcast: { ...horasPodcastRow, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
+      horasPodcast: { total: horasPodcastRow.total, episodios: horasPodcastRow.episodios, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
       horasAsistencia: { ...horasAsistenciaRow, sesionesPendientes: asistenciasPendientesRow.total },
       asistenciasRechazadas,
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,

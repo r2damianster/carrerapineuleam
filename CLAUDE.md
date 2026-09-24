@@ -211,7 +211,7 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 
 ## Cambios Recientes (Sesión 50 — 2026-09-24)
 
-- **Módulo de notificaciones del Portal** — bloque "🔔 Pendientes" en `/portal/dashboard` + `GET /api/notificaciones`. Avisos **derivados** (conteos en vivo sobre Neon, sin tabla ni migración): supervisor → asistencias por aprobar; `contenido_sitio` → videos y difusión por aprobar. Registro de reglas en `lib/notificaciones.ts`, UI en `components/PendientesPortal.tsx`. **Documentación y checklist para futuras funciones: `NOTIFICACIONES.md` (regla 12 de "Instrucciones para el Asistente IA").** Pendiente: avisos al pasante (requieren tabla "leído"), campana en la barra superior.
+- **Módulo de notificaciones del Portal** — bloque "🔔 Pendientes" en `/portal/dashboard` + `GET /api/notificaciones`. Avisos **derivados** (conteos en vivo sobre Neon, sin tabla ni migración): supervisor → asistencias por aprobar; `contenido_sitio` → videos y difusión por aprobar. Registro de reglas en `lib/notificaciones.ts`, UI en `components/PendientesPortal.tsx`. **Documentación y checklist para futuras funciones: `NOTIFICACIONES.md` (regla 12 de "Instrucciones para el Asistente IA").** Incluye aviso al pasante por asistencia rechazada (ventana de 14 días, panel con motivo en `/portal/mi-avance`). Descartado a propósito: campana en la barra, avisos informativos con tabla "leído", correo/push (ver `NOTIFICACIONES.md` → Decisiones).
 
 ## Cambios Recientes (Sesión 49 — 2026-09-24)
 

@@ -39,6 +39,7 @@ interface Avance {
   horasPodcast: { total: number; episodios: number; pendientes: number; episodiosPendientes: number };
   horasAsistencia: { total: number; sesiones: number; sesionesPendientes: number };
   horasInvestigacion: { total: number; reportes: number } | null;
+  asistenciasRechazadas?: { id: number; fecha: string; espacio_nombre: string; motivo_rechazo: string | null }[];
   beneficiariosDetalle?: BeneficiarioDetalle[];
   resenas?: Resena[];
   metaHoras?: number;
@@ -107,6 +108,27 @@ export default function MiAvancePage() {
 
           {avance && (
             <div className="space-y-8">
+
+              {/* Asistencias rechazadas por el supervisor (destino del aviso 'asistencias-rechazadas') */}
+              {avance.asistenciasRechazadas && avance.asistenciasRechazadas.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                  <h2 className="text-sm font-bold text-red-800 mb-2">
+                    Asistencias rechazadas por tu supervisor ({avance.asistenciasRechazadas.length})
+                  </h2>
+                  <ul className="space-y-2">
+                    {avance.asistenciasRechazadas.map((rechazo) => (
+                      <li key={rechazo.id} className="text-sm text-red-900">
+                        <span className="font-semibold">{rechazo.espacio_nombre}</span>
+                        {' · '}{new Date(rechazo.fecha).toLocaleDateString('es-EC', { timeZone: 'UTC' })}
+                        {' — '}{rechazo.motivo_rechazo || 'Sin motivo indicado'}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/vinculacion/asistencia" className="inline-block mt-3 text-xs font-semibold text-red-700 hover:underline">
+                    Volver a registrar la asistencia &rarr;
+                  </Link>
+                </div>
+              )}
 
               {/* Target Horaje Progress Banner */}
               <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-6 rounded-2xl shadow-lg border border-slate-800">

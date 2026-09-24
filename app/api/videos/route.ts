@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     // contenido_sitio directo) — si queda pendiente, las horas se calculan
     // recién cuando el profesor lo aprueba en /admin/videos (app/api/videos/[id]/route.ts),
     // no al subirlo.
-    if (esAdminContenido && participantesIds.length > 0) {
+    if (participantesIds.length > 0) {
       await registrarHorasPodcast(sql, {
         videoId: id,
         participantesEstudiantes: participantesIds,

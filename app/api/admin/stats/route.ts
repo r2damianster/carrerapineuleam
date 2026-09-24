@@ -52,8 +52,8 @@ export async function GET() {
     const [horasAcreditadas] = await sql`
       SELECT (
         COALESCE((SELECT SUM(horas) FROM horas_asistencia_instructor), 0) +
-        COALESCE((SELECT SUM(horas_total) FROM horas_podcast_pasante), 0) +
-        COALESCE((SELECT SUM(horas) FROM actividades_investigacion_pasante), 0)
+        COALESCE((SELECT SUM(horas_total) FROM horas_podcast_pasante WHERE estado_aprobacion = 'aprobado'), 0) +
+        COALESCE((SELECT SUM(horas) FROM actividades_investigacion_pasante WHERE estado_aprobacion = 'aprobado'), 0)
       )::float as total_horas
     `;
 

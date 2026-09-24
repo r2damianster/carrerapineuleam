@@ -19,6 +19,7 @@ Bloque **"🔔 Pendientes"** al inicio de `/portal/dashboard` + endpoint `GET /a
 | `asistencias-por-aprobar` | profesor/admin con `vinculacion`. Supervisor regular: solo espacios con `profesor_id` = él; superadmin/líderes (`esSuperAdminOLider`): todos | `asistencia_espacio.estado_aprobacion='pendiente'` (área vinculación) | `/vinculacion/supervisar` |
 | `videos-por-aprobar` | `modulos_acceso: contenido_sitio` | `videos.aprobado_sitio=false` | `/admin/videos` |
 | `difusion-por-aprobar` | `modulos_acceso: contenido_sitio` | `actividades_difusion.aprobado_sitio=false` (incluye `origen='externo_temporal'`) | `/admin/contenido` |
+| `asistencias-rechazadas` | `rol: estudiante` (pasante) | Sus `asistencia_espacio` con `estado_aprobacion='rechazado'` en los últimos 14 días (sin tabla de "leído": la ventana de tiempo apaga el aviso) | `/portal/mi-avance` (panel rojo con espacio, fecha y motivo, vía `GET /api/mi-avance`) |
 
 ## ✅ Checklist obligatoria al crear una función nueva
 Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revisar, completar, responder, corregir un rechazo), entonces:
@@ -37,8 +38,7 @@ Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revis
 - `neon()` siempre **dentro** de la función (ya lo hace `obtenerNotificaciones`), con `cache: 'no-store'`.
 - Si una regla necesita guardar estado propio (ej. "marcar como leído"), es una tabla nueva: migración **a mano**, nunca `prisma db push`, y ampliar cualquier CHECK en el mismo cambio.
 
-## Ideas pendientes (no implementadas)
-- Avisos al pasante: asistencia rechazada (con motivo), horas nuevas acreditadas. Necesitan "marcar como leído" (tabla `notificaciones_leidas`) porque no son estados pendientes permanentes.
-- Campana con badge en la barra superior (consumiendo `GET /api/notificaciones`).
-- Avisos de bajo valor: videos sin link de YouTube, enlaces temporales por expirar.
-- Correo/push al llegar algo nuevo (cron). Solo si hay uso real que lo justifique.
+## Decisiones (Sesión 50)
+- **Hecho:** aviso de asistencia rechazada al pasante. Es accionable (debe re-registrar) y se resuelve con ventana de 14 días, sin tabla nueva.
+- **Descartado a propósito:** campana en la barra superior (el dashboard es la puerta de entrada al portal; el endpoint `GET /api/notificaciones` queda listo si se cambia de idea); aviso de "horas acreditadas" (informativo, no exige acción, requeriría tabla de "leído"); videos sin link de YouTube y enlaces por expirar (bajo valor); correo/push por cron (costo y ruido sin uso real que lo justifique).
+- **Reabrir si:** aparece un aviso informativo que sí valga la pena → ahí sí crear `notificaciones_leidas` (migración a mano).

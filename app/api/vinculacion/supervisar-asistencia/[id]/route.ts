@@ -3,15 +3,13 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { registrarHorasAsistencia } from '@/lib/horasAsistencia';
 import { esSuperAdminOLider } from '@/lib/permisos-supervision';
+import { puedeSupervisarVinculacion } from '@/lib/modulos';
 
-function puedeSupervisar(usuario: { rol: string; modulos_acceso: string[] }) {
-  return ['profesor', 'admin'].includes(usuario.rol) && usuario.modulos_acceso.includes('vinculacion');
-}
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !puedeSupervisar(usuario)) {
+    if (!usuario || !puedeSupervisarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

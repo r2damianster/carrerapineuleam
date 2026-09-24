@@ -36,14 +36,13 @@ export default async function PortalDashboard() {
     const [fila] = await sql`
       SELECT COALESCE(SUM(h.horas_total), 0) AS total
       FROM horas_podcast_pasante h
-      JOIN videos v ON v.id = h.video_id
-      WHERE h.usuario_id = ${usuarioId} AND v.aprobado_sitio = true
+      WHERE h.usuario_id = ${usuarioId} AND h.estado_aprobacion = 'aprobado'
     `;
     horasPodcastAcreditadas = Number(fila?.total || 0);
 
     const [pendientesFila] = await sql`
-      SELECT COUNT(*) AS total FROM videos
-      WHERE aprobado_sitio = false AND ${usuarioId} = ANY(participantes_estudiantes)
+      SELECT COUNT(*) AS total FROM horas_podcast_pasante
+      WHERE usuario_id = ${usuarioId} AND estado_aprobacion = 'pendiente'
     `;
     episodiosPendientes = Number(pendientesFila?.total || 0);
 

@@ -1,3 +1,5 @@
+import { registrarHorasPodcast } from '@/lib/horasPodcast';
+
 // Inserta una fila en `videos` a partir de un video ya subido a YouTube (vía
 // iniciarSesionReanudable, ver lib/youtube.ts) — nace con aprobado_sitio=false,
 // pendiente de aprobación en /admin/videos. Compartido entre POST /api/videos
@@ -67,6 +69,18 @@ export async function registrarVideoPropuesto(
        ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []}, ${audienciaAlcanzada || 0})
     RETURNING *
   `;
+
+  // Sesión 50: las horas nacen 'pendiente' al proponer el episodio y las aprueba el
+  // supervisor del pasante (Supervisar actividades y horas), no la publicación en la web.
+  if (participantesEstudiantes && participantesEstudiantes.length > 0) {
+    await registrarHorasPodcast(sql, {
+      videoId: id,
+      participantesEstudiantes,
+      invitadosInternos: invitadosInternos || [],
+      invitadosExternos: invitadosExternos || [],
+      audienciaAlcanzada: audienciaAlcanzada || 0,
+    });
+  }
 
   return nuevo;
 }
