@@ -24,14 +24,20 @@ Tras entrar llegas a `/portal/dashboard`, donde ves solo las tarjetas que te cor
 
 ## 👨‍🏫 Perfil: Profesor de Vinculación (hoy: Arturo, Cynthia)
 
-Dos tarjetas separadas en el Portal:
+Tres tarjetas separadas en el Portal:
 
 ### Registros de Vinculación (tareas del día a día)
+**Visible solo para pasantes, superadmin y el líder de Vinculación** (desde Sesión 49). Los demás profesores supervisores no la ven: trabajan desde su tarjeta "Supervisión de Vinculación".
+
 El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abajo) en **cualquier** espacio de vinculación, no solo en los que él mismo creó — es respaldo, no reemplazo del instructor.
 
-### Gestión de Vinculación (solo profesor/admin)
+### Supervisión de Vinculación (profesores supervisores)
 
-**» Supervisar Asistencia & Indicadores** (`/vinculacion/supervisar` e `/vinculacion/supervisar/indicadores`) — aprueba/rechaza registros de asistencia recibidos con foto evidencia. Incluye el botón **"📊 Ver Indicadores & Analítica"** para acceder al nuevo panel de supervisión por pasante, matriz de ganancia MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
+Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y líderes ven todo.
+
+**» Supervisar Asistencia** y **» Panel de Supervisión (Indicadores)** (`/vinculacion/supervisar` e `/vinculacion/supervisar/indicadores`) — aprueba/rechaza registros de asistencia recibidos con foto evidencia. El panel de indicadores (también accesible desde el botón **"📊 Ver Indicadores & Analítica"**) muestra el panel de supervisión por pasante, matriz de ganancia MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
+
+### Gestión de Vinculación (solo profesor/admin)
 
 **» Administrar Espacios** (`/vinculacion/espacios`) — crea/lista espacios (clubes, aulas, cohortes). Un espacio es, por ejemplo, "Club de Inglés A", asociado a un ciclo/semestre. Al entrar a un espacio (clic en su nombre) puedes asignar qué pasantes son instructores de ese espacio — la única función que queda ahí; asistencia/beneficiarios/MCER/encuesta se manejan aparte, ver abajo.
 

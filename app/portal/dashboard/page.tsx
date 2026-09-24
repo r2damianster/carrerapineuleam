@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
+import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -75,11 +76,11 @@ export default async function PortalDashboard() {
             )}
 
 
-            {/* Vinculación — Registros: tareas diarias, estudiante-instructor o profesor.
-                El pasante (rol estudiante) nunca tiene modulos_acceso:vinculacion (esa
-                lista es solo para profesores) — su acceso real es por espacio_instructores
-                (lib/permisos-espacio.ts), así que la tarjeta también debe salir por rol. */}
-            {(modulos_acceso.includes('vinculacion') || rol === 'estudiante') && (
+            {/* Vinculación — Registros: tareas diarias. Solo pasantes (rol estudiante),
+                superadmin y líder de Vinculación (lib/permisos-supervision.ts). El pasante
+                nunca tiene modulos_acceso:vinculacion — su acceso real es por
+                espacio_instructores (lib/permisos-espacio.ts). */}
+            {puedeVerRegistrosVinculacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Registros de Vinculación</h3>
                 <p className="text-gray-600 mb-4 text-sm">Registro+Pre-Test, asistencia, evaluación final y difusión de tu espacio.</p>
@@ -127,12 +128,24 @@ export default async function PortalDashboard() {
             {modulos_acceso.includes('vinculacion') && esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Crear espacios, asignar instructores y supervisar el programa.</p>
+                <p className="text-gray-600 mb-4 text-sm">Crear espacios y asignar instructores y pasantes.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
-                  <Link href="/vinculacion/supervisar" className="text-purple-600 hover:underline">» Supervisar Asistencia</Link>
                   <Link href="/vinculacion/investigacion-actividades" className="text-purple-600 hover:underline">» Ver Actividades de Investigación</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Vinculación — Supervisión: profesores supervisores (Sesión 49). Cada uno ve
+                solo sus espacios; superadmin/líderes ven todo (esSuperAdminOLider). */}
+            {modulos_acceso.includes('vinculacion') && esDocente && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Supervisión de Vinculación</h3>
+                <p className="text-gray-600 mb-4 text-sm">Aprueba asistencias de tus pasantes y revisa sus indicadores.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar Asistencia</Link>
+                  <Link href="/vinculacion/supervisar/indicadores" className="text-indigo-600 hover:underline">» Panel de Supervisión (Indicadores)</Link>
                 </div>
               </div>
             )}

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.12.4] - 2026-09-24 (Sesión 49)
+
+### ✅ Changed
+- Dashboard: "Registros de Vinculación" solo para pasantes, superadmin y líder de Vinculación; nueva tarjeta "Supervisión de Vinculación" (Supervisar Asistencia + Panel de Indicadores).
+
+### 🐛 Fixed
+- CHECK de `superadmin_audit_log.tipo_accion` ampliado (`impersonate`/`impersonate_revert`): "Ver como" fallaba en producción.
+
 ## [0.12.3] - 2026-09-24 (Auditoría)
 
 ### 🔒 Security

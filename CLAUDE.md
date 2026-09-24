@@ -19,7 +19,7 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.12.3
+**Versión actual:** 0.12.4
 **Última sesión:** 2026-09-23 (Sesión 48 — Descripción y redacción con IA en formulario de difusión, categoría Maestría/Posgrado a nivel global y actualización en DB del rol dual Docente/Coordinador del Sr. Gabriel Bazurto)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
@@ -208,6 +208,16 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - ✅ **CORREGIDO 2026-09-24** (orden 48→47→46→44→45→43→42, entradas 44/46/47, `package.json` 0.12.2). Original: documentación desordenada: secciones "Cambios Recientes" fuera de orden (48, 43, 45, 42…), no existen secciones propias de Sesiones 44, 46 (solo en CHANGELOG/Superadmin), 47; pie de CLAUDE.md decía Sesión 43/v0.10.16 (corregido); `package.json` sigue en `0.1.0`; README decía 0.12.1 (corregido).
 - ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
+
+## Cambios Recientes (Sesión 49 — 2026-09-24)
+
+- **`/portal/dashboard` — tarjetas de Vinculación reorganizadas** (a pedido del usuario):
+  - **"Registros de Vinculación"** ahora solo la ven los **pasantes** (`rol=estudiante`), el **superadmin** y el **líder de Vinculación** (`LIDER_VINCULACION_EMAIL` = Cynthia) — `lib/permisos-supervision.ts:puedeVerRegistrosVinculacion()`. Antes la veía cualquier profesor con `modulos_acceso: vinculacion`. **Solo oculta la tarjeta**: las rutas `/vinculacion/registrar-evaluar|asistencia|...` y `puedeOperarEspacio` no cambiaron (un profesor con el módulo aún puede entrar por URL como respaldo).
+  - **Nueva tarjeta "Supervisión de Vinculación"** (profesores con `vinculacion`): "Supervisar Asistencia" (movida desde "Gestión de Vinculación") + "Panel de Supervisión (Indicadores)" (`/vinculacion/supervisar/indicadores`, antes solo accesible desde dentro de Supervisar). Cada supervisor ve solo sus espacios; superadmin/líderes ven todo.
+  - "Gestión de Vinculación" queda con: Administrar Espacios, Administrar Pasantes, Ver Actividades de Investigación.
+- Ver también `### Bug de "Ver como"` arriba (CHECK de `superadmin_audit_log` ampliado en Neon).
+
+---
 
 ## Cambios Recientes (Sesión 48 — 2026-09-23)
 
