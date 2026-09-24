@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
     const registros = tipo === 'podcast'
       ? await sql`
-          SELECT h.id, h.usuario_id, u.nombres, u.apellidos, v.title AS titulo, v.youtube_url,
+          SELECT h.id, h.usuario_id, h.video_id, u.nombres, u.apellidos, v.title AS titulo, v.youtube_url,
                  h.tipo_podcast, h.audiencia_alcanzada, h.horas_total::float AS horas,
                  h.estado_aprobacion, h.motivo_rechazo, h.creado_en, h.creado_en::date AS fecha
           FROM horas_podcast_pasante h

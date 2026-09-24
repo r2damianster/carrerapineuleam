@@ -112,6 +112,7 @@ export async function registrarHorasPodcast(
         horas_bono_panelistas = EXCLUDED.horas_bono_panelistas,
         horas_bono_audiencia = EXCLUDED.horas_bono_audiencia,
         horas_total = EXCLUDED.horas_total
+      WHERE horas_podcast_pasante.estado_aprobacion <> 'aprobado'
     `;
   }
 }

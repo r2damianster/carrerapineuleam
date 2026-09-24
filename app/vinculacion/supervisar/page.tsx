@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
+import EditorEpisodioPodcast from '@/components/EditorEpisodioPodcast';
 
 interface Instructor {
   id: number;
@@ -40,6 +41,7 @@ interface RegistroHoras {
   motivo_rechazo: string | null;
   titulo?: string;
   youtube_url?: string | null;
+  video_id?: string;
   tipo_podcast?: string;
   descripcion?: string;
   espacio_nombre?: string | null;
@@ -70,6 +72,8 @@ export default function SupervisarAsistenciaPage() {
   const [orden, setOrden] = useState('fecha');
 
   const [pestana, setPestana] = useState<Pestana>('asistencia');
+  // Editor de episodios de podcast: undefined = cerrado, null = elegir un video, string = editar ese video.
+  const [episodioEnEdicion, setEpisodioEnEdicion] = useState<string | null | undefined>(undefined);
   const [periodoId, setPeriodoId] = useState<string | null>(null); // null = aún sin resolver; '' = todos
   const [supervisor, setSupervisor] = useState('todos');
   const [periodos, setPeriodos] = useState<{ id: number; nombre: string; fecha_inicio: string; fecha_fin: string }[]>([]);
@@ -309,6 +313,14 @@ export default function SupervisarAsistenciaPage() {
         </div>
         )}
 
+        {pestana === 'podcast' && (
+          <div className="mb-3">
+            <button onClick={() => setEpisodioEnEdicion(null)} className="px-4 py-2 text-sm font-semibold rounded-lg bg-uleam-blue text-white hover:opacity-90">
+              + Asignar horas de un episodio ya subido
+            </button>
+          </div>
+        )}
+
         {pestana !== 'asistencia' && (
           <div className="mb-4 flex flex-wrap gap-4 text-sm">
             <span className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg font-semibold">Aprobadas: {Math.round(totalHorasAprobadas * 100) / 100} h</span>
@@ -349,6 +361,9 @@ export default function SupervisarAsistenciaPage() {
                   )}
                 </div>
                 <div className="flex sm:flex-col gap-2 shrink-0">
+                  {pestana === 'podcast' && r.video_id && (
+                    <button onClick={() => setEpisodioEnEdicion(r.video_id!)} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100">Editar episodio</button>
+                  )}
                   {r.estado_aprobacion !== 'aprobado' && (
                     <button onClick={() => decidirHoras(r, 'aprobar')} disabled={procesandoId === r.id} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">Aprobar</button>
                   )}
@@ -359,6 +374,14 @@ export default function SupervisarAsistenciaPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {episodioEnEdicion !== undefined && (
+          <EditorEpisodioPodcast
+            videoId={episodioEnEdicion}
+            onCerrar={() => setEpisodioEnEdicion(undefined)}
+            onGuardado={() => { setEpisodioEnEdicion(undefined); cargar(); }}
+          />
         )}
 
         {pestana === 'asistencia' && (
