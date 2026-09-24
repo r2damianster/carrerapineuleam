@@ -53,3 +53,6 @@ carrera-herramientas/
 # Artefactos de prueba sueltos en la raíz (docx/pdf generados manualmente al probar)
 /*.docx
 /*.pdf
+
+# Scripts de diagnóstico locales contra la Neon (no versionar)
+scratch/

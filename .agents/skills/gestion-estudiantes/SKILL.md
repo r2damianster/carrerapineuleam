@@ -32,7 +32,7 @@ node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar 
 
 **Ejemplos:**
 * Buscar por cédula o número en el correo: `node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar 1314687524`
-* Buscar por correo: `node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar e1314687524@live.uleam.edu.ec`
+* Buscar por correo: `node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar estudiante@live.uleam.edu.ec`
 * Buscar por nombre: `node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar "Barbara Roca"`
 
 ---
@@ -67,7 +67,7 @@ node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs reset-p
 
 **Ejemplo:**
 ```bash
-node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs reset-password e1314687524@live.uleam.edu.ec Pine2026
+node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs reset-password estudiante@live.uleam.edu.ec <NuevaClaveTemporal>
 ```
 
 ---

@@ -15,7 +15,9 @@ const LIDERES_PROYECTO_EMAILS = [
 export function esSuperAdminOLider(usuario: AppSession | null | undefined): boolean {
   if (!usuario) return false;
 
-  const effectiveEmail = (usuario.impersonatedBy?.email || usuario.email || '').toLowerCase();
+  // Email efectivo = el de la sesión activa. Bajo "Ver como" es el del usuario suplantado,
+  // así la vista refleja lo que esa persona realmente vería (no el superadmin original).
+  const effectiveEmail = (usuario.email || '').toLowerCase();
 
   // 1. Rol de administrador en usuarios
   if (usuario.rol === 'admin') return true;

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.12.3] - 2026-09-24 (Auditoría)
+
+### 🔒 Security
+- `scratch/` ya no se versiona; skill `gestion-estudiantes` sin email real ni clave fija.
+- `GET /api/espacios/instructores?profesor_ids=` exige rol profesor/admin.
+- `esSuperAdminOLider` usa la identidad suplantada bajo "Ver como" (antes seguía viendo todo como superadmin).
+
+### 📚 Documentation
+- CLAUDE.md: sección de auditoría y guardrails de despliegue (causa del deploy fallido `012d646`), entradas Sesión 44/46/47, orden corregido; ANTIGRAVITY.md con reglas; `.env.local.example` actualizado (Cloudinary, YouTube, Groq); `package.json`/README en 0.12.3.
+
+---
+
 ## [0.12.2] - 2026-09-23 (Sesión 48)
 
 ### ✅ Added & Improved

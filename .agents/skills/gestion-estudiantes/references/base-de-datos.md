@@ -22,7 +22,7 @@ Almacena todos los usuarios del sistema (estudiantes/pasantes, profesores, benef
 | `id` | SERIAL (int) | Identificador único del usuario |
 | `nombres` | VARCHAR | Nombres del usuario |
 | `apellidos` | VARCHAR | Apellidos del usuario |
-| `email` | VARCHAR | Correo institucional o personal (ej. `e1314687524@live.uleam.edu.ec`) |
+| `email` | VARCHAR | Correo institucional o personal (ej. `estudiante@live.uleam.edu.ec`) |
 | `cedula` | VARCHAR | Número de cédula (puede estar `null` si la cédula está embebida en el email `e<cedula>@...`) |
 | `password_hash` | VARCHAR | Hash bcrypt de la contraseña |
 | `rol` | VARCHAR | Rol del usuario (`estudiante`, `profesor`, `beneficiario`, `admin`) |

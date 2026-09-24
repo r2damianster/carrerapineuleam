@@ -51,3 +51,9 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Nunca crear tablas en Neon fuera de un script en `scripts/`** (commiteado a git) — hay 5 tablas (`avance_investigacion`, `seguimiento_laboral`, `eventos_difusion`, `eventos_estudiantes`, `encuesta_satisfaccion`) creadas así, sin documentar, que el usuario no reconoce.
 - **⚠️ Nunca inventar personas, emails o proyectos.** Pasó dos veces en la Sesión 19: emails adivinados para Cristina/Johana (`seed-roles.js`), y una persona completa fabricada — "Mg. Veronika Vera", con su propio proyecto "Mentoría Lingüística" y página pública — que tuvo que eliminarse porque no existía. Si necesitas el email o el rol de alguien y no está confirmado en el código o en lo que el usuario ya dijo, **pregunta antes de escribirlo** — no lo completes con un dato plausible.
 - **Tu misión actual:** Mantener esta interoperabilidad entre IA y ayudar al usuario a establecer el proceso de desarrollo conjunto.
+
+## ⚠️ Reglas de despliegue (auditoría 2026-09-24)
+- El deploy `012d646` falló en Vercel por un error de sintaxis (claves duplicadas en el estado de `app/vinculacion/difusion/page.tsx`) pusheado **sin build**. **Antes de cualquier push con `.ts/.tsx`: `npx tsc --noEmit` y `npm run build` deben pasar.** Después del push, verifica que el deploy quede `READY`.
+- No versionar `scratch/` (está en `.gitignore`). No poner emails reales ni claves fijas en skills/scripts.
+- Bajo "Ver como" los permisos se evalúan con la identidad suplantada. No ampliar `LIDERES_PROYECTO_EMAILS` ni `modulos_acceso` sin confirmación del usuario.
+- Detalle completo en `CLAUDE.md` → "Auditoría 2026-09-24 y guardrails de despliegue".

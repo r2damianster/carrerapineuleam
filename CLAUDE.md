@@ -19,7 +19,7 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.12.2
+**Versión actual:** 0.12.3
 **Última sesión:** 2026-09-23 (Sesión 48 — Descripción y redacción con IA en formulario de difusión, categoría Maestría/Posgrado a nivel global y actualización en DB del rol dual Docente/Coordinador del Sr. Gabriel Bazurto)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
@@ -196,13 +196,13 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 6. Migraciones de esquema: correr auditoría `information_schema` primero; nunca `prisma db push`/`migrate`.
 
 ### Hallazgos de la auditoría (abiertos salvo que diga lo contrario)
-- 🔴 **`scratch/` (7 scripts) y `.agents/skills/gestion-estudiantes/` están trackeados en git.** El skill trae un email real de estudiante y el password de ejemplo `Pine2026`, más un comando `reset-password` directo contra la Neon de producción. Sugerido: `scratch/` a `.gitignore` y `git rm --cached`; revisar que el skill nunca use una clave fija real.
-- 🟠 `esSuperAdminOLider()` (`lib/permisos-supervision.ts`) usa `impersonatedBy.email`: al usar "Ver como" sobre un profesor normal, el superadmin **sigue viendo todo** en supervisión → la vista impersonada no refleja lo que ese profesor realmente vería. Corregir usando el email efectivo del usuario impersonado.
+- ✅ **CORREGIDO 2026-09-24** (`scratch/` en `.gitignore` y fuera de git; skill sin email real ni clave fija). Original: **`scratch/` (7 scripts) y `.agents/skills/gestion-estudiantes/` estaban trackeados en git.** El skill trae un email real de estudiante y el password de ejemplo `Pine2026`, más un comando `reset-password` directo contra la Neon de producción. Sugerido: `scratch/` a `.gitignore` y `git rm --cached`; revisar que el skill nunca use una clave fija real.
+- ✅ **CORREGIDO 2026-09-24** (usa el email de la sesión activa). Original: `esSuperAdminOLider()` usaba `impersonatedBy.email`: al usar "Ver como" sobre un profesor normal, el superadmin **sigue viendo todo** en supervisión → la vista impersonada no refleja lo que ese profesor realmente vería. Corregir usando el email efectivo del usuario impersonado.
 - 🟠 Lista `LIDERES_PROYECTO_EMAILS` hardcodeada en `lib/permisos-supervision.ts` (Arturo, Jhonny, Cynthia) — dar visión global de supervisión es una decisión de permisos igual que `modulos_acceso`; no ampliarla sin confirmación del usuario. Cambio sin documentar hasta hoy: supervisión de asistencia ahora filtra por `espacios_enseñanza.profesor_id` para profesores regulares (commit `4593ca3`, aún sin push al momento de la auditoría).
-- 🟡 `GET /api/espacios/instructores?profesor_ids=` (nuevo) no valida rol: cualquier sesión (incl. estudiante) lista pasantes de esos profesores (solo id/nombre). Bajo riesgo; restringir a profesor/admin o a `puedeOperarEspacio`.
+- ✅ **CORREGIDO 2026-09-24** (403 si no es profesor/admin). Original: `GET /api/espacios/instructores?profesor_ids=` no validaba rol: cualquier sesión (incl. estudiante) lista pasantes de esos profesores (solo id/nombre). Bajo riesgo; restringir a profesor/admin o a `puedeOperarEspacio`.
 - 🟡 `.env.local.example` estaba desactualizado (mencionaba password `Pine2026` y `ADMIN_SESSION_SECRET` obsoletos; faltaban Cloudinary/YouTube) → corregido en esta auditoría.
-- 🟡 Documentación desordenada: secciones "Cambios Recientes" fuera de orden (48, 43, 45, 42…), no existen secciones propias de Sesiones 44, 46 (solo en CHANGELOG/Superadmin), 47; pie de CLAUDE.md decía Sesión 43/v0.10.16 (corregido); `package.json` sigue en `0.1.0`; README decía 0.12.1 (corregido).
-- 🟡 Funcionalidad sin documentar en CLAUDE.md/ANTIGRAVITY.md/README: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
+- ✅ **CORREGIDO 2026-09-24** (orden 48→47→46→44→45→43→42, entradas 44/46/47, `package.json` 0.12.2). Original: documentación desordenada: secciones "Cambios Recientes" fuera de orden (48, 43, 45, 42…), no existen secciones propias de Sesiones 44, 46 (solo en CHANGELOG/Superadmin), 47; pie de CLAUDE.md decía Sesión 43/v0.10.16 (corregido); `package.json` sigue en `0.1.0`; README decía 0.12.1 (corregido).
+- ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
 
 ## Cambios Recientes (Sesión 48 — 2026-09-23)
@@ -224,6 +224,46 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - **Actualización de Datos en DB Neon (Producción) & Seed Script**:
   - **Evento ID 32** (*Inauguración de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros*): Actualizada su categoría en `actividades_difusion` a `maestria`.
   - **Sr. Gabriel Bazurto Alcívar (ID 15 en `usuarios`)**: Actualizado su `cargo_institucional` a `'Docente / Coordinador de la Maestría en Pedagogía de los Idiomas Nacionales y Extranjeros'` en Neon DB y en `scripts/migrate-usuarios-docentes.js` (conservando ambos roles).
+
+---
+
+## Cambios Recientes (Sesión 47 — 2026-09-22)
+
+- Pantalla de éxito + anti doble envío + redirección a `/portal/dashboard` (5-6 s) en los formularios de asistencia, encuesta, registrar-evaluar, evaluación final y difusión. Al éxito el formulario se desmonta; botones "Ir al Portal PINE Ahora" / "Registrar Otro".
+- Fixes del mismo día: `Invalid Date` en `/vinculacion/supervisar`, preselección individual de pasantes en asistencia, fotos HEIC/galería con límite 15 MB, **subida de audio en preguntas MCER con recorte a 30 s** (`lib/mcerAudio.ts`, `components/AudioQuestionRecorder.tsx`, `@breezystack/lamejs`; también audio en Acta Técnica: `app/utilidades/_lib/actaAudio.ts`).
+
+---
+
+## Cambios Recientes (Sesión 46 — 2026-09-22)
+
+- **"Ver como" (impersonación) del Superadmin** — detalle completo en `### Módulo Superadmin`. Cookie con `impersonatedBy`; `components/ImpersonationBanner.tsx`; auditoría `impersonate`/`impersonate_revert`. Regla: bajo impersonación los chequeos de permisos deben usar la identidad **suplantada** (corregido en `lib/permisos-supervision.ts`, auditoría 2026-09-24).
+
+---
+
+## Cambios Recientes (Sesión 44 — 2026-09-22)
+
+- **`/portal/mi-avance`** (+ `GET /api/mi-avance`): dashboard del pasante con meta legal de **96 h**, beneficiarios por espacio con Pre/Post MCER, semáforo de asistencia `<70%`, reseñas.
+- **`/vinculacion/supervisar/indicadores`** (+ `GET /api/vinculacion/supervisores/indicadores`): analítica para supervisores (horas, beneficiarios, tests, satisfacción, matriz de ganancia MCER).
+- **Supervisión por profesor** (`lib/permisos-supervision.ts:esSuperAdminOLider`, commit `4593ca3`): un profesor regular solo ve/aprueba asistencias de espacios donde `espacios_enseñanza.profesor_id = su id`; ven todo los `admin`, `superadmin` y los líderes hardcodeados en `LIDERES_PROYECTO_EMAILS` (Arturo, Jhonny, Cynthia — **no ampliar sin confirmación del usuario**). `PATCH .../supervisar-asistencia/[id]` responde 403 si no es su espacio. `GET /api/espacios/instructores?profesor_ids=` (solo profesor/admin) alimenta el selector de participantes de podcast.
+- `/api/protected/assets` eliminado (función de 34 MB sin llamadores).
+- Cambios de Sesiones 39-43 aún no descritos arriba: página **Política de Privacidad** (ES/EN), editar/eliminar espacios de vinculación, contador de instructores y supervisor visible en espacios, horas de investigación de pasantes + import real de vinculación 2026-2.
+- Skill local `.agents/skills/gestion-estudiantes/` (buscar estudiante, ver vinculación, resetear clave contra la Neon de producción): usar con cuidado, sin credenciales reales en el repo. `scratch/` está en `.gitignore` (scripts de diagnóstico locales, no versionar).
+
+---
+
+## Cambios Recientes (Sesión 45 — 2026-09-22)
+
+### Desglose de Indicadores MCER, Corrección de Investigadores Vinculados y Métricas Semestrales en Dashboard PINE
+
+- **Fix de Investigadores Vinculados en `/api/admin/stats`:** Se corregió la consulta SQL que antes apuntaba a la columna obsoleta y vacía `perfiles_estudiantes.titulo_investigacion` (devolviendo `0 / 6`). La nueva consulta filtra a los estudiantes reales que poseen el módulo de investigación (`'investigacion' = ANY(modulos_acceso)`) o que han registrado actividades en `actividades_investigacion_pasante`. Ahora retorna los **5 estudiantes** reales vinculados a investigación.
+- **Desglose de Indicadores MCER en `/pine-dashboard`:**
+  - **Diagnóstico MCER (Pre-Test) — Semestre Actual:** Muestra los beneficiarios evaluados con el test inicial sobre el total de beneficiarios inscritos en talleres (`evaluacionesIniciales / totalInscritos` -> `49 / 49`, 100% de cobertura diagnóstica).
+  - **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años):** Muestra el avance respecto a la meta de 100 participantes evaluados al cierre de sus ciclos (`evaluacionesFinales / 100` -> `0 / 100`).
+- **Nuevas Métricas Incorporadas:**
+  - **Beneficiarios Inscritos & Atendidos:** Muestra los beneficiarios asignados a talleres sobre los registrados (`totalInscritos / totalBeneficiarios` -> `49 / 50`).
+  - **Horas Acreditadas de Vinculación y Práctica:** Suma acumulada de horas de pasantes en clases (`horas_asistencia_instructor`), podcasts (`horas_podcast_pasante`) e investigación (`actividades_investigacion_pasante`).
+  - **Espacios de Enseñanza Activos:** Conteo total de aulas/clubes registrados en el proyecto.
+- **Mejora en Analítica de Supervisores:** `/api/vinculacion/supervisores/indicadores` y la vista `/vinculacion/supervisar/indicadores` incluyeron el campo `email` y `CI` del pasante para permitir filtrados completos.
 
 ---
 
@@ -254,22 +294,6 @@ A pedido explícito del usuario, siguiendo la misma lógica que ya se aplicó en
 - **`GET /api/tests/download-docx`** ahora acepta `?tipo=pretest|postest` (default `pretest`): el Word de pretest trae también los campos de datos del beneficiario en blanco (antes solo tenía una línea de nombre) porque registro y evaluación van siempre juntos; el de postest agrega al final un bloque de encuesta en blanco (4 preguntas 1-5 + comentarios) — sin listar instructores por nombre (decisión explícita del usuario: "el postest solo corresponde al beneficiario").
 - **`middleware.ts`** — `protectedRoutes` y el chequeo de rol actualizados: `/vinculacion/beneficiarios`/`/vinculacion/test-mcer` reemplazadas por `/vinculacion/registrar-evaluar`/`/vinculacion/evaluacion-final`.
 - **Verificación:** `npx tsc --noEmit` y `npm run build` limpios (rutas viejas ya no aparecen en la salida del build, las 2 nuevas sí). `MANUAL_USUARIO.md` y `GUIA_ESTUDIANTES_VINCULACION.md` reescritos con las rutas/pasos nuevos. No se probó clic-a-clic en navegador — mismo límite de sandbox de sesiones previas.
-
-## Cambios Recientes (Sesión 45 — 2026-09-22)
-
-### Desglose de Indicadores MCER, Corrección de Investigadores Vinculados y Métricas Semestrales en Dashboard PINE
-
-- **Fix de Investigadores Vinculados en `/api/admin/stats`:** Se corregió la consulta SQL que antes apuntaba a la columna obsoleta y vacía `perfiles_estudiantes.titulo_investigacion` (devolviendo `0 / 6`). La nueva consulta filtra a los estudiantes reales que poseen el módulo de investigación (`'investigacion' = ANY(modulos_acceso)`) o que han registrado actividades en `actividades_investigacion_pasante`. Ahora retorna los **5 estudiantes** reales vinculados a investigación.
-- **Desglose de Indicadores MCER en `/pine-dashboard`:**
-  - **Diagnóstico MCER (Pre-Test) — Semestre Actual:** Muestra los beneficiarios evaluados con el test inicial sobre el total de beneficiarios inscritos en talleres (`evaluacionesIniciales / totalInscritos` -> `49 / 49`, 100% de cobertura diagnóstica).
-  - **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años):** Muestra el avance respecto a la meta de 100 participantes evaluados al cierre de sus ciclos (`evaluacionesFinales / 100` -> `0 / 100`).
-- **Nuevas Métricas Incorporadas:**
-  - **Beneficiarios Inscritos & Atendidos:** Muestra los beneficiarios asignados a talleres sobre los registrados (`totalInscritos / totalBeneficiarios` -> `49 / 50`).
-  - **Horas Acreditadas de Vinculación y Práctica:** Suma acumulada de horas de pasantes en clases (`horas_asistencia_instructor`), podcasts (`horas_podcast_pasante`) e investigación (`actividades_investigacion_pasante`).
-  - **Espacios de Enseñanza Activos:** Conteo total de aulas/clubes registrados en el proyecto.
-- **Mejora en Analítica de Supervisores:** `/api/vinculacion/supervisores/indicadores` y la vista `/vinculacion/supervisar/indicadores` incluyeron el campo `email` y `CI` del pasante para permitir filtrados completos.
-
----
 
 ## Cambios Recientes (Sesión 42 — 2026-09-16)
 
@@ -1181,5 +1205,5 @@ git push
 ---
 
 **Última actualización:** 2026-09-24 (Auditoría post-Sesión 48)
-**Versión:** 0.12.2
+**Versión:** 0.12.3
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

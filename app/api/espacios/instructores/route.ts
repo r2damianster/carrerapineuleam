@@ -17,6 +17,9 @@ export async function GET(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
 
     if (profesor_ids_param) {
+      if (!['profesor', 'admin'].includes(usuario.rol)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      }
       const ids = profesor_ids_param.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
       if (ids.length > 0) {
         const instructores = await sql`

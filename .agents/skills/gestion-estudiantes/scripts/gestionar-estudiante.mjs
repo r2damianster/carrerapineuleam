@@ -153,8 +153,8 @@ Uso del script de Gestión de Estudiantes:
 
 Ejemplos:
   node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs buscar 1314687524
-  node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs vinculacion e1314687524@live.uleam.edu.ec
-  node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs reset-password e1314687524@live.uleam.edu.ec Pine2026
+  node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs vinculacion estudiante@live.uleam.edu.ec
+  node .agents/skills/gestion-estudiantes/scripts/gestionar-estudiante.mjs reset-password estudiante@live.uleam.edu.ec <NuevaClaveTemporal>
 `);
     process.exit(0);
   }
