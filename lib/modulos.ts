@@ -11,7 +11,7 @@ export interface ModuloDef {
 }
 
 export const MODULOS: ModuloDef[] = [
-  { id: 'vinculacion', etiqueta: 'Supervisor de Vinculación', descripcion: 'Aprueba asistencia, podcast e investigación de los pasantes de sus espacios.', asignable: true },
+  { id: 'vinculacion', etiqueta: 'Supervisor de Vinculación', descripcion: 'Aprueba asistencia, podcast, investigación y actividades autónomas de los pasantes de sus espacios.', asignable: true },
   { id: 'vinculacion_gestion', etiqueta: 'Líder de Vinculación', descripcion: 'Crea espacios, administra pasantes y supervisa a todos los supervisores. Requiere Supervisor.', asignable: true },
   { id: 'investigacion', etiqueta: 'Investigación', descripcion: 'Docente: gestionar espacios e informes. Pasante: reportar actividades de investigación.', asignable: true },
   { id: 'subir_video', etiqueta: 'Podcast', descripcion: 'Pasante: puede registrar podcasts.', asignable: true },

@@ -60,3 +60,5 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 
 ## 🔔 Notificaciones (obligatorio al crear funciones)
 - El portal tiene un módulo de notificaciones derivadas (`lib/notificaciones.ts`, bloque "Pendientes" en `/portal/dashboard`). **Si tu función nueva deja algo pendiente para alguien (aprobar, revisar, completar, responder), agrega su regla en `REGLAS_NOTIFICACION` y su fila en `NOTIFICACIONES.md`.** Lee `NOTIFICACIONES.md` antes de crear pantallas o colas de aprobación.
+- **Horas autónomas del pasante** (Sesión 50, continuación): tabla `actividades_autonomas_pasante`, tope de 16 h (`lib/horasAutonomas.ts`), página `/vinculacion/actividades-autonomas`, aprobación en `/vinculacion/supervisar` (pestaña "Autónomas"). Brecha conocida: aún no suman en `/api/admin/stats`, indicadores de supervisión ni `/api/estudiantes` (ver `CLAUDE.md` → Sesión 50, continuación).
+- Dos bloques "Sesión 50" en `CLAUDE.md` (roles/supervisión y notificaciones/autónomas) describen el mismo día; léelos juntos.

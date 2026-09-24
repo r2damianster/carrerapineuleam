@@ -2,7 +2,7 @@
 
 Sitio público del proyecto de Innovaciones Pedagógicas e Internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM), junto con el **Portal PINE** — el sistema operativo interno para docencia, vinculación e investigación de la carrera.
 
-**Versión:** 0.12.5
+**Versión:** 0.12.6
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅
 **Tech Stack:** Next.js 14 (App Router) + TypeScript + TailwindCSS + Neon (Postgres Serverless) + Cloudinary
 **Sitio en producción:** https://carrerapineuleam.vercel.app
@@ -19,7 +19,8 @@ Landing institucional bilingüe (ES/EN) con contenido contextual por proyecto: e
 
 ### Portal PINE (`/portal/*`)
 Sistema operativo real para el trabajo de campo de la carrera:
-- **Vinculación:** gestión de espacios (clubes/aulas), asignación de estudiantes-instructores, registro de beneficiarios, asistencia, Test MCER (pre/post, exportable a Word), encuestas de satisfacción, difusión de eventos — incluye enlaces/QR públicos sin login para que un beneficiario tome su test o encuesta desde el celular.
+- **Vinculación:** gestión de espacios (clubes/aulas), asignación de estudiantes-instructores, registro de beneficiarios, asistencia, Test MCER (pre/post, exportable a Word), encuestas de satisfacción, difusión de eventos — incluye enlaces/QR públicos sin login para que un beneficiario tome su test o encuesta desde el celular. Los pasantes además reportan horas de podcast, de investigación y **horas/actividades autónomas** (tope de 16 h), todas aprobadas por su supervisor.
+- **Notificaciones del Portal:** bloque "Pendientes" en el dashboard (aprobaciones por hacer para supervisores y administradores; rechazos para pasantes). Ver `NOTIFICACIONES.md`.
 - **Dashboard Pedagógico del Pasante** (`/portal/mi-avance`): avance de horas reglamentarias frente a la meta de **96h**, resultados MCER iniciales vs finales de sus alumnos comunitarios, semáforo de asistencia de aula (< 70% alerta en rojo) y reseñas cualitativas de satisfacción.
 - **Indicadores & Supervisión Docente** (`/vinculacion/supervisar/indicadores`): panel analítico para profesores con desgloses por pasante, matriz de ganancia pedagógica MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
 - **Investigación:** gestión de espacios + generador de Informes Mensuales (`/investigacion/informes`).

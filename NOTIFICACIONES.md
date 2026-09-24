@@ -42,4 +42,5 @@ Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revis
 ## Decisiones (Sesión 50)
 - **Hecho:** aviso de asistencia rechazada al pasante. Es accionable (debe re-registrar) y se resuelve con ventana de 14 días, sin tabla nueva.
 - **Descartado a propósito:** campana en la barra superior (el dashboard es la puerta de entrada al portal; el endpoint `GET /api/notificaciones` queda listo si se cambia de idea); aviso de "horas acreditadas" (informativo, no exige acción, requeriría tabla de "leído"); videos sin link de YouTube y enlaces por expirar (bajo valor); correo/push por cron (costo y ruido sin uso real que lo justifique).
+- **Ampliación posible, no hecha:** avisar al pasante también cuando se rechaza una hora de podcast, investigación o autónoma (hoy solo avisa la asistencia rechazada). Seguiría el mismo patrón de la regla `asistencias-rechazadas` (ventana de 14 días + panel con el motivo en `/portal/mi-avance`).
 - **Reabrir si:** aparece un aviso informativo que sí valga la pena → ahí sí crear `notificaciones_leidas` (migración a mano).

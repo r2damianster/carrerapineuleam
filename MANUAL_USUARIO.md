@@ -20,6 +20,8 @@ No todos los roles se autoregistran — depende de quién eres:
 
 Tras entrar llegas a `/portal/dashboard`, donde ves solo las tarjetas que te corresponden según tu rol y tus módulos asignados.
 
+**🔔 Pendientes:** si tienes algo por hacer, arriba de las tarjetas aparece el bloque "Pendientes" con un enlace directo a cada cosa. Supervisores: registros de asistencia y horas (podcast, investigación, autónomas) por aprobar. Administradores de sitio: videos/podcasts y eventos por aprobar. Pasantes: asistencias que tu supervisor rechazó (con el motivo en Mi Avance). Si no tienes nada pendiente, el bloque no aparece.
+
 ---
 
 ## 👨‍🏫 Perfil: Profesor de Vinculación (hoy: Arturo, Cynthia)
@@ -35,7 +37,7 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y líderes ven todo.
 
-**» Supervisar Asistencia** y **» Panel de Supervisión (Indicadores)** (`/vinculacion/supervisar` e `/vinculacion/supervisar/indicadores`) — aprueba/rechaza registros de asistencia recibidos con foto evidencia. El panel de indicadores (también accesible desde el botón **"📊 Ver Indicadores & Analítica"**) muestra el panel de supervisión por pasante, matriz de ganancia MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
+**» Supervisar actividades y horas** y **» Panel de Supervisión (Indicadores)** (`/vinculacion/supervisar` e `/vinculacion/supervisar/indicadores`) — aprueba/rechaza registros de asistencia recibidos con foto evidencia, y en las pestañas **Podcast**, **Investigación** y **Autónomas** las horas que reportan tus pasantes (solo cuentan al aprobarlas). El panel de indicadores (también accesible desde el botón **"📊 Ver Indicadores & Analítica"**) muestra el panel de supervisión por pasante, matriz de ganancia MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
 
 ### Gestión de Vinculación (solo profesor/admin)
 
@@ -61,6 +63,15 @@ Un beneficiario nuevo **siempre** se registra junto con su Pre-Test MCER — no 
 
 ### » Asistencia (`/vinculacion/asistencia`)
 Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece con su check de presencia. Requiere hora de inicio/fin y foto obligatoria. Al guardar, se desmonta el formulario, muestra el estado *"Pendiente de aprobación"* y redirige en 5s al portal PINE.
+
+### » Registrar Evento o Podcast (`/vinculacion/difusion`)
+Visible para todo pasante (y para quienes ven la tarjeta). Ahí se registran eventos y podcasts; los podcasts suben su video y acreditan horas cuando el supervisor las aprueba.
+
+### » Registrar Actividades de Investigación (`/vinculacion/investigacion-actividades`)
+Solo aparece si te asignaron el módulo Investigación (se asigna en `/admin/roles`). Registras fecha, horas y descripción; tu supervisor las aprueba o rechaza.
+
+### » Registrar Horas / Actividades Autónomas (`/vinculacion/actividades-autonomas`)
+Para todo pasante. Registra lo que haces por tu cuenta: planificar clases, crear recursos, etc. (fecha, horas, descripción). **Máximo 16 horas en total**: cuentan las pendientes y las aprobadas; si el supervisor rechaza una, ese cupo se libera. Solo suman a tus 96 h cuando quedan aprobadas.
 
 ### » Evaluación final del beneficiario (`/vinculacion/evaluacion-final`)
 El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo envío (el beneficiario ya está registrado de antes, aquí no se piden sus datos):

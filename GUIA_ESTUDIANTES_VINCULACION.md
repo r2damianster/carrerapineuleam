@@ -151,7 +151,7 @@ Si el Post-Test ya se tomó antes y solo falta la encuesta (o quieres una encues
 
 ## 6. Registrar podcast o evento
 
-**Ruta:** Dashboard → "Registros de Vinculación" → **"» Registrar podcast o evento"** (`/vinculacion/difusion`)
+**Ruta:** Dashboard → "Registros de Vinculación" → **"» Registrar Evento o Podcast"** (`/vinculacion/difusion`)
 
 **Pasos:**
 1. **Título del Evento / Podcast**.
@@ -193,7 +193,7 @@ Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula 
 
 🆕 **ACTUALIZACIÓN (Sesión 44, 2026-09-22):** La pantalla se transformó en un **Dashboard Pedagógico del Pasante**, donde podrás ver de forma inteligente todo lo que sucede en tu espacio de enseñanza:
 
-1. **Meta Reglamentaria de 96 Horas:** Barra de progreso visual que suma tus horas acreditables aprobadas (Asistencias + Podcasts + Investigación) frente a la meta legal de **96 horas**.
+1. **Meta Reglamentaria de 96 Horas:** Barra de progreso visual que suma tus horas acreditables aprobadas (Asistencias + Podcasts + Investigación + Autónomas) frente a la meta legal de **96 horas**.
 2. **Resultados MCER de tus Alumnos:** Tabla con cada beneficiario de tu espacio, su nota inicial (Pre-Test), su nota final (Post-Test) y su nivel asignado (A1.1, A1.2, A2, etc.), indicándote con una flecha verde quienes han mejorado.
 3. **Semáforo de Asistencia de Aula:** El sistema calcula el % de asistencia de cada uno de tus alumnos. Si un beneficiario tiene menos del **70% de asistencia**, aparecerá marcado con una etiqueta roja de **"Riesgo Inasistencia"** para que puedas contactarlo a tiempo.
 4. **Reseñas y Opiniones de tus Alumnos:** Bloque que te muestra los comentarios anónimos y valoraciones (estrellas) que dejaron los beneficiarios en las encuestas de satisfacción, permitiéndote reflexionar y ajustar tu metodología de clase.
@@ -201,11 +201,32 @@ Si marcaste tu propio nombre en "Participantes del podcast", el sistema calcula 
 
 ---
 
-## 8. Reportar Actividades de Investigación (solo si te habilitaron este módulo)
+## 8. Registrar Actividades de Investigación (solo si te habilitaron este módulo)
 
-**Ruta:** Dashboard → tarjeta "Investigación (Vinculación)" → **"» Reportar Actividades"** (`/vinculacion/investigacion-actividades`)
+**Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Registrar Actividades de Investigación"** (`/vinculacion/investigacion-actividades`)
 
-Úsalo únicamente si tu profesor te asignó también funciones de investigación además de vinculación — es un reporte de horas/actividades aparte, no reemplaza nada de las secciones 3-6.
+Úsalo únicamente si tu profesor te asignó también funciones de investigación además de vinculación (si no ves el enlace, no lo tienes habilitado) — es un reporte de horas/actividades aparte, no reemplaza nada de las secciones 3-6. Tu supervisor las aprueba o rechaza; solo las aprobadas suman horas.
+
+---
+
+## 9. Registrar Horas / Actividades Autónomas
+
+**Ruta:** Dashboard → tarjeta "Registros de Vinculación" → **"» Registrar Horas / Actividades Autónomas"** (`/vinculacion/actividades-autonomas`)
+
+Aquí registras lo que haces por tu cuenta fuera de la clase: planificar, crear recursos, preparar materiales, etc.
+
+**Pasos:** elige la **fecha**, escribe las **horas** (de 0.5 en 0.5) y describe **qué hiciste**, y clic en "Registrar Actividad".
+
+**Reglas:**
+- **Máximo 16 horas en total.** La página te muestra una barra con las horas registradas y cuántas te quedan.
+- Cuentan las horas pendientes y las aprobadas. Si tu supervisor rechaza una actividad (verás el motivo), esas horas se liberan y puedes volver a registrarlas.
+- Quedan **pendientes de aprobación**; solo suman a tu meta de 96 h cuando el supervisor las aprueba. Míralas en "Mi Avance" (tile "Horas Autónomas").
+
+---
+
+## 🔔 Avisos en tu Portal
+
+Si tu supervisor **rechaza una asistencia**, al entrar al Portal verás arriba un aviso rojo con enlace a **Mi Avance**, donde aparece el espacio, la fecha y el motivo. El aviso dura 14 días. Corrige y vuelve a registrar la asistencia.
 
 ---
 
@@ -221,11 +242,11 @@ Portal PINE (login con correo institucional)
         │     ├─ Registrar y evaluar beneficiario (Registrar nuevo + Pre-Test obligatorio / Asignar existente / QR / Word)
         │     ├─ Asistencia (hora inicio/fin + foto obligatoria → pendiente aprobación → horas acreditables)
         │     ├─ Evaluación final del beneficiario (Post-Test + Encuesta obligatorios juntos / QR / Word — encuesta suelta aparte si hace falta)
-        │     └─ Registrar podcast o evento (podcast → video + participantes → horas acreditables)
+        │     ├─ Registrar Evento o Podcast (podcast → video + participantes → horas acreditables)
+        │     ├─ Registrar Actividades de Investigación — solo si te habilitaron el módulo
+        │     └─ Registrar Horas / Actividades Autónomas (máx. 16 h, las aprueba tu supervisor)
         │
-        ├─ 📊 Mi Avance (horas, espacios, beneficiarios, evaluaciones)
-        │
-        └─ Investigación (Vinculación) — solo si aplica
+        └─ 📊 Mi Avance (horas, espacios, beneficiarios, evaluaciones, rechazos)
 ```
 
 ---

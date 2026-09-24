@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*(nada pendiente al día de la última entrada)*
+- Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
+- Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
+
+## [0.12.6] - 2026-09-24 (Sesión 50, continuación)
+
+### ✨ Added
+- **Notificaciones del Portal:** bloque "🔔 Pendientes" en `/portal/dashboard` y `GET /api/notificaciones`. Avisos derivados en vivo desde Neon (sin tabla): asistencias por aprobar, horas por aprobar (podcast, investigación y autónomas) para supervisores; videos y difusión por aprobar para `contenido_sitio`; asistencia rechazada para el pasante (ventana de 14 días). Reglas en `lib/notificaciones.ts`; guía y checklist para funciones futuras en `NOTIFICACIONES.md`.
+- **Horas / Actividades Autónomas** (`/vinculacion/actividades-autonomas`): el pasante registra lo que hace por su cuenta (planificar, crear recursos…), con **tope de 16 h** (`lib/horasAutonomas.ts`). Tabla `actividades_autonomas_pasante` (`scripts/migrate-actividades-autonomas.js`). Las aprueba el supervisor en `/vinculacion/supervisar` (pestaña "Autónomas") y suman al total de 96 h de `/portal/mi-avance`.
+- `/portal/mi-avance`: panel con las asistencias rechazadas (espacio, fecha, motivo) y tile de horas autónomas.
+
+### ✅ Changed
+- Dashboard, tarjeta "Registros de Vinculación": "Registrar Evento o Podcast" visible para todos los que ven la tarjeta; enlaces nuevos "Registrar Actividades de Investigación" (pasante con módulo `investigacion`) y "Registrar Horas / Actividades Autónomas" (todo pasante). Se eliminó la tarjeta aparte "Investigación (Vinculación)".
+- Documentación: regla 12 en `CLAUDE.md` y sección en `ANTIGRAVITY.md` — toda función nueva que deje algo pendiente debe agregar su regla de notificación.
 
 ---
 
