@@ -68,11 +68,17 @@ export default async function PortalDashboard() {
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Yo y la Carrera</h3>
-                <p className="text-gray-600 mb-4 text-sm">Cédula, ORCID, títulos académicos, foto y contraseña.</p>
+                <p className="text-gray-600 mb-4 text-sm">Tu perfil, tus contribuciones académicas y los indicadores del proyecto.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
-                  <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE</Link>
-                  <p className="text-xs text-gray-500">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
+                  <Link href="/contribuciones/new" className="text-indigo-600 hover:underline">» Registrar Contribución (artículo, libro, ponencia…)</Link>
+                  <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento o Podcast</Link>
+                  {modulos_acceso.includes('admin') && (
+                    <>
+                      <Link href="/contribuciones" className="text-indigo-600 hover:underline">» Ver Contribuciones Registradas</Link>
+                      <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE (metas e indicadores)</Link>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -171,21 +177,6 @@ export default async function PortalDashboard() {
                 <p className="text-gray-600 mb-4 text-sm">Tu proyecto dentro de la carrera.</p>
                 <div className="flex flex-col gap-2">
                   <span className="text-gray-400 text-sm italic">Próximamente</span>
-                </div>
-              </div>
-            )}
-
-            {/* Contribuciones Académicas: registro de artículos/libros/eventos y difusión — cualquier docente registra, solo admin ve el listado */}
-            {esDocente && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-pink-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Contribuciones Académicas</h3>
-                <p className="text-gray-600 mb-4 text-sm">Registra tus artículos, libros, capítulos, ponencias, propiedad intelectual y eventos de difusión (investigación, vinculación o asignatura).</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/contribuciones/new" className="text-pink-600 hover:underline">» Registrar Contribución</Link>
-                  <Link href="/gestion-carrera" className="text-pink-600 hover:underline">» Registrar Evento o Podcast</Link>
-                  {modulos_acceso.includes('admin') && (
-                    <Link href="/contribuciones" className="text-pink-600 hover:underline">» Ver Contribuciones Registradas</Link>
-                  )}
                 </div>
               </div>
             )}
