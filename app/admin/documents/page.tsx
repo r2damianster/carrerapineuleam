@@ -84,6 +84,24 @@ const documents = {
       date: '2026-05-15',
       period: '2026-1',
     },
+    {
+      id: 'aporte-economico-externo-especies-2026',
+      title: 'Aporte Económico Externo en Especies — 2026',
+      filename: '2026-05-19_AporteEconomicoExternoEspecies-signed.pdf',
+      description: 'Documento firmado de aporte económico externo en especies al proyecto (19 de mayo de 2026).',
+      icon: '🤝',
+      date: '2026-05-19',
+      period: '2026-1',
+    },
+    {
+      id: 'aval-red',
+      title: 'Aval de Red',
+      filename: '2025-09-24_AvalRed.pdf',
+      description: 'Aval de red académica al Proyecto de Innovaciones Pedagógicas e Internacionalización.',
+      icon: '🌐',
+      date: '2025-09-24',
+      period: '2025-2',
+    },
   ],
   actividades: [
     {

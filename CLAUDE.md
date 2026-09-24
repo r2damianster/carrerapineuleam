@@ -171,10 +171,23 @@ CLAUDE.md decía desde Sesión 19 que Investigación "todavía no tiene ninguna 
 
 **Progreso general del sitio público: ~99%. Portal PINE (Neon): recién construido, en uso real solo por Arturo hasta que el resto del equipo se autoregistre.**
 
+## Documentos generales del proyecto (2026-09-24)
+
+Dos PDFs privados exclusivos del proyecto Innovaciones Pedagógicas e Internacionalización, en `public/admin-assets/` y registrados en `/admin/documents` (categoría `proyecto`):
+- `2026-05-19_AporteEconomicoExternoEspecies-signed.pdf` — aporte económico externo en especies (firmado, 19-may-2026).
+- `2025-09-24_AvalRed.pdf` — aval de red. Fecha tomada del nombre original (`20250924`); confirmar si era 2026.
+
+---
+
 ## Cambios Recientes (Sesión 48 — 2026-09-23)
 
 ### Formulario de Difusión Enriquecido, Categoría Maestría/Posgrado y Actualización de Rol Docente/Coordinador
 
+- **Selector de Participantes de Podcast (`SelectorParticipantesPodcast`) (Paridad con Asistencia)**:
+  - Refactorizado para mostrar en una lista principal (checklist) únicamente a los **Pasantes Titulares / Asignados** al supervisor/docente responsable seleccionado (`GET /api/espacios/instructores?profesor_ids=...`, ej. Keyla y Michell para el supervisor Arturo en el espacio Podcast).
+  - Añadido selector de **Pasantes Invitados** (otros estudiantes de vinculación) con botón `+ Agregar invitado` y lista con badges.
+  - Añadido selector de **Docentes Participantes** adicionales con botón `+ Agregar docente`.
+  - Mantenidas las cajas para invitados internos (universidad/autoridades) y externos.
 - **Formulario de Registro de Difusión (`/vinculacion/difusion`)**:
   - Incorporadas las áreas de texto de `descripcion` y `observaciones` conectadas a `POST /api/difusion` y moderables/editables desde `/admin/contenido` (`https://carrerapineuleam.vercel.app/admin/contenido`).
   - Añadido el botón **✨ Generar / Pulir con IA** (`generarConIA` llamando a `/api/difusion/generar-texto`) para redactar automáticamente descripciones formales de eventos/podcasts.
