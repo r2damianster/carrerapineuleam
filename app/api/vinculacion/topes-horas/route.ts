@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
-import { TIPOS_HORAS, TOPES_POR_DEFECTO, PERFILES_TOPES, avisoSumaTopes, horasContables, type TopesPasante } from '@/lib/topesHoras';
+import { TIPOS_HORAS, PERFILES_TOPES, avisoSumaTopes, horasContables, topesPorDefectoSegunModulos, type TopesPasante } from '@/lib/topesHoras';
 
 // Tabla de topes de horas por pasante — solo líder de Vinculación / superadmin.
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
 
   // Pasantes de Vinculación: instructores de algún espacio o con horas registradas de cualquier tipo.
   const pasantes = await sql`
-    SELECT u.id, u.nombres, u.apellidos, u.email, u.activado,
+    SELECT u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso,
       t.tope_asistencia::float AS tope_asistencia, t.tope_autonomas::float AS tope_autonomas,
       t.tope_investigacion::float AS tope_investigacion, t.tope_podcast::float AS tope_podcast,
       t.meta_total::float AS meta_total, (t.usuario_id IS NOT NULL) AS tiene_tope_propio,
@@ -39,7 +39,7 @@ export async function GET() {
   const data = pasantes.map((fila: any) => {
     const topes: TopesPasante = fila.tiene_tope_propio
       ? { asistencia: fila.tope_asistencia, autonomas: fila.tope_autonomas, investigacion: fila.tope_investigacion, podcast: fila.tope_podcast, meta: fila.meta_total }
-      : { ...TOPES_POR_DEFECTO };
+      : topesPorDefectoSegunModulos(fila.modulos_acceso);
     const aprobadas = {
       asistencia: fila.asistencia_aprobadas, autonomas: fila.autonomas_aprobadas,
       investigacion: fila.investigacion_aprobadas, podcast: fila.podcast_aprobadas,

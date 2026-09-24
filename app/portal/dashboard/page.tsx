@@ -5,6 +5,7 @@ import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
+import { obtenerTopes } from '@/lib/topesHoras';
 import { esDocente as esDocenteSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
 import PendientesPortal from '@/components/PendientesPortal';
@@ -45,6 +46,8 @@ export default async function PortalDashboard() {
   let horasPodcastAcreditadas = 0;
   let episodiosPendientes = 0;
   let horasAsistenciaAcreditadas = 0;
+  let autonomasHabilitadas = true;
+  let investigacionHabilitada = true;
   if (rol === 'estudiante') {
     const sql = neon(process.env.DATABASE_URL!);
     const usuarioId = parseInt(session.id, 10);
@@ -65,6 +68,11 @@ export default async function PortalDashboard() {
       SELECT COALESCE(SUM(ha.horas), 0) AS total FROM horas_asistencia_instructor ha WHERE ha.usuario_id = ${usuarioId}
     `;
     horasAsistenciaAcreditadas = Number(filaAsistencia?.total || 0);
+
+    // Perfil de horas (topes_horas_pasante): un tipo con tope 0 no está habilitado y no se ofrece.
+    const topesPasante = await obtenerTopes(sql, usuarioId);
+    autonomasHabilitadas = topesPasante.autonomas !== 0;
+    investigacionHabilitada = topesPasante.investigacion !== 0;
   }
 
   const notificaciones = await obtenerNotificaciones(session);
@@ -129,10 +137,10 @@ export default async function PortalDashboard() {
                   )}
                   {/* Horas del pasante (las aprueba su supervisor). Investigación exige el módulo
                       'investigacion' (se asigna en /admin/roles); las autónomas son para todo pasante. */}
-                  {rol === 'estudiante' && modulos_acceso.includes('investigacion') && (
+                  {rol === 'estudiante' && modulos_acceso.includes('investigacion') && investigacionHabilitada && (
                     <Link href="/vinculacion/investigacion-actividades" className="text-blue-600 hover:underline">» Registrar Actividades de Investigación</Link>
                   )}
-                  {rol === 'estudiante' && (
+                  {rol === 'estudiante' && autonomasHabilitadas && (
                     <Link href="/vinculacion/actividades-autonomas" className="text-blue-600 hover:underline">» Registrar Horas / Actividades Autónomas</Link>
                   )}
                 </div>

@@ -178,7 +178,7 @@ export default function MiAvancePage() {
                   sub={`${avance.horasAsistencia.sesiones} sesiones aprobadas (${avance.horasAsistencia.sesionesPendientes} pend.)`}
                   color="border-teal-500"
                 />
-                {avance.horasAutonomas && (
+                {avance.horasAutonomas && avance.horasAutonomas.maximo > 0 && (
                   <Tile
                     label="🛠 Horas Autónomas"
                     value={`${avance.horasAutonomas.total} h`}
