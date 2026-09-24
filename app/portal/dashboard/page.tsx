@@ -227,17 +227,9 @@ export default async function PortalDashboard() {
                 <p className="text-gray-600 mb-4 text-sm">Contenido del proyecto Innovaciones Pedagógicas e Internacionalización (2026-2028): miembros, publicaciones, videos, noticias, documentos, fotos y proyectos.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/admin" className="text-red-600 hover:underline">» Panel de Contenido</Link>
-                </div>
-              </div>
-            )}
-
-            {/* Roles y usuarios — asignar módulos a cada persona. Solo módulo admin (+ acceso a /admin). */}
-            {modulos_acceso.includes('admin') && modulos_acceso.includes('contenido_sitio') && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-rose-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Roles y usuarios</h3>
-                <p className="text-gray-600 mb-4 text-sm">Asigna o quita módulos a docentes y pasantes con casillas de selección.</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/admin/roles" className="text-rose-600 hover:underline">» Administrar roles</Link>
+                  {modulos_acceso.includes('admin') && (
+                    <Link href="/admin/roles" className="text-red-600 hover:underline">» Roles y usuarios</Link>
+                  )}
                 </div>
               </div>
             )}
