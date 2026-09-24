@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { MAX_HORAS_AUTONOMAS } from '@/lib/horasAutonomas';
+import { obtenerTopes } from '@/lib/topesHoras';
 
 // Horas/actividades autónomas del pasante (planificar, crear recursos, etc.), con tope
 // de MAX_HORAS_AUTONOMAS. Las aprueba el supervisor desde /vinculacion/supervisar
@@ -14,7 +14,9 @@ async function resumenHoras(sql: NeonQueryFunction<false, false>, usuarioId: num
       COALESCE(SUM(horas) FILTER (WHERE estado_aprobacion = 'aprobado'), 0)::float AS aprobadas
     FROM actividades_autonomas_pasante WHERE usuario_id = ${usuarioId}
   `) as any[];
-  return { usadas: Number(fila.usadas), aprobadas: Number(fila.aprobadas), maximo: MAX_HORAS_AUTONOMAS };
+  const topes = await obtenerTopes(sql, usuarioId);
+  // Sin tope propio de planificación, el límite es la meta total.
+  return { usadas: Number(fila.usadas), aprobadas: Number(fila.aprobadas), maximo: topes.autonomas ?? topes.meta };
 }
 
 export async function GET() {
@@ -54,11 +56,13 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const usuarioId = Number(usuario.id);
 
-    const { usadas } = await resumenHoras(sql, usuarioId);
-    const disponibles = Math.max(0, MAX_HORAS_AUTONOMAS - usadas);
-    if (horasNumero > disponibles) {
+    const { usadas, maximo } = await resumenHoras(sql, usuarioId);
+    const disponibles = Math.max(0, maximo - usadas);
+    if (maximo === 0 || horasNumero > disponibles) {
       return NextResponse.json(
-        { error: `Máximo ${MAX_HORAS_AUTONOMAS} h de actividades autónomas. Te quedan ${disponibles} h disponibles.` },
+        { error: maximo === 0
+            ? 'La planificación no está habilitada para tu perfil de horas.'
+            : `Máximo ${maximo} h de planificación. Te quedan ${disponibles} h disponibles.` },
         { status: 400 }
       );
     }

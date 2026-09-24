@@ -63,8 +63,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     `;
     if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
 
+    let advertencias: string[] = [];
     if (actualizado.hora_inicio && actualizado.hora_fin) {
-      await registrarHorasAsistencia(sql, {
+      advertencias = await registrarHorasAsistencia(sql, {
         asistenciaId: id,
         espacioId: actualizado.espacio_id,
         horaInicio: actualizado.hora_inicio,
@@ -72,7 +73,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       });
     }
 
-    return NextResponse.json({ success: true, data: actualizado });
+    return NextResponse.json({ success: true, data: actualizado, advertencias });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

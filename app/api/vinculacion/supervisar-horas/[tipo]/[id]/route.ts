@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
 import { esSuperAdminOLider } from '@/lib/permisos-supervision';
+import { verificarCupo, type TipoHoras } from '@/lib/topesHoras';
 
 // Aprobar/rechazar horas de podcast o actividades de investigación de un pasante.
 // Un supervisor regular solo puede sobre pasantes de sus espacios (profesor_id = él).
@@ -41,6 +42,23 @@ export async function PATCH(request: Request, { params }: { params: { tipo: stri
       `;
       if (!propio) {
         return NextResponse.json({ error: 'No tienes permiso sobre este pasante.' }, { status: 403 });
+      }
+    }
+
+    // Límite duro: aprobar no puede acreditar más horas que el tope del pasante para ese tipo.
+    if (accion === 'aprobar') {
+      const tipoHoras: TipoHoras = params.tipo === 'autonomas' ? 'autonomas' : params.tipo === 'podcast' ? 'podcast' : 'investigacion';
+      const [detalle] = params.tipo === 'podcast'
+        ? await sql`SELECT horas_total::float AS horas, estado_aprobacion FROM horas_podcast_pasante WHERE id = ${id}`
+        : params.tipo === 'autonomas'
+        ? await sql`SELECT horas::float AS horas, estado_aprobacion FROM actividades_autonomas_pasante WHERE id = ${id}`
+        : await sql`SELECT horas::float AS horas, estado_aprobacion FROM actividades_investigacion_pasante WHERE id = ${id}`;
+      // Si ya estaba aprobado no ocupa cupo adicional al re-aprobar.
+      if (detalle && detalle.estado_aprobacion !== 'aprobado') {
+        const cupo = await verificarCupo(sql, Number(fila.usuario_id), tipoHoras, Number(detalle.horas), { incluirPendientes: false });
+        if (!cupo.permitido) {
+          return NextResponse.json({ error: `${cupo.mensaje} Sube el tope en Topes de horas o rechaza este registro.` }, { status: 409 });
+        }
       }
     }
 

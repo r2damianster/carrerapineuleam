@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { MAX_HORAS_AUTONOMAS } from '@/lib/horasAutonomas';
+import { obtenerTopes, obtenerHorasPorTipo, horasContables } from '@/lib/topesHoras';
 
 // Resumen de avance/cumplimiento de un pasante (rol estudiante) — pensado
 // para que vea de un vistazo, aunque todavía no haya registrado nada, en
@@ -97,6 +97,10 @@ export async function GET() {
       ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId} AND estado_aprobacion = 'aprobado'`
       : [{ total: 0, reportes: 0 }];
 
+    const topesPasante = await obtenerTopes(sql, usuarioId);
+    const horasTipoPasante = await obtenerHorasPorTipo(sql, usuarioId);
+    const horasContablesPasante = horasContables(horasTipoPasante.aprobadas, topesPasante);
+
     const [horasAutonomasRow] = await sql`
       SELECT
         COALESCE(SUM(horas) FILTER (WHERE estado_aprobacion = 'aprobado'), 0)::float AS total,
@@ -124,7 +128,7 @@ export async function GET() {
           LEFT JOIN (
             SELECT ab.beneficiario_id, COUNT(*)::int AS total_asistencias
             FROM asistencia_beneficiarios ab
-            JOIN asistencia_espacio ae ON ae.id = ab.asistencia_espacio_id
+            JOIN asistencia_espacio ae ON ae.id = ab.asistencia_id
             WHERE ae.espacio_id = ANY(${espacioIds})
             GROUP BY ab.beneficiario_id
           ) asist ON asist.beneficiario_id = u.id
@@ -164,11 +168,13 @@ export async function GET() {
       horasPodcast: { total: horasPodcastRow.total, episodios: horasPodcastRow.episodios, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
       horasAsistencia: { ...horasAsistenciaRow, sesionesPendientes: asistenciasPendientesRow.total },
       asistenciasRechazadas,
-      horasAutonomas: { ...horasAutonomasRow, maximo: MAX_HORAS_AUTONOMAS },
+      horasAutonomas: { ...horasAutonomasRow, maximo: topesPasante.autonomas ?? topesPasante.meta },
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,
       beneficiariosDetalle,
       resenas,
-      metaHoras: 96,
+      metaHoras: topesPasante.meta,
+      topesHoras: topesPasante,
+      horasContables: horasContablesPasante,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

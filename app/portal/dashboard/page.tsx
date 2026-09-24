@@ -164,6 +164,7 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
+                  <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
                 </div>
               </div>
             )}

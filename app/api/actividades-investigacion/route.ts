@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
+import { verificarCupo } from '@/lib/topesHoras';
 
 // Reporte de horas/actividades de investigación de un pasante de Vinculación
 // que además tiene funciones de investigación (usuarios.modulos_acceso
@@ -76,6 +77,12 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!);
+
+    // Límite duro por perfil de horas (topes_horas_pasante, lo define el líder de Vinculación).
+    const cupo = await verificarCupo(sql, Number(usuario.id), 'investigacion', horasNum, { incluirPendientes: true });
+    if (!cupo.permitido) {
+      return NextResponse.json({ error: cupo.mensaje }, { status: 400 });
+    }
 
     // Si viene espacio_id, confirmar que sea uno de investigación/vinculación
     // donde este pasante realmente está asignado como instructor — no se
