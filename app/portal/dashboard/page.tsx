@@ -124,9 +124,7 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/registrar-evaluar" className="text-blue-600 hover:underline">» Registrar y evaluar beneficiario</Link>
                   <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Asistencia</Link>
                   <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline">» Evaluación final del beneficiario</Link>
-                  {rol === 'estudiante' && tieneModulo(session, 'subir_video') && (
-                    <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast</Link>
-                  )}
+                  <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar Evento o Podcast</Link>
                 </div>
               </div>
             )}

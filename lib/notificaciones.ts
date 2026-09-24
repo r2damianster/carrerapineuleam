@@ -1,6 +1,7 @@
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppSession } from './session';
 import { esSuperAdminOLider } from './permisos-supervision';
+import { puedeSupervisarVinculacion } from './modulos';
 
 /**
  * Módulo de notificaciones del Portal PINE.
@@ -43,8 +44,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     // Supervisor de Vinculación: asistencias que registraron los pasantes y esperan aprobación.
     // Misma visibilidad que GET /api/vinculacion/supervisar-asistencia.
     id: 'asistencias-por-aprobar',
-    aplica: (sesion) =>
-      ['profesor', 'admin'].includes(sesion.rol) && sesion.modulos_acceso.includes('vinculacion'),
+    aplica: (sesion) => puedeSupervisarVinculacion(sesion),
     consultar: async (sql, sesion) => {
       const veTodo = esSuperAdminOLider(sesion);
       const profesorId = Number(sesion.id);
@@ -62,6 +62,38 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
         id: 'asistencias-por-aprobar',
         cantidad: total,
         mensaje: `Tienes ${plural(total, 'registro de asistencia', 'registros de asistencia')} por aprobar.`,
+        href: '/vinculacion/supervisar',
+        severidad: 'pendiente',
+      };
+    },
+  },
+  {
+    // Supervisor de Vinculación: horas de podcast e investigación de sus pasantes por aprobar.
+    // Misma visibilidad que GET /api/vinculacion/supervisar-horas.
+    id: 'horas-por-aprobar',
+    aplica: (sesion) => puedeSupervisarVinculacion(sesion),
+    consultar: async (sql, sesion) => {
+      const veTodo = esSuperAdminOLider(sesion);
+      const profesorId = Number(sesion.id);
+      const [fila] = await sql`
+        SELECT (
+          (SELECT COUNT(*) FROM horas_podcast_pasante h WHERE h.estado_aprobacion = 'pendiente'
+             AND (${veTodo}::boolean IS TRUE OR EXISTS (
+               SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+               WHERE ei.usuario_id = h.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
+          +
+          (SELECT COUNT(*) FROM actividades_investigacion_pasante a WHERE a.estado_aprobacion = 'pendiente'
+             AND (${veTodo}::boolean IS TRUE OR EXISTS (
+               SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
+        )::int AS total
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'horas-por-aprobar',
+        cantidad: total,
+        mensaje: `Tienes ${plural(total, 'registro de podcast o investigación', 'registros de podcast o investigación')} por aprobar.`,
         href: '/vinculacion/supervisar',
         severidad: 'pendiente',
       };

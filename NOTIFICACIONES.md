@@ -16,7 +16,8 @@ Bloque **"🔔 Pendientes"** al inicio de `/portal/dashboard` + endpoint `GET /a
 ## Reglas activas
 | `id` | Quién lo ve | Qué cuenta | Destino |
 |---|---|---|---|
-| `asistencias-por-aprobar` | profesor/admin con `vinculacion`. Supervisor regular: solo espacios con `profesor_id` = él; superadmin/líderes (`esSuperAdminOLider`): todos | `asistencia_espacio.estado_aprobacion='pendiente'` (área vinculación) | `/vinculacion/supervisar` |
+| `asistencias-por-aprobar` | supervisor de Vinculación (`vinculacion` o `vinculacion_gestion`). Supervisor regular: solo espacios con `profesor_id` = él; superadmin/líderes (`esSuperAdminOLider`): todos | `asistencia_espacio.estado_aprobacion='pendiente'` (área vinculación) | `/vinculacion/supervisar` |
+| `horas-por-aprobar` | Supervisor de Vinculación (`vinculacion` o `vinculacion_gestion`). Supervisor regular: pasantes de sus espacios (`profesor_id` = él); líder/superadmin: todos | `horas_podcast_pasante` + `actividades_investigacion_pasante` con `estado_aprobacion='pendiente'` | `/vinculacion/supervisar` |
 | `videos-por-aprobar` | `modulos_acceso: contenido_sitio` | `videos.aprobado_sitio=false` | `/admin/videos` |
 | `difusion-por-aprobar` | `modulos_acceso: contenido_sitio` | `actividades_difusion.aprobado_sitio=false` (incluye `origen='externo_temporal'`) | `/admin/contenido` |
 | `asistencias-rechazadas` | `rol: estudiante` (pasante) | Sus `asistencia_espacio` con `estado_aprobacion='rechazado'` en los últimos 14 días (sin tabla de "leído": la ventana de tiempo apaga el aviso) | `/portal/mi-avance` (panel rojo con espacio, fecha y motivo, vía `GET /api/mi-avance`) |
