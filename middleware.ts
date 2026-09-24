@@ -161,6 +161,10 @@ export async function middleware(request: NextRequest) {
   // lider/colider de este proyecto especifico.
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     const session = await verifySessionCookieValue(request.cookies.get(SESSION_COOKIE.name)?.value);
+    // /admin/roles (asignar módulos a cada persona) exige además el módulo 'admin'.
+    if (session && pathname.startsWith('/admin/roles') && !session.modulos_acceso.includes('admin')) {
+      return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
     if (!session || !session.modulos_acceso.includes('contenido_sitio')) {
       const loginUrl = new URL('/portal/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);

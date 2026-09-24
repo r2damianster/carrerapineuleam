@@ -11,6 +11,8 @@ interface Actividad {
   horas: number;
   espacio_id: number | null;
   espacio_nombre: string | null;
+  estado_aprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
+  motivo_rechazo?: string | null;
   usuario_id?: number;
   nombres?: string;
   apellidos?: string;
@@ -32,9 +34,8 @@ export default function InvestigacionActividadesPage() {
       .then(async data => {
         const usuario = data.usuario;
         const pasanteConInvestigacion = usuario.rol === 'estudiante' && usuario.modulos_acceso?.includes('investigacion');
-        const docenteVinculacion = ['profesor', 'admin'].includes(usuario.rol) && usuario.modulos_acceso?.includes('vinculacion');
-
-        if (!pasanteConInvestigacion && !docenteVinculacion) {
+        // Los supervisores aprueban en /vinculacion/supervisar; esta página es del pasante.
+        if (!pasanteConInvestigacion) {
           router.push('/portal/dashboard');
           return;
         }
@@ -94,7 +95,7 @@ export default function InvestigacionActividadesPage() {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Actividades de Investigación</h1>
         <p className="text-gray-600 text-sm mb-6">
           {esPasante
-            ? 'Registra aquí las actividades de investigación que realizas, además de tus horas de vinculación. Quedan guardadas para un futuro informe — no requieren aprobación.'
+            ? 'Registra aquí las actividades de investigación que realizas, además de tus horas de vinculación. Tu supervisor las aprueba o rechaza; solo cuentan como horas cuando quedan aprobadas.'
             : 'Actividades de investigación reportadas por pasantes de vinculación con funciones de investigación asignadas.'}
         </p>
 
@@ -131,10 +132,16 @@ export default function InvestigacionActividadesPage() {
                   {!esPasante && a.nombres ? `${a.nombres} ${a.apellidos} — ` : ''}
                   {new Date(a.fecha + 'T00:00:00').toLocaleDateString('es-EC')}
                 </span>
-                <span className="text-emerald-700 font-medium">{a.horas} h</span>
+                <span className="flex items-center gap-2">
+                  {a.estado_aprobacion && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.estado_aprobacion === 'aprobado' ? 'bg-green-100 text-green-800' : a.estado_aprobacion === 'rechazado' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{a.estado_aprobacion}</span>
+                  )}
+                  <span className="text-emerald-700 font-medium">{a.horas} h</span>
+                </span>
               </div>
               <p className="text-gray-600 mt-1">{a.descripcion}</p>
               {a.espacio_nombre && <p className="text-gray-400 text-xs mt-1">Espacio: {a.espacio_nombre}</p>}
+              {a.estado_aprobacion === 'rechazado' && a.motivo_rechazo && <p className="text-red-600 text-xs mt-1">Motivo de rechazo: {a.motivo_rechazo}</p>}
             </li>
           ))}
         </ul>

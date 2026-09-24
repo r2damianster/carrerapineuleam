@@ -5,6 +5,7 @@ import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
+import { esDocente as esDocenteSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
 import PendientesPortal from '@/components/PendientesPortal';
 import Header from '@/components/Header';
@@ -18,8 +19,22 @@ export default async function PortalDashboard() {
     redirect('/portal/login');
   }
 
+  // Los módulos viajan dentro de la cookie: si /admin/roles los cambió en Neon, se re-emite la
+  // cookie (app/api/auth/sync) y se vuelve aquí, sin obligar a iniciar sesión otra vez.
+  {
+    const sqlSync = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
+    const [filaActual] = await sqlSync`SELECT rol, modulos_acceso FROM usuarios WHERE id = ${parseInt(session.id, 10)}`;
+    if (filaActual) {
+      const modulosBD = [...(filaActual.modulos_acceso || [])].sort().join(',');
+      const modulosCookie = [...(session.modulos_acceso || [])].sort().join(',');
+      if (modulosBD !== modulosCookie || filaActual.rol !== session.rol) {
+        redirect('/api/auth/sync?redirect=/portal/dashboard');
+      }
+    }
+  }
+
   const { modulos_acceso, nombres, rol, email } = session;
-  const esDocente = rol === 'profesor' || rol === 'admin';
+  const esDocente = esDocenteSesion(session);
   const proyectoPropio = liderProyectoPropio[email];
 
   // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
@@ -66,19 +81,32 @@ export default async function PortalDashboard() {
 
           <PendientesPortal notificaciones={notificaciones} />
 
+          {/* Dashboard PINE: acceso propio y siempre visible para todo docente. */}
+          {esDocente && (
+            <Link
+              href="/pine-dashboard"
+              className="mb-6 flex items-center justify-between gap-4 rounded-xl bg-uleam-blue px-6 py-4 text-white shadow-md hover:shadow-lg transition"
+            >
+              <span>
+                <span className="block text-lg font-bold">📊 Dashboard PINE</span>
+                <span className="block text-sm text-blue-100">Metas e indicadores del proyecto en tiempo real, con filtro por período.</span>
+              </span>
+              <span className="text-sm font-semibold whitespace-nowrap">Abrir &rarr;</span>
+            </Link>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {/* Yo y la Carrera — datos personales + dashboard PINE (metas e indicadores del proyecto). Cualquier docente/admin. */}
+            {/* Yo y la Carrera — perfil y contribuciones. Todo docente. El Dashboard PINE va aparte, arriba. */}
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Yo y la Carrera</h3>
-                <p className="text-gray-600 mb-4 text-sm">Tu perfil, tus contribuciones académicas y los indicadores del proyecto.</p>
+                <p className="text-gray-600 mb-4 text-sm">Tu perfil y tus contribuciones académicas.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
                   <Link href="/contribuciones/new" className="text-indigo-600 hover:underline">» Registrar Contribución (artículo, libro, ponencia…)</Link>
                   <Link href="/gestion-carrera" className="text-indigo-600 hover:underline">» Registrar Evento o Podcast</Link>
                   <Link href="/contribuciones" className="text-indigo-600 hover:underline">» Ver Contribuciones Registradas</Link>
-                  <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE (metas e indicadores)</Link>
                 </div>
               </div>
             )}
@@ -96,8 +124,8 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/registrar-evaluar" className="text-blue-600 hover:underline">» Registrar y evaluar beneficiario</Link>
                   <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Asistencia</Link>
                   <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline">» Evaluación final del beneficiario</Link>
-                  {rol === 'estudiante' && (
-                    <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast o evento</Link>
+                  {rol === 'estudiante' && tieneModulo(session, 'subir_video') && (
+                    <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar podcast</Link>
                   )}
                 </div>
               </div>
@@ -134,34 +162,33 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Vinculación — Gestión: solo profesor/admin */}
-            {modulos_acceso.includes('vinculacion') && esDocente && (
+            {/* Vinculación — Gestión: solo líder de Vinculación (módulo vinculacion_gestion) o superadmin */}
+            {puedeGestionarVinculacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Crear espacios y asignar instructores y pasantes.</p>
+                <p className="text-gray-600 mb-4 text-sm">Crear espacios y administrar pasantes.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
-                  <Link href="/vinculacion/investigacion-actividades" className="text-purple-600 hover:underline">» Ver Actividades de Investigación</Link>
                 </div>
               </div>
             )}
 
             {/* Vinculación — Supervisión: profesores supervisores (Sesión 49). Cada uno ve
                 solo sus espacios; superadmin/líderes ven todo (esSuperAdminOLider). */}
-            {modulos_acceso.includes('vinculacion') && esDocente && (
+            {puedeSupervisarVinculacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Supervisión de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Aprueba asistencias de tus pasantes y revisa sus indicadores.</p>
+                <p className="text-gray-600 mb-4 text-sm">Aprueba o rechaza asistencia, podcast e investigación de tus pasantes, y revisa sus horas.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar Asistencia</Link>
+                  <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar actividades y horas</Link>
                   <Link href="/vinculacion/supervisar/indicadores" className="text-indigo-600 hover:underline">» Panel de Supervisión (Indicadores)</Link>
                 </div>
               </div>
             )}
 
             {/* Investigación — espacios + informes mensuales (Groq + selección de registros del período) */}
-            {(modulos_acceso.includes('investigacion') || modulos_acceso.includes('admin')) && esDocente && (
+            {puedeGestionarInvestigacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Investigación</h3>
                 <p className="text-gray-600 mb-4 text-sm">Espacios de investigación e informes mensuales de actividades.</p>
@@ -212,6 +239,17 @@ export default async function PortalDashboard() {
               </div>
             )}
 
+            {/* Roles y usuarios — asignar módulos a cada persona. Solo módulo admin (+ acceso a /admin). */}
+            {modulos_acceso.includes('admin') && modulos_acceso.includes('contenido_sitio') && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-rose-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Roles y usuarios</h3>
+                <p className="text-gray-600 mb-4 text-sm">Asigna o quita módulos a docentes y pasantes con casillas de selección.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/admin/roles" className="text-rose-600 hover:underline">» Administrar roles</Link>
+                </div>
+              </div>
+            )}
+
             {/* Superadmin — acceso absoluto a la Neon. Atribuido única y exclusivamente a arturo.rodriguez@uleam.edu.ec */}
             {modulos_acceso.includes('superadmin') && SUPERADMIN_EMAILS.includes(email) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-gray-800 hover:shadow-lg transition">
@@ -225,7 +263,7 @@ export default async function PortalDashboard() {
 
           </div>
 
-          {modulos_acceso.length === 0 && rol !== 'estudiante' && (
+          {!esDocente && modulos_acceso.length === 0 && rol !== 'estudiante' && (
             <div className="bg-yellow-50 p-6 rounded-lg text-yellow-800 text-center">
               Tu cuenta no tiene módulos asignados aún. Por favor contacta al administrador.
             </div>
