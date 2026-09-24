@@ -294,7 +294,7 @@ export default function PerfilPage() {
             <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium mb-4">
               &larr; Volver al Portal PINE
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Yo y la Carrera</h1>
             <p className="text-gray-600 mt-2">{perfil.nombres} {perfil.apellidos} — {perfil.email}</p>
           </div>
 

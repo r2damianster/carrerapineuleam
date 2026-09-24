@@ -64,13 +64,15 @@ export default async function PortalDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {/* Mi Perfil — cualquier docente/admin, para completar/actualizar sus propios datos */}
+            {/* Yo y la Carrera — datos personales + dashboard PINE (metas e indicadores del proyecto). Cualquier docente/admin. */}
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Mi Perfil</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Yo y la Carrera</h3>
                 <p className="text-gray-600 mb-4 text-sm">Cédula, ORCID, títulos académicos, foto y contraseña.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
+                  <Link href="/pine-dashboard" className="text-indigo-600 hover:underline">» Ver Dashboard PINE</Link>
+                  <p className="text-xs text-gray-500">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
                 </div>
               </div>
             )}
@@ -188,16 +190,6 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Módulo: Dashboard Estadístico — cualquier docente */}
-            {esDocente && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Indicadores</h3>
-                <p className="text-gray-600 mb-4 text-sm">Visualización en tiempo real del progreso de las metas e indicadores del proyecto.</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/pine-dashboard" className="text-yellow-600 hover:underline">» Ver Dashboard PINE</Link>
-                </div>
-              </div>
-            )}
             {/* Utilidades — cualquier docente */}
             {esDocente && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">

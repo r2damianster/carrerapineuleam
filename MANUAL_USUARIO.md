@@ -112,7 +112,7 @@ Tarjeta **"Gestión de Carrera"**, visible a cualquier profesor sin importar su 
 
 ## 📊 Perfil: Indicadores (módulo `admin`)
 
-Solo para quien tiene el módulo `admin` (hoy: Arturo, Jhonny, German, Verónica). Tarjeta **"Indicadores"** → `/pine-dashboard`, agrupado por áreas (Vinculación e Investigación):
+Disponible para cualquier docente (profesor/admin). Desde Sesión 49 se entra por la tarjeta **"Yo y la Carrera"** → **» Ver Dashboard PINE** (`/pine-dashboard`; ya no existe la tarjeta "Indicadores" aparte; `/investigacion/informes` sigue requiriendo el módulo `admin`/`investigacion`), agrupado por áreas (Vinculación e Investigación):
 - **Diagnóstico MCER (Pre-Test) — Semestre Actual:** Beneficiarios evaluados en test inicial respecto al total de inscritos en talleres (cobertura diagnóstica en tiempo real).
 - **Evaluaciones Finales (Post-Test) — Meta Proyecto (2 Años):** Avance de los participantes que culminan su evaluación final al cierre de ciclo respecto a la meta de 100 evaluados.
 - **Beneficiarios Inscritos & Atendidos:** Cantidad de beneficiarios asignados a talleres sobre el total de registrados en la plataforma.

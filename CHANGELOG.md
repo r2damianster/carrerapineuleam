@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.12.5] - 2026-09-24 (Sesión 49)
+
+### ✅ Changed
+- Dashboard: tarjeta "Mi Perfil" renombrada a "Yo y la Carrera" e incorpora el link al Dashboard PINE; se elimina la tarjeta "Indicadores".
+
 ## [0.12.4] - 2026-09-24 (Sesión 49)
 
 ### ✅ Changed
