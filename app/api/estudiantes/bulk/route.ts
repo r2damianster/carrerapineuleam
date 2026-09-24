@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 
 interface FilaEntrada {
   nombres?: string;
@@ -47,7 +48,7 @@ function validarFilas(rows: FilaEntrada[], existentes: Set<string>): FilaResulta
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol) || !usuario.modulos_acceso.includes('vinculacion')) {
+    if (!usuario || !puedeGestionarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

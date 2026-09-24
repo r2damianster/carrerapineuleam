@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 
 export async function PATCH(
   request: Request,
@@ -8,7 +9,7 @@ export async function PATCH(
 ) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol) || !usuario.modulos_acceso.includes('vinculacion')) {
+    if (!usuario || !puedeGestionarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -79,7 +80,7 @@ export async function DELETE(
 ) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol) || !usuario.modulos_acceso.includes('vinculacion')) {
+    if (!usuario || !puedeGestionarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

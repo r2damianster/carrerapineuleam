@@ -1,4 +1,5 @@
 import { getAppSessionFromCookies, type AppSession } from "@/lib/session";
+import { puedeGestionarInvestigacion } from "@/lib/modulos";
 
 /**
  * Las API routes de /investigacion/informes NUNCA pasan por middleware.ts (su
@@ -9,7 +10,6 @@ import { getAppSessionFromCookies, type AppSession } from "@/lib/session";
 export async function requireInvestigacionApi(): Promise<AppSession | null> {
   const usuario = await getAppSessionFromCookies();
   if (!usuario) return null;
-  if (!["profesor", "admin"].includes(usuario.rol)) return null;
-  if (!usuario.modulos_acceso?.some((m) => m === "investigacion" || m === "admin")) return null;
+  if (!puedeGestionarInvestigacion(usuario)) return null;
   return usuario;
 }

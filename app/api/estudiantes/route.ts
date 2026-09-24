@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 
 export async function GET() {
   try {
@@ -49,7 +50,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol) || !usuario.modulos_acceso.includes('vinculacion')) {
+    if (!usuario || !puedeGestionarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

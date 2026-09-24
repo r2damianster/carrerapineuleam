@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 
 export async function PATCH(
   request: Request,
@@ -17,7 +18,7 @@ export async function PATCH(
 
     const [actual] = await sql`SELECT area FROM espacios_enseñanza WHERE id = ${espacioId}`;
     if (!actual) return NextResponse.json({ error: 'Espacio no encontrado' }, { status: 404 });
-    if (!usuario.modulos_acceso.includes(actual.area)) {
+    if (!puedeAdministrarArea(usuario, actual.area)) {
       return NextResponse.json({ error: 'No tienes acceso a ese módulo' }, { status: 403 });
     }
 
@@ -54,7 +55,7 @@ export async function DELETE(
 
     const [actual] = await sql`SELECT area FROM espacios_enseñanza WHERE id = ${espacioId}`;
     if (!actual) return NextResponse.json({ error: 'Espacio no encontrado' }, { status: 404 });
-    if (!usuario.modulos_acceso.includes(actual.area)) {
+    if (!puedeAdministrarArea(usuario, actual.area)) {
       return NextResponse.json({ error: 'No tienes acceso a ese módulo' }, { status: 403 });
     }
 

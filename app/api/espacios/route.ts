@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 
 export async function GET(request: Request) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     if (!nombre || !tipo || !ciclo_id || !area) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
-    if (!usuario.modulos_acceso.includes(area)) {
+    if (!puedeAdministrarArea(usuario, area)) {
       return NextResponse.json({ error: 'No tienes acceso a ese módulo' }, { status: 403 });
     }
 

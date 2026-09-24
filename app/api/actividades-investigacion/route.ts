@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeSupervisarVinculacion } from '@/lib/modulos';
 
 // Reporte de horas/actividades de investigación de un pasante de Vinculación
 // que además tiene funciones de investigación (usuarios.modulos_acceso
@@ -19,13 +20,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const usuarioIdParam = searchParams.get('usuario_id');
 
-    const esDocenteVinculacion =
-      ['profesor', 'admin'].includes(usuario.rol) && usuario.modulos_acceso.includes('vinculacion');
+    const esDocenteVinculacion = puedeSupervisarVinculacion(usuario);
 
     if (usuario.rol === 'estudiante') {
       // Un pasante solo ve sus propias actividades.
       const actividades = await sql`
-        SELECT a.id, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre
+        SELECT a.id, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
         FROM actividades_investigacion_pasante a
         LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id
         WHERE a.usuario_id = ${usuario.id}
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     // Profesor/admin de vinculación: todas, o filtradas por un pasante.
     const actividades = usuarioIdParam
       ? await sql`
-          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre
+          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
           ORDER BY a.fecha DESC, a.id DESC
         `
       : await sql`
-          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre
+          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id

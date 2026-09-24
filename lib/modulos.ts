@@ -51,3 +51,11 @@ export function puedeGestionarVinculacion(usuario: UsuarioConModulos): boolean {
 export function puedeGestionarInvestigacion(usuario: UsuarioConModulos): boolean {
   return esDocente(usuario) && tieneModulo(usuario, 'investigacion');
 }
+
+// Administrar espacios de un área: vinculación exige ser líder de Vinculación; investigación exige el módulo.
+export function puedeAdministrarArea(usuario: UsuarioConModulos, area: string): boolean {
+  if (!esDocente(usuario)) return false;
+  if (area === 'vinculacion') return esLiderVinculacion(usuario);
+  if (area === 'investigacion') return tieneModulo(usuario, 'investigacion');
+  return false;
+}

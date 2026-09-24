@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySessionCookieValue, createSessionCookieValue, SESSION_COOKIE, type AppSession } from '@/lib/session';
+import { puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion } from '@/lib/modulos';
 
 // Expiración "sliding": reemite la cookie con maxAge completo (8h, ver
 // lib/session.ts) en cada request autenticado que pasa por el middleware —
@@ -78,13 +79,17 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
-    if (pathname.startsWith('/vinculacion/pasantes') && !['profesor', 'admin'].includes(session.rol)) {
+    // Gestión (crear espacios, administrar pasantes): solo líder de Vinculación / superadmin.
+    if (
+      (pathname.startsWith('/vinculacion/pasantes') || pathname.startsWith('/vinculacion/espacios')) &&
+      !puedeGestionarVinculacion(session)
+    ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
     if (
       pathname.startsWith('/vinculacion/supervisar') &&
-      (!['profesor', 'admin'].includes(session.rol) || !session.modulos_acceso.includes('vinculacion'))
+      !puedeSupervisarVinculacion(session)
     ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
@@ -99,20 +104,18 @@ export async function middleware(request: NextRequest) {
 
     if (
       pathname.startsWith('/vinculacion/investigacion-actividades') &&
-      !(session.rol === 'estudiante' && session.modulos_acceso.includes('investigacion')) &&
-      !(['profesor', 'admin'].includes(session.rol) && session.modulos_acceso.includes('vinculacion'))
+      !(session.rol === 'estudiante' && session.modulos_acceso.includes('investigacion'))
     ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
-    if (pathname.startsWith('/investigacion/espacios') && !session.modulos_acceso.includes('investigacion')) {
+    if (pathname.startsWith('/investigacion/espacios') && !puedeGestionarInvestigacion(session)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
     if (
       pathname.startsWith('/investigacion/informes') &&
-      (!['profesor', 'admin'].includes(session.rol) ||
-        !(session.modulos_acceso.includes('investigacion') || session.modulos_acceso.includes('admin')))
+      !puedeGestionarInvestigacion(session)
     ) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
