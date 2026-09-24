@@ -346,6 +346,7 @@ export default function DifusionPage() {
               />
               <SelectorParticipantesPodcast
                 areaSustantiva="vinculacion"
+                profesoresResponsables={responsables}
                 participantes={participantes}
                 invitadosInternos={invitadosInternos}
                 invitadosExternos={invitadosExternos}

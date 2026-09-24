@@ -326,6 +326,7 @@ export default function GestionCarreraPage() {
               />
               <SelectorParticipantesPodcast
                 areaSustantiva={videoArea}
+                profesoresResponsables={responsables}
                 participantes={participantes}
                 invitadosInternos={invitadosInternos}
                 invitadosExternos={invitadosExternos}

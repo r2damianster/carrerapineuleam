@@ -40,6 +40,7 @@ export default function SupervisarAsistenciaPage() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [espacios, setEspacios] = useState<{ id: number; nombre: string }[]>([]);
   const [instructores, setInstructores] = useState<Instructor[]>([]);
+  const [esLider, setEsLider] = useState(false);
   const [loading, setLoading] = useState(false);
   const [procesandoId, setProcesandoId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
@@ -62,6 +63,7 @@ export default function SupervisarAsistenciaPage() {
       setRegistros(data.data);
       setEspacios(data.espacios);
       setInstructores(data.instructores);
+      setEsLider(!!data.esLider);
     }
     setLoading(false);
   }, [estado, espacioId, instructorId, orden]);
@@ -145,7 +147,18 @@ export default function SupervisarAsistenciaPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-uleam-blue mb-1">Supervisar Asistencia</h1>
-            <p className="text-gray-600 text-sm">Aprueba o rechaza los registros de asistencia de tus estudiantes-instructores. Las horas acreditables se calculan al aprobar.</p>
+            <p className="text-gray-600 text-sm flex items-center gap-2 flex-wrap">
+              {esLider ? (
+                <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  Vista Global (Superadmin / Líder)
+                </span>
+              ) : (
+                <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  Mis Pasantes Asignados
+                </span>
+              )}
+              <span>Aprueba o rechaza los registros de asistencia de los estudiantes-instructores. Las horas acreditables se calculan al aprobar.</span>
+            </p>
           </div>
           <Link href="/vinculacion/supervisar/indicadores" className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0">
             <span>📊 Ver Indicadores & Analítica &rarr;</span>

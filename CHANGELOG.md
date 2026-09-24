@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.12.2] - 2026-09-23 (Sesión 48)
 
 ### ✅ Added & Improved
-- **Formulario de Registro de Difusión (`/vinculacion/difusion`) Enriquecido:**
-  - Se añadieron las áreas de texto `descripcion` y `observaciones` conectadas a `POST /api/difusion` y moderables/editables desde `/admin/contenido`.
-  - Integrado el botón **✨ Generar / Pulir con IA** (`generarConIA` llamando a `/api/difusion/generar-texto`) para redactar automáticamente descripciones formales e institucionales del evento o podcast.
-  - Selección de hora del evento y de la nueva categoría **Maestría / Posgrado**.
+- **Selector de Participantes de Podcast (`SelectorParticipantesPodcast`) Refactorizado (Paridad con Asistencia):**
+  - **Pasantes Titulares / Asignados (Checklist)**: Filtra y muestra automáticamente los pasantes asignados a él o los profesores supervisores seleccionados (ej. Keyla y Michell para el supervisor Arturo en el espacio Podcast) mediante la API `/api/espacios/instructores?profesor_ids=...`.
+  - **Pasantes Invitados**: Permite seleccionar a otros pasantes de la carrera a través de un desplegable con el botón `+ Agregar invitado`, mostrándolos con un badge y botón `"Quitar"`.
+  - **Docentes Participantes**: Permite incluir a otros profesores/docentes de la carrera que hayan participado en el episodio mediante selector y botón `+ Agregar docente`.
+  - **Invitados Internos & Externos**: Cajas de texto para invitados universitarios o externos a la ULEAM.
 
 - **Categoría Maestría / Posgrado (`maestria`) a Nivel Global:**
   - Se habilitó la opción **Maestría / Posgrado** (`maestria`) como categoría de evento seleccionable en `/vinculacion/difusion`, `/gestion-carrera`, `/vinculacion/publico-difusion/[token]` y en el panel de administración `/admin/contenido`.

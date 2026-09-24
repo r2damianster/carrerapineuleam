@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { esSuperAdminOLider } from '@/lib/permisos-supervision';
 
 export async function GET() {
   try {
@@ -8,6 +9,9 @@ export async function GET() {
     if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const esLider = esSuperAdminOLider(usuario);
+    const usuarioIdNum = Number(usuario.id);
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
 
@@ -84,6 +88,7 @@ export async function GET() {
         GROUP BY instructor_id
       ) enc ON enc.instructor_id = u.id
       WHERE u.rol = 'estudiante'
+        AND (${esLider}::boolean IS TRUE OR e.profesor_id = ${usuarioIdNum})
       ORDER BY u.apellidos ASC, u.nombres ASC
     `;
 
@@ -125,6 +130,7 @@ export async function GET() {
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por
       WHERE ae.estado_aprobacion = 'pendiente'
+        AND (${esLider}::boolean IS TRUE OR e.profesor_id = ${usuarioIdNum})
       ORDER BY ae.fecha ASC
       LIMIT 10
     `;
@@ -141,6 +147,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      esLider,
       pasantesAnalitica,
       mcerImpacto,
       mcerGlobal: mcerGlobal || { total_evaluados: 0, total_pre: 0, total_post: 0, prom_pre: 0, prom_post: 0 },
@@ -153,3 +160,4 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

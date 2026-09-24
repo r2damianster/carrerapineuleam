@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { esSuperAdminOLider } from '@/lib/permisos-supervision';
 
 // Solo profesor/admin de vinculación supervisan — el estudiante-instructor
 // nunca ve esta pantalla, solo registra (ver /vinculacion/asistencia).
@@ -15,6 +16,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    const esLider = esSuperAdminOLider(usuario);
+    const usuarioIdNum = Number(usuario.id);
+
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado'); // pendiente|aprobado|rechazado|todos
     const espacioId = searchParams.get('espacio_id');
@@ -23,6 +27,8 @@ export async function GET(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
 
+    // Si es superadmin o líder, ve todas las asistencias de vinculación.
+    // Si es supervisor regular, solo ve asistencias de espacios donde profesor_id = usuarioIdNum.
     const registros = await sql`
       SELECT
         ae.id, ae.espacio_id, e.nombre AS espacio_nombre,
@@ -45,6 +51,7 @@ export async function GET(request: Request) {
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por
       WHERE e.area = 'vinculacion'
+        AND (${esLider}::boolean IS TRUE OR e.profesor_id = ${usuarioIdNum})
         AND (${estado}::text IS NULL OR ${estado} = 'todos' OR ae.estado_aprobacion = ${estado})
         AND (${espacioId}::text IS NULL OR ae.espacio_id = ${espacioId}::int)
         AND (
@@ -60,19 +67,32 @@ export async function GET(request: Request) {
         ae.fecha DESC, ae.creado_en DESC
     `;
 
-    // Listas para los filtros: espacios de vinculación + instructores/estudiantes que han registrado o están asignados
-    const espacios = await sql`SELECT id, nombre FROM "espacios_enseñanza" WHERE area = 'vinculacion' ORDER BY nombre`;
-    const instructores = await sql`
-      SELECT DISTINCT u.id, u.nombres, u.apellidos
-      FROM usuarios u
-      JOIN espacio_instructores ei ON ei.usuario_id = u.id
-      JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-      WHERE e.area = 'vinculacion'
-      ORDER BY u.nombres
-    `;
+    // Listas para los filtros: si es superadmin/líder ve todos los de vinculación, si no solo los propios
+    const espacios = esLider
+      ? await sql`SELECT id, nombre FROM "espacios_enseñanza" WHERE area = 'vinculacion' ORDER BY nombre`
+      : await sql`SELECT id, nombre FROM "espacios_enseñanza" WHERE area = 'vinculacion' AND profesor_id = ${usuarioIdNum} ORDER BY nombre`;
 
-    return NextResponse.json({ success: true, data: registros, espacios, instructores });
+    const instructores = esLider
+      ? await sql`
+          SELECT DISTINCT u.id, u.nombres, u.apellidos
+          FROM usuarios u
+          JOIN espacio_instructores ei ON ei.usuario_id = u.id
+          JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+          WHERE e.area = 'vinculacion'
+          ORDER BY u.nombres
+        `
+      : await sql`
+          SELECT DISTINCT u.id, u.nombres, u.apellidos
+          FROM usuarios u
+          JOIN espacio_instructores ei ON ei.usuario_id = u.id
+          JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+          WHERE e.area = 'vinculacion' AND e.profesor_id = ${usuarioIdNum}
+          ORDER BY u.nombres
+        `;
+
+    return NextResponse.json({ success: true, data: registros, espacios, instructores, esLider });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

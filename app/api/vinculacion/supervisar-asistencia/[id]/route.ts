@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { registrarHorasAsistencia } from '@/lib/horasAsistencia';
+import { esSuperAdminOLider } from '@/lib/permisos-supervision';
 
 function puedeSupervisar(usuario: { rol: string; modulos_acceso: string[] }) {
   return ['profesor', 'admin'].includes(usuario.rol) && usuario.modulos_acceso.includes('vinculacion');
@@ -21,6 +22,25 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const sql = neon(process.env.DATABASE_URL!);
     const id = parseInt(params.id, 10);
+
+    const [asistenciaActual] = await sql`
+      SELECT ae.id, e.profesor_id
+      FROM asistencia_espacio ae
+      JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
+      WHERE ae.id = ${id}
+    `;
+
+    if (!asistenciaActual) {
+      return NextResponse.json({ error: 'Registro de asistencia no encontrado' }, { status: 404 });
+    }
+
+    const esLider = esSuperAdminOLider(usuario);
+    if (!esLider && Number(asistenciaActual.profesor_id) !== Number(usuario.id)) {
+      return NextResponse.json(
+        { error: 'No tienes permiso para aprobar o rechazar asistencias de este pasante o espacio.' },
+        { status: 403 }
+      );
+    }
 
     if (accion === 'rechazar') {
       const [actualizado] = await sql`
@@ -59,3 +79,4 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

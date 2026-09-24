@@ -12,6 +12,25 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const espacio_id = searchParams.get('espacio_id');
+    const profesor_ids_param = searchParams.get('profesor_ids');
+
+    const sql = neon(process.env.DATABASE_URL!);
+
+    if (profesor_ids_param) {
+      const ids = profesor_ids_param.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
+      if (ids.length > 0) {
+        const instructores = await sql`
+          SELECT DISTINCT u.id, u.nombres, u.apellidos
+          FROM espacio_instructores ei
+          JOIN "espacios_enseñanza" ee ON ee.id = ei.espacio_id
+          JOIN usuarios u ON ei.usuario_id = u.id
+          WHERE ee.profesor_id = ANY(${ids})
+          ORDER BY u.apellidos
+        `;
+        return NextResponse.json({ success: true, data: instructores });
+      }
+    }
+
     if (!espacio_id) {
       return NextResponse.json({ success: true, data: [], espacio: null, supervisor: null });
     }
@@ -22,7 +41,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
     const [instructores, espacioRows] = await Promise.all([
       sql`
         SELECT u.id, u.nombres, u.apellidos
