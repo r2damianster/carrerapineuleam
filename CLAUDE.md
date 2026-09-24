@@ -187,6 +187,10 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - `dpl_HqedNdC9…` — commit `012d646` (feat difusión con IA/maestría, 2026-09-23) → **ERROR**: `Syntax Error … Expected ',', got 'hora'` en `app/vinculacion/difusion/page.tsx:61-67` (objeto de estado inicial con claves duplicadas/coma faltante: `audiencia_alcanzada` dos veces). Se pusheó **sin correr `npm run build`/`tsc`**. Producción siguió sirviendo el build anterior hasta que `c486110` lo arregló (~3 h después). Nada roto en runtime: 0 errores en logs de producción últimos 7 días.
 - Deploys `CANCELED` (3) = commits de solo docs que llegaron pegados a otro commit; `vercel-ignore-build.sh` los salta a propósito (evita cuota de ~300 funciones por deploy). No son fallos.
 
+### Bug de "Ver como" en producción (2026-09-24) — código y esquema desincronizados
+- Síntoma: al suplantar a un usuario, `new row for relation "superadmin_audit_log" violates check constraint "superadmin_audit_log_tipo_accion_check"`. Causa: Sesión 46 agregó `impersonate`/`impersonate_revert` en `lib/superadmin-auth.ts` pero **nunca se amplió el CHECK en Neon**; la feature no funcionó desde su despliegue. Corregido en Neon vía MCP + `scripts/migrate-audit-impersonate.js` (y `migrate-superadmin.js` actualizado).
+- **Lección:** si un cambio de código agrega un valor a un enum/CHECK/union que vive también en la BD, migrar la BD en el mismo cambio y probar el flujo real (no solo `build`). `tsc`/`build` no detectan constraints de Postgres.
+
 ### Reglas obligatorias (Claude y Antigravity)
 1. **Antes de `git push` con cambios en `.ts/.tsx`: `npx tsc --noEmit` y `npm run build` deben pasar localmente.** El auto-commit hook empuja solo; si editaste código, verifica antes de cerrar la sesión.
 2. Nunca dejar claves duplicadas en objetos de estado de formularios (React `useState({...})`): tras pegar bloques generados, releer el objeto completo.

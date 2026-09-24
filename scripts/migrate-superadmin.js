@@ -20,7 +20,7 @@ async function main() {
       actor_id INTEGER,
       actor_email TEXT NOT NULL,
       creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      tipo_accion TEXT NOT NULL CHECK (tipo_accion IN ('sql', 'crud_insert', 'crud_update', 'crud_delete')),
+      tipo_accion TEXT NOT NULL CHECK (tipo_accion IN ('sql', 'crud_insert', 'crud_update', 'crud_delete', 'impersonate', 'impersonate_revert')),
       tabla_afectada TEXT,
       detalle TEXT NOT NULL,
       resultado TEXT
