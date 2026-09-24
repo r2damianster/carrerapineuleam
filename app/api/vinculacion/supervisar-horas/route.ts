@@ -16,7 +16,8 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const tipo = searchParams.get('tipo') === 'investigacion' ? 'investigacion' : 'podcast';
+    const tipoParam = searchParams.get('tipo');
+    const tipo = tipoParam === 'investigacion' || tipoParam === 'autonomas' ? tipoParam : 'podcast';
     const estado = searchParams.get('estado'); // pendiente|aprobado|rechazado|todos
     const periodoId = searchParams.get('periodo_id');
     const pasanteId = searchParams.get('pasante_id');
@@ -42,6 +43,22 @@ export async function GET(request: Request) {
                  (SELECT fecha_inicio FROM ciclos_academicos WHERE id = ${periodoId}::int)
                  AND (SELECT fecha_fin FROM ciclos_academicos WHERE id = ${periodoId}::int))
           ORDER BY (h.estado_aprobacion = 'pendiente') DESC, h.creado_en DESC
+        `
+      : tipo === 'autonomas'
+      ? await sql`
+          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas::float AS horas,
+                 a.estado_aprobacion, a.motivo_rechazo, a.creado_en
+          FROM actividades_autonomas_pasante a
+          JOIN usuarios u ON u.id = a.usuario_id
+          WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
+                  SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e2 ON e2.id = ei.espacio_id
+                  WHERE ei.usuario_id = a.usuario_id AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))
+            AND (${estado}::text IS NULL OR ${estado} = 'todos' OR a.estado_aprobacion = ${estado})
+            AND (${pasanteId}::text IS NULL OR a.usuario_id = ${pasanteId}::int)
+            AND (${periodoId}::text IS NULL OR a.fecha BETWEEN
+                 (SELECT fecha_inicio FROM ciclos_academicos WHERE id = ${periodoId}::int)
+                 AND (SELECT fecha_fin FROM ciclos_academicos WHERE id = ${periodoId}::int))
+          ORDER BY (a.estado_aprobacion = 'pendiente') DESC, a.fecha DESC, a.id DESC
         `
       : await sql`
           SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas::float AS horas,

@@ -45,7 +45,7 @@ interface RegistroHoras {
   espacio_nombre?: string | null;
 }
 
-type Pestana = 'asistencia' | 'podcast' | 'investigacion';
+type Pestana = 'asistencia' | 'podcast' | 'investigacion' | 'autonomas';
 
 const ESTADO_BADGE: Record<string, string> = {
   pendiente: 'bg-yellow-100 text-yellow-800',
@@ -241,7 +241,7 @@ export default function SupervisarAsistenciaPage() {
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
 
         <div className="flex gap-2 mb-4 border-b border-gray-200">
-          {([['asistencia', 'Asistencia'], ['podcast', 'Podcast'], ['investigacion', 'Investigación']] as [Pestana, string][]).map(([clave, etiqueta]) => (
+          {([['asistencia', 'Asistencia'], ['podcast', 'Podcast'], ['investigacion', 'Investigación'], ['autonomas', 'Autónomas']] as [Pestana, string][]).map(([clave, etiqueta]) => (
             <button
               key={clave}
               onClick={() => setPestana(clave)}

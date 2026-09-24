@@ -52,17 +52,22 @@ export const siteSettings: SiteSettings[] = [
   },
 ];
 export const profesorModulos: Record<string, string[]> = {
-  'arturo.rodriguez@uleam.edu.ec': ['admin','investigacion','vinculacion','contenido_sitio','Proyecto_Internacionalizacion','indicadores','utilidades'],
-  'jhonny.villafuerte@uleam.edu.ec': ['admin','investigacion','contenido_sitio','Proyecto_Internacionalizacion','indicadores','utilidades'],
-  'german.carrera@uleam.edu.ec': ['admin','investigacion','indicadores','utilidades'],
-  'veronica.chavez@uleam.edu.ec': ['admin','investigacion','indicadores','utilidades'],
-  'maria.basantes@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Cristina Basantes
-  'johanna.bello@uleam.edu.ec': ['investigacion','indicadores','utilidades'], // Johana Bello
-  'ulbio.farfan@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
-  'jorge.corral@uleam.edu.ec': ['admin','investigacion','vinculacion','Proyecto_Internacionalizacion','indicadores','utilidades'],
-  'laura.mena@uleam.edu.ec': ['vinculacion','investigacion','Proyecto_Internacionalizacion','indicadores','utilidades'], // Laura Mena — Prácticas Preprofesionales (vinculación) + equipo investigación Internacionalización
-  'marisol.yanez@uleam.edu.ec': ['vinculacion','indicadores','utilidades'], // Bety Marisol Yañez García — supervisora de vinculación
-  'yazmin.bermudez@uleam.edu.ec': ['indicadores','utilidades'], // Yasmín Bermúdez — Secretaria de Carrera
+  // Módulos por defecto al registrarse (Sesión 50). Desde entonces la fuente de verdad son los
+  // módulos guardados en Neon, editables en /admin/roles; esto solo siembra cuentas nuevas.
+  // Todo docente ve siempre Yo y la Carrera, Dashboard PINE y Utilidades (no necesita módulo).
+  'arturo.rodriguez@uleam.edu.ec': ['admin', 'contenido_sitio', 'investigacion', 'vinculacion', 'vinculacion_gestion'],
+  'jhonny.villafuerte@uleam.edu.ec': [],
+  'german.carrera@uleam.edu.ec': ['investigacion'],
+  'veronica.chavez@uleam.edu.ec': ['investigacion'],
+  'maria.basantes@uleam.edu.ec': [], // Cristina Basantes
+  'johanna.bello@uleam.edu.ec': [], // Johana Bello
+  'ulbio.farfan@uleam.edu.ec': [],
+  'jorge.corral@uleam.edu.ec': ['vinculacion'], // supervisor de Vinculación
+  'laura.mena@uleam.edu.ec': [],
+  'gabriel.bazurto@uleam.edu.ec': [],
+  'cintya.zambrano@uleam.edu.ec': ['vinculacion', 'vinculacion_gestion'], // líder de Vinculación
+  'marisol.yanez@uleam.edu.ec': ['vinculacion'], // Betty Yánez — supervisora de Vinculación
+  'yazmin.bermudez@uleam.edu.ec': [], // Secretaria de Carrera
 };
 
 
@@ -82,6 +87,8 @@ export const profesoresAutorizados = [
   'laura.mena@uleam.edu.ec',
   'marisol.yanez@uleam.edu.ec',
   'yazmin.bermudez@uleam.edu.ec',
+  'cintya.zambrano@uleam.edu.ec',
+  'gabriel.bazurto@uleam.edu.ec',
 ];
 
 // Nombre del proyecto propio de cada líder (distinto del proyecto PINE/Internacionalización

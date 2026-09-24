@@ -8,6 +8,8 @@ export default function PineDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [periodos, setPeriodos] = useState<{ id: number; nombre: string }[]>([]);
+  const [periodoId, setPeriodoId] = useState(''); // '' = acumulado de todo el proyecto
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -17,21 +19,24 @@ export default function PineDashboard() {
           router.push('/');
           return;
         }
-        return fetch('/api/admin/stats')
+        return fetch(`/api/admin/stats${periodoId ? `?periodo_id=${periodoId}` : ''}`)
           .then(res => res.json())
           .then(data => {
-            if (data.success) setStats(data.data);
+            if (data.success) {
+              setStats(data.data);
+              setPeriodos(data.periodos || []);
+            }
             setLoading(false);
           });
       })
       .catch(() => router.push('/portal/login?redirect=/pine-dashboard'));
-  }, [router]);
+  }, [router, periodoId]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando indicadores...</div>;
   if (!stats) return <div className="p-8 text-center text-red-500">Error cargando dashboard</div>;
 
-  const pctDiagnostico = stats.totalInscritos > 0 
-    ? Math.min(Math.round((stats.evaluacionesIniciales / stats.totalInscritos) * 100), 100) 
+  const pctDiagnostico = stats.totalInscritos > 0
+    ? Math.min(Math.round((stats.evaluacionesIniciales / stats.totalInscritos) * 100), 100)
     : 0;
 
   return (
@@ -43,7 +48,20 @@ export default function PineDashboard() {
           </Link>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard de Indicadores PINE</h1>
-        <p className="text-sm text-gray-600 mb-8">Seguimiento de metas del proyecto en Vinculación e Investigación en tiempo real.</p>
+        <p className="text-sm text-gray-600 mb-4">Seguimiento de metas del proyecto en Vinculación e Investigación en tiempo real.</p>
+
+        <div className="mb-8 flex items-center gap-3">
+          <label htmlFor="periodo" className="text-sm font-medium text-gray-700">Período académico</label>
+          <select
+            id="periodo"
+            value={periodoId}
+            onChange={e => setPeriodoId(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white"
+          >
+            <option value="">Todos (acumulado del proyecto)</option>
+            {periodos.map(periodo => <option key={periodo.id} value={periodo.id}>{periodo.nombre}</option>)}
+          </select>
+        </div>
 
         <h2 className="text-xl font-bold text-gray-800 mb-4">Vinculación con la Sociedad — Semestre & Meta Global</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -86,6 +86,11 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
              AND (${veTodo}::boolean IS TRUE OR EXISTS (
                SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
                WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
+          +
+          (SELECT COUNT(*) FROM actividades_autonomas_pasante a WHERE a.estado_aprobacion = 'pendiente'
+             AND (${veTodo}::boolean IS TRUE OR EXISTS (
+               SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
         )::int AS total
       `;
       const total = Number(fila?.total || 0);
@@ -93,7 +98,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       return {
         id: 'horas-por-aprobar',
         cantidad: total,
-        mensaje: `Tienes ${plural(total, 'registro de podcast o investigación', 'registros de podcast o investigación')} por aprobar.`,
+        mensaje: `Tienes ${plural(total, 'registro de podcast, investigación o actividad autónoma', 'registros de podcast, investigación o actividades autónomas')} por aprobar.`,
         href: '/vinculacion/supervisar',
         severidad: 'pendiente',
       };

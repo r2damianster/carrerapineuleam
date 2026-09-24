@@ -125,20 +125,14 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/asistencia" className="text-blue-600 hover:underline">» Asistencia</Link>
                   <Link href="/vinculacion/evaluacion-final" className="text-blue-600 hover:underline">» Evaluación final del beneficiario</Link>
                   <Link href="/vinculacion/difusion" className="text-blue-600 hover:underline">» Registrar Evento o Podcast</Link>
-                </div>
-              </div>
-            )}
-
-            {/* Pasante de vinculación con funciones de investigación asignadas —
-                tarjeta aparte porque la de "Registros de Vinculación" de arriba
-                está gateada a modulos_acceso:vinculacion, que un pasante nunca tiene
-                (esa lista es solo para profesores). */}
-            {rol === 'estudiante' && modulos_acceso.includes('investigacion') && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Investigación (Vinculación)</h3>
-                <p className="text-gray-600 mb-4 text-sm">Reporta las actividades de investigación que realizas además de tus horas de vinculación.</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/investigacion-actividades" className="text-emerald-600 hover:underline">» Reportar Actividades</Link>
+                  {/* Horas del pasante (las aprueba su supervisor). Investigación exige el módulo
+                      'investigacion' (se asigna en /admin/roles); las autónomas son para todo pasante. */}
+                  {rol === 'estudiante' && modulos_acceso.includes('investigacion') && (
+                    <Link href="/vinculacion/investigacion-actividades" className="text-blue-600 hover:underline">» Registrar Actividades de Investigación</Link>
+                  )}
+                  {rol === 'estudiante' && (
+                    <Link href="/vinculacion/actividades-autonomas" className="text-blue-600 hover:underline">» Registrar Horas / Actividades Autónomas</Link>
+                  )}
                 </div>
               </div>
             )}

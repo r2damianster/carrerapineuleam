@@ -39,6 +39,7 @@ interface Avance {
   horasPodcast: { total: number; episodios: number; pendientes: number; episodiosPendientes: number };
   horasAsistencia: { total: number; sesiones: number; sesionesPendientes: number };
   horasInvestigacion: { total: number; reportes: number } | null;
+  horasAutonomas?: { total: number; pendientes: number; maximo: number };
   asistenciasRechazadas?: { id: number; fecha: string; espacio_nombre: string; motivo_rechazo: string | null }[];
   beneficiariosDetalle?: BeneficiarioDetalle[];
   resenas?: Resena[];
@@ -67,7 +68,7 @@ export default function MiAvancePage() {
   }, []);
 
   const totalHorasAprobadas = avance
-    ? Math.round(((avance.horasAsistencia.total || 0) + (avance.horasPodcast.total || 0) + (avance.horasInvestigacion?.total || 0)) * 10) / 10
+    ? Math.round(((avance.horasAsistencia.total || 0) + (avance.horasPodcast.total || 0) + (avance.horasInvestigacion?.total || 0) + (avance.horasAutonomas?.total || 0)) * 10) / 10
     : 0;
   const metaHoras = avance?.metaHoras || 96;
   const porcentajeMeta = Math.min(100, Math.round((totalHorasAprobadas / metaHoras) * 100));
@@ -177,6 +178,14 @@ export default function MiAvancePage() {
                   sub={`${avance.horasAsistencia.sesiones} sesiones aprobadas (${avance.horasAsistencia.sesionesPendientes} pend.)`}
                   color="border-teal-500"
                 />
+                {avance.horasAutonomas && (
+                  <Tile
+                    label="🛠 Horas Autónomas"
+                    value={`${avance.horasAutonomas.total} h`}
+                    sub={`Máximo ${avance.horasAutonomas.maximo} h${avance.horasAutonomas.pendientes > 0 ? ` (${avance.horasAutonomas.pendientes} h pend.)` : ''}`}
+                    color="border-emerald-500"
+                  />
+                )}
                 <Tile
                   label="📝 Tests MCER Evaluados"
                   value={avance.evaluacionesMcer}

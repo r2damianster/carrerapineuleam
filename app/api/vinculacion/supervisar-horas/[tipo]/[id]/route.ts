@@ -12,7 +12,7 @@ export async function PATCH(request: Request, { params }: { params: { tipo: stri
     if (!usuario || !puedeSupervisarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-    if (!['podcast', 'investigacion'].includes(params.tipo)) {
+    if (!['podcast', 'investigacion', 'autonomas'].includes(params.tipo)) {
       return NextResponse.json({ error: 'tipo inválido' }, { status: 400 });
     }
 
@@ -27,6 +27,8 @@ export async function PATCH(request: Request, { params }: { params: { tipo: stri
 
     const [fila] = params.tipo === 'podcast'
       ? await sql`SELECT usuario_id FROM horas_podcast_pasante WHERE id = ${id}`
+      : params.tipo === 'autonomas'
+      ? await sql`SELECT usuario_id FROM actividades_autonomas_pasante WHERE id = ${id}`
       : await sql`SELECT usuario_id FROM actividades_investigacion_pasante WHERE id = ${id}`;
     if (!fila) return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
 
@@ -48,6 +50,11 @@ export async function PATCH(request: Request, { params }: { params: { tipo: stri
     const [actualizado] = params.tipo === 'podcast'
       ? await sql`
           UPDATE horas_podcast_pasante
+          SET estado_aprobacion = ${estado}, aprobado_por = ${supervisorId}, fecha_aprobacion = now(), motivo_rechazo = ${motivoFinal}
+          WHERE id = ${id} RETURNING *`
+      : params.tipo === 'autonomas'
+      ? await sql`
+          UPDATE actividades_autonomas_pasante
           SET estado_aprobacion = ${estado}, aprobado_por = ${supervisorId}, fecha_aprobacion = now(), motivo_rechazo = ${motivoFinal}
           WHERE id = ${id} RETURNING *`
       : await sql`

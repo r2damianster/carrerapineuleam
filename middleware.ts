@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/evaluacion-final',
     '/vinculacion/encuesta',
     '/vinculacion/investigacion-actividades',
+    '/vinculacion/actividades-autonomas',
     '/investigacion/espacios',
     '/investigacion/informes',
     '/gestion-carrera',
@@ -106,6 +107,10 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/vinculacion/investigacion-actividades') &&
       !(session.rol === 'estudiante' && session.modulos_acceso.includes('investigacion'))
     ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    if (pathname.startsWith('/vinculacion/actividades-autonomas') && session.rol !== 'estudiante') {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

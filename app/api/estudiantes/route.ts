@@ -8,7 +8,7 @@ import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
 export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
+    if (!usuario || !puedeGestionarVinculacion(usuario)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

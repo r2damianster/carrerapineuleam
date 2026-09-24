@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { MAX_HORAS_AUTONOMAS } from '@/lib/horasAutonomas';
 
 // Resumen de avance/cumplimiento de un pasante (rol estudiante) — pensado
 // para que vea de un vistazo, aunque todavía no haya registrado nada, en
@@ -96,6 +97,13 @@ export async function GET() {
       ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId} AND estado_aprobacion = 'aprobado'`
       : [{ total: 0, reportes: 0 }];
 
+    const [horasAutonomasRow] = await sql`
+      SELECT
+        COALESCE(SUM(horas) FILTER (WHERE estado_aprobacion = 'aprobado'), 0)::float AS total,
+        COALESCE(SUM(horas) FILTER (WHERE estado_aprobacion = 'pendiente'), 0)::float AS pendientes
+      FROM actividades_autonomas_pasante WHERE usuario_id = ${usuarioId}
+    `;
+
     // Detalle de beneficiarios e impacto pedagógico en el espacio del pasante
     const beneficiariosDetalle = espacioIds.length > 0
       ? await sql`
@@ -156,6 +164,7 @@ export async function GET() {
       horasPodcast: { total: horasPodcastRow.total, episodios: horasPodcastRow.episodios, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
       horasAsistencia: { ...horasAsistenciaRow, sesionesPendientes: asistenciasPendientesRow.total },
       asistenciasRechazadas,
+      horasAutonomas: { ...horasAutonomasRow, maximo: MAX_HORAS_AUTONOMAS },
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,
       beneficiariosDetalle,
       resenas,
