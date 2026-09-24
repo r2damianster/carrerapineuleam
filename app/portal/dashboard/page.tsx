@@ -8,7 +8,6 @@ import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
 import PendientesPortal from '@/components/PendientesPortal';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import Link from 'next/link';
 
 export default async function PortalDashboard() {
@@ -235,7 +234,6 @@ export default async function PortalDashboard() {
 
         </div>
       </div>
-      <Footer context="general" />
     </>
   );
 }

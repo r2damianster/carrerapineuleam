@@ -95,6 +95,18 @@ export async function GET() {
         `
       : [{ total: 0 }];
 
+    // Asistencias rechazadas en los últimos 14 días (misma ventana que el aviso de
+    // lib/notificaciones.ts → 'asistencias-rechazadas'): fecha, espacio y motivo.
+    const asistenciasRechazadas = await sql`
+      SELECT ae.id, ae.fecha, e.nombre AS espacio_nombre, ae.motivo_rechazo
+      FROM asistencia_espacio ae
+      JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
+      WHERE ae.registrado_por = ${usuarioId}
+        AND ae.estado_aprobacion = 'rechazado'
+        AND COALESCE(ae.fecha_aprobacion, ae.creado_en) >= NOW() - INTERVAL '14 days'
+      ORDER BY ae.fecha DESC
+    `;
+
     const tieneInvestigacion = usuario.modulos_acceso.includes('investigacion');
     const [horasInvestigacionRow] = tieneInvestigacion
       ? await sql`SELECT COALESCE(SUM(horas), 0)::float AS total, COUNT(*)::int AS reportes FROM actividades_investigacion_pasante WHERE usuario_id = ${usuarioId}`
@@ -159,6 +171,7 @@ export async function GET() {
       difusion: difusionRow,
       horasPodcast: { ...horasPodcastRow, pendientes: horasPodcastPendientes, episodiosPendientes: videosPendientes.length },
       horasAsistencia: { ...horasAsistenciaRow, sesionesPendientes: asistenciasPendientesRow.total },
+      asistenciasRechazadas,
       horasInvestigacion: tieneInvestigacion ? horasInvestigacionRow : null,
       beneficiariosDetalle,
       resenas,

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import SelectorAreaProyectoPodcast from '@/components/SelectorAreaProyectoPodcast';
 import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import type { VideoCategory } from '@/types';
@@ -188,7 +187,6 @@ export default function SubirVideoPage() {
             </div>
           </div>
         </div>
-        <Footer context="general" />
       </>
     );
   }
@@ -311,7 +309,6 @@ export default function SubirVideoPage() {
           </form>
         </div>
       </div>
-      <Footer context="general" />
     </>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { GRADOS_TERCER_NIVEL, GRADOS_CUARTO_NIVEL } from '@/lib/gradosCatalogo';
 
 interface Titulo {
@@ -270,7 +269,6 @@ export default function PerfilPage() {
       <>
         <Header />
         <div className="min-h-screen flex items-center justify-center mt-16">Cargando...</div>
-        <Footer context="general" />
       </>
     );
   }
@@ -280,7 +278,6 @@ export default function PerfilPage() {
       <>
         <Header />
         <div className="min-h-screen flex items-center justify-center mt-16 text-red-600">{mensaje || 'No se pudo cargar el perfil.'}</div>
-        <Footer context="general" />
       </>
     );
   }
@@ -547,7 +544,6 @@ export default function PerfilPage() {
           </form>
         </div>
       </div>
-      <Footer context="general" />
     </>
   );
 }

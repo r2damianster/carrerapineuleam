@@ -68,6 +68,31 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     },
   },
   {
+    // Pasante: asistencias que registró y el supervisor rechazó. Sin tabla de "leído":
+    // el aviso vive 14 días desde el rechazo (ventana de tiempo) y luego se apaga solo.
+    id: 'asistencias-rechazadas',
+    aplica: (sesion) => sesion.rol === 'estudiante',
+    consultar: async (sql, sesion) => {
+      const pasanteId = Number(sesion.id);
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM asistencia_espacio
+        WHERE registrado_por = ${pasanteId}
+          AND estado_aprobacion = 'rechazado'
+          AND COALESCE(fecha_aprobacion, creado_en) >= NOW() - INTERVAL '14 days'
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'asistencias-rechazadas',
+        cantidad: total,
+        mensaje: `${plural(total, 'registro de asistencia tuyo fue rechazado', 'registros de asistencia tuyos fueron rechazados')} por el supervisor. Revisa el motivo y vuelve a registrarlo.`,
+        href: '/portal/mi-avance',
+        severidad: 'alerta',
+      };
+    },
+  },
+  {
     // Administrador de contenido: podcasts/videos propuestos que aún no salen en la web pública.
     id: 'videos-por-aprobar',
     aplica: (sesion) => sesion.modulos_acceso.includes('contenido_sitio'),
