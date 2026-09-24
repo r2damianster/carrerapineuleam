@@ -179,6 +179,32 @@ Dos PDFs privados exclusivos del proyecto Innovaciones Pedagógicas e Internacio
 
 ---
 
+## ⚠️ Auditoría 2026-09-24 y guardrails de despliegue (LEER ANTES DE PUSHEAR)
+
+Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con Antigravity. Fuentes: `git log`, Vercel (deployments + build logs + runtime logs), `tsc`, barrido de rutas API y de docs.
+
+### Fallo de deploy real encontrado (Vercel, proyecto `carrerapineuleam`)
+- `dpl_HqedNdC9…` — commit `012d646` (feat difusión con IA/maestría, 2026-09-23) → **ERROR**: `Syntax Error … Expected ',', got 'hora'` en `app/vinculacion/difusion/page.tsx:61-67` (objeto de estado inicial con claves duplicadas/coma faltante: `audiencia_alcanzada` dos veces). Se pusheó **sin correr `npm run build`/`tsc`**. Producción siguió sirviendo el build anterior hasta que `c486110` lo arregló (~3 h después). Nada roto en runtime: 0 errores en logs de producción últimos 7 días.
+- Deploys `CANCELED` (3) = commits de solo docs que llegaron pegados a otro commit; `vercel-ignore-build.sh` los salta a propósito (evita cuota de ~300 funciones por deploy). No son fallos.
+
+### Reglas obligatorias (Claude y Antigravity)
+1. **Antes de `git push` con cambios en `.ts/.tsx`: `npx tsc --noEmit` y `npm run build` deben pasar localmente.** El auto-commit hook empuja solo; si editaste código, verifica antes de cerrar la sesión.
+2. Nunca dejar claves duplicadas en objetos de estado de formularios (React `useState({...})`): tras pegar bloques generados, releer el objeto completo.
+3. `neon()` nunca a nivel de módulo; en GET públicos sin sesión usar `{ fetchOptions: { cache: 'no-store' } }` (ver Sesión 31/37).
+4. Commits de solo `.md`/`docs/` no generan deploy (por diseño). Si un cambio de código va mezclado con docs, sí despliega.
+5. Tras push: confirmar en Vercel (`list_deployments`) que el estado es `READY`; si `ERROR`, leer `list_deployment_events` y corregir antes de seguir.
+6. Migraciones de esquema: correr auditoría `information_schema` primero; nunca `prisma db push`/`migrate`.
+
+### Hallazgos de la auditoría (abiertos salvo que diga lo contrario)
+- 🔴 **`scratch/` (7 scripts) y `.agents/skills/gestion-estudiantes/` están trackeados en git.** El skill trae un email real de estudiante y el password de ejemplo `Pine2026`, más un comando `reset-password` directo contra la Neon de producción. Sugerido: `scratch/` a `.gitignore` y `git rm --cached`; revisar que el skill nunca use una clave fija real.
+- 🟠 `esSuperAdminOLider()` (`lib/permisos-supervision.ts`) usa `impersonatedBy.email`: al usar "Ver como" sobre un profesor normal, el superadmin **sigue viendo todo** en supervisión → la vista impersonada no refleja lo que ese profesor realmente vería. Corregir usando el email efectivo del usuario impersonado.
+- 🟠 Lista `LIDERES_PROYECTO_EMAILS` hardcodeada en `lib/permisos-supervision.ts` (Arturo, Jhonny, Cynthia) — dar visión global de supervisión es una decisión de permisos igual que `modulos_acceso`; no ampliarla sin confirmación del usuario. Cambio sin documentar hasta hoy: supervisión de asistencia ahora filtra por `espacios_enseñanza.profesor_id` para profesores regulares (commit `4593ca3`, aún sin push al momento de la auditoría).
+- 🟡 `GET /api/espacios/instructores?profesor_ids=` (nuevo) no valida rol: cualquier sesión (incl. estudiante) lista pasantes de esos profesores (solo id/nombre). Bajo riesgo; restringir a profesor/admin o a `puedeOperarEspacio`.
+- 🟡 `.env.local.example` estaba desactualizado (mencionaba password `Pine2026` y `ADMIN_SESSION_SECRET` obsoletos; faltaban Cloudinary/YouTube) → corregido en esta auditoría.
+- 🟡 Documentación desordenada: secciones "Cambios Recientes" fuera de orden (48, 43, 45, 42…), no existen secciones propias de Sesiones 44, 46 (solo en CHANGELOG/Superadmin), 47; pie de CLAUDE.md decía Sesión 43/v0.10.16 (corregido); `package.json` sigue en `0.1.0`; README decía 0.12.1 (corregido).
+- 🟡 Funcionalidad sin documentar en CLAUDE.md/ANTIGRAVITY.md/README: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
+- ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
+
 ## Cambios Recientes (Sesión 48 — 2026-09-23)
 
 ### Formulario de Difusión Enriquecido, Categoría Maestría/Posgrado y Actualización de Rol Docente/Coordinador
@@ -1154,6 +1180,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-16 (Sesión 43)
-**Versión:** 0.10.16
+**Última actualización:** 2026-09-24 (Auditoría post-Sesión 48)
+**Versión:** 0.12.2
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅
