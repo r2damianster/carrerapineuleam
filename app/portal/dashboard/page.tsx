@@ -5,6 +5,8 @@ import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
 import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
+import { obtenerNotificaciones } from '@/lib/notificaciones';
+import PendientesPortal from '@/components/PendientesPortal';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -52,6 +54,8 @@ export default async function PortalDashboard() {
     horasAsistenciaAcreditadas = Number(filaAsistencia?.total || 0);
   }
 
+  const notificaciones = await obtenerNotificaciones(session);
+
   return (
     <>
       <Header />
@@ -61,6 +65,8 @@ export default async function PortalDashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Bienvenido al Portal PINE</h1>
             <p className="text-gray-600 mt-2">Hola, {nombres}. Selecciona el módulo al que deseas acceder:</p>
           </div>
+
+          <PendientesPortal notificaciones={notificaciones} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 

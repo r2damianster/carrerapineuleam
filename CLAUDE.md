@@ -209,6 +209,10 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
 
+## Cambios Recientes (Sesión 50 — 2026-09-24)
+
+- **Módulo de notificaciones del Portal** — bloque "🔔 Pendientes" en `/portal/dashboard` + `GET /api/notificaciones`. Avisos **derivados** (conteos en vivo sobre Neon, sin tabla ni migración): supervisor → asistencias por aprobar; `contenido_sitio` → videos y difusión por aprobar. Registro de reglas en `lib/notificaciones.ts`, UI en `components/PendientesPortal.tsx`. **Documentación y checklist para futuras funciones: `NOTIFICACIONES.md` (regla 12 de "Instrucciones para el Asistente IA").** Pendiente: avisos al pasante (requieren tabla "leído"), campana en la barra superior.
+
 ## Cambios Recientes (Sesión 49 — 2026-09-24)
 
 - **`/portal/dashboard` — tarjetas de Vinculación reorganizadas** (a pedido del usuario):
@@ -1210,6 +1214,7 @@ git push
 9. **Actualizar este CLAUDE.md** cuando cambien el equipo, publicaciones, estructura, o el esquema/flujo del Portal PINE
 10. **Trabajo en paralelo con Antigravity:** revisar `git log origin/main..HEAD` y `git fetch` antes de asumir que el repo está como lo dejaste — Antigravity pushea directo a `main` sin avisar
 11. **Antes de editar el sitio público (páginas de proyecto, footer, equipo, textos):** leer `.claude/skills/carrerapine-workflow/SKILL.md` (Sesión 26) — codifica el flujo completo: contenido contextual por proyecto en vez de genérico, i18n obligatorio en `lib/i18n.tsx` (nunca texto español hardcodeado en componentes del sitio público), reglas para tocar Neon, sincronizar ambas ramas git, y verificar el deployment en Vercel antes de reportar algo como terminado. Después de un cambio de contenido, considerar invocar el agente `.claude/agents/content-consistency-reviewer.md` para verificar que no quedó texto sin traducir o contenido genérico donde debía ser contextual.
+12. **Toda función nueva del portal que deje algo pendiente para alguien (aprobar, revisar, completar, responder) debe agregar su regla de notificación** en `lib/notificaciones.ts` (`REGLAS_NOTIFICACION`) y su fila en `NOTIFICACIONES.md`. Léelo antes de crear pantallas, formularios con aprobación o colas de moderación. La condición `aplica()` debe ser la misma que protege la pantalla destino.
 
 ### Convenciones de código
 - Componentes: PascalCase (`TeamSection.tsx`)

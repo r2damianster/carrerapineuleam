@@ -57,3 +57,6 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - No versionar `scratch/` (está en `.gitignore`). No poner emails reales ni claves fijas en skills/scripts.
 - Bajo "Ver como" los permisos se evalúan con la identidad suplantada. No ampliar `LIDERES_PROYECTO_EMAILS` ni `modulos_acceso` sin confirmación del usuario.
 - Detalle completo en `CLAUDE.md` → "Auditoría 2026-09-24 y guardrails de despliegue".
+
+## 🔔 Notificaciones (obligatorio al crear funciones)
+- El portal tiene un módulo de notificaciones derivadas (`lib/notificaciones.ts`, bloque "Pendientes" en `/portal/dashboard`). **Si tu función nueva deja algo pendiente para alguien (aprobar, revisar, completar, responder), agrega su regla en `REGLAS_NOTIFICACION` y su fila en `NOTIFICACIONES.md`.** Lee `NOTIFICACIONES.md` antes de crear pantallas o colas de aprobación.
