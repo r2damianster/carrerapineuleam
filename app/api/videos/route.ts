@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { registrarHorasPodcast } from '@/lib/horasPodcast';
+import { puedeAdministrarSitio, proyectosAsignables } from '@/lib/permisosProyecto';
 
 function extractEmbedId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=|\/sandalsResorts#\w\/\w\/.*\/))([^\/&\?]{10,12})/);
@@ -112,6 +113,17 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
     const id = `video_${Date.now()}`;
+    // WP5b: el proyecto principal solo puede ser uno que la persona pueda asignar
+    // (pasante: solo Vinculación; docente: los suyos; administración del sitio: cualquiera).
+    // 'internacionalizacion' lo agrega el servidor abajo y no se valida (regla de la Sesión 38).
+    if (proyecto_id && !puedeAdministrarSitio(usuario)) {
+      const permitidos = usuario.rol === 'estudiante'
+        ? new Set(['vinculacion'])
+        : new Set((await proyectosAsignables(sql, usuario)).map(proyecto => proyecto.id));
+      if (!permitidos.has(String(proyecto_id))) {
+        return NextResponse.json({ error: `No puedes asignar el proyecto "${proyecto_id}".` }, { status: 403 });
+      }
+    }
     const proyectoIds = proyecto_id ? Array.from(new Set([proyecto_id, 'internacionalizacion'])) : null;
     const participantesIds = Array.isArray(participantes_estudiantes)
       ? participantes_estudiantes.map((pid: any) => Number(pid)).filter((pid: number) => !isNaN(pid))

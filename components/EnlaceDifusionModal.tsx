@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import SelectorProyectosEvento from '@/components/SelectorProyectosEvento';
 
 interface EnlaceDifusionModalProps {
   onClose: () => void;
@@ -24,6 +25,9 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
   const [tipoContenido, setTipoContenido] = useState<'evento' | 'podcast'>('evento');
   const [expiraFecha, setExpiraFecha] = useState(enUnaSemana());
   const [usoUnico, setUsoUnico] = useState(false);
+  // WP5b: el enlace fija a qué proyecto(s) pertenece lo que se registre con él (el externo no elige).
+  const [proyectosEnlace, setProyectosEnlace] = useState<string[]>([]);
+  const [sinProyectosAsignables, setSinProyectosAsignables] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [url, setUrl] = useState('');
@@ -32,6 +36,10 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
   const generar = async () => {
     if (!nombreInvitado.trim()) {
       setError('Escribe el nombre de la persona a la que le darás el acceso');
+      return;
+    }
+    if (proyectosEnlace.length === 0) {
+      setError('Selecciona al menos un proyecto al que pertenecerá lo que se registre con este enlace');
       return;
     }
     setLoading(true);
@@ -45,6 +53,7 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
           tipo_contenido: tipoContenido,
           expira_en: `${expiraFecha}T23:59:59`,
           uso_unico: usoUnico,
+          proyectos: proyectosEnlace,
         }),
       });
       const data = await res.json();
@@ -114,6 +123,11 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
                   : 'El formulario le pedirá una foto del evento — sin opción de subir video de podcast.'}
               </p>
             </div>
+            <SelectorProyectosEvento
+              proyectosSeleccionados={proyectosEnlace}
+              onCambio={setProyectosEnlace}
+              onSinProyectos={setSinProyectosAsignables}
+            />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Válido hasta</label>
               <input type="date" value={expiraFecha} min={mañana()}
@@ -124,7 +138,7 @@ export default function EnlaceDifusionModal({ onClose }: EnlaceDifusionModalProp
               <input type="checkbox" checked={usoUnico} onChange={e => setUsoUnico(e.target.checked)} className="w-4 h-4" />
               <span className="text-sm text-gray-700">Un solo uso (si no, sirve para varios registros hasta la fecha)</span>
             </label>
-            <button onClick={generar} disabled={loading}
+            <button onClick={generar} disabled={loading || sinProyectosAsignables}
               className="w-full px-4 py-2.5 rounded-lg bg-uleam-blue font-semibold text-white transition hover:bg-uleam-blue/90 disabled:opacity-50">
               {loading ? 'Generando...' : 'Generar enlace y QR'}
             </button>

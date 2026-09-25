@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
     '/portal/perfil',
     '/portal/subir-video',
     '/portal/mi-avance',
+    '/portal/proyecto',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',
@@ -129,6 +130,12 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/investigacion/informes') &&
       !puedeGestionarInvestigacion(session)
     ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Panel de proyecto (líderes/colíderes): solo docentes. Qué proyecto puede administrar cada quien lo
+    // decide la API en cada petición (proyecto_miembros), no esta redirección.
+    if (pathname.startsWith('/portal/proyecto') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

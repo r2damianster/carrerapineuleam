@@ -1,11 +1,28 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { proyectosAsignables } from '@/lib/permisosProyecto';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const incluirInactivos = searchParams.get('all') === 'true';
+
+    // ?asignables=1 (WP5b): proyectos a los que la persona logueada puede asociar un evento/podcast/QR.
+    // Rama aparte que exige sesión; no altera el comportamiento público de las demás consultas.
+    if (searchParams.get('asignables') === '1') {
+      const sesion = await getAppSessionFromCookies();
+      if (!sesion || sesion.rol === 'secretaria' || sesion.rol === 'beneficiario') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      }
+      const sqlSesion = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
+      // Pasante: regla fija (D5); no elige. Se devuelve solo para mostrar la etiqueta.
+      if (sesion.rol === 'estudiante') {
+        const fijos = await sqlSesion`SELECT id, nombre_oficial FROM proyectos WHERE id = ANY(${['vinculacion', 'internacionalizacion']}::text[]) AND activo = true ORDER BY "order"`;
+        return NextResponse.json({ fijo: true, proyectos: fijos });
+      }
+      return NextResponse.json({ fijo: false, proyectos: await proyectosAsignables(sqlSesion, sesion) });
+    }
 
     // GET público sin cookies() -> mismo fix de Data Cache que /api/photos
     // (ver comentario ahí y CLAUDE.md Sesión 31).
@@ -61,6 +78,12 @@ export async function POST(request: Request) {
         ${lider_nombre || null}, ${lider_email || null}, ${lider_orcid || null}
       )
       RETURNING *
+    `;
+    // WP9.3: todo proyecto nuevo nace con su galería (tope suave de 8 fotos), administrable por su líder.
+    await sql`
+      INSERT INTO fotos_ubicaciones (slug, nombre, proyecto_id, max_fotos, solo_admin, orden)
+      VALUES (${slug + '-galeria'}, ${'Galería de ' + nombre_oficial}, ${slug}, 8, false, 100)
+      ON CONFLICT (slug) DO NOTHING
     `;
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error: any) {

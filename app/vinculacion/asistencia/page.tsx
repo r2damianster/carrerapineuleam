@@ -73,6 +73,8 @@ export default function AsistenciaPage() {
   const [horaFin, setHoraFin] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
+  // WP5.1: declaración de menores en la foto de evidencia (No por defecto).
+  const [hayMenores, setHayMenores] = useState(false);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const [usuarioActualId, setUsuarioActualId] = useState<number | null>(null);
@@ -100,6 +102,7 @@ export default function AsistenciaPage() {
     setHoraInicio('');
     setHoraFin('');
     setFoto(null);
+    setHayMenores(false);
   };
 
   // Ventana de 48h (Ecuador): no se puede elegir un día futuro ni uno de más de 2 días atrás
@@ -222,6 +225,7 @@ export default function AsistenciaPage() {
           observaciones,
           foto_url: fotoUrl,
           foto_public_id: fotoPublicId,
+          hay_menores: hayMenores,
         }),
       });
       const data = await res.json();
@@ -330,6 +334,13 @@ export default function AsistenciaPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto de evidencia de la sesión</label>
             <input type="file" accept="image/*,.heic,.heif" required onChange={e => setFoto(e.target.files?.[0] || null)} className="w-full text-sm text-gray-600" />
             <p className="text-xs text-gray-400 mt-1">Obligatoria. Se comprime automáticamente antes de subirse, no hace falta reducirla tú.</p>
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="mt-1" checked={hayMenores} onChange={e => setHayMenores(e.target.checked)} />
+              <span>
+                ¿Aparecen menores de edad en la foto?
+                <span className="block text-xs text-gray-500">Si marcas Sí, la foto solo la verá el supervisor y no se publicará en la web.</span>
+              </span>
+            </label>
           </div>
 
           <div>

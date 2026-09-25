@@ -7,6 +7,7 @@ import SubirVideoDifusion from '@/components/SubirVideoDifusion';
 import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
 import EnlacesDifusionList from '@/components/EnlacesDifusionList';
+import SelectorProyectosEvento from '@/components/SelectorProyectosEvento';
 
 export default function DifusionPage() {
   const router = useRouter();
@@ -67,6 +68,10 @@ export default function DifusionPage() {
   });
 
   const [file, setFile] = useState<File | null>(null);
+  // WP5/WP5b: proyectos a los que pertenece el registro y declaración de menores en la foto.
+  const [proyectosEvento, setProyectosEvento] = useState<string[]>([]);
+  const [sinProyectosAsignables, setSinProyectosAsignables] = useState(false);
+  const [hayMenores, setHayMenores] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -124,6 +129,10 @@ export default function DifusionPage() {
       setMessage('Error: Debe seleccionar al menos un profesor responsable');
       return;
     }
+    if (proyectosEvento.length === 0) {
+      setMessage('Error: Debe seleccionar al menos un proyecto al que pertenece el registro');
+      return;
+    }
     if (formData.tipo === 'podcast' && puedeSubirVideo && !video) {
       setMessage('Error: Debe subir el video del podcast (botón "Subir video" de arriba) antes de registrar la actividad');
       return;
@@ -156,12 +165,15 @@ export default function DifusionPage() {
         audiencia_alcanzada: parseInt(formData.audiencia_alcanzada),
         evidencia_url,
         profesores_responsables: responsables,
+        proyectos: proyectosEvento,
+        hay_menores: hayMenores,
         ...(video ? {
           youtube_video_id: video.youtubeVideoId,
           video_category: video.categoryId,
           video_tags: [formData.categoria || 'vinculacion'],
           video_area_sustantiva: formData.categoria === 'investigacion' ? 'investigacion' : 'vinculacion',
-          video_proyecto_id: 'vinculacion',
+          // Pasante: siempre Vinculación. Docente: Vinculación si es de sus proyectos, si no el primero que eligió.
+          video_proyecto_id: proyectosEvento.includes('vinculacion') ? 'vinculacion' : proyectosEvento[0],
           video_participantes: participantes,
           video_invitados_internos: invitadosInternos,
           video_invitados_externos: invitadosExternos,
@@ -185,6 +197,7 @@ export default function DifusionPage() {
       setFormData({ titulo: '', tipo: 'podcast', categoria: 'vinculacion', fecha: '', hora: '', audiencia_alcanzada: '', descripcion: '', observaciones: '' });
       setResponsables([]);
       setFile(null);
+      setHayMenores(false);
       setVideo(null);
       setVideoResetKey((k) => k + 1);
       setParticipantes([]);
@@ -358,15 +371,30 @@ export default function DifusionPage() {
           )}
 
           <div className="pt-4 border-t">
+            <SelectorProyectosEvento
+              proyectosSeleccionados={proyectosEvento}
+              onCambio={setProyectosEvento}
+              onSinProyectos={setSinProyectosAsignables}
+            />
+          </div>
+
+          <div className="pt-4 border-t">
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto / Evidencia del Evento o Podcast</label>
             <input type="file" required accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
             <p className="mt-2 text-xs text-gray-500">Obligatorio subir la captura de las métricas del podcast o la foto del evento físico.</p>
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="mt-1" checked={hayMenores} onChange={(e) => setHayMenores(e.target.checked)} />
+              <span>
+                ¿Aparecen menores de edad en la foto?
+                <span className="block text-xs text-gray-500">Si marcas Sí, la foto solo la verá el equipo de administración y no se publicará en la web.</span>
+              </span>
+            </label>
           </div>
 
           <div className="pt-6">
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={loading || sinProyectosAsignables}
               className="w-full flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {loading ? 'Subiendo Evidencia y Registrando...' : 'Registrar Actividad de Difusión'}

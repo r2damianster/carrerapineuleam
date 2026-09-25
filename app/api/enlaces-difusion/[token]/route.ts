@@ -15,7 +15,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
-      SELECT nombre_invitado, tipo_contenido, expira_en, max_usos, usos_actuales, activo
+      SELECT nombre_invitado, tipo_contenido, expira_en, max_usos, usos_actuales, activo, proyectos
       FROM enlaces_difusion WHERE token = ${params.token}
     `;
 
@@ -42,6 +42,12 @@ export async function GET(request: Request, { params }: { params: { token: strin
       SELECT id, nombre_oficial FROM proyectos WHERE id = ANY(${PROYECTOS_INVESTIGACION_IDS}) ORDER BY "order"
     `;
 
+    // Proyectos a los que se asociará el registro: los fijó quien generó el enlace (solo lectura).
+    const proyectosDelEnlace: string[] = enlace.proyectos ?? [];
+    const proyectosEnlace = proyectosDelEnlace.length === 0 ? [] : await sql`
+      SELECT id, nombre_oficial FROM proyectos WHERE id = ANY(${proyectosDelEnlace}::text[]) ORDER BY "order"
+    `;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -49,6 +55,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
         tipo_contenido: enlace.tipo_contenido,
         profesores,
         proyectos,
+        proyectos_enlace: proyectosEnlace,
       },
     });
   } catch (error: any) {
@@ -86,11 +93,12 @@ export async function POST(request: Request, { params }: { params: { token: stri
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
   let actividadId: string | null = null;
+  let proyectosRegistrados: string[] = [];
   try {
     await client.query('BEGIN');
 
     const { rows: enlaceRows } = await client.query(
-      `SELECT creado_por, tipo_contenido, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
+      `SELECT creado_por, tipo_contenido, expira_en, max_usos, usos_actuales, activo, proyectos FROM enlaces_difusion WHERE token = $1 FOR UPDATE`,
       [params.token]
     );
     if (enlaceRows.length === 0) {
@@ -131,18 +139,10 @@ export async function POST(request: Request, { params }: { params: { token: stri
       return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos' }, { status: 400 });
     }
 
-    // WP5b: proyectos del enlace — tomados del creador del enlace (ya vetado)
-    // Para evitar consultas extra en el cliente externo (sin sesión), se toman
-    // los proyectos del profesor que creó el enlace directamente en la BD.
-    const { rows: proyectosRows } = await client.query(
-      `SELECT p.id FROM proyecto_miembros pm
-       JOIN proyectos p ON p.id = pm.proyecto_id
-       WHERE pm.usuario_id = $1 AND pm.activo = true AND p.activo = true`,
-      [enlace.creado_por]
-    );
-    const proyectosDelCreador: string[] = proyectosRows.map((r: any) => r.id);
-    // Si el creador no tiene proyectos (caso borde), usar vinculacion por defecto
-    const proyectosParaActividad = proyectosDelCreador.length > 0 ? proyectosDelCreador : ['vinculacion'];
+    // WP5b: los proyectos los fijó quien generó el enlace (ya validados contra lo que ESE usuario puede
+    // asignar). El visitante externo no elige y se ignora cualquier `proyectos` que mande el cuerpo.
+    const proyectosParaActividad: string[] = Array.isArray(enlace.proyectos) ? enlace.proyectos : [];
+    proyectosRegistrados = proyectosParaActividad;
 
     const periodo_academico = calcularPeriodoAcademico(new Date(fecha));
     const photos = evidencia_url && tipo !== 'podcast' ? [evidencia_url] : [];
@@ -203,7 +203,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
       fuente_id: actividadId,
       fecha_evento: fecha,
       categoria: categoria || 'vinculacion',
-      proyectos: [],   // se asignarán cuando el admin apruebe la actividad
+      proyectos: proyectosRegistrados, // los fijó quien generó el enlace
       hayMenores: hay_menores === true,
       esExterno: true, // externo sin identificar → siempre interna
     });

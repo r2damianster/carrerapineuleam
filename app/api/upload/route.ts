@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { neon } from "@neondatabase/serverless";
 import { getAppSessionFromCookies } from '@/lib/session';
 
 // Configurar Cloudinary usando las variables de entorno
@@ -14,11 +15,28 @@ const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
+    const formData = await request.formData();
+
+    // Sin sesión solo se admite la foto de un evento de un enlace temporal de difusión vigente
+    // (/vinculacion/publico-difusion/[token]): el externo no tiene cuenta pero el profesor que
+    // generó el enlace ya lo vetó. Cualquier otro caso sin sesión → 401.
     if (!usuario) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      const enlaceToken = formData.get("enlace_token");
+      let enlaceVigente = false;
+      if (typeof enlaceToken === "string" && /^[0-9a-f-]{36}$/i.test(enlaceToken)) {
+        const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+        const filas = await sql`
+          SELECT 1 FROM enlaces_difusion
+          WHERE token = ${enlaceToken} AND activo = true AND expira_en > now()
+            AND (max_usos IS NULL OR usos_actuales < max_usos) AND tipo_contenido = 'evento'
+        `;
+        enlaceVigente = filas.length > 0;
+      }
+      if (!enlaceVigente) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
     }
 
-    const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {

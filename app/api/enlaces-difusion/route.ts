@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGenerarEnlaceDifusion } from '@/lib/permisos-enlace-difusion';
+import { validarProyectosAsignables } from '@/lib/permisosProyecto';
 
 // Genera un enlace/QR público (sin login) para que alguien sin cuenta en el
 // Portal registre un evento/podcast en actividades_difusion — siempre
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombre_invitado, tipo_contenido, expira_en, uso_unico } = await request.json();
+    const { nombre_invitado, tipo_contenido, expira_en, uso_unico, proyectos: proyectosPedidos } = await request.json();
 
     if (!nombre_invitado || !expira_en) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -28,9 +29,17 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!);
+
+    // WP5b: el enlace fija a qué proyectos pertenece lo que se registre con él, y solo puede
+    // fijar proyectos que ESTE usuario puede asignar (administración del sitio: cualquiera).
+    const validacion = await validarProyectosAsignables(sql, usuario, proyectosPedidos);
+    if (!validacion.valido) {
+      return NextResponse.json({ error: validacion.error }, { status: validacion.status });
+    }
+
     const [enlace] = await sql`
-      INSERT INTO enlaces_difusion (creado_por, nombre_invitado, tipo_contenido, expira_en, max_usos)
-      VALUES (${Number(usuario.id)}, ${nombre_invitado}, ${tipo_contenido}, ${expira_en}, ${uso_unico ? 1 : null})
+      INSERT INTO enlaces_difusion (creado_por, nombre_invitado, tipo_contenido, expira_en, max_usos, proyectos)
+      VALUES (${Number(usuario.id)}, ${nombre_invitado}, ${tipo_contenido}, ${expira_en}, ${uso_unico ? 1 : null}, ${validacion.ids})
       RETURNING token
     `;
 

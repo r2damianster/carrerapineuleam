@@ -4,7 +4,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 import { registrarVideoPropuesto } from '@/lib/registrarVideoPropuesto';
 import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
-import { validarProyectosAsignables } from '@/lib/permisosProyecto';
+import { validarProyectosAsignables, proyectosAsignables } from '@/lib/permisosProyecto';
 import { esDocente } from '@/lib/modulos';
 
 export async function POST(request: Request) {
@@ -80,6 +80,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: validacion.error }, { status: validacion.status });
       }
       proyectosValidados = validacion.ids;
+      // El proyecto principal del podcast (selector de área/proyecto) también debe ser uno que pueda asignar.
+      if (video_proyecto_id) {
+        const asignables = new Set((await proyectosAsignables(sql, usuario)).map(proyecto => proyecto.id));
+        if (!asignables.has(String(video_proyecto_id))) {
+          return NextResponse.json({ error: `No puedes asignar el proyecto "${video_proyecto_id}".` }, { status: 403 });
+        }
+      }
+    } else {
+      // Beneficiarios y cualquier otro rol no registran difusión.
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
     const periodo_academico = calcularPeriodoAcademico(new Date(fecha));

@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
-import { liderProyectoPropio } from '@/lib/data';
+import { proyectosGestionables as obtenerProyectosGestionables, puedeAdministrarSitio } from '@/lib/permisosProyecto';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import { obtenerTopes } from '@/lib/topesHoras';
@@ -37,7 +37,16 @@ export default async function PortalDashboard() {
   const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = esDocenteSesion(session);
   const esSecretaria = esSecretariaSesion(session);
-  const proyectoPropio = liderProyectoPropio[email];
+  // Proyectos que esta persona administra (líder/colíder en proyecto_miembros; administración del sitio: todos).
+  // Se consulta en Neon en cada carga, no con la cookie.
+  let proyectosAdministrables: { id: string; nombre_oficial: string }[] = [];
+  if (esDocente) {
+    try {
+      proyectosAdministrables = await obtenerProyectosGestionables(neon(process.env.DATABASE_URL!), session);
+    } catch {
+      proyectosAdministrables = [];
+    }
+  }
 
   // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
   // episodios ya aprobados en /admin/videos, ver lib/horasPodcast.ts. Las
@@ -205,13 +214,21 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Proyecto propio del líder (German, Verónica) — sin link todavía, no hay panel de edición por proyecto */}
-            {proyectoPropio && (
+            {/* Administrar mi proyecto — líderes y colíderes (Fase B del plan de administración por líderes) */}
+            {proyectosAdministrables.length > 0 && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar {proyectoPropio}</h3>
-                <p className="text-gray-600 mb-4 text-sm">Tu proyecto dentro de la carrera.</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Administrar mi proyecto</h3>
+                <p className="text-gray-600 mb-4 text-sm">Fotos y contenido de tu proyecto dentro de la carrera.</p>
                 <div className="flex flex-col gap-2">
-                  <span className="text-gray-400 text-sm italic">Próximamente</span>
+                  {puedeAdministrarSitio(session) ? (
+                    <Link href="/portal/proyecto" className="text-green-700 hover:underline">» Todos los proyectos</Link>
+                  ) : (
+                    proyectosAdministrables.map((proyectoAdministrable) => (
+                      <Link key={proyectoAdministrable.id} href={`/portal/proyecto/${proyectoAdministrable.id}`} className="text-green-700 hover:underline">
+                        » {proyectoAdministrable.nombre_oficial}
+                      </Link>
+                    ))
+                  )}
                 </div>
               </div>
             )}

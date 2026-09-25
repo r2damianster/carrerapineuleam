@@ -9,6 +9,7 @@ type EnlaceInfo = {
   tipo_contenido: 'evento' | 'podcast';
   profesores: { id: number; nombres: string; apellidos: string }[];
   proyectos: { id: string; nombre_oficial: string }[];
+  proyectos_enlace?: { id: string; nombre_oficial: string }[];
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -87,6 +88,7 @@ export default function EnlaceDifusionPublicoPage() {
       if (file) {
         const uploadData = new FormData();
         uploadData.append('file', file);
+        uploadData.append('enlace_token', String(Array.isArray(token) ? token[0] : token));
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadData });
         const uploadJson = await uploadRes.json();
         if (!uploadRes.ok) throw new Error(uploadJson.error || 'Error subiendo la evidencia');
@@ -158,6 +160,11 @@ export default function EnlaceDifusionPublicoPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {enlace?.proyectos_enlace && enlace.proyectos_enlace.length > 0 && (
+            <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-900">
+              Este registro se asociará a: {enlace.proyectos_enlace.map(proyecto => proyecto.nombre_oficial).join(' · ')}
+            </p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Tu nombre completo</label>
@@ -269,6 +276,7 @@ export default function EnlaceDifusionPublicoPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Foto del evento</label>
               <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-gray-500" />
+              <p className="mt-1 text-xs text-gray-500">Un administrador revisará la foto (por ejemplo, si aparecen menores de edad) antes de publicarla.</p>
             </div>
           )}
 

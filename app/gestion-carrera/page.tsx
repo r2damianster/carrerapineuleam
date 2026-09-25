@@ -8,6 +8,7 @@ import SelectorAreaProyectoPodcast from '@/components/SelectorAreaProyectoPodcas
 import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodcast';
 import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
 import EnlacesDifusionList from '@/components/EnlacesDifusionList';
+import SelectorProyectosEvento from '@/components/SelectorProyectosEvento';
 
 export default function GestionCarreraPage() {
   const router = useRouter();
@@ -17,6 +18,10 @@ export default function GestionCarreraPage() {
   const [errorIA, setErrorIA] = useState('');
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  // WP5/WP5b: proyectos a los que pertenece el evento y declaración de menores en la foto.
+  const [proyectosEvento, setProyectosEvento] = useState<string[]>([]);
+  const [sinProyectosAsignables, setSinProyectosAsignables] = useState(false);
+  const [hayMenores, setHayMenores] = useState(false);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
   const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
@@ -139,6 +144,10 @@ export default function GestionCarreraPage() {
       setMessage('Error: Debe seleccionar al menos un profesor responsable');
       return;
     }
+    if (proyectosEvento.length === 0) {
+      setMessage('Error: Debe seleccionar al menos un proyecto al que pertenece el evento');
+      return;
+    }
     if (form.tipo === 'podcast' && !video) {
       setMessage('Error: Debe subir el video del podcast (botón "Subir video" de arriba) antes de registrar la actividad');
       return;
@@ -166,6 +175,8 @@ export default function GestionCarreraPage() {
           audiencia_alcanzada: parseInt(form.audiencia_alcanzada),
           evidencia_url,
           profesores_responsables: responsables,
+          proyectos: proyectosEvento,
+          hay_menores: hayMenores,
           ...(video ? {
             youtube_video_id: video.youtubeVideoId,
             video_category: video.categoryId,
@@ -184,6 +195,7 @@ export default function GestionCarreraPage() {
       setMessage('¡Evento registrado correctamente!');
       setForm({ titulo: '', tipo: 'evento_formacion', categoria: 'vinculacion', proyecto: '', asignatura: '', audiencia_alcanzada: '', descripcion: '', fecha: '', hora: '', observaciones: '' });
       setFile(null);
+      setHayMenores(false);
       setVideo(null);
       setVideoResetKey((k) => k + 1);
       setVideoProyectoId('');
@@ -359,12 +371,27 @@ export default function GestionCarreraPage() {
             <textarea name="observaciones" rows={2} value={form.observaciones} onChange={handleChange} className="mt-1 w-full rounded-md border-gray-300 shadow-sm p-2 border" />
           </div>
 
+          <SelectorProyectosEvento
+            proyectosSeleccionados={proyectosEvento}
+            onCambio={setProyectosEvento}
+            onSinProyectos={setSinProyectosAsignables}
+          />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Foto / Captura (opcional)</label>
             <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm text-gray-500" />
+            {file && (
+              <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="mt-1" checked={hayMenores} onChange={(e) => setHayMenores(e.target.checked)} />
+                <span>
+                  ¿Aparecen menores de edad en la foto?
+                  <span className="block text-xs text-gray-500">Si marcas Sí, la foto solo la verá el equipo de administración y no se publicará en la web.</span>
+                </span>
+              </label>
+            )}
           </div>
 
-          <button type="submit" disabled={loading} className="w-full flex justify-center py-3 rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" disabled={loading || sinProyectosAsignables} className="w-full flex justify-center py-3 rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
             {loading ? 'Guardando...' : 'Registrar Evento'}
           </button>
         </form>
