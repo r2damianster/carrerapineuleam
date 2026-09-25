@@ -94,6 +94,15 @@ const documents = {
       period: '2026-1',
     },
     {
+      id: 'proyecto-actualizado-2026',
+      title: 'Proyecto de Innovaciones Pedagógicas e Internacionalización (Actualizado 2026)',
+      filename: '2026-04-14_ProyectoActualizado.pdf',
+      description: 'Documento marco institucional actualizado sobre el Proyecto de Innovaciones Pedagógicas e Internacionalización para el desarrollo sostenible.',
+      icon: '📘',
+      date: '2026-04-14',
+      period: '2026-1',
+    },
+    {
       id: 'aval-red',
       title: 'Aval de Red',
       filename: '2025-09-24_AvalRed.pdf',
