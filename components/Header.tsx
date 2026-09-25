@@ -78,8 +78,11 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-carrera
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const perfilEgresoLabel = (t.nav as any).perfilEgreso || 'Perfil de Egreso';
+
   const navLinksHardcodeados: NavItem[] = [
     { href: '/', label: t.nav.home },
+    { href: '/#perfil-egreso', label: perfilEgresoLabel },
     { label: t.nav.docencia, children: [{ href: '/docencia/docencia-innovadora', label: t.docenciaProject.navLabel }] },
     {
       label: t.nav.investigacion,
@@ -109,6 +112,7 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-carrera
   const navLinks: NavItem[] = proyectosDb
     ? [
         { href: '/', label: t.nav.home },
+        { href: '/#perfil-egreso', label: perfilEgresoLabel },
         { label: t.nav.docencia, children: proyectosDeGrupo('docencia') },
         {
           label: t.nav.investigacion,

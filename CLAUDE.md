@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.12.6
-**Última sesión:** 2026-09-24 (Sesión 50 — roles por módulo y `/admin/roles`, supervisión de horas con período, módulo de notificaciones del portal, horas/actividades autónomas del pasante; ver también `NOTIFICACIONES.md`)
+**Versión actual:** 0.12.7
+**Última sesión:** 2026-09-25 (Sesión 51 — Informes automáticos de Vinculación Mensual Supervisor y Semestral Líder en `.docx`, gráficos QuickChart, vínculo sesión-actividad y obstáculos, y notificaciones derivadas en `lib/notificaciones.ts`)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
