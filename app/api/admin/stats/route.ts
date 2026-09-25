@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     const desde: string | null = periodo ? String(periodo.fecha_inicio).slice(0, 10) : null;
     const hasta: string | null = periodo ? String(periodo.fecha_fin).slice(0, 10) : null;
 
+    // 1. Estudiantes de investigación (Meta: 6 en 2 años)
     // Acumulado: módulo investigacion o alguna actividad. Con período: quienes reportaron
     // actividades dentro del período, más quienes tienen el módulo si el período es el vigente
     // (el módulo no tiene fecha, refleja la asignación actual).
