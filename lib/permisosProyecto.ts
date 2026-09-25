@@ -2,6 +2,7 @@
 // Capa de permisos por proyecto para administración por líderes (WP2).
 // Sin imports de Node/Neon a nivel de módulo — recibe `sql` desde el handler.
 // La pertenencia se consulta en Neon en cada petición para evitar desfase de cookie.
+// Ver docs/PLAN_IMPLEMENTACION_ANTIGRAVITY_ADMIN_POR_LIDERES.md (Sesión 52).
 
 import type { AppSession } from './session';
 import { esDocente } from './modulos';
