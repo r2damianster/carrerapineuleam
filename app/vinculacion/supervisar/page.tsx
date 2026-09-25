@@ -372,8 +372,18 @@ export default function SupervisarAsistenciaPage() {
           />
         )}
 
+        {/* Secciones por categoría: solo aparecen las que tienen registros con el filtro actual. */}
+        {TIPOS_REGISTRO.map(tipoGrupo => {
+          const registrosDelGrupo = registrosVisibles.filter(registro => registro.tipo === tipoGrupo);
+          if (registrosDelGrupo.length === 0) return null;
+          return (
+        <section key={tipoGrupo} className="mb-8">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ETIQUETA_TIPO[tipoGrupo].clases}`}>{ETIQUETA_TIPO[tipoGrupo].texto}</span>
+            <span className="text-sm font-medium text-gray-500">{registrosDelGrupo.length} {registrosDelGrupo.length === 1 ? 'registro' : 'registros'}</span>
+          </h2>
         <div className="space-y-4">
-          {registrosVisibles.map(registro => {
+          {registrosDelGrupo.map(registro => {
             const etiqueta = ETIQUETA_TIPO[registro.tipo];
             const botonesDecision = (
               <div className="flex sm:flex-col gap-2 shrink-0">
@@ -464,6 +474,9 @@ export default function SupervisarAsistenciaPage() {
             );
           })}
         </div>
+        </section>
+          );
+        })}
       </div>
     </div>
   );
