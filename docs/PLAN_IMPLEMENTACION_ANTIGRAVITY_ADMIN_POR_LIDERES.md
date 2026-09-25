@@ -561,3 +561,92 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 - [ ] Notificaciones (WP10) + `NOTIFICACIONES.md`.
 - [ ] Documentación (§11.3).
 - [ ] Deploy en `READY` y revisión visual en producción.
+
+---
+
+## 15. Registro de ejecución (Antigravity)
+
+> Cada sesión de Antigravity documenta aquí lo que ejecutó, los resultados reales de la BD y los archivos tocados. **No editar a mano.**
+
+---
+
+### Sesión 2026-09-25 — WP0 a WP4 + correcciones al plan
+
+**Rama:** `feat/admin-lideres-fotos` (creada desde `main` @ `0767d11`)
+**Commit:** `b9bacdb`
+**TSC:** limpio (0 errores) antes del commit.
+
+#### Correcciones aplicadas al plan antes de ejecutar
+
+| # | Corrección | Sección |
+|---|---|---|
+| 1 | **WP6 eliminado** — detección de menores exclusivamente humana. Sin Groq, sin `lib/groqVision.ts`, sin columna `ia_resultado`, sin `GROQ_VISION_MODEL`. Tres capas sustitutas: declaración del estudiante + bandeja de revisión admin + `CHECK fotos_publicable_sin_menores`. | §2, WP6, WP5, WP4.4, §13, §14 |
+| 2 | **SELECT pre-VALIDATE obligatorio** — antes de `VALIDATE CONSTRAINT fotos_publicable_sin_menores`, el script ejecuta `SELECT id FROM fotos WHERE menores <> 'no' AND cardinality(ubicaciones) > 0` y aborta si hay filas. Resultado real: **0 filas** → safe. | WP1 |
+| 3 | **Atomicidad con `Pool`** — documentada con ejemplo de código completo (`BEGIN/COMMIT/ROLLBACK/release`). Explicación de por qué `neon()` solo no admite transacciones multi-statement. | WP4.2 |
+
+#### WP0 — Preparación y auditoría
+
+- `git fetch` + `git log` ejecutados. Último commit en `main`: `0767d11`.
+- Rama `feat/admin-lideres-fotos` creada correctamente. Verificado con `git branch --show-current`.
+- Archivos clave leídos completos antes de editar: `middleware.ts`, `lib/session.ts`, `lib/modulos.ts`, `app/api/photos/route.ts`, `app/admin/photos/page.tsx` (línea 58: único llamador de `?all=true`).
+- Scripts existentes revisados para usar el patrón correcto (`migrate-topes-horas.js` como plantilla).
+
+#### WP1 — Migración de BD (aplicada en Neon `dark-feather-21824720`)
+
+Script: [`scripts/migrate-fotos-banco.js`](../scripts/migrate-fotos-banco.js)
+
+**Resultado real del script:**
+```
+[0] respaldo_fotos_20260926 → 45 filas
+[1] Columnas añadidas (idempotente)
+[2.pre] 0 filas violadoras → VALIDATE safe
+[2] Constraints OK (fotos_origen_check ampliado, fotos_menores_check, fotos_visibilidad_check, fotos_publicable_sin_menores)
+[3] Índices: fotos_fuente_unica, fotos_ubicaciones_gin, fotos_proyectos_gin, fotos_origen_idx
+[4] fotos_ubicaciones: 7 filas (portada, club-ingles, docencia-galeria, redlea-galeria, internacionalizacion-galeria, desarrollo-habilidades-galeria, mentoring-galeria)
+[5] Backfill fotos.proyectos OK
+[6] actividades_difusion.proyectos añadida; enlaces_difusion.proyectos añadida
+[7] fotos.count = 45 ✅ | fotos violadoras = 0 ✅ | fotos_ubicaciones = 7 ✅
+    columnas nuevas: categoria, fecha_evento, fuente_id, menores, proyectos, subido_por_id, visibilidad
+```
+
+**Columnas NO creadas (WP6 eliminado):** `ia_resultado` ← no existe, no crear.
+
+**Aviso de contenido para Arturo:** Docencia Innovadora pasará de mostrar hasta 23 fotos → máximo 8 (6 manuales + 2 podcast automáticas). RED LEA: 13 → máximo 10. Curar el campo `order` inmediatamente después del deploy.
+
+#### WP2 — Capa de datos y permisos (`lib/`)
+
+| Archivo | Descripción |
+|---|---|
+| [`lib/permisosProyecto.ts`](../lib/permisosProyecto.ts) | `puedeAdministrarSitio` (D1), `proyectosGestionables`, `puedeGestionarProyecto`, `proyectosAsignables`, `validarProyectosAsignables`. Siempre consulta Neon en cada petición. |
+| [`lib/fotosPublicas.ts`](../lib/fotosPublicas.ts) | `obtenerFotosDeUbicacion` (con topes + gate de fuente aprobada + auto-fill), `fragmentoFuenteAprobada`. |
+| [`lib/cloudinaryUrl.ts`](../lib/cloudinaryUrl.ts) | `miniaturaCloudinary(url, ancho)` — puro, sin deps. |
+| [`lib/ingestaFotos.ts`](../lib/ingestaFotos.ts) | `registrarFotoEnBanco` — idempotente con `ON CONFLICT DO NOTHING`, manejo de menores humano-only, nunca lanza hacia el llamador. |
+
+#### WP3 — API pública con topes
+
+| Archivo | Cambios |
+|---|---|
+| [`app/api/photos/route.ts`](../app/api/photos/route.ts) | `GET ?ubicacion=X` → `obtenerFotosDeUbicacion` (topes + gate). `GET ?all=true` → ahora exige sesión + `puedeAdministrarSitio`. `GET` sin params → `[]`. Agrega `export const dynamic = 'force-dynamic'`. |
+
+**Búsqueda de llamadores de `?all=true`:** solo `app/admin/photos/page.tsx` (línea 58). Se reemplazará completamente en WP8 → no hay que tocar nada ahora.
+
+#### WP4 — API de administración
+
+| Archivo | Descripción |
+|---|---|
+| [`app/api/photos/banco/route.ts`](../app/api/photos/banco/route.ts) | `GET` paginado con filtros (q, origen, ubicacion, proyecto, desde, hasta, menores, estado, page, pageSize). Alcance por rol: admin ve todo; líder solo fotos de sus proyectos publicables con fuente aprobada. |
+| [`app/api/photos/accion/route.ts`](../app/api/photos/accion/route.ts) | `POST` acciones en lote (publicar, quitar, ocultar, mostrar, descartar, marcar_revisada, marcar_interna). **`Pool + BEGIN/COMMIT`** — atomicidad real. Matriz de autorización por foto × ubicación. Respuesta incluye avisos de tope suave. |
+| [`app/api/photos/ubicaciones/route.ts`](../app/api/photos/ubicaciones/route.ts) | `GET` catálogo con conteo de publicadas, filtrado por alcance. `PATCH` edición de topes (solo admin). |
+
+#### Pendiente (próxima sesión)
+
+| WP | Contenido |
+|---|---|
+| WP4.4 | Extender `POST /api/photos` (crear) y `PATCH /api/photos/[id]` para líderes + declaración de menores |
+| WP5 | Declaración `hay_menores` en handlers de asistencia y difusión (leer completos antes de tocar) |
+| WP5b | `proyectosAsignables` en `GET /api/proyectos`, validación en difusión/videos/enlaces, componente `SelectorProyectosEvento.tsx` |
+| WP7 | Script `backfill-fotos-banco.js` (simulación por defecto) |
+| WP8 | Componente `BancoFotos.tsx` + reescritura de `/admin/photos/page.tsx` |
+| WP9 | Panel del líder `/portal/proyecto/[proyectoId]/fotos` (Fase B) |
+| WP10 | Notificaciones `fotos-menores-por-revisar` y `fotos-sin-ubicar-proyecto` |
+| WP11 | Script de pruebas de permisos `scripts/test-fotos-permisos.mjs` |

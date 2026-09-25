@@ -70,6 +70,10 @@ export async function POST(request: Request) {
 
     const esAdmin = puedeAdministrarSitio(sesion);
 
+    if (['publicar', 'quitar'].includes(accion) && (!Array.isArray(ubicacionesPedidas) || ubicacionesPedidas.length === 0)) {
+      return NextResponse.json({ error: 'Indica al menos una ubicación para publicar o quitar.' }, { status: 400 });
+    }
+
     // Solo admin puede hacer acciones exclusivas
     if (ACCIONES_SOLO_ADMIN.includes(accion as Accion) && !esAdmin) {
       return NextResponse.json({ error: 'Solo administración del sitio puede ejecutar esta acción.' }, { status: 403 });
@@ -235,7 +239,8 @@ export async function POST(request: Request) {
            SET ubicaciones = (
              SELECT array_agg(DISTINCT ubic) FROM unnest(ubicaciones || $2::text[]) AS ubic
            ),
-           activo = true
+           activo = true,
+           updated = now()
            WHERE id = ANY($1)`,
           [idsUnicos, slugsUbic]
         );
@@ -244,7 +249,12 @@ export async function POST(request: Request) {
         if (esAdmin) {
           await client.query(
             `UPDATE fotos
-             SET ubicaciones = array_remove_values(ubicaciones, $2::text[])
+             SET ubicaciones = (
+               SELECT COALESCE(array_agg(u), '{}')
+               FROM unnest(ubicaciones) AS u
+               WHERE u <> ALL($2::text[])
+             ),
+             updated = now()
              WHERE id = ANY($1)`,
             [idsUnicos, slugsUbic]
           );
@@ -259,29 +269,30 @@ export async function POST(request: Request) {
                  SELECT COALESCE(array_agg(u), '{}')
                  FROM unnest(ubicaciones) AS u
                  WHERE u <> ALL($2::text[])
-               )
+               ),
+               updated = now()
                WHERE id = ANY($1)`,
               [idsUnicos, slugsAQuitar]
             );
           }
         }
       } else if (accion === 'ocultar') {
-        await client.query(`UPDATE fotos SET activo = false WHERE id = ANY($1)`, [idsUnicos]);
+        await client.query(`UPDATE fotos SET activo = false, updated = now() WHERE id = ANY($1)`, [idsUnicos]);
       } else if (accion === 'mostrar') {
-        await client.query(`UPDATE fotos SET activo = true WHERE id = ANY($1)`, [idsUnicos]);
+        await client.query(`UPDATE fotos SET activo = true, updated = now() WHERE id = ANY($1)`, [idsUnicos]);
       } else if (accion === 'descartar') {
         await client.query(
-          `UPDATE fotos SET activo = false, ubicaciones = '{}' WHERE id = ANY($1)`,
+          `UPDATE fotos SET activo = false, ubicaciones = '{}', updated = now() WHERE id = ANY($1)`,
           [idsUnicos]
         );
       } else if (accion === 'marcar_revisada') {
         await client.query(
-          `UPDATE fotos SET menores = 'no', visibilidad = 'publicable' WHERE id = ANY($1)`,
+          `UPDATE fotos SET menores = 'no', visibilidad = 'publicable', updated = now() WHERE id = ANY($1)`,
           [idsUnicos]
         );
       } else if (accion === 'marcar_interna') {
         await client.query(
-          `UPDATE fotos SET menores = 'si', visibilidad = 'interna', ubicaciones = '{}', activo = false WHERE id = ANY($1)`,
+          `UPDATE fotos SET menores = 'si', visibilidad = 'interna', ubicaciones = '{}', activo = false, updated = now() WHERE id = ANY($1)`,
           [idsUnicos]
         );
       }
