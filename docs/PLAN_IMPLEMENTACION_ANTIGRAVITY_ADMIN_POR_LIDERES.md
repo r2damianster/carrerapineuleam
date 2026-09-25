@@ -564,7 +564,7 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 
 ---
 
-## 15. Registro de ejecución (Antigravity)
+## 15. Registro de ejecución (Antigravity y Claude)
 
 > Cada sesión de Antigravity documenta aquí lo que ejecutó, los resultados reales de la BD y los archivos tocados. **No editar a mano.**
 
@@ -650,3 +650,63 @@ Script: [`scripts/migrate-fotos-banco.js`](../scripts/migrate-fotos-banco.js)
 | WP9 | Panel del líder `/portal/proyecto/[proyectoId]/fotos` (Fase B) |
 | WP10 | Notificaciones `fotos-menores-por-revisar` y `fotos-sin-ubicar-proyecto` |
 | WP11 | Script de pruebas de permisos `scripts/test-fotos-permisos.mjs` |
+
+---
+
+### Sesión 2026-09-26 (Claude) — revisión de lo de Antigravity + WP4.4, WP5, WP5b, WP7, WP8, WP9, WP10, WP11
+
+**Rama:** `feat/admin-lideres-fotos` (se le hizo `merge origin/main` limpio al final; `main` había avanzado con los informes de Vinculación).
+**Verificación:** `tsc --noEmit` limpio, `next build` completo OK, `scripts/test-fotos-permisos.mjs` → **TODO OK (46 casos)** contra servidor local + Neon real, y prueba de ingesta real (pasante/docente/podcast) OK.
+**Nota de entorno:** `npx tsc` no encuentra el binario en este checkout (`node_modules/.bin/tsc` no existe); usar `node node_modules/typescript/bin/tsc --noEmit` y `node node_modules/next/dist/bin/next build`. `git commit` falla desde la herramienta Bash: usar PowerShell.
+
+#### Lo que se encontró al revisar (importante para futuras sesiones)
+
+| # | Hallazgo | Acción |
+|---|---|---|
+| 1 | El auto-commit `c1f8f17` **revirtió** dos cosas del trabajo previo: (a) `app/api/photos/route.ts` volvió a la versión vieja (el GET público sin topes, WP3) y (b) el propio plan perdió su §15 y las correcciones. Además el árbol de trabajo tenía 4 archivos (`difusion`, `enlaces-difusion/[token]`, `asistencia`, `photos/[id]`) **idénticos a `main`**, es decir, sin el trabajo de WP4.4/WP5 que sí estaba en `HEAD`. | Se restauraron esos 4 archivos desde `HEAD`, el plan desde `d4f6289` y `photos/route.ts` se reescribió completo (WP3 + WP4.4). |
+| 2 | **Bug real en `POST /api/photos/accion`:** la acción `quitar` (admin) llamaba a `array_remove_values(...)`, una función que **no existe en Postgres** → 500 siempre. | Reemplazada por el patrón `unnest`/`COALESCE(array_agg(...))`. Cubierto por la prueba "quitar (admin) → 200". |
+| 3 | `accion` aceptaba `publicar`/`quitar` **sin ubicaciones** (solo activaba la foto) y no actualizaba `updated`. | Ahora exige ≥1 ubicación (400) y todos los `UPDATE` ponen `updated = now()`. |
+| 4 | WP5 (Antigravity) tomaba los proyectos de un enlace QR de **todas las membresías del creador** en vez de los que él eligió al generarlo (contradice WP5b). | El enlace guarda `enlaces_difusion.proyectos` al generarse; el público los usa, ignora el cuerpo. |
+| 5 | **Bug previo:** `POST /api/upload` exige sesión, así que un externo con enlace QR **no podía subir su foto** (401). | `upload` acepta `enlace_token` de un enlace vigente de tipo `evento` como autorización alternativa. |
+| 6 | El auto-commit `136f028` (ya anotado como H1) sigue vigente: el cableado de permisos por pertenencia (`c53d899`) está revertido en `main`. No se tocó. | Solo se anota; ver H1. |
+
+Se verificó además que `@neondatabase/serverless` 1.x **sí** admite fragmentos `sql` anidados (lo usa `banco/route.ts`).
+
+#### WP4.4 — `POST /api/photos` y `PATCH /api/photos/[id]` (líderes)
+`app/api/photos/route.ts` reescrito: `GET` público con topes (`obtenerFotosDeUbicacion`), `?all=true` solo administración del sitio, sin `ubicacion` → `[]`. `POST` acepta admin y líder/colíder; **exige `hay_menores` boolean**; el servidor fuerza `origen` (`admin`/`lider`), `menores`, `visibilidad`; con menores nunca guarda ubicaciones; el líder solo puede usar proyectos que gestiona y ubicaciones de esos proyectos (nunca `solo_admin`). `PATCH [id]` (Antigravity) se conserva: líder edita título/descripción/orden/posición de fotos de sus proyectos; solo admin reasigna `proyectos`. `DELETE` solo admin.
+
+#### WP5 — Declaración de menores + ingesta
+- `hay_menores` (casilla "¿Aparecen menores de edad en la foto?", **No** por defecto) en: `/vinculacion/asistencia`, `/vinculacion/difusion`, `/gestion-carrera` y el subir-foto del banco. Sin Groq (WP6 eliminado por decisión del usuario).
+- Ingesta al banco (`lib/ingestaFotos.ts`) después del `COMMIT`, sin poder tumbar el registro principal: asistencia (`origen='asistencia'`, `proyectos=['vinculacion']`), `POST /api/difusion` (`evento`/`podcast`), y externos vía QR (`esExterno` → siempre `menores='revisar'`, interna).
+
+#### WP5b — Proyectos al subir
+- `lib/permisosProyecto.ts`: `proyectosAsignables` / `validarProyectosAsignables` (Antigravity) — admin de sitio: todos; docente: los suyos (cualquier rol); pasante: fijo (D5).
+- `GET /api/proyectos?asignables=1` (rama nueva en la ruta existente; `{ fijo, proyectos }`).
+- `components/SelectorProyectosEvento.tsx` (nuevo) usado en `/vinculacion/difusion`, `/gestion-carrera` y `EnlaceDifusionModal`; botón de envío deshabilitado si la persona no pertenece a ningún proyecto.
+- Validación en servidor: `POST /api/difusion` (pasante → fijo; docente → asignables; otro rol → 403; el `video_proyecto_id` de un docente también se valida), `POST /api/videos` (proyecto principal: pasante solo `vinculacion`; docente sus asignables; `internacionalizacion` lo agrega el servidor), `POST /api/enlaces-difusion` (proyectos del generador), `POST /api/enlaces-difusion/[token]` (usa los del enlace). Página pública del QR muestra "Este registro se asociará a: …".
+- `/portal/subir-video` **no necesitó cambios**: solo registra un video (sin actividad) y ya elige su proyecto con `SelectorAreaProyectoPodcast`; la validación vive en `POST /api/videos`.
+
+#### WP7 — Backfill (APLICADO en Neon y Cloudinary el 2026-09-26)
+`scripts/backfill-fotos-banco.js` (simulación por defecto; `--aplicar`). **Resultado real:** 44 archivos locales distintos subidos a `pine_project_uploads/legado/…` (0 faltantes, 0 demasiado grandes); las 45 filas existentes de `fotos` actualizadas a URL de Cloudinary (**conservaron** ubicaciones/orden/activo/posición); insertadas **2** fotos de evento y **23** de asistencia (`menores='revisar'`, `interna`, `activo=false` → bandeja de revisión); 23 duplicados omitidos. Estado final: `fotos` = **70** filas (45 → 70), **45 con ubicación (sin cambios)**, 0 rutas locales, 70 en Cloudinary. Verificado que una URL migrada responde `200 image/jpeg`. Los archivos de `public/images` **no se borraron**. (El plan decía 22 fotos de asistencia; hoy hay 23 porque se registró una más desde entonces.)
+
+#### WP8 — UI
+`components/fotos/BancoFotos.tsx` (compartido) + `app/admin/photos/page.tsx` reducido a un wrapper. Cupos por ubicación (`publicadas/max`), filtros (búsqueda, origen, ubicación incl. "Sin ubicar", proyecto, fechas, menores, estado; inicializados desde la URL para los enlaces de las notificaciones), cuadrícula paginada (24), selección múltiple con **Publicar en… / Quitar de… / Ocultar / Mostrar / Descartar**, y solo para admin **Marcar sin menores / con menores**; modales de edición (recorte, orden, proyectos) y de subida (con la casilla de menores). Las fotos con menores no ofrecen publicar (la API responde 409).
+
+#### WP9 — Panel del líder + galerías
+- Páginas: `/portal/proyecto` (lista; entra directo si solo hay uno), `/portal/proyecto/[proyectoId]` y `/portal/proyecto/[proyectoId]/fotos` (`<BancoFotos modo="lider">`). `middleware.ts`: `/portal/proyecto` en `protectedRoutes` (solo `profesor`/`admin`; la secretaria ya queda denegada por defecto).
+- Dashboard: la tarjeta estática "Gestionar {proyecto}" (`liderProyectoPropio`, "Próximamente") se reemplazó por **"Administrar mi proyecto"**, armada desde `proyecto_miembros` en cada carga (`proyectosGestionables`); administración del sitio ve un solo enlace "Todos los proyectos".
+- `components/GaleriaProyecto.tsx` (oculta la sección si no hay fotos) en `proyecto-innovacion`, `desarrollo-habilidades`, `mentoring` y `/proyectos/[slug]`; textos en `lib/i18n.tsx` → `t.projectGalleries` (ES+EN). `POST /api/proyectos` crea también la ubicación `<id>-galeria` (tope 8).
+
+#### WP10 — Notificaciones
+`fotos-menores-por-revisar` (`contenido_sitio` → `/admin/photos?menores=revisar`) y `fotos-sin-ubicar-proyecto` (líder/colíder sin ser admin de sitio → su panel). Filas agregadas a `NOTIFICACIONES.md`. La primera usa `contenido_sitio` (no `puedeAdministrarSitio`) porque el destino `/admin/photos` lo exige el middleware.
+
+#### WP11 — Pruebas
+`scripts/test-fotos-permisos.mjs` (matriz completa del plan, con Jhonny y Verónica reales, datos `foto_test_*` que se borran solos): anónimo/secretaria/pasante, líder (proyecto propio/ajeno, portada, menores, atomicidad del lote), Jhonny (internacionalización + RED LEA, sin acceso a `/admin`), admin, CHECK de BD (23514), GET público con tope (5 fotos, tope 3 → 3), asignables y validación de proyectos.
+
+#### Pendiente / decisiones para el usuario
+1. **Desplegar y revisar visualmente**: la rama no se ha mergeado a `main`. Tras el deploy, Docencia pasa de 23 a 8 fotos y RED LEA de 13 a 10: **curar el `order`** desde `/admin/photos` (nada se borró).
+2. **Generar QR sin módulos:** `puedeGenerarEnlaceDifusion` exige módulo `vinculacion`/`investigacion`/`contenido_sitio`; un líder sin módulos (p. ej. Jhonny, `modulos_acceso = {}`) no ve el botón aunque la API ya valida sus proyectos. Decisión: ¿permitir generar QR a todo líder/colíder?
+3. **Fotos de asistencia (23):** quedan en la bandeja de revisión; un admin las marca con "Marcar sin menores" para poder ubicarlas.
+4. **H1** (cableado de permisos por pertenencia revertido en `main`) sigue abierto y fuera de alcance.
+5. `avisos` de tope en `POST /api/photos/accion` cuenta fotos activas publicables de la ubicación sin descontar las de fuente sin aprobar (solo afecta el texto del aviso, no lo que se muestra).
+6. Estado de pasantes en el selector: las reglas D5 viven en `POST /api/difusion` y `GET /api/proyectos?asignables=1`; si cambian, tocar ambos.

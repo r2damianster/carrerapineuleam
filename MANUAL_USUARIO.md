@@ -98,6 +98,29 @@ Formulario completo para registrar eventos y podcasts de Vinculación, Investiga
 
 ---
 
+## 🧑‍🏫 Perfil: Líder o colíder de proyecto — administrar las fotos de tu proyecto
+
+Si eres **líder o colíder** de un proyecto (según el equipo del proyecto), en tu **Portal → "Administrar mi proyecto"** puedes:
+
+1. **Ver las fotos de tu proyecto** (las que suben los pasantes en eventos y podcasts, y las que subas tú). Solo ves las de **tu** proyecto y solo las que **no** tienen menores de edad.
+2. **Publicar** una foto en la galería de tu proyecto: marca la(s) foto(s), elige la galería en **"Publicar en…"** y pulsa el botón. También puedes **Quitar**, **Ocultar/Mostrar** o **Descartar**.
+3. **Subir una foto** (botón **+ Subir foto**). Al subirla debes declarar si aparecen **menores de edad**; si marcas **Sí**, la foto no se publicará.
+4. **Editar** título, descripción, recorte y **orden** (las de menor número salen primero).
+
+**Máximo por galería:** cada galería tiene un tope de fotos visibles (por ejemplo 8). Si publicas más, el sitio **solo muestra las primeras**; las demás siguen guardadas. Verás el contador (por ejemplo 8/8) y un aviso si te pasas.
+
+**Qué no puedes hacer:** publicar en la **portada** del sitio ni en galerías de **otros proyectos** (eso lo hace administración del sitio).
+
+## 🎓 Perfil: Pasante / docente — al registrar eventos, podcasts y asistencia
+
+- **Asistencia, eventos y podcasts** piden ahora una casilla **"¿Aparecen menores de edad en la foto?"** (viene en **No**). Si marcas **Sí**, la foto solo la verá el equipo de administración y **no se publicará** en la web.
+- **Docentes:** al registrar un evento o podcast debes elegir **a qué proyecto(s) pertenece**; solo aparecen los proyectos de los que eres miembro. Los **pasantes** no eligen: sus eventos son de Vinculación y sus podcasts de Vinculación e Internacionalización.
+- **Acceso temporal (QR) para externos:** al generar el enlace eliges los proyectos; quien lo use no puede cambiarlos. Las fotos de externos siempre pasan por revisión antes de publicarse.
+
+## 🖼️ Gestión del Sitio — Banco de fotos (administración)
+
+`/admin/photos` es el banco único de fotos: filtros (origen, ubicación, sin ubicar, proyecto, fechas, menores), selección múltiple y **Publicar en…**. Las fotos con **"Menores: revisar"** (externos, asistencia) **no se publican** hasta que las marques como **revisadas** ("Marcar sin menores"). La **portada** solo la administra administración del sitio. Los máximos por galería se ven en las fichas de arriba.
+
 ## 🔬 Perfil: Investigación (hoy: Jhonny, German, Cristina, Johana)
 
 Tarjeta **"Gestionar Investigación"** — dos funciones:
