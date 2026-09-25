@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { obtenerLideresPorProyecto, conLider } from '@/lib/liderProyecto';
 
 export async function GET(request: Request) {
   try {
@@ -16,8 +15,7 @@ export async function GET(request: Request) {
       WHERE (${incluirInactivos} OR activo = true)
       ORDER BY "order" ASC
     `;
-    const lideres = await obtenerLideresPorProyecto(sql);
-    return NextResponse.json(rows.map((fila: any) => conLider(fila, lideres)));
+    return NextResponse.json(rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -36,6 +34,7 @@ export async function POST(request: Request) {
       hero_title1_es, hero_title1_en, hero_title2_es, hero_title2_en,
       hero_subtitle_es, hero_subtitle_en, hero_description_es, hero_description_en,
       integration_text_es, integration_text_en, info_text_es, info_text_en,
+      lider_nombre, lider_email, lider_orcid,
     } = body;
 
     if (!nombre_oficial || !slug || !grupo_nav) {
@@ -52,12 +51,14 @@ export async function POST(request: Request) {
         id, nombre_oficial, area, tipo, slug, grupo_nav, nav_label, "order",
         hero_title1_es, hero_title1_en, hero_title2_es, hero_title2_en,
         hero_subtitle_es, hero_subtitle_en, hero_description_es, hero_description_en,
-        integration_text_es, integration_text_en, info_text_es, info_text_en
+        integration_text_es, integration_text_en, info_text_es, info_text_en,
+        lider_nombre, lider_email, lider_orcid
       ) VALUES (
         ${slug}, ${nombre_oficial}, ${area}, 'plantilla_simple', ${slug}, ${grupo_nav}, ${nav_label || nombre_oficial}, ${order ?? 0},
         ${hero_title1_es || null}, ${hero_title1_en || null}, ${hero_title2_es || null}, ${hero_title2_en || null},
         ${hero_subtitle_es || null}, ${hero_subtitle_en || null}, ${hero_description_es || null}, ${hero_description_en || null},
-        ${integration_text_es || null}, ${integration_text_en || null}, ${info_text_es || null}, ${info_text_en || null}
+        ${integration_text_es || null}, ${integration_text_en || null}, ${info_text_es || null}, ${info_text_en || null},
+        ${lider_nombre || null}, ${lider_email || null}, ${lider_orcid || null}
       )
       RETURNING *
     `;

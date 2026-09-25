@@ -496,10 +496,10 @@ export default function ProyectoVinculacionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Líder del Proyecto de Vinculación</label>
-                <div className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700">
-                  {(() => { const lider = docentes.find(d => String(d.id) === String(fichaForm.lider_id)); return lider ? `${lider.nombres} ${lider.apellidos}` : 'Sin líder asignado'; })()}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Se define en Miembros (rol Líder del proyecto).</p>
+                <select value={fichaForm.lider_id || ''} onChange={e => setFichaForm({ ...fichaForm, lider_id: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue">
+                  <option value="">Selecciona docente líder...</option>
+                  {docentes.map(d => <option key={d.id} value={d.id}>{d.nombres} {d.apellidos}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Responsable de Vinculación y Emprendimiento (Firmante)</label>

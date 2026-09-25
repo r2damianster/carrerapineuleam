@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 
 interface News {
@@ -79,7 +78,7 @@ export default function NewsSection() {
     <section id="noticias" className="py-20 bg-white">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="relative text-center mb-8 md:mb-12">
+        <div className="text-center mb-8 md:mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-uleam-blue mb-4">
             {t.news.sectionTitle}
           </h2>
@@ -87,15 +86,6 @@ export default function NewsSection() {
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             {t.news.sectionSubtitle}
           </p>
-          {/* Extensión de las noticias (no una sección aparte): a la derecha del título en pantallas anchas. */}
-          <div className="mt-5 md:mt-0 md:absolute md:right-0 md:bottom-1">
-            <Link
-              href="/boletines"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-uleam-blue border border-uleam-blue/40 rounded-full px-4 py-2 hover:bg-uleam-blue hover:text-white transition-colors"
-            >
-              {t.news.viewBulletins}
-            </Link>
-          </div>
         </div>
 
         {/* News Horizontal Scroll */}

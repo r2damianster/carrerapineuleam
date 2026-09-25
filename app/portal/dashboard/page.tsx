@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { neon } from '@neondatabase/serverless';
 import { verifySessionCookieValue, SESSION_COOKIE } from '@/lib/session';
+import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import { obtenerTopes } from '@/lib/topesHoras';
@@ -36,19 +37,7 @@ export default async function PortalDashboard() {
   const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = esDocenteSesion(session);
   const esSecretaria = esSecretariaSesion(session);
-  // Proyectos propios que lidera (rol líder en proyecto_miembros, Sesión 51): solo los de plantilla simple; los
-  // proyectos con página propia (Internacionalización, Vinculación) ya tienen sus tarjetas de gestión.
-  let proyectosPropios: { id: string; nombre: string }[] = [];
-  if (esDocente) {
-    const sqlProyectos = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
-    const filasProyectos = await sqlProyectos`
-      SELECT p.id, COALESCE(p.nav_label, p.nombre_oficial) AS nombre
-      FROM proyecto_miembros pm JOIN proyectos p ON p.id = pm.proyecto_id
-      WHERE pm.usuario_id = ${parseInt(session.id, 10)} AND pm.rol_en_proyecto = 'lider' AND pm.activo
-        AND p.tipo = 'plantilla_simple' AND p.activo = true
-      ORDER BY p."order", p.id`;
-    proyectosPropios = filasProyectos.map((fila: any) => ({ id: String(fila.id), nombre: String(fila.nombre) }));
-  }
+  const proyectoPropio = liderProyectoPropio[email];
 
   // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
   // episodios ya aprobados en /admin/videos, ver lib/horasPodcast.ts. Las
@@ -185,7 +174,6 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
                   <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
-                  <Link href="/vinculacion/proyecto" className="text-purple-600 hover:underline">» Ficha del proyecto (objetivos, plan y presupuesto)</Link>
                 </div>
               </div>
             )}
@@ -215,16 +203,16 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Proyecto propio del líder (Germán, Verónica) — sin link todavía, no hay panel de edición por proyecto */}
-            {proyectosPropios.map((proyectoPropio) => (
-              <div key={proyectoPropio.id} className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar {proyectoPropio.nombre}</h3>
+            {/* Proyecto propio del líder (German, Verónica) — sin link todavía, no hay panel de edición por proyecto */}
+            {proyectoPropio && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar {proyectoPropio}</h3>
                 <p className="text-gray-600 mb-4 text-sm">Tu proyecto dentro de la carrera.</p>
                 <div className="flex flex-col gap-2">
                   <span className="text-gray-400 text-sm italic">Próximamente</span>
                 </div>
               </div>
-            ))}
+            )}
 
             {/* Secretaria: solo perfil (Utilidades va en su tarjeta propia, abajo). */}
             {esSecretaria && (

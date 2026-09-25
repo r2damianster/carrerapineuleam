@@ -3,7 +3,6 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { MODULOS_ASIGNABLES, esDocente, tieneModulo } from '@/lib/modulos';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
-import { calcularModulosDerivados, calcularModulosDerivadosDeTodos } from '@/lib/permisosPertenencia';
 
 // Asignación de roles (módulos de acceso) — solo módulo 'admin' (hoy: Arturo).
 // La cookie del usuario editado se sincroniza sola la próxima vez que abra el
@@ -23,9 +22,7 @@ export async function GET() {
     WHERE rol IN ('profesor', 'admin', 'estudiante')
     ORDER BY CASE rol WHEN 'estudiante' THEN 1 ELSE 0 END, nombres, apellidos
   `;
-  const derivados = await calcularModulosDerivadosDeTodos(sql);
-  const conDerivados = usuarios.map((persona: any) => ({ ...persona, modulos_derivados: derivados[Number(persona.id)] || [] }));
-  return NextResponse.json({ success: true, data: conDerivados });
+  return NextResponse.json({ success: true, data: usuarios });
 }
 
 export async function PATCH(request: Request) {
@@ -65,12 +62,7 @@ export async function PATCH(request: Request) {
   const anteriores: string[] = destino.modulos_acceso || [];
   const finales = anteriores.includes('superadmin') ? [...solicitados, 'superadmin'] : solicitados;
 
-  // Lo que el rol en un proyecto ya concede se llama 'derivado'; lo demás que se marca queda como manual y lo que se
-  // desmarca de lo derivado queda excluido (así el admin puede sobrescribir la regla automática).
-  const derivados = ['profesor', 'admin'].includes(destino.rol) ? await calcularModulosDerivados(sql, usuarioId) : [];
-  const manuales = finales.filter(modulo => !derivados.includes(modulo));
-  const excluidos = derivados.filter(modulo => !finales.includes(modulo));
-  await sql`UPDATE usuarios SET modulos_acceso = ${finales}, modulos_manuales = ${manuales}, modulos_excluidos = ${excluidos} WHERE id = ${usuarioId}`;
+  await sql`UPDATE usuarios SET modulos_acceso = ${finales} WHERE id = ${usuarioId}`;
 
   await logSuperadminAction({
     actor: usuario,

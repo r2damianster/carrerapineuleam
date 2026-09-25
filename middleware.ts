@@ -39,7 +39,6 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/pasantes',
     '/vinculacion/topes-horas',
     '/vinculacion/supervisar',
-    '/vinculacion/proyecto',
     '/vinculacion/difusion',
     '/vinculacion/evaluacion-final',
     '/vinculacion/encuesta',
@@ -93,11 +92,6 @@ export async function middleware(request: NextRequest) {
       (pathname.startsWith('/vinculacion/pasantes') || pathname.startsWith('/vinculacion/espacios') || pathname.startsWith('/vinculacion/topes-horas')) &&
       !puedeGestionarVinculacion(session)
     ) {
-       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
-    }
-
-    // Ficha del proyecto de Vinculación (objetivos, plan, presupuesto): solo líder / superadmin.
-    if (pathname.startsWith('/vinculacion/proyecto') && !puedeGestionarVinculacion(session)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

@@ -58,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json(actualizado);
     }
 
-    const { name, role, orcid, email, photo, is_leader, order, projects, roles_proyecto, ordenes_proyecto, genero, fecha_nacimiento, grado, posgrado, titulo_especifico, activo } = body;
+    const { name, role, orcid, email, photo, is_leader, order, projects, roles_proyecto, genero, fecha_nacimiento, grado, posgrado, titulo_especifico, activo } = body;
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -78,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     `;
     if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
     if (actualizado.usuario_id && Array.isArray(projects)) {
-      await sincronizarProyectosDePersona(sql, Number(actualizado.usuario_id), projects, roles_proyecto, order ?? 0, ordenes_proyecto);
+      await sincronizarProyectosDePersona(sql, Number(actualizado.usuario_id), projects, roles_proyecto, order ?? 0);
     }
     return NextResponse.json(actualizado);
   } catch (error: any) {

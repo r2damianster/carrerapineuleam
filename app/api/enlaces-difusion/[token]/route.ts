@@ -1,4 +1,3 @@
-import { esTokenEnlaceValido } from '@/lib/tokens';
 import { NextResponse } from 'next/server';
 import { neon, Pool } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
@@ -12,9 +11,6 @@ import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, { params }: { params: { token: string } }) {
-  if (!esTokenEnlaceValido(params.token)) {
-    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
-  }
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
@@ -64,9 +60,6 @@ export async function GET(request: Request, { params }: { params: { token: strin
 // se incluye en el INSERT): jamás visible en el sitio hasta que alguien con
 // contenido_sitio lo apruebe en /admin/contenido.
 export async function POST(request: Request, { params }: { params: { token: string } }) {
-  if (!esTokenEnlaceValido(params.token)) {
-    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
-  }
   const body = await request.json();
   const {
     registrador_externo_nombre, registrador_externo_contacto,
@@ -184,9 +177,6 @@ export async function POST(request: Request, { params }: { params: { token: stri
 // Protegido — revoca el enlace antes de tiempo. Solo quien lo creó, o
 // contenido_sitio.
 export async function PATCH(request: Request, { params }: { params: { token: string } }) {
-  if (!esTokenEnlaceValido(params.token)) {
-    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
-  }
   try {
     const usuario = await getAppSessionFromCookies();
     if (!usuario || !puedeGenerarEnlaceDifusion(usuario)) {

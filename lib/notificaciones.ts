@@ -39,9 +39,6 @@ interface ReglaNotificacion {
 const plural = (cantidad: number, singular: string, pluralTexto: string) =>
   `${cantidad} ${cantidad === 1 ? singular : pluralTexto}`;
 
-// informes_vinculacion.mes es tipo date (primer día del mes): se compara con 'YYYY-MM-01', nunca con 'YYYY-MM'.
-const INFORMES_VINCULACION_HABILITADOS = false;
-
 const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
   {
     // Supervisor de Vinculación: asistencias que registraron los pasantes y esperan aprobación.
@@ -171,8 +168,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
   {
     // Supervisor de Vinculación: informe mensual del mes anterior sin generar.
     id: 'informe-supervisor-pendiente',
-    // Apagada hasta que exista /vinculacion/informes (pendiente de Antigravity). Al activarla, poner en true.
-    aplica: (sesion) => INFORMES_VINCULACION_HABILITADOS && puedeSupervisarVinculacion(sesion),
+    aplica: (sesion) => puedeSupervisarVinculacion(sesion),
     consultar: async (sql, sesion) => {
       const hoy = new Date(Date.now() - 5 * 60 * 60 * 1000);
       const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1).toISOString().slice(0, 7);
@@ -189,7 +185,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
           AND NOT EXISTS (
             SELECT 1 FROM informes_vinculacion i
             WHERE i.tipo = 'supervisor'
-              AND date_trunc('month', i.mes) = ${mesAnterior + '-01'}::date
+              AND i.mes = ${mesAnterior}
               AND i.supervisor_id = ${supervisorId}
           )
       `;

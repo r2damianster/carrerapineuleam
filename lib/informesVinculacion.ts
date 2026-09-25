@@ -1,439 +1,389 @@
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { obtenerTopes, obtenerHorasPorTipo, horasContables } from './topesHoras';
 
 export interface ResolverPeriodoParams {
   tipo: 'lider' | 'supervisor';
   cicloId?: number | null;
-  mes?: string | null; // Formato 'YYYY-MM' o 'YYYY-MM-DD'
+  mes?: string | null;
 }
 
 export interface PeriodoResuelto {
-  desde: string; // YYYY-MM-DD
-  hasta: string; // YYYY-MM-DD
+  desde: string;
+  hasta: string;
   etiqueta: string;
 }
 
-const NOMBRES_MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+export function clasificarRangoEdad(edad: number | null): string {
+  if (edad === null || edad === undefined) return 'Sin dato';
+  if (edad < 18) return '<18';
+  if (edad <= 25) return '18-25';
+  if (edad <= 35) return '26-35';
+  if (edad <= 50) return '36-50';
+  return '>50';
+}
 
-export async function resolverPeriodo(sql: any, params: ResolverPeriodoParams): Promise<PeriodoResuelto> {
+export async function resolverPeriodo(
+  sql: NeonQueryFunction<false, false>,
+  params: ResolverPeriodoParams
+): Promise<PeriodoResuelto> {
   const { tipo, cicloId, mes } = params;
 
   if (tipo === 'supervisor' && mes) {
-    const partes = mes.split('-');
-    const ano = parseInt(partes[0], 10);
-    const mesNum = parseInt(partes[1], 10);
-    const primerDia = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
-    const ultimoDiaNum = new Date(ano, mesNum, 0).getDate();
-    const ultimoDia = `${ano}-${String(mesNum).padStart(2, '0')}-${String(ultimoDiaNum).padStart(2, '0')}`;
-    const etiqueta = `${NOMBRES_MESES[mesNum - 1]} ${ano}`;
-    return { desde: primerDia, hasta: ultimoDia, etiqueta };
+    const añoMes = mes.slice(0, 7);
+    const [añoStr, mesStr] = añoMes.split('-');
+    const año = parseInt(añoStr, 10);
+    const mesNum = parseInt(mesStr, 10);
+    const ultimoDia = new Date(año, mesNum, 0).getDate();
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    const nombresMeses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    return {
+      desde: `${añoMes}-01`,
+      hasta: `${añoMes}-${pad(ultimoDia)}`,
+      etiqueta: `${nombresMeses[mesNum - 1]} ${año}`,
+    };
   }
 
   if (cicloId) {
     const [ciclo] = await sql`
-      SELECT id, nombre, fecha_inicio, fecha_fin FROM ciclos_academicos WHERE id = ${cicloId}
+      SELECT id, nombre, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_fin, 'YYYY-MM-DD') AS fecha_fin
+      FROM ciclos_academicos
+      WHERE id = ${cicloId}
     `;
     if (ciclo) {
-      const desdeStr = ciclo.fecha_inicio ? new Date(ciclo.fecha_inicio).toISOString().split('T')[0] : '';
-      const hastaStr = ciclo.fecha_fin ? new Date(ciclo.fecha_fin).toISOString().split('T')[0] : '';
-      return { desde: desdeStr, hasta: hastaStr, etiqueta: ciclo.nombre };
+      return {
+        desde: String(ciclo.fecha_inicio).slice(0, 10),
+        hasta: String(ciclo.fecha_fin).slice(0, 10),
+        etiqueta: ciclo.nombre,
+      };
     }
   }
 
-  const hoy = new Date();
-  const ano = hoy.getFullYear();
-  const mesNum = hoy.getMonth() + 1;
-  const primerDia = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
-  const ultimoDiaNum = new Date(ano, mesNum, 0).getDate();
-  const ultimoDia = `${ano}-${String(mesNum).padStart(2, '0')}-${String(ultimoDiaNum).padStart(2, '0')}`;
-  return { desde: primerDia, hasta: ultimoDia, etiqueta: `${NOMBRES_MESES[mesNum - 1]} ${ano}` };
-}
-
-export function clasificarRangoEdad(edad: number | null | undefined): string {
-  if (edad === null || edad === undefined || isNaN(Number(edad)) || Number(edad) <= 0) {
-    return 'Sin dato';
-  }
-  const n = Number(edad);
-  if (n < 18) return '<18';
-  if (n <= 25) return '18-25';
-  if (n <= 35) return '26-35';
-  if (n <= 50) return '36-50';
-  return '>50';
-}
-
-export async function datosInformeSupervisor(sql: any, { supervisorId, mes }: { supervisorId: number; mes: string }) {
-  const periodo = await resolverPeriodo(sql, { tipo: 'supervisor', mes });
-
-  // 1. Datos del proyecto y supervisor
-  const [proyRows, supRows, espaciosSup] = await Promise.all([
-    sql`SELECT * FROM proyectos WHERE id = 'vinculacion'`,
-    sql`SELECT id, nombres, apellidos, email, cedula, titulo_grado, post_grado FROM usuarios WHERE id = ${supervisorId}`,
-    sql`SELECT id, nombre, tipo, ciclo_id FROM espacios_enseñanza WHERE profesor_id = ${supervisorId}`
-  ]);
-
-  const proyecto = proyRows[0] || {};
-  const supervisor = supRows[0] || {};
-  const espaciosIds = espaciosSup.map((e: any) => e.id);
-
-  if (espaciosIds.length === 0) {
+  const [cicloActivo] = await sql`
+    SELECT id, nombre, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_fin, 'YYYY-MM-DD') AS fecha_fin
+    FROM ciclos_academicos
+    ORDER BY fecha_inicio DESC LIMIT 1
+  `;
+  if (cicloActivo) {
     return {
-      general: { proyecto, supervisor, periodo, espacios: [], pasantes_count: 0, beneficiarios_count: 0 },
-      tareas: [],
-      no_previstas: [],
-      participacion: { pasantes: [], generos: { femenino: 0, masculino: 0, otro: 0, prefiero_no_decir: 0, sin_dato: 0 }, edades: {} },
-      obstaculos: [],
-      fotos: []
+      desde: String(cicloActivo.fecha_inicio).slice(0, 10),
+      hasta: String(cicloActivo.fecha_fin).slice(0, 10),
+      etiqueta: cicloActivo.nombre,
     };
   }
 
-  // 2. Consultas en paralelo para los espacios del supervisor
-  const [
-    pasantesRows,
-    beneficiariosRows,
-    sesionesAprobadas,
-    obstaculosRows,
-    fotosRows
-  ] = await Promise.all([
-    sql`
-      SELECT DISTINCT u.id, u.nombres, u.apellidos, u.email, u.modulos_acceso
-      FROM espacio_instructores ei
-      JOIN usuarios u ON ei.usuario_id = u.id
-      WHERE ei.espacio_id = ANY(${espaciosIds})
-    `,
-    sql`
-      SELECT DISTINCT u.id, u.nombres, u.apellidos, u.genero, pb.edad
-      FROM inscripciones_espacio ie
-      JOIN usuarios u ON ie.beneficiario_id = u.id
-      LEFT JOIN perfiles_beneficiarios pb ON u.id = pb.usuario_id
-      WHERE ie.espacio_id = ANY(${espaciosIds})
-    `,
-    sql`
-      SELECT a.id, a.espacio_id, e.nombre AS espacio_nombre, a.fecha, a.actividad_plan_id,
-             p.actividad AS actividad_nombre, a.no_prevista, a.comentario_supervisor, a.observaciones,
-             a.foto_url, a.usar_en_informe,
-             COUNT(DISTINCT ab.beneficiario_id)::int AS beneficiarios_count,
-             COUNT(DISTINCT ai.usuario_id)::int AS pasantes_count,
-             COALESCE(SUM(ha.horas), 0)::float AS horas_acreditadas
-      FROM asistencia_espacio a
-      JOIN espacios_enseñanza e ON a.espacio_id = e.id
-      LEFT JOIN proyecto_actividades_plan p ON a.actividad_plan_id = p.id
-      LEFT JOIN asistencia_beneficiarios ab ON a.id = ab.asistencia_id
-      LEFT JOIN asistencia_instructores ai ON a.id = ai.asistencia_id
-      LEFT JOIN horas_asistencia_instructor ha ON a.id = ha.asistencia_id
-      WHERE a.espacio_id = ANY(${espaciosIds})
-        AND a.estado_aprobacion = 'aprobado'
-        AND a.fecha >= ${periodo.desde}::date AND a.fecha <= ${periodo.hasta}::date
-      GROUP BY a.id, a.espacio_id, e.nombre, a.fecha, a.actividad_plan_id, p.actividad, a.no_prevista, a.comentario_supervisor, a.observaciones, a.foto_url, a.usar_en_informe
-      ORDER BY a.fecha ASC
-    `,
-    sql`
-      SELECT * FROM supervision_obstaculos
-      WHERE supervisor_id = ${supervisorId}
-        AND mes = ${periodo.desde}::date
-      ORDER BY id ASC
-    `,
-    sql`
-      SELECT a.id, a.foto_url, a.fecha, e.nombre AS espacio_nombre, a.observaciones, a.comentario_supervisor,
-             COUNT(DISTINCT ab.beneficiario_id)::int AS beneficiarios_count,
-             COUNT(DISTINCT ai.usuario_id)::int AS pasantes_count
-      FROM asistencia_espacio a
-      JOIN espacios_enseñanza e ON a.espacio_id = e.id
-      LEFT JOIN asistencia_beneficiarios ab ON a.id = ab.asistencia_id
-      LEFT JOIN asistencia_instructores ai ON a.id = ai.asistencia_id
-      WHERE a.espacio_id = ANY(${espaciosIds})
-        AND a.estado_aprobacion = 'aprobado'
-        AND a.usar_en_informe = true
-        AND a.foto_url IS NOT NULL AND a.foto_url <> ''
-        AND a.fecha >= ${periodo.desde}::date AND a.fecha <= ${periodo.hasta}::date
-      GROUP BY a.id, a.foto_url, a.fecha, e.nombre, a.observaciones, a.comentario_supervisor
-      ORDER BY a.fecha ASC
-      LIMIT 12
-    `
-  ]);
-
-  // Agrupar tareas planificadas vs no previstas
-  const tareasMap = new Map<string, any>();
-  const noPrevistasMap = new Map<string, any>();
-
-  for (const s of sesionesAprobadas) {
-    const key = `${s.espacio_id}_${s.actividad_plan_id || 'sin_plan'}`;
-    const targetMap = s.no_prevista ? noPrevistasMap : tareasMap;
-
-    if (!targetMap.has(key)) {
-      targetMap.set(key, {
-        espacio_id: s.espacio_id,
-        espacio_nombre: s.espacio_nombre,
-        actividad_plan_id: s.actividad_plan_id,
-        actividad_nombre: s.actividad_nombre || (s.no_prevista ? 'Actividad no prevista' : 'Actividad libre'),
-        sesiones_aprobadas_count: 0,
-        pasantes_count: 0,
-        beneficiarios_atendidos_count: 0,
-        horas_acreditadas: 0,
-        comentarios: []
-      });
-    }
-
-    const t = targetMap.get(key);
-    t.sesiones_aprobadas_count += 1;
-    t.pasantes_count = Math.max(t.pasantes_count, s.pasantes_count);
-    t.beneficiarios_atendidos_count += s.beneficiarios_count;
-    t.horas_acreditadas += s.horas_acreditadas;
-    if (s.comentario_supervisor) t.comentarios.push(s.comentario_supervisor);
-  }
-
-  // Participación de pasantes con horas contables
-  const pasantesParticipacion = await Promise.all(
-    pasantesRows.map(async (pasante: any) => {
-      const topes = await obtenerTopes(sql, pasante.id);
-      const horas = await obtenerHorasPorTipo(sql, pasante.id);
-      const contables = horasContables(horas.aprobadas, topes);
-      return {
-        id: pasante.id,
-        nombres: pasante.nombres,
-        apellidos: pasante.apellidos,
-        email: pasante.email,
-        horas_asistencia: horas.aprobadas.asistencia,
-        horas_autonomas: horas.aprobadas.autonomas,
-        horas_investigacion: horas.aprobadas.investigacion,
-        horas_podcast: horas.aprobadas.podcast,
-        horas_total_contables: contables.total,
-        meta_total: topes.meta,
-        porcentaje_meta: Math.round((contables.total / topes.meta) * 100)
-      };
-    })
-  );
-
-  // Desglose de beneficiarios por género y rango de edad
-  const generosCount = { femenino: 0, masculino: 0, otro: 0, prefiero_no_decir: 0, sin_dato: 0 };
-  const edadesCount: Record<string, number> = { '<18': 0, '18-25': 0, '26-35': 0, '36-50': 0, '>50': 0, 'Sin dato': 0 };
-
-  for (const b of beneficiariosRows) {
-    const g = b.genero as keyof typeof generosCount;
-    if (g && generosCount[g] !== undefined) {
-      generosCount[g]++;
-    } else {
-      generosCount.sin_dato++;
-    }
-
-    const rango = clasificarRangoEdad(b.edad);
-    edadesCount[rango] = (edadesCount[rango] || 0) + 1;
-  }
-
+  const hoyEcuador = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
   return {
-    general: {
-      proyecto,
-      supervisor,
-      periodo,
-      espacios: espaciosSup,
-      pasantes_count: pasantesRows.length,
-      beneficiarios_count: beneficiariosRows.length
-    },
-    tareas: Array.from(tareasMap.values()),
-    no_previstas: Array.from(noPrevistasMap.values()),
-    participacion: {
-      pasantes: pasantesParticipacion,
-      generos: generosCount,
-      edades: edadesCount
-    },
-    obstaculos: obstaculosRows,
-    fotos: fotosRows
+    desde: `${hoyEcuador}-01`,
+    hasta: `${hoyEcuador}-28`,
+    etiqueta: hoyEcuador,
   };
 }
 
-export async function datosInformeLider(sql: any, { cicloId }: { cicloId: number }) {
-  const periodo = await resolverPeriodo(sql, { tipo: 'lider', cicloId });
+export async function datosInformeSupervisor(
+  sql: NeonQueryFunction<false, false>,
+  params: { supervisorId: number; mes: string }
+) {
+  const periodo = await resolverPeriodo(sql, { tipo: 'supervisor', mes: params.mes });
 
-  // 1. Proyecto, metas y textos del ciclo
-  const [proyRows, metasRows, textosRows, objetivosRows, presupuestoRows] = await Promise.all([
-    sql`SELECT * FROM proyectos WHERE id = 'vinculacion'`,
-    sql`SELECT * FROM proyecto_metas_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${cicloId}`,
-    sql`SELECT clave, texto FROM proyecto_textos_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${cicloId}`,
-    sql`SELECT * FROM proyecto_objetivos WHERE proyecto_id = 'vinculacion' ORDER BY tipo DESC, orden ASC, id ASC`,
-    sql`SELECT * FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${cicloId} ORDER BY id ASC`
-  ]);
+  const [proyecto] = await sql`
+    SELECT id, nombre, codigo, unidad_academica, carrera, entidad_beneficiaria, zona,
+           codigo_documento_supervisor, revision_documento_supervisor
+    FROM proyectos WHERE id = 'vinculacion'
+  `;
 
-  const proyecto = proyRows[0] || {};
-  const metasCiclo = metasRows[0] || { meta_estudiantes: 0, meta_docentes: 0, meta_beneficiarios_directos: 0, meta_beneficiarios_indirectos: 0 };
-  const textosMap: Record<string, string> = {};
-  textosRows.forEach((t: any) => { textosMap[t.clave] = t.texto; });
+  const [supervisor] = await sql`
+    SELECT id, nombres, apellidos, email FROM usuarios WHERE id = ${params.supervisorId}
+  `;
 
-  // 2. Todos los espacios del ciclo
   const espacios = await sql`
-    SELECT e.id, e.nombre, e.profesor_id, u.nombres AS prof_nombres, u.apellidos AS prof_apellidos
-    FROM espacios_enseñanza e
-    LEFT JOIN usuarios u ON e.profesor_id = u.id
-    WHERE e.ciclo_id = ${cicloId} OR e.ciclo_id IS NULL
-    ORDER BY e.nombre ASC
+    SELECT id, nombre, profesor_id FROM "espacios_enseñanza"
+    WHERE area = 'vinculacion' AND profesor_id = ${params.supervisorId}
+    ORDER BY nombre ASC
   `;
   const espaciosIds = espacios.map((e: any) => e.id);
 
   if (espaciosIds.length === 0) {
     return {
-      general: { proyecto, periodo, metasCiclo, pasantes_count: 0, beneficiarios_count: 0 },
-      objetivos_y_plan: [],
-      participacion: { pasantes: [], generos: { femenino: 0, masculino: 0, otro: 0, prefiero_no_decir: 0, sin_dato: 0 }, edades: {} },
-      mcer: { ganancia: [] },
-      satisfaccion: { promedio_global: 0, por_dimension: {}, instructores: [] },
-      presupuesto: { items: presupuestoRows, totalSolicitado: 0, totalEjecutado: 0, porcentaje: 0 },
-      textos: textosMap,
-      fotos: []
+      periodo,
+      general: {
+        proyecto_nombre: proyecto?.nombre || 'Proyecto de Vinculación PINE',
+        unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación',
+        carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
+        codigo_documento: proyecto?.codigo_documento_supervisor || 'PINE-INF-SUP',
+        revision_documento: proyecto?.revision_documento_supervisor || '01',
+        supervisor_nombre: supervisor ? `${supervisor.nombres} ${supervisor.apellidos}` : 'Supervisor',
+        supervisor_email: supervisor?.email || '',
+        mes: periodo.etiqueta,
+        total_pasantes: 0,
+        total_beneficiarios: 0,
+        total_sesiones: 0,
+        zona: proyecto?.zona || 'Distrito 13D02 Manta',
+        espacios: [],
+      },
+      tareas: [],
+      no_previstas: [],
+      participacion: { pasantes: [], genero: {}, edad: {} },
+      fotos: [],
     };
   }
 
-  // 3. Consultas agregadas del ciclo
-  const [
-    actividadesPlan,
-    pasantesRows,
-    beneficiariosRows,
-    mcerRows,
-    satisfaccionRows,
-    fotosRows
-  ] = await Promise.all([
+  const [pasantesRes, beneficiariosRes, tareasRes, noPrevistasRes, fotosRes, generoRes, edadRes] = await Promise.all([
     sql`
-      SELECT a.*, COUNT(DISTINCT se.id)::int AS sesiones_ejecutadas_count
-      FROM proyecto_actividades_plan a
-      LEFT JOIN asistencia_espacio se ON a.id = se.actividad_plan_id AND se.estado_aprobacion = 'aprobado'
-      WHERE a.ciclo_id = ${cicloId} OR a.ciclo_id IS NULL
-      GROUP BY a.id
-      ORDER BY a.id ASC
-    `,
-    sql`
-      SELECT DISTINCT u.id, u.nombres, u.apellidos, u.email, u.modulos_acceso
+      SELECT DISTINCT u.id, u.nombres, u.apellidos
       FROM espacio_instructores ei
       JOIN usuarios u ON ei.usuario_id = u.id
       WHERE ei.espacio_id = ANY(${espaciosIds})
+      ORDER BY u.apellidos, u.nombres
     `,
     sql`
-      SELECT DISTINCT u.id, u.nombres, u.apellidos, u.genero, pb.edad
+      SELECT COUNT(DISTINCT ie.beneficiario_id)::int AS total
       FROM inscripciones_espacio ie
-      JOIN usuarios u ON ie.beneficiario_id = u.id
-      LEFT JOIN perfiles_beneficiarios pb ON u.id = pb.usuario_id
       WHERE ie.espacio_id = ANY(${espaciosIds})
     `,
     sql`
-      SELECT beneficiario_id, tipo, subnivel_actual, nota
-      FROM evaluaciones_mcer
-      WHERE beneficiario_id IN (
-        SELECT DISTINCT beneficiario_id FROM inscripciones_espacio WHERE espacio_id = ANY(${espaciosIds})
-      )
-    `,
-    sql`
-      SELECT nivel_satisfaccion, aprendizaje, mejora, recursos
-      FROM encuestas_satisfaccion
-      WHERE ciclo_id = ${cicloId}
-    `,
-    sql`
-      SELECT a.id, a.foto_url, a.fecha, e.nombre AS espacio_nombre, a.observaciones,
-             COUNT(DISTINCT ab.beneficiario_id)::int AS beneficiarios_count,
-             COUNT(DISTINCT ai.usuario_id)::int AS pasantes_count
+      SELECT
+        COALESCE(p.descripcion, 'Sesiones del Espacio') AS actividad_descripcion,
+        e.nombre AS espacio_nombre,
+        COUNT(a.id)::int AS sesiones_aprobadas,
+        COALESCE(SUM(array_length(a.beneficiarios_presentes, 1)), 0)::int AS beneficiarios_atendidos,
+        ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1)::float AS horas_acreditadas,
+        ARRAY_AGG(DISTINCT a.comentario_supervisor) FILTER (WHERE a.comentario_supervisor IS NOT NULL) AS comentarios
       FROM asistencia_espacio a
-      JOIN espacios_enseñanza e ON a.espacio_id = e.id
-      LEFT JOIN asistencia_beneficiarios ab ON a.id = ab.asistencia_id
-      LEFT JOIN asistencia_instructores ai ON a.id = ai.asistencia_id
+      JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
+      LEFT JOIN proyecto_actividades_plan p ON a.actividad_plan_id = p.id
+      WHERE a.espacio_id = ANY(${espaciosIds})
+        AND a.estado_aprobacion = 'aprobado'
+        AND a.fecha BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
+        AND a.no_prevista = false
+      GROUP BY p.descripcion, e.nombre
+    `,
+    sql`
+      SELECT
+        e.nombre AS espacio_nombre,
+        to_char(a.fecha, 'YYYY-MM-DD') AS fecha,
+        COALESCE(array_length(a.beneficiarios_presentes, 1), 0)::int AS beneficiarios_atendidos,
+        ROUND(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0::numeric, 1)::float AS horas_acreditadas,
+        a.observaciones
+      FROM asistencia_espacio a
+      JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
+      WHERE a.espacio_id = ANY(${espaciosIds})
+        AND a.estado_aprobacion = 'aprobado'
+        AND a.fecha BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
+        AND a.no_prevista = true
+      ORDER BY a.fecha ASC
+    `,
+    sql`
+      SELECT
+        a.foto_url AS url,
+        to_char(a.fecha, 'YYYY-MM-DD') AS fecha,
+        e.nombre AS espacio_nombre,
+        COALESCE(array_length(a.beneficiarios_presentes, 1), 0)::int AS num_beneficiarios,
+        COALESCE(array_length(a.instructores_presentes, 1), 0)::int AS num_pasantes
+      FROM asistencia_espacio a
+      JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
       WHERE a.espacio_id = ANY(${espaciosIds})
         AND a.estado_aprobacion = 'aprobado'
         AND a.usar_en_informe = true
-        AND a.foto_url IS NOT NULL AND a.foto_url <> ''
-      GROUP BY a.id, a.foto_url, a.fecha, e.nombre, a.observaciones
-      ORDER BY a.fecha ASC
-      LIMIT 12
-    `
+        AND a.foto_url IS NOT NULL
+        AND a.fecha BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
+      ORDER BY a.fecha DESC LIMIT 12
+    `,
+    sql`
+      SELECT u.genero, COUNT(DISTINCT u.id)::int AS count
+      FROM inscripciones_espacio ie
+      JOIN usuarios u ON ie.beneficiario_id = u.id
+      WHERE ie.espacio_id = ANY(${espaciosIds})
+      GROUP BY u.genero
+    `,
+    sql`
+      SELECT pb.edad
+      FROM inscripciones_espacio ie
+      JOIN perfiles_beneficiarios pb ON ie.beneficiario_id = pb.usuario_id
+      WHERE ie.espacio_id = ANY(${espaciosIds})
+    `,
   ]);
 
-  // Objetivos estructurados con sus actividades
-  const objetivosConActividades = objetivosRows.map((obj: any) => ({
-    ...obj,
-    actividades: actividadesPlan.filter((act: any) => act.objetivo_id === obj.id)
-  }));
-
-  // Pasantes y horas contables acumuladas
-  const pasantesParticipacion = await Promise.all(
-    pasantesRows.map(async (pasante: any) => {
-      const topes = await obtenerTopes(sql, pasante.id);
-      const horas = await obtenerHorasPorTipo(sql, pasante.id);
-      const contables = horasContables(horas.aprobadas, topes);
+  // Horas por pasante
+  const pasantesHoras = await Promise.all(
+    pasantesRes.map(async (p: any) => {
+      const [hMes] = await sql`
+        SELECT ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1)::float AS total
+        FROM asistencia_espacio a
+        JOIN asistencia_instructores ai ON ai.asistencia_id = a.id
+        WHERE ai.usuario_id = ${p.id}
+          AND a.estado_aprobacion = 'aprobado'
+          AND a.fecha BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
+      `;
+      const [hAcum] = await sql`
+        SELECT ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1)::float AS total
+        FROM asistencia_espacio a
+        JOIN asistencia_instructores ai ON ai.asistencia_id = a.id
+        WHERE ai.usuario_id = ${p.id}
+          AND a.estado_aprobacion = 'aprobado'
+      `;
       return {
-        id: pasante.id,
-        nombres: pasante.nombres,
-        apellidos: pasante.apellidos,
-        email: pasante.email,
-        horas_total_contables: contables.total,
-        meta_total: topes.meta,
-        porcentaje_meta: Math.round((contables.total / topes.meta) * 100)
+        id: p.id,
+        nombre: `${p.nombres} ${p.apellidos}`,
+        horas_mes: hMes?.total || 0,
+        horas_acumuladas: hAcum?.total || 0,
       };
     })
   );
 
-  // Beneficiarios género y edad
-  const generosCount = { femenino: 0, masculino: 0, otro: 0, prefiero_no_decir: 0, sin_dato: 0 };
-  const edadesCount: Record<string, number> = { '<18': 0, '18-25': 0, '26-35': 0, '36-50': 0, '>50': 0, 'Sin dato': 0 };
-
-  for (const b of beneficiariosRows) {
-    const g = b.genero as keyof typeof generosCount;
-    if (g && generosCount[g] !== undefined) {
-      generosCount[g]++;
-    } else {
-      generosCount.sin_dato++;
-    }
-
-    const rango = clasificarRangoEdad(b.edad);
-    edadesCount[rango] = (edadesCount[rango] || 0) + 1;
-  }
-
-  // Presupuesto totales
-  let totalSolicitado = 0;
-  let totalEjecutado = 0;
-  presupuestoRows.forEach((p: any) => {
-    totalSolicitado += Number(p.solicitado || 0);
-    totalEjecutado += Number(p.ejecutado || 0);
+  const generoMap: Record<string, number> = { femenino: 0, masculino: 0, otro: 0, prefiero_no_decir: 0 };
+  generoRes.forEach((g: any) => {
+    const key = g.genero || 'prefiero_no_decir';
+    generoMap[key] = (generoMap[key] || 0) + g.count;
   });
-  const pctPresupuesto = totalSolicitado > 0 ? (totalEjecutado / totalSolicitado) * 100 : 0;
 
-  // Promedios de satisfacción
-  let sumSat = 0, sumApr = 0, sumMej = 0, sumRec = 0;
-  const totalEncuestas = satisfaccionRows.length;
-  if (totalEncuestas > 0) {
-    satisfaccionRows.forEach((s: any) => {
-      sumSat += Number(s.nivel_satisfaccion || 0);
-      sumApr += Number(s.aprendizaje || 0);
-      sumMej += Number(s.mejora || 0);
-      sumRec += Number(s.recursos || 0);
-    });
-  }
+  const edadMap: Record<string, number> = { '<18': 0, '18-25': 0, '26-35': 0, '36-50': 0, '>50': 0, 'Sin dato': 0 };
+  edadRes.forEach((e: any) => {
+    const rango = clasificarRangoEdad(e.edad);
+    edadMap[rango] = (edadMap[rango] || 0) + 1;
+  });
+
+  const totalSesiones = tareasRes.reduce((acc: number, t: any) => acc + t.sesiones_aprobadas, 0) + noPrevistasRes.length;
 
   return {
+    periodo,
     general: {
-      proyecto,
-      periodo,
-      metasCiclo,
-      pasantes_count: pasantesRows.length,
-      beneficiarios_count: beneficiariosRows.length
+      proyecto_nombre: proyecto?.nombre || 'Proyecto de Vinculación PINE',
+      unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación',
+      carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
+      codigo_documento: proyecto?.codigo_documento_supervisor || 'PINE-INF-SUP',
+      revision_documento: proyecto?.revision_documento_supervisor || '01',
+      supervisor_nombre: supervisor ? `${supervisor.nombres} ${supervisor.apellidos}` : 'Supervisor',
+      supervisor_email: supervisor?.email || '',
+      mes: periodo.etiqueta,
+      total_pasantes: pasantesRes.length,
+      total_beneficiarios: beneficiariosRes[0]?.total || 0,
+      total_sesiones: totalSesiones,
+      zona: proyecto?.zona || 'Distrito 13D02 Manta',
+      espacios: espacios.map((e: any) => e.nombre),
     },
-    objetivos_y_plan: objetivosConActividades,
+    tareas: tareasRes,
+    no_previstas: noPrevistasRes,
     participacion: {
-      pasantes: pasantesParticipacion,
-      generos: generosCount,
-      edades: edadesCount
+      pasantes: pasantesHoras,
+      genero: generoMap,
+      edad: edadMap,
     },
-    mcer: { evaluaciones_count: mcerRows.length },
-    satisfaccion: {
-      total_encuestas: totalEncuestas,
-      promedios: totalEncuestas > 0 ? {
-        nivel_satisfaccion: Math.round((sumSat / totalEncuestas) * 10) / 10,
-        aprendizaje: Math.round((sumApr / totalEncuestas) * 10) / 10,
-        mejora: Math.round((sumMej / totalEncuestas) * 10) / 10,
-        recursos: Math.round((sumRec / totalEncuestas) * 10) / 10
-      } : { nivel_satisfaccion: 0, aprendizaje: 0, mejora: 0, recursos: 0 }
+    fotos: fotosRes,
+  };
+}
+
+export async function datosInformeLider(
+  sql: NeonQueryFunction<false, false>,
+  params: { cicloId: number }
+) {
+  const periodo = await resolverPeriodo(sql, { tipo: 'lider', cicloId: params.cicloId });
+
+  const [proyecto] = await sql`
+    SELECT * FROM proyectos WHERE id = 'vinculacion'
+  `;
+
+  const [lider] = await sql`
+    SELECT id, nombres, apellidos, email FROM usuarios WHERE email = ${proyecto?.lider_email || 'cintya.gamez@uleam.edu.ec'}
+  `;
+
+  const [firmante] = await sql`
+    SELECT id, nombres, apellidos, cargo_institucional FROM usuarios WHERE id = ${proyecto?.firmante_responsable_id || 1}
+  `;
+
+  const [ciclo] = await sql`
+    SELECT id, nombre FROM ciclos_academicos WHERE id = ${params.cicloId}
+  `;
+
+  const [objetivosRes, metasRes, presupuestoRes, textosRes, evolucionRes] = await Promise.all([
+    sql`
+      SELECT o.id, o.descripcion, o.tipo,
+             COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
+               'id', a.id,
+               'descripcion', a.descripcion,
+               'metodologia', a.metodologia
+             )) FILTER (WHERE a.id IS NOT NULL), '[]') AS actividades
+      FROM proyecto_objetivos o
+      LEFT JOIN proyecto_actividades_plan a ON a.objetivo_id = o.id AND a.activo = true
+      WHERE o.proyecto_id = 'vinculacion'
+      GROUP BY o.id, o.descripcion, o.tipo
+      ORDER BY o.orden ASC
+    `,
+    sql`
+      SELECT * FROM proyecto_metas_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
+    `,
+    sql`
+      SELECT partida, descripcion, monto_solicitado, monto_ejecutado, porcentaje_ejecucion
+      FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
+    `,
+    sql`
+      SELECT clave, texto FROM proyecto_textos_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
+    `,
+    sql`
+      SELECT
+        to_char(date_trunc('month', a.fecha), 'YYYY-MM') AS mes,
+        COUNT(a.id)::int AS sesiones,
+        ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1)::float AS horas
+      FROM asistencia_espacio a
+      JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
+      WHERE e.area = 'vinculacion' AND a.estado_aprobacion = 'aprobado'
+      GROUP BY date_trunc('month', a.fecha)
+      ORDER BY mes ASC
+    `,
+  ]);
+
+  const [realesRes] = await Promise.all([
+    sql`
+      SELECT
+        (SELECT COUNT(DISTINCT ei.usuario_id)::int FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON ei.espacio_id = e.id WHERE e.ciclo_id = ${params.cicloId}) AS estudiantes_reales,
+        (SELECT COUNT(DISTINCT e.profesor_id)::int FROM "espacios_enseñanza" e WHERE e.ciclo_id = ${params.cicloId}) AS docentes_reales,
+        (SELECT COUNT(DISTINCT ie.beneficiario_id)::int FROM inscripciones_espacio ie JOIN "espacios_enseñanza" e ON ie.espacio_id = e.id WHERE e.ciclo_id = ${params.cicloId}) AS beneficiarios_directos_reales
+    `,
+  ]);
+
+  const textosMap: Record<string, string> = {};
+  textosRes.forEach((t: any) => { textosMap[t.clave] = t.texto; });
+
+  const metas = metasRes[0] || {};
+  const reales = realesRes[0] || {};
+
+  return {
+    ciclo: { id: params.cicloId, nombre: ciclo?.nombre || periodo.etiqueta },
+    general: {
+      proyecto_nombre: proyecto?.nombre || 'Proyecto de Vinculación PINE',
+      codigo: proyecto?.codigo || 'PINE-VINC-2026',
+      unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación',
+      carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
+      entidad_beneficiaria: proyecto?.entidad_beneficiaria || 'Comunidad local',
+      vigencia_inicio: proyecto?.vigencia_inicio || '2026-01-01',
+      vigencia_fin: proyecto?.vigencia_fin || '2028-12-31',
+      ods: proyecto?.ods || 'ODS 4: Educación de Calidad',
+      linea_investigacion: proyecto?.linea_investigacion || 'Inclusión e Interculturalidad',
+      zona: proyecto?.zona || 'Distrito 13D02 Manta',
+      lider_nombre: lider ? `${lider.nombres} ${lider.apellidos}` : 'Líder del Proyecto',
+      lider_email: lider?.email || '',
+      firmante_nombre: firmante ? `${firmante.nombres} ${firmante.apellidos}` : 'Responsable de Vinculación',
+      firmante_cargo: firmante?.cargo_institucional || 'Responsable de Vinculación y Emprendimiento',
+      codigo_documento: proyecto?.codigo_documento_lider || 'PINE-INF-LID',
+      revision_documento: proyecto?.revision_documento_lider || '01',
     },
-    presupuesto: {
-      items: presupuestoRows,
-      totalSolicitado,
-      totalEjecutado,
-      porcentaje: Math.round(pctPresupuesto * 100) / 100
+    objetivos: objetivosRes,
+    metas: {
+      meta_estudiantes: metas.meta_estudiantes || 0,
+      estudiantes_reales: reales.estudiantes_reales || 0,
+      meta_docentes: metas.meta_docentes || 0,
+      docentes_reales: reales.docentes_reales || 0,
+      meta_beneficiarios_directos: metas.meta_beneficiarios_directos || 0,
+      beneficiarios_directos_reales: reales.beneficiarios_directos_reales || 0,
+      meta_beneficiarios_indirectos: metas.meta_beneficiarios_indirectos || 0,
+      beneficiarios_indirectos_reales: metas.meta_beneficiarios_indirectos || 0,
     },
+    presupuesto: presupuestoRes,
     textos: textosMap,
-    fotos: fotosRows
+    evolucion: evolucionRes,
   };
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { OPCIONES_GENERO } from '@/lib/generos';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
@@ -30,10 +29,9 @@ export default function EnlacePublicoPage() {
 
   const [yaRegistrado, setYaRegistrado] = useState(false);
   const [emailExistente, setEmailExistente] = useState('');
-  const [generoExistente, setGeneroExistente] = useState('');
 
   const [datosForm, setDatosForm] = useState({
-    nombres: '', apellidos: '', genero: '', contacto: '', email: '',
+    nombres: '', apellidos: '', contacto: '', email: '',
     edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
     situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
   });
@@ -79,10 +77,6 @@ export default function EnlacePublicoPage() {
         setMensaje('Error: Escribe tus nombres y apellidos');
         return;
       }
-      if (!yaRegistrado && !datosForm.genero) {
-        setMensaje('Error: Indica tu género');
-        return;
-      }
     }
     if (enlace.test_tipo === 'mcer' && Object.keys(answers).length < preguntasPuntaje.length) {
       setMensaje('Error: Debes responder todas las preguntas');
@@ -98,7 +92,7 @@ export default function EnlacePublicoPage() {
     try {
       let payload: Record<string, any> = {};
       if (enlace.tipo === 'pretest') {
-        payload = yaRegistrado ? { ya_registrado: true, email: emailExistente, genero: generoExistente || undefined } : { ...datosForm };
+        payload = yaRegistrado ? { ya_registrado: true, email: emailExistente } : { ...datosForm };
       }
 
       if (enlace.test_tipo === 'mcer') {
@@ -198,11 +192,6 @@ export default function EnlacePublicoPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Correo con el que te registraste</label>
                   <input type="email" required placeholder="tu@correo.com" value={emailExistente} onChange={e => setEmailExistente(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
-                  <label className="block text-sm font-medium text-gray-700 mt-4 mb-2">Género <span className="text-gray-400 font-normal">(solo si aún no lo teníamos registrado)</span></label>
-                  <select value={generoExistente} onChange={e => setGeneroExistente(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white">
-                    <option value="">No lo cambies / ya está registrado</option>
-                    {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
-                  </select>
                 </div>
               ) : (
                 <>
@@ -211,10 +200,6 @@ export default function EnlacePublicoPage() {
                     <input required placeholder="Nombres" value={datosForm.nombres} onChange={e => setDatosForm({ ...datosForm, nombres: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                     <input required placeholder="Apellidos" value={datosForm.apellidos} onChange={e => setDatosForm({ ...datosForm, apellidos: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                   </div>
-                  <select required value={datosForm.genero} onChange={e => setDatosForm({ ...datosForm, genero: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white">
-                    <option value="">Género *</option>
-                    {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
-                  </select>
                   <input placeholder="Contacto (teléfono)" value={datosForm.contacto} onChange={e => setDatosForm({ ...datosForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                   <input type="email" placeholder="Email (opcional)" value={datosForm.email} onChange={e => setDatosForm({ ...datosForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                   <input type="number" min="0" placeholder="Edad" value={datosForm.edad} onChange={e => setDatosForm({ ...datosForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />

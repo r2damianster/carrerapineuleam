@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { obtenerLideresPorProyecto, conLider } from '@/lib/liderProyecto';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
 import { enriquecerTexto } from '@/app/utilidades/_lib/enriquecerTexto';
@@ -27,16 +26,15 @@ export async function GET(request: Request) {
       const docentes = await sql`
         SELECT id, nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional 
         FROM usuarios 
-        WHERE rol IN ('profesor', 'admin')
-        ORDER BY apellidos ASC, nombres ASC
+        WHERE rol IN ('profesor', 'admin') AND activado = true
+        ORDER BY nombres ASC
       `;
       const ciclos = await sql`
-        SELECT id, nombre, fecha_inicio, fecha_fin
+        SELECT id, nombre, fecha_inicio, fecha_fin, activo
         FROM ciclos_academicos
         ORDER BY id DESC
       `;
-      const lideres = await obtenerLideresPorProyecto(sql);
-      return NextResponse.json({ success: true, ficha: proyecto ? conLider(proyecto, lideres) : null, docentes, ciclos });
+      return NextResponse.json({ success: true, ficha: proyecto || null, docentes, ciclos });
     }
 
     if (seccion === 'objetivos') {
@@ -63,7 +61,7 @@ export async function GET(request: Request) {
         SELECT id, nombre, area FROM espacios_enseñanza ORDER BY nombre ASC
       `;
       const docentes = await sql`
-        SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY apellidos ASC, nombres ASC
+        SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY nombres ASC
       `;
       const ciclos = await sql`
         SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC
@@ -110,7 +108,7 @@ export async function GET(request: Request) {
       });
       const porcentaje = totalSolicitado > 0 ? (totalEjecutado / totalSolicitado) * 100 : 0;
 
-      const docentes = await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY apellidos ASC, nombres ASC`;
+      const docentes = await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY nombres ASC`;
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
 
       return NextResponse.json({
@@ -164,7 +162,7 @@ export async function POST(request: Request) {
         vigencia_inicio, vigencia_fin, ods, linea_investigacion, zona,
         codigo_documento_lider, revision_documento_lider,
         codigo_documento_supervisor, revision_documento_supervisor,
-        firmante_responsable_id
+        firmante_responsable_id, lider_id
       } = body;
 
       await sql`
@@ -183,6 +181,7 @@ export async function POST(request: Request) {
           codigo_documento_supervisor = ${codigo_documento_supervisor || null},
           revision_documento_supervisor = ${revision_documento_supervisor || null},
           firmante_responsable_id = ${firmante_responsable_id || null},
+          lider_id = ${lider_id || null},
           actualizado_en = now()
         WHERE id = 'vinculacion'
       `;

@@ -1,4 +1,3 @@
-import { esTokenEnlaceValido } from '@/lib/tokens';
 import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 
@@ -9,9 +8,6 @@ const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
 // Token de un solo uso: SELECT ... FOR UPDATE evita que se use dos veces
 // por una doble carrera de submits simultáneos.
 export async function POST(request: Request, { params }: { params: { token: string } }) {
-  if (!esTokenEnlaceValido(params.token)) {
-    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
-  }
   const body = await request.json();
   const {
     respuestas_json, puntaje_obtenido, nivel_asignado,

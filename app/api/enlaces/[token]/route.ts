@@ -1,4 +1,3 @@
-import { esTokenEnlaceValido } from '@/lib/tokens';
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
@@ -8,9 +7,6 @@ import { neon } from '@neondatabase/serverless';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, { params }: { params: { token: string } }) {
-  if (!esTokenEnlaceValido(params.token)) {
-    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
-  }
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`

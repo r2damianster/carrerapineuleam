@@ -1,6 +1,5 @@
 'use client';
 
-import { OPCIONES_GENERO } from '@/lib/generos';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -26,7 +25,7 @@ export default function RegistrarEvaluarPage() {
   const [modalEnlace, setModalEnlace] = useState(false);
 
   const [nuevoForm, setNuevoForm] = useState({
-    nombres: '', apellidos: '', genero: '', contacto: '', email: '',
+    nombres: '', apellidos: '', contacto: '', email: '',
     edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
     situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
   });
@@ -53,7 +52,7 @@ export default function RegistrarEvaluarPage() {
     setResultadoResumen(null);
     setMessage('');
     setNuevoForm({
-      nombres: '', apellidos: '', genero: '', contacto: '', email: '',
+      nombres: '', apellidos: '', contacto: '', email: '',
       edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
       situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
     });
@@ -321,10 +320,6 @@ export default function RegistrarEvaluarPage() {
                 <input required placeholder="Nombres" value={nuevoForm.nombres} onChange={e => setNuevoForm({ ...nuevoForm, nombres: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                 <input required placeholder="Apellidos" value={nuevoForm.apellidos} onChange={e => setNuevoForm({ ...nuevoForm, apellidos: e.target.value })} className="px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
               </div>
-              <select required value={nuevoForm.genero} onChange={e => setNuevoForm({ ...nuevoForm, genero: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white">
-                <option value="">Género *</option>
-                {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
-              </select>
               <input placeholder="Contacto (teléfono)" value={nuevoForm.contacto} onChange={e => setNuevoForm({ ...nuevoForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
               <input type="email" placeholder="Email (opcional)" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
 

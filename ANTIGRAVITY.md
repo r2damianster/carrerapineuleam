@@ -13,26 +13,9 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Claude Code:** Encargado de implementaciones puntuales, revisiones de código rápidas, ajustes de UI (Tailwind) y tareas de mantenimiento del día a día.
 
 ### Reglas de Sincronización
-0b. **Permisos y líderes:** el líder de un proyecto y los módulos `vinculacion`/`vinculacion_gestion`/`investigacion` ahora se derivan de `proyecto_miembros` (ver `CLAUDE.md`, Sesión 51). No escribas `proyectos.lider_id` ni `usuarios.modulos_acceso` a mano: usa el equipo del proyecto y `lib/permisosPertenencia.ts`.
-0. **Ramas y worktrees (decisión del usuario, 2026-09-25):** cada agente trabaja en su propia rama con `git worktree`; el árbol principal no se edita en paralelo. Integra a `main` solo con `tsc` y `build` en verde, sin marcas de conflicto ni archivos vacíos. Ver `CLAUDE.md` → regla 10b.
 1. **Compartir Estado:** Cada vez que realices un cambio estructural importante, actualiza el archivo `CLAUDE.md` para que Claude esté enterado de las nuevas convenciones o cambios en el esquema de Neon.
 2. **Respetar Tareas:** Si un requerimiento es mejor manejado por Claude (ej. un ajuste menor de CSS), puedes sugerirle al usuario delegarlo.
 3. **Skills Compartidos:** Utilizar las convenciones y directrices de UI y TypeScript definidas conjuntamente. **Desde la Sesión 25, la fuente de verdad del sitio público es Neon Postgres, no `lib/data.ts`** (ver más abajo).
-
----
-
-## 📣 Nota de coordinación (2026-09-25) — leer antes de continuar con los informes de Vinculación
-
-Claude revisó lo que subiste a `main` y corrigió lo siguiente (ya integrado):
-
-1. **`main` no compilaba.** 12 archivos entraron con **0 bytes** (`app/vinculacion/informes/**`, `app/portal/documentos/**`, `app/api/espacios/actividades/route.ts`, `lib/documentos-docentes.ts`, dos scripts). Next falla con `File ... is not a module`. Se quitaron; `lib/informesVinculacion.ts` se restauró desde el commit `e81ac7a` (17 KB; el auto-commit lo había dejado vacío). **Si tienes contenido real de esos archivos sin guardar, vuelve a crearlos con su contenido y verifica con `npx tsc --noEmit` y `npm run build` antes de commitear.**
-2. **Conflicto sin resolver en `app/api/admin/stats/route.ts`:** el archivo tenía `<<<<<<<` y el auto-commit lo subió. Ya está resuelto; **no lo restaures desde tu copia local**. Revisa `git status` y `grep -rn "<<<<<<<" app lib components` antes de cerrar.
-3. **`GET /vinculacion/proyecto/api`** fallaba por `ciclos_academicos.activo` (la columna no existe). Corregido.
-4. **Notificación `informe-supervisor-pendiente`:** `informes_vinculacion.mes` es `date`; se comparaba con `'YYYY-MM'`. Corregido y **apagada** (`INFORMES_VINCULACION_HABILITADOS = false` en `lib/notificaciones.ts`) hasta que exista `/vinculacion/informes`. Actívala cuando la página esté lista.
-5. `/vinculacion/proyecto` y `/vinculacion/beneficiarios/genero` no estaban en el middleware: ya están protegidas (líder / supervisor) y enlazadas desde el dashboard.
-6. **Pendiente tuyo:** páginas y generadores de informes (`docxSupervisor`, `docxLider`, `graficos`), `portal/documentos`. `CareerProfileSection` ya se movió a `lib/i18n.tsx` (`t.careerProfile`); no vuelvas a poner `lang === 'es'` en línea.
-7. **Reglas nuevas del proyecto:** rol `secretaria` (solo Mi Perfil y Utilidades); equipos por proyecto en `proyecto_miembros` (ver `CLAUDE.md`, Sesión 51). Una API que solo exija sesión debe rechazar `rol === 'secretaria'`.
-8. Trabajamos sobre la misma carpeta: para cambios grandes usa una rama y `git worktree`, y no dejes archivos vacíos ni marcas de conflicto en el árbol de trabajo (el hook de auto-commit los sube a `main`).
 
 ---
 

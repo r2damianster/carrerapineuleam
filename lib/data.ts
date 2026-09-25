@@ -91,6 +91,15 @@ export const profesoresAutorizados = [
   'gabriel.bazurto@uleam.edu.ec',
 ];
 
+// Nombre del proyecto propio de cada líder (distinto del proyecto PINE/Internacionalización
+// de Arturo+Jhonny, que ya tiene su propia tarjeta "Gestión de MI PROYECTO"). Usado para
+// mostrar "Gestionar {proyecto}" en /portal/dashboard según quién esté logueado — sin link
+// todavía, no existe panel de edición por proyecto individual.
+export const liderProyectoPropio: Record<string, string> = {
+  'german.carrera@uleam.edu.ec': 'Desarrollo de Habilidades Lingüísticas',
+  'veronica.chavez@uleam.edu.ec': 'Mentoring',
+};
+
 // Footer contexts for different project sections — configures which leader/coleader/email
 // and which quick links show in the footer. quickLinks must point to anchors that actually
 // exist on the pages using that context (or to real routes) — never assume the Internacionalización
@@ -144,7 +153,6 @@ export const footerContexts: Record<string, FooterContext> = {
       { labelKey: 'outreach', href: '/vinculacion/dinamicas-linguisticas' },
       { labelKey: 'teaching', href: '/docencia/docencia-innovadora' },
       { labelKey: 'news', href: '#noticias' },
-      { labelKey: 'newsletters', href: '/boletines' },
       { labelKey: 'partnerships', href: '#alianzas' },
       { labelKey: 'publications', href: '/publicaciones' },
       { labelKey: 'portalPine', href: '/portal/login' },

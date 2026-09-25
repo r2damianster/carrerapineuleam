@@ -11,7 +11,6 @@ interface UsuarioRol {
   rol: string;
   activado: boolean;
   modulos_acceso: string[];
-  modulos_derivados?: string[];
   cargo_institucional: string | null;
 }
 
@@ -141,9 +140,6 @@ export default function RolesPage() {
                             onChange={() => alternarModulo(usuario, modulo.id)}
                             className="h-4 w-4 accent-blue-700 disabled:opacity-30"
                           />
-                        )}
-                        {modulo.id !== 'superadmin' && usuario.modulos_derivados?.includes(modulo.id) && (
-                          <span className="ml-1 text-[10px] font-semibold text-emerald-600" title="Lo concede su rol en un proyecto. Desmarcarlo lo excluye a mano.">auto</span>
                         )}
                       </td>
                     );
