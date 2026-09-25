@@ -19,6 +19,21 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 
 ---
 
+## 📣 Nota de coordinación (2026-09-25) — leer antes de continuar con los informes de Vinculación
+
+Claude revisó lo que subiste a `main` y corrigió lo siguiente (ya integrado):
+
+1. **`main` no compilaba.** 12 archivos entraron con **0 bytes** (`app/vinculacion/informes/**`, `app/portal/documentos/**`, `app/api/espacios/actividades/route.ts`, `lib/documentos-docentes.ts`, dos scripts). Next falla con `File ... is not a module`. Se quitaron; `lib/informesVinculacion.ts` se restauró desde el commit `e81ac7a` (17 KB; el auto-commit lo había dejado vacío). **Si tienes contenido real de esos archivos sin guardar, vuelve a crearlos con su contenido y verifica con `npx tsc --noEmit` y `npm run build` antes de commitear.**
+2. **Conflicto sin resolver en `app/api/admin/stats/route.ts`:** el archivo tenía `<<<<<<<` y el auto-commit lo subió. Ya está resuelto; **no lo restaures desde tu copia local**. Revisa `git status` y `grep -rn "<<<<<<<" app lib components` antes de cerrar.
+3. **`GET /vinculacion/proyecto/api`** fallaba por `ciclos_academicos.activo` (la columna no existe). Corregido.
+4. **Notificación `informe-supervisor-pendiente`:** `informes_vinculacion.mes` es `date`; se comparaba con `'YYYY-MM'`. Corregido y **apagada** (`INFORMES_VINCULACION_HABILITADOS = false` en `lib/notificaciones.ts`) hasta que exista `/vinculacion/informes`. Actívala cuando la página esté lista.
+5. `/vinculacion/proyecto` y `/vinculacion/beneficiarios/genero` no estaban en el middleware: ya están protegidas (líder / supervisor) y enlazadas desde el dashboard.
+6. **Pendiente tuyo:** páginas y generadores de informes (`docxSupervisor`, `docxLider`, `graficos`), `portal/documentos`. `CareerProfileSection` ya se movió a `lib/i18n.tsx` (`t.careerProfile`); no vuelvas a poner `lang === 'es'` en línea.
+7. **Reglas nuevas del proyecto:** rol `secretaria` (solo Mi Perfil y Utilidades); equipos por proyecto en `proyecto_miembros` (ver `CLAUDE.md`, Sesión 51). Una API que solo exija sesión debe rechazar `rol === 'secretaria'`.
+8. Trabajamos sobre la misma carpeta: para cambios grandes usa una rama y `git worktree`, y no dejes archivos vacíos ni marcas de conflicto en el árbol de trabajo (el hook de auto-commit los sube a `main`).
+
+---
+
 ## 🛠️ Stack y Reglas (Heredadas)
 - **Frontend:** Next.js 14 (App Router) + TypeScript.
 - **Estilos:** TailwindCSS (Colores ULEAM: `#003366`, `#FFD700`).

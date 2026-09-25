@@ -26,8 +26,8 @@ export async function GET(request: Request) {
       const docentes = await sql`
         SELECT id, nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional 
         FROM usuarios 
-        WHERE rol IN ('profesor', 'admin') AND activado = true
-        ORDER BY nombres ASC
+        WHERE rol IN ('profesor', 'admin')
+        ORDER BY apellidos ASC, nombres ASC
       `;
       const ciclos = await sql`
         SELECT id, nombre, fecha_inicio, fecha_fin
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         SELECT id, nombre, area FROM espacios_enseñanza ORDER BY nombre ASC
       `;
       const docentes = await sql`
-        SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY nombres ASC
+        SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY apellidos ASC, nombres ASC
       `;
       const ciclos = await sql`
         SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
       });
       const porcentaje = totalSolicitado > 0 ? (totalEjecutado / totalSolicitado) * 100 : 0;
 
-      const docentes = await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY nombres ASC`;
+      const docentes = await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY apellidos ASC, nombres ASC`;
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
 
       return NextResponse.json({
