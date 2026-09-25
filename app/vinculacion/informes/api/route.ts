@@ -2,17 +2,31 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion, puedeGestionarVinculacion } from '@/lib/modulos';
-import { datosInformeSupervisor, datosInformeLider } from '@/lib/informesVinculacion';
-import { generarDocxSupervisor } from '../_lib/docxSupervisor';
+import { datosInformeLider } from '@/lib/informesVinculacion';
+import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervisor';
+import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
+import { datosInformeSupervisor } from '@/lib/informeSupervisorTareas';
 import { generarDocxLider } from '../_lib/docxLider';
 import {
   generarGraficoPasantesHoras,
-  generarGraficoAsistenciaEspacios,
   generarGraficoGenero,
-  generarGraficoEdad,
   generarGraficoEvolucionMensual,
   generarGraficoPlanVsEjecutado,
 } from '../_lib/graficos';
+
+/** Informe del supervisor: plantilla institucional + gráficos de participación. */
+async function generarBufferSupervisor(datos: any): Promise<Buffer> {
+  const pasantesParaGrafico = (datos.participacion?.pasantes || []).map((pasante: any) => ({
+    nombre: `${pasante.nombres} ${pasante.apellidos}`,
+    horas_mes: pasante.horas_periodo,
+    horas_acumuladas: pasante.horas_periodo,
+  }));
+  const [graficoPasantes, graficoGenero] = await Promise.all([
+    generarGraficoPasantesHoras(pasantesParaGrafico),
+    generarGraficoGenero(datos.participacion?.genero || {}),
+  ]);
+  return generarInformeSupervisorDesdePlantilla(datos, { pasantes: graficoPasantes, genero: graficoGenero });
+}
 
 export async function GET(request: Request) {
   try {
@@ -96,13 +110,7 @@ export async function GET(request: Request) {
       let buffer: Buffer;
 
       if (informe.tipo === 'supervisor') {
-        const [gPasantes, gEspacios, gGenero, gEdad] = await Promise.all([
-          generarGraficoPasantesHoras(datos.participacion?.pasantes || []),
-          generarGraficoAsistenciaEspacios(datos.tareas || []),
-          generarGraficoGenero(datos.participacion?.genero || {}),
-          generarGraficoEdad(datos.participacion?.edad || {}),
-        ]);
-        buffer = await generarDocxSupervisor(datos, { pasantes: gPasantes, espacios: gEspacios, genero: gGenero, edad: gEdad });
+        buffer = await generarBufferSupervisor(datos);
       } else {
         const [gEvolucion, gPlanVsEj] = await Promise.all([
           generarGraficoEvolucionMensual(datos.evolucion || []),
@@ -137,6 +145,39 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { accion } = body;
 
+    if (accion === 'redactar-productos') {
+      const { tarea, periodo } = body;
+      if (!tarea?.nombre) return NextResponse.json({ error: 'Falta la tarea' }, { status: 400 });
+      try {
+        const respuesta = await pedirCompletionIA(
+          [
+            { role: 'system', content: 'Eres un docente supervisor de un proyecto de vinculación con la sociedad de una universidad ecuatoriana. Redactas con tono formal, en español.' },
+            {
+              role: 'user',
+              content:
+                `Redacta los "productos obtenidos" de esta tarea del proyecto para el informe de seguimiento.\n` +
+                `Tarea: ${tarea.codigo} ${tarea.nombre}\nPeriodo: ${periodo || ''}\n` +
+                `Meta: ${tarea.meta ?? 'sin meta'} ${tarea.unidad || ''}. Realizado: ${tarea.realizado ?? 0}. Estudiantes participantes: ${tarea.alumnos ?? 0}.\n` +
+                `Registros: ${tarea.observaciones || 'sin detalle'}\n\n` +
+                'REGLAS: usa solo los datos dados, no inventes cifras, nombres ni lugares. Sin placeholders entre corchetes. ' +
+                'productos_sociales = beneficio para la comunidad/beneficiarios (máx. 40 palabras). ' +
+                'productos_academicos = aprendizajes o evidencias para los estudiantes universitarios (máx. 40 palabras).\n' +
+                'Responde SOLO un JSON: {"productos_sociales":"...","productos_academicos":"..."}',
+            },
+          ],
+          { temperature: 0.3, responseFormatJson: true }
+        );
+        const resultado = JSON.parse(respuesta);
+        return NextResponse.json({
+          success: true,
+          productos_sociales: String(resultado.productos_sociales || ''),
+          productos_academicos: String(resultado.productos_academicos || ''),
+        });
+      } catch (error) {
+        return NextResponse.json({ error: formatearErrorIA(error) }, { status: 500 });
+      }
+    }
+
     if (accion === 'guardar-obstaculo') {
       const { mes: mesBody, descripcion, impacto, recomendacion } = body;
       const mes = /^\d{4}-\d{2}$/.test(mesBody || '') ? `${mesBody}-01` : mesBody;
@@ -164,13 +205,7 @@ export async function POST(request: Request) {
       const targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
 
       if (tipo === 'supervisor') {
-        const [gPasantes, gEspacios, gGenero, gEdad] = await Promise.all([
-          generarGraficoPasantesHoras(datos.participacion?.pasantes || []),
-          generarGraficoAsistenciaEspacios(datos.tareas || []),
-          generarGraficoGenero(datos.participacion?.genero || {}),
-          generarGraficoEdad(datos.participacion?.edad || {}),
-        ]);
-        buffer = await generarDocxSupervisor(datos, { pasantes: gPasantes, espacios: gEspacios, genero: gGenero, edad: gEdad });
+        buffer = await generarBufferSupervisor(datos);
       } else {
         const [gEvolucion, gPlanVsEj] = await Promise.all([
           generarGraficoEvolucionMensual(datos.evolucion || []),

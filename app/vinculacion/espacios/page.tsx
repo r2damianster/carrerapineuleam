@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+const OPCIONES_CATEGORIA = [
+  { valor: 'club', etiqueta: 'Club de inglés (tarea 1.1)' },
+  { valor: 'podcast', etiqueta: 'Podcast (tarea 2.1)' },
+  { valor: 'investigacion', etiqueta: 'Aporta a investigación (tarea 3.2)' },
+  { valor: 'otro', etiqueta: 'Otro (actividad no prevista)' },
+];
+
 export default function VinculacionEspaciosPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
@@ -13,9 +20,9 @@ export default function VinculacionEspaciosPage() {
 
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [espacios, setEspacios] = useState<any[]>([]);
-  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '' });
+  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '' });
+  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
 
   const esProfesor = usuario ? ['profesor', 'admin'].includes(usuario.rol) : false;
 
@@ -60,7 +67,7 @@ export default function VinculacionEspaciosPage() {
       });
       if (!res.ok) throw new Error('Error creando espacio');
       setMessage('Espacio creado');
-      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '' });
+      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
       fetchData();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -71,7 +78,7 @@ export default function VinculacionEspaciosPage() {
 
   const empezarEdicion = (e: any) => {
     setEditandoId(e.id);
-    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id) });
+    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro' });
   };
 
   const handleGuardarEdicion = async (id: number) => {
@@ -140,6 +147,12 @@ export default function VinculacionEspaciosPage() {
               <option value="aula">Aula Virtual/Física</option>
               <option value="podcast">Podcast</option>
             </select>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Categoría en el informe</label>
+              <select required className="w-full border p-2 rounded" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
+                {OPCIONES_CATEGORIA.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
+              </select>
+            </div>
             <select required className="w-full border p-2 rounded" value={form.ciclo_id} onChange={e => setForm({ ...form, ciclo_id: e.target.value })}>
               <option value="">Selecciona Ciclo</option>
               {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -166,6 +179,9 @@ export default function VinculacionEspaciosPage() {
                       {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
                   </div>
+                  <select className="w-full px-2 py-1 rounded border border-gray-300" value={editForm.categoria} onChange={ev => setEditForm({ ...editForm, categoria: ev.target.value })}>
+                    {OPCIONES_CATEGORIA.map(opcion => <option key={opcion.valor} value={opcion.valor}>Categoría: {opcion.etiqueta}</option>)}
+                  </select>
                   <div className="flex gap-2">
                     <button onClick={() => handleGuardarEdicion(e.id)} disabled={loading} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Guardar</button>
                     <button onClick={() => setEditandoId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm">Cancelar</button>
@@ -174,7 +190,7 @@ export default function VinculacionEspaciosPage() {
               ) : (
                 <div className="flex items-start justify-between gap-2 p-3 hover:bg-gray-50">
                   <Link href={`/vinculacion/espacios/${e.id}`} className="flex-1">
-                    <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} <br />
+                    <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} · <span className="text-xs font-semibold text-uleam-blue">{OPCIONES_CATEGORIA.find(opcion => opcion.valor === e.categoria)?.etiqueta || 'Otro'}</span> <br />
                     <span className="text-sm text-gray-500">
                       {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
                     </span>

@@ -195,6 +195,33 @@ function InformesVinculacionContenido() {
     }
   };
 
+  const [redactandoTarea, setRedactandoTarea] = useState<number | null>(null);
+
+  const actualizarTarea = (indiceTarea: number, cambios: Record<string, string>) => {
+    setDatosSupervisor((previo: any) => ({
+      ...previo,
+      tareas: previo.tareas.map((tarea: any, indice: number) => (indice === indiceTarea ? { ...tarea, ...cambios } : tarea)),
+    }));
+  };
+
+  const redactarProductosIA = async (indiceTarea: number) => {
+    setRedactandoTarea(indiceTarea);
+    try {
+      const respuesta = await fetch('/vinculacion/informes/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'redactar-productos', tarea: datosSupervisor.tareas[indiceTarea], periodo: datosSupervisor.periodo?.etiquetaPeriodo }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) throw new Error(resultado.error);
+      actualizarTarea(indiceTarea, { productos_sociales: resultado.productos_sociales, productos_academicos: resultado.productos_academicos });
+    } catch (error: any) {
+      alert(`Error al generar borrador con IA: ${error.message}`);
+    } finally {
+      setRedactandoTarea(null);
+    }
+  };
+
   const redactarBorradorIA = async (clave: string) => {
     setRedactandoClave(clave);
     try {
@@ -338,38 +365,62 @@ function InformesVinculacionContenido() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold text-uleam-blue mb-3">2. Tareas y Actividades del Período</h2>
-              {datosSupervisor.tareas?.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No hay registros de sesiones aprobadas para este mes.</p>
+              <h2 className="text-lg font-bold text-uleam-blue mb-1">2. Tareas del Proyecto — {datosSupervisor.periodo?.etiquetaPeriodo}</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Avance calculado con tus registros aprobados frente a la meta de cada tarea. Las tareas sin registros aprobados no se listan en la sección 2.2 del documento, pero sí aparecen en el cronograma.
+              </p>
+              {!datosSupervisor.tareas || datosSupervisor.tareas.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay tareas planificadas cargadas para este periodo. El líder las define en Proyecto de Vinculación.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-700 font-bold border-b">
-                        <th className="p-3">Actividad / Espacio</th>
-                        <th className="p-3">Sesiones</th>
-                        <th className="p-3">Beneficiarios</th>
-                        <th className="p-3">Horas Acreditadas</th>
-                        <th className="p-3">Observaciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {datosSupervisor.tareas?.map((t: any, idx: number) => (
-                        <tr key={idx} className="border-b hover:bg-gray-50">
-                          <td className="p-3">
-                            <div className="font-semibold text-gray-800">{t.actividad_descripcion}</div>
-                            <div className="text-xs text-gray-500">{t.espacio_nombre}</div>
-                          </td>
-                          <td className="p-3 font-semibold">{t.sesiones_aprobadas}</td>
-                          <td className="p-3 font-semibold">{t.beneficiarios_atendidos}</td>
-                          <td className="p-3 font-semibold text-blue-700">{t.horas_acreditadas} h</td>
-                          <td className="p-3 text-xs text-gray-600">{t.comentarios?.join('; ') || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-4">
+                  {datosSupervisor.tareas.map((tarea: any, indiceTarea: number) => (
+                    <div key={tarea.codigo || indiceTarea} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="font-semibold text-gray-800 text-sm">{tarea.codigo} {tarea.nombre}</div>
+                        <div className="text-sm font-bold text-uleam-blue">{tarea.avance != null ? `${tarea.avance}%` : 'Sin cálculo'}</div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded h-2 my-2">
+                        <div className="bg-uleam-blue h-2 rounded" style={{ width: `${tarea.avance ?? 0}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        Realizado: <strong>{tarea.realizado ?? 0}</strong> de <strong>{tarea.meta ?? '—'}</strong> {tarea.unidad} · Estudiantes participantes: <strong>{tarea.alumnos}</strong>
+                        {tarea.observaciones ? ` · ${tarea.observaciones}` : ''}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-600 mb-1">Productos obtenidos (fines sociales)</label>
+                          <textarea rows={3} value={tarea.productos_sociales || ''} onChange={e => actualizarTarea(indiceTarea, { productos_sociales: e.target.value })} className="w-full p-2 border rounded text-xs" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-600 mb-1">Productos obtenidos (fines académicos)</label>
+                          <textarea rows={3} value={tarea.productos_academicos || ''} onChange={e => actualizarTarea(indiceTarea, { productos_academicos: e.target.value })} className="w-full p-2 border rounded text-xs" />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => redactarProductosIA(indiceTarea)}
+                        disabled={redactandoTarea === indiceTarea}
+                        className="mt-2 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
+                      >
+                        {redactandoTarea === indiceTarea ? 'Redactando con IA...' : '✨ Generar borrador con IA'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
+              {datosSupervisor.no_previstas?.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-bold text-gray-700 mb-1">Actividades no previstas (2.3)</h3>
+                  <ul className="text-xs text-gray-600 list-disc pl-5">
+                    {datosSupervisor.no_previstas.map((sesion: any, indiceSesion: number) => (
+                      <li key={indiceSesion}>{sesion.espacio_nombre} · {sesion.fecha} · {sesion.horas_acreditadas} h</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-4">
+                Adjuntos: {datosSupervisor.fotos?.length || 0} foto(s) de sesiones aprobadas de {datosSupervisor.general?.mes}, elegidas al azar (una por espacio primero) con leyenda de espacio y fecha.
+              </p>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border">

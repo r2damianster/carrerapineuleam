@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
+import { periodoDeCiclo } from '@/lib/periodosProyecto';
 import { enriquecerTexto } from '@/app/utilidades/_lib/enriquecerTexto';
 
 export async function GET(request: Request) {
@@ -205,14 +206,19 @@ export async function POST(request: Request) {
         const actividadesOrigen = await sql`
           SELECT * FROM proyecto_actividades_plan WHERE ciclo_id = ${desde_ciclo_id} AND activo = true
         `;
+        const [cicloDestino] = await sql`SELECT nombre FROM ciclos_academicos WHERE id = ${hacia_ciclo_id}`;
+        const periodoDestino = periodoDeCiclo(cicloDestino?.nombre || '');
         let duplicadas = 0;
         for (const act of actividadesOrigen) {
           await sql`
             INSERT INTO proyecto_actividades_plan (
-              objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo
+              objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo,
+              meta_cantidad, unidad, fuente
             ) VALUES (
               ${act.objetivo_id}, ${act.actividad}, ${act.metodologia}, ${hacia_ciclo_id},
-              ${act.mes_inicio}, ${act.mes_fin}, ${act.espacio_id}, ${act.responsable_id}, true
+              ${periodoDestino ? periodoDestino.desde : act.mes_inicio}, ${periodoDestino ? periodoDestino.hasta : act.mes_fin},
+              ${act.espacio_id}, ${act.responsable_id}, true,
+              ${act.meta_cantidad}, ${act.unidad}, ${act.fuente}
             )
           `;
           duplicadas++;
@@ -248,14 +254,16 @@ export async function POST(request: Request) {
       }
 
       if (accion === 'crear_actividad') {
-        const { objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id } = body;
+        const { objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, meta_cantidad, unidad, fuente } = body;
         if (!objetivo_id || !actividad) return NextResponse.json({ error: 'Objetivo y actividad son requeridos' }, { status: 400 });
         const [nuevaAct] = await sql`
           INSERT INTO proyecto_actividades_plan (
-            objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo
+            objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo,
+            meta_cantidad, unidad, fuente
           ) VALUES (
             ${objetivo_id}, ${actividad}, ${metodologia || null}, ${ciclo_id || null},
-            ${mes_inicio || null}, ${mes_fin || null}, ${espacio_id || null}, ${responsable_id || null}, true
+            ${mes_inicio || null}, ${mes_fin || null}, ${espacio_id || null}, ${responsable_id || null}, true,
+            ${meta_cantidad === '' || meta_cantidad == null ? null : Number(meta_cantidad)}, ${unidad || null}, ${fuente || 'manual'}
           )
           RETURNING *
         `;
@@ -263,12 +271,14 @@ export async function POST(request: Request) {
       }
 
       if (accion === 'editar_actividad') {
-        const { id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo } = body;
+        const { id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo, meta_cantidad, unidad, fuente } = body;
         await sql`
           UPDATE proyecto_actividades_plan
           SET actividad = ${actividad}, metodologia = ${metodologia || null}, ciclo_id = ${ciclo_id || null},
               mes_inicio = ${mes_inicio || null}, mes_fin = ${mes_fin || null},
-              espacio_id = ${espacio_id || null}, responsable_id = ${responsable_id || null}, activo = ${activo}
+              espacio_id = ${espacio_id || null}, responsable_id = ${responsable_id || null}, activo = ${activo},
+              meta_cantidad = ${meta_cantidad === '' || meta_cantidad == null ? null : Number(meta_cantidad)},
+              unidad = ${unidad || null}, fuente = ${fuente || 'manual'}
           WHERE id = ${id}
         `;
         return NextResponse.json({ success: true });

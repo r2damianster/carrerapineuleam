@@ -55,7 +55,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombre, tipo, ciclo_id, area } = await request.json();
+    const { nombre, tipo, ciclo_id, area, categoria: categoriaBody } = await request.json();
+    const categoria = ['club', 'podcast', 'investigacion', 'otro'].includes(categoriaBody) ? categoriaBody : 'otro';
     if (!nombre || !tipo || !ciclo_id || !area) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -65,8 +66,8 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO espacios_enseñanza (nombre, tipo, ciclo_id, profesor_id, area)
-      VALUES (${nombre}, ${tipo}, ${ciclo_id}, ${usuario.id}, ${area})
+      INSERT INTO espacios_enseñanza (nombre, tipo, ciclo_id, profesor_id, area, categoria)
+      VALUES (${nombre}, ${tipo}, ${ciclo_id}, ${usuario.id}, ${area}, ${categoria})
     `;
     return NextResponse.json({ success: true, message: 'Espacio creado exitosamente' });
   } catch (error: any) {

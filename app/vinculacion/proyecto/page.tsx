@@ -33,7 +33,7 @@ export default function ProyectoVinculacionPage() {
   const [modalObjetivo, setModalObjetivo] = useState(false);
   const [objForm, setObjForm] = useState({ id: null as number | null, tipo: 'especifico', texto: '', orden: 0 });
   const [modalActividad, setModalActividad] = useState(false);
-  const [actForm, setActForm] = useState<any>({ id: null, objetivo_id: '', actividad: '', metodologia: '', ciclo_id: '', mes_inicio: '', mes_fin: '', espacio_id: '', responsable_id: '' });
+  const [actForm, setActForm] = useState<any>({ id: null, objetivo_id: '', actividad: '', metodologia: '', ciclo_id: '', mes_inicio: '', mes_fin: '', espacio_id: '', responsable_id: '', meta_cantidad: '', unidad: '', fuente: 'manual' });
 
   // Copiar actividades
   const [modalCopiar, setModalCopiar] = useState(false);
@@ -575,7 +575,7 @@ export default function ProyectoVinculacionPage() {
                     <h4 className="font-semibold text-sm text-gray-700">Actividades Planificadas ({obj.actividades.length})</h4>
                     <button
                       onClick={() => {
-                        setActForm({ id: null, objetivo_id: obj.id, actividad: '', metodologia: '', ciclo_id: cicloIdSeleccionado || (ciclos[0]?.id ? String(ciclos[0].id) : ''), mes_inicio: '', mes_fin: '', espacio_id: '', responsable_id: '' });
+                        setActForm({ id: null, objetivo_id: obj.id, actividad: '', metodologia: '', ciclo_id: cicloIdSeleccionado || (ciclos[0]?.id ? String(ciclos[0].id) : ''), mes_inicio: '', mes_fin: '', espacio_id: '', responsable_id: '', meta_cantidad: '', unidad: '', fuente: 'manual' });
                         setModalActividad(true);
                       }}
                       className="text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1 rounded-md font-medium"
@@ -593,6 +593,7 @@ export default function ProyectoVinculacionPage() {
                           <div>
                             <p className="font-semibold text-gray-800">{act.actividad}</p>
                             {act.metodologia && <p className="text-xs text-gray-500">Metodología: {act.metodologia}</p>}
+                            {act.meta_cantidad != null && <p className="text-xs text-indigo-700">Meta: <strong>{Number(act.meta_cantidad)} {act.unidad}</strong> · fuente: {act.fuente}</p>}
                             <div className="flex gap-4 text-xs text-gray-500 mt-1">
                               {act.espacio_nombre && <span>Espacio: <strong>{act.espacio_nombre}</strong></span>}
                               {act.resp_nombres && <span>Responsable: <strong>{act.resp_nombres} {act.resp_apellidos}</strong></span>}
@@ -814,6 +815,27 @@ export default function ProyectoVinculacionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Metodología / Descripción</label>
                 <textarea rows={2} value={actForm.metodologia || ''} onChange={e => setActForm({ ...actForm, metodologia: e.target.value })} className="w-full p-2 rounded border border-gray-300 text-sm"></textarea>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Meta del periodo</label>
+                  <input type="number" min="0" step="any" value={actForm.meta_cantidad ?? ''} onChange={e => setActForm({ ...actForm, meta_cantidad: e.target.value })} className="w-full px-2 py-1.5 rounded border border-gray-300 text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Unidad</label>
+                  <input value={actForm.unidad || ''} onChange={e => setActForm({ ...actForm, unidad: e.target.value })} placeholder="ej. espacios" className="w-full px-2 py-1.5 rounded border border-gray-300 text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Se calcula desde</label>
+                  <select value={actForm.fuente || 'manual'} onChange={e => setActForm({ ...actForm, fuente: e.target.value })} className="w-full px-2 py-1.5 rounded border border-gray-300 text-xs">
+                    <option value="asistencia_club">Sesiones en clubs</option>
+                    <option value="autonomas_encuesta">Autónomas y encuesta</option>
+                    <option value="podcast">Podcasts</option>
+                    <option value="evento">Eventos</option>
+                    <option value="investigacion">Actividades de investigación</option>
+                    <option value="manual">Manual (lo escribe el supervisor)</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

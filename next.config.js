@@ -15,6 +15,8 @@ const nextConfig = {
     // no se sube a la función serverless y falla "Cannot find module .../pdf.worker.mjs".
     outputFileTracingIncludes: {
       '/utilidades/pares-lectores/api/precargar-memo': ['./node_modules/pdfjs-dist/legacy/build/*.mjs'],
+      // La plantilla oficial del informe del supervisor se lee con fs en tiempo de ejecución.
+      '/vinculacion/informes/api': ['./app/vinculacion/informes/_templates/*.docx'],
     },
   },
 };
