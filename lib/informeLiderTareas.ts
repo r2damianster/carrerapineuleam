@@ -219,6 +219,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
            (SELECT COUNT(*) FROM asistencia_instructores ai WHERE ai.asistencia_id = a.id)::int AS num_pasantes
     FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
     WHERE e.area = 'vinculacion' AND a.estado_aprobacion = 'aprobado' AND a.foto_url IS NOT NULL
+      AND NOT foto_descartada(a.foto_url)
       AND a.fecha BETWEEN ${desde}::date AND ${hastaCorte}::date
   `;
 

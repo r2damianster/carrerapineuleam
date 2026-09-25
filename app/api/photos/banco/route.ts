@@ -114,13 +114,17 @@ export async function GET(request: Request) {
     const whereMenores = esAdmin && menores ? sql`AND menores = ${menores}` : sql``;
 
     // Filtro estado (publicada | sin_ubicar | oculta)
-    const whereEstado = estadoRaw === 'publicada'
-      ? sql`AND activo = true AND cardinality(ubicaciones) > 0`
-      : estadoRaw === 'sin_ubicar'
-        ? sql`AND cardinality(ubicaciones) = 0`
-        : estadoRaw === 'oculta'
-          ? sql`AND activo = false`
-          : sql``;
+    // Las descartadas solo aparecen con estado=descartada (para poder restaurarlas); en cualquier otro
+    // listado se excluyen. "Descartar" no borra nada: la foto sigue en el banco pero inutilizable.
+    const whereEstado = estadoRaw === 'descartada'
+      ? sql`AND descartada = true`
+      : estadoRaw === 'publicada'
+        ? sql`AND descartada = false AND activo = true AND cardinality(ubicaciones) > 0`
+        : estadoRaw === 'sin_ubicar'
+          ? sql`AND descartada = false AND cardinality(ubicaciones) = 0`
+          : estadoRaw === 'oculta'
+            ? sql`AND descartada = false AND activo = false`
+            : sql`AND descartada = false`;
 
     // ── Conteo total ──────────────────────────────────────────────────────
     const [{ count: total }] = await sql`

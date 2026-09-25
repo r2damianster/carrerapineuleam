@@ -20,6 +20,7 @@ interface Registro {
   hora_fin: string | null;
   observaciones: string | null;
   foto_url: string | null;
+  foto_descartada?: boolean;
   estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado';
   motivo_rechazo: string | null;
   registrado_por: number;
@@ -405,9 +406,14 @@ export default function SupervisarAsistenciaPage() {
               return (
                 <div key={registro.clave} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
                   {r.foto_url && (
-                    <a href={r.foto_url} target="_blank" rel="noreferrer" className="shrink-0">
-                      <img src={r.foto_url} alt="Evidencia" className="w-full sm:w-32 h-32 object-cover rounded-lg border border-gray-200" />
-                    </a>
+                    <div className="shrink-0">
+                      <a href={r.foto_url} target="_blank" rel="noreferrer">
+                        <img src={r.foto_url} alt="Evidencia" className={`w-full sm:w-32 h-32 object-cover rounded-lg border border-gray-200 ${r.foto_descartada ? 'opacity-60' : ''}`} />
+                      </a>
+                      {r.foto_descartada && (
+                        <p className="mt-1 max-w-[8rem] text-[11px] font-semibold text-red-700">Descartada: no se usa en la web ni en los informes</p>
+                      )}
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">

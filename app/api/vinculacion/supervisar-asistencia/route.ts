@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       SELECT
         ae.id, ae.espacio_id, e.nombre AS espacio_nombre,
         ae.fecha, ae.hora_inicio, ae.hora_fin, ae.observaciones,
-        ae.foto_url, ae.estado_aprobacion, ae.motivo_rechazo, ae.creado_en,
+        ae.foto_url, foto_descartada(ae.foto_url) AS foto_descartada, ae.estado_aprobacion, ae.motivo_rechazo, ae.creado_en,
         ae.registrado_por,
         u.nombres AS registrado_por_nombres, u.apellidos AS registrado_por_apellidos,
         (SELECT COUNT(*)::int FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = ae.id) AS num_beneficiarios,

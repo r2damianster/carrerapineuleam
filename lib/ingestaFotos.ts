@@ -25,6 +25,24 @@ export interface DatosIngesta {
 }
 
 /**
+ * Título legible y único para una foto: el que traiga la fuente (título del evento, "Espacio — fecha"…);
+ * si otra foto ya lo usa, se numera "(2)", "(3)"…; si no hay ninguno, "n - dd/mm/aa" (número correlativo y fecha de creación). Nunca lanza.
+ */
+async function tituloParaFoto(sql: any, tituloBase: string | null | undefined): Promise<string> {
+  const base = (tituloBase ?? '').trim();
+  if (!base) {
+    // Sin nombre conocido: "número - fecha de creación" (dd/mm/aa, hora de Ecuador), p. ej. "1 - 19/09/26".
+    const [{ total }] = await sql`SELECT count(*)::int AS total FROM fotos WHERE titulo ~ '^[0-9]+ - [0-9]{2}/[0-9]{2}/[0-9]{2}$'`;
+    const hoy = new Date(Date.now() - 5 * 60 * 60 * 1000);
+    const fecha = [hoy.getUTCDate(), hoy.getUTCMonth() + 1, hoy.getUTCFullYear() % 100].map((parte) => String(parte).padStart(2, '0')).join('/');
+    return `${Number(total) + 1} - ${fecha}`;
+  }
+  const [{ repetidos }] = await sql`
+    SELECT count(*)::int AS repetidos FROM fotos WHERE titulo = ${base} OR titulo LIKE ${base + ' (%)'}`;
+  return Number(repetidos) > 0 ? `${base} (${Number(repetidos) + 1})` : base;
+}
+
+/**
  * Registra una foto en el banco de fotos.
  * - Idempotente: usa ON CONFLICT (origen, fuente_id, url) DO NOTHING cuando fuente_id está presente.
  * - Nunca lanza hacia el llamador: captura errores internamente y retorna null en ese caso.
@@ -64,6 +82,7 @@ export async function registrarFotoEnBanco(
     const activo = menores === 'no';
 
     const id = `foto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const tituloFinal = await tituloParaFoto(sql, titulo);
 
     const [result] = await sql`
       INSERT INTO fotos (
@@ -74,7 +93,7 @@ export async function registrarFotoEnBanco(
         menores, visibilidad
       )
       VALUES (
-        ${id}, ${url}, ${cloudinary_public_id}, ${titulo}, ${descripcion},
+        ${id}, ${url}, ${cloudinary_public_id}, ${tituloFinal}, ${descripcion},
         '{}', 0, 50, ${activo},
         ${origen}, ${fuente_id}, ${fecha_evento ? new Date(fecha_evento) : null}, ${categoria},
         ${proyectos}, ${subido_por_id}, ${subido_por},

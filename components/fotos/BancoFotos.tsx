@@ -24,6 +24,8 @@ interface FotoBanco {
   origen: string;
   menores: 'no' | 'si' | 'revisar';
   visibilidad: 'publicable' | 'interna';
+  descartada?: boolean;
+  motivo_descarte?: string | null;
   fecha_evento: string | null;
   created: string;
 }
@@ -57,6 +59,13 @@ const ETIQUETA_ORIGEN: Record<string, string> = {
   asistencia: 'Asistencia',
 };
 
+const ETIQUETA_MOTIVO: Record<string, string> = {
+  menores: 'menores de edad',
+  mala_calidad: 'mala calidad',
+  duplicada: 'duplicada',
+  otro: 'otro motivo',
+};
+
 const TAMANO_PAGINA = 24;
 
 export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
@@ -74,6 +83,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
     q: '', origen: '', ubicacion: '', proyecto: '', desde: '', hasta: '', menores: '', estado: '',
   });
   const [ubicacionesParaPublicar, setUbicacionesParaPublicar] = useState<string[]>([]);
+  const [motivoDescarte, setMotivoDescarte] = useState('');
   const [fotoEnEdicion, setFotoEnEdicion] = useState<FotoBanco | null>(null);
   const [mostrarSubida, setMostrarSubida] = useState(false);
 
@@ -151,13 +161,13 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
 
   const ejecutarAccion = async (accion: string, ubicaciones?: string[]) => {
     if (seleccionadas.length === 0) return;
-    if (accion === 'descartar' && !window.confirm(`¿Descartar ${seleccionadas.length} foto(s)? Salen del sitio y de sus ubicaciones (siguen en el banco).`)) return;
+    if (accion === 'descartar' && !window.confirm(`¿Descartar ${seleccionadas.length} foto(s)? Dejan de usarse en el sitio, las noticias y los informes. No se borra nada y se pueden restaurar desde el filtro "Descartadas".`)) return;
     setMensaje('');
     try {
       const respuesta = await fetch('/api/photos/accion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: seleccionadas, accion, ubicaciones }),
+        body: JSON.stringify({ ids: seleccionadas, accion, ubicaciones, ...(accion === 'descartar' && motivoDescarte ? { motivo: motivoDescarte } : {}) }),
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
@@ -240,6 +250,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
           <option value="publicada">Publicadas</option>
           <option value="sin_ubicar">Sin ubicar</option>
           <option value="oculta">Ocultas</option>
+          <option value="descartada">Descartadas</option>
         </select>
       </section>
 
@@ -256,6 +267,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
       {seleccionadas.length > 0 && (
         <section aria-label="Acciones en lote" className="sticky top-2 z-10 space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow">
           <p className="text-sm font-semibold text-indigo-900">{seleccionadas.length} seleccionada(s)</p>
+          {filtros.estado !== 'descartada' && (
           <div className="flex flex-wrap gap-2">
             {ubicacionesDisponibles.map((ubicacion) => (
               <label key={ubicacion.slug} className="flex cursor-pointer items-center gap-1 rounded border bg-white px-2 py-1 text-xs">
@@ -264,11 +276,22 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
               </label>
             ))}
           </div>
+          )}
+          {filtros.estado === 'descartada' ? (
+            <div className="flex flex-wrap gap-2 text-sm">
+              <button type="button" onClick={() => ejecutarAccion('restaurar')} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white">Restaurar (vuelven a “sin ubicar”)</button>
+              <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
+            </div>
+          ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
             <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('quitar', ubicacionesParaPublicar)} className="rounded bg-amber-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Quitar de…</button>
             <button type="button" onClick={() => ejecutarAccion('ocultar')} className="rounded bg-gray-600 px-3 py-1.5 font-semibold text-white">Ocultar</button>
             <button type="button" onClick={() => ejecutarAccion('mostrar')} className="rounded bg-gray-500 px-3 py-1.5 font-semibold text-white">Mostrar</button>
+            <select aria-label="Motivo del descarte" value={motivoDescarte} onChange={(evento) => setMotivoDescarte(evento.target.value)} className="rounded border bg-white px-2 py-1.5">
+              <option value="">Motivo (opcional)</option>
+              {Object.entries(ETIQUETA_MOTIVO).map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
+            </select>
             <button type="button" onClick={() => ejecutarAccion('descartar')} className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white">Descartar</button>
             {esAdmin && (
               <>
@@ -278,7 +301,8 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
             )}
             <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
           </div>
-          <p className="text-xs text-gray-600">Las fotos con menores no se pueden publicar. Si pasas el máximo de una ubicación, el sitio muestra solo las primeras.</p>
+          )}
+          <p className="text-xs text-gray-600">Descartar no borra nada: la foto deja de usarse en el sitio, las noticias y los informes, y se puede restaurar. Las fotos con menores no se pueden publicar. Si pasas el máximo de una ubicación, el sitio muestra solo las primeras.</p>
         </section>
       )}
 
@@ -312,8 +336,13 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
                       {foto.menores === 'si' ? 'Con menores' : 'Menores: revisar'}
                     </span>
                   )}
-                  {!foto.activo && <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-yellow-800">Oculta</span>}
-                  {foto.ubicaciones.length === 0 && foto.menores === 'no' && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800">Sin ubicar</span>}
+                  {foto.descartada && (
+                    <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">
+                      Descartada{foto.motivo_descarte ? `: ${ETIQUETA_MOTIVO[foto.motivo_descarte] ?? foto.motivo_descarte}` : ''}
+                    </span>
+                  )}
+                  {!foto.activo && !foto.descartada && <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-yellow-800">Oculta</span>}
+                  {foto.ubicaciones.length === 0 && foto.menores === 'no' && !foto.descartada && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800">Sin ubicar</span>}
                 </div>
                 {foto.ubicaciones.length > 0 && <p className="text-gray-600">📍 {foto.ubicaciones.map(nombreUbicacion).join(' · ')}</p>}
                 {foto.proyectos.length > 0 && <p className="text-gray-500">🗂 {foto.proyectos.map(nombreProyecto).join(' · ')}</p>}
@@ -385,10 +414,15 @@ function ModalEditarFoto({ foto, esAdmin, proyectos, onCerrar, onGuardado }: {
     }
   };
 
+  // Eliminar definitivamente solo tiene sentido (y solo lo permite la API) para fotos subidas directamente al
+  // banco que ya están descartadas y no se usan en ninguna asistencia, actividad u otra foto.
+  const puedeEliminar = esAdmin && foto.descartada === true && ['admin', 'lider'].includes(foto.origen);
   const eliminar = async () => {
-    if (!window.confirm('¿Eliminar la foto definitivamente (también de Cloudinary)? Esto no se puede deshacer.')) return;
+    if (!window.confirm('¿Eliminar la foto definitivamente, también el archivo en Cloudinary? Esto no se puede deshacer.')) return;
     const respuesta = await fetch(`/api/photos/${foto.id}`, { method: 'DELETE' });
-    if (respuesta.ok) onGuardado(); else setError('No se pudo eliminar');
+    if (respuesta.ok) { onGuardado(); return; }
+    const datos = await respuesta.json().catch(() => ({}));
+    setError(datos.error || 'No se pudo eliminar');
   };
 
   return (
@@ -420,7 +454,7 @@ function ModalEditarFoto({ foto, esAdmin, proyectos, onCerrar, onGuardado }: {
         )}
         {error && <p className="text-sm text-red-700">{error}</p>}
         <div className="flex flex-wrap justify-between gap-2">
-          {esAdmin ? <button type="button" onClick={eliminar} className="rounded border border-red-300 px-3 py-2 text-sm text-red-700">Eliminar</button> : <span />}
+          {puedeEliminar ? <button type="button" onClick={eliminar} className="rounded border border-red-300 px-3 py-2 text-sm text-red-700">Eliminar definitivamente</button> : <span className="text-xs text-gray-500">{esAdmin ? 'Para eliminar: primero descártala (solo fotos subidas al banco).' : ''}</span>}
           <div className="flex gap-2">
             <button type="button" onClick={onCerrar} className="rounded border px-4 py-2 text-sm">Cancelar</button>
             <button type="button" disabled={guardando} onClick={guardar} className="rounded bg-uleam-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{guardando ? 'Guardando…' : 'Guardar'}</button>

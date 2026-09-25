@@ -151,7 +151,14 @@ export async function POST(request: Request) {
     // Todos los espacios son area='vinculacion' → proyectos=['vinculacion'] (asunción validada en WP0).
     if (foto_url && asistenciaId !== null) {
       const sql = neon(process.env.DATABASE_URL!);
+      // Título legible: "Nombre del espacio — dd/mm/aaaa" (si el nombre no se puede leer, la ingesta pone "Foto #n").
+      let tituloFoto: string | null = null;
+      try {
+        const [espacio] = await sql`SELECT nombre FROM "espacios_enseñanza" WHERE id = ${espacio_id}`;
+        if (espacio?.nombre) tituloFoto = `${espacio.nombre} — ${String(fecha).slice(0, 10).split('-').reverse().join('/')}`;
+      } catch { /* sin título: la ingesta lo numera */ }
       await registrarFotoEnBanco(sql, {
+        titulo: tituloFoto,
         url: foto_url,
         cloudinary_public_id: foto_public_id ?? null,
         origen: 'asistencia',

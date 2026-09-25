@@ -157,6 +157,7 @@ export async function POST(request: Request) {
       const origenFoto = tipo === 'podcast' ? 'podcast' : 'evento';
       await registrarFotoEnBanco(sql, {
         url: evidencia_url,
+        titulo,
         origen: origenFoto,
         fuente_id: String(actividad.id),
         fecha_evento: fecha,

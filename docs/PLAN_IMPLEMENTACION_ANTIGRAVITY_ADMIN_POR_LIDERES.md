@@ -710,3 +710,21 @@ Se verificó además que `@neondatabase/serverless` 1.x **sí** admite fragmento
 4. **H1** (cableado de permisos por pertenencia revertido en `main`) sigue abierto y fuera de alcance.
 5. `avisos` de tope en `POST /api/photos/accion` cuenta fotos activas publicables de la ubicación sin descontar las de fuente sin aprobar (solo afecta el texto del aviso, no lo que se muestra).
 6. Estado de pasantes en el selector: las reglas D5 viven en `POST /api/difusion` y `GET /api/proyectos?asignables=1`; si cambian, tocar ambos.
+
+---
+
+### Sesión 2026-09-26 (Claude, segunda tanda) — Descartar reversible + títulos automáticos
+
+**Rama:** `feat/fotos-descarte`. **Pruebas:** `scripts/test-fotos-permisos.mjs` → 58 casos OK (15 nuevos de descarte). `tsc` y build limpios.
+
+**Descartar ya no es solo "sacar de las galerías": es un estado real y reversible.** Migración `scripts/migrate-fotos-descartada.js` (aplicada en Neon, respaldo `respaldo_fotos_descartada_20260926`):
+- `fotos` gana `descartada`, `descartada_por`, `descartada_en`, `motivo_descarte` (`menores|mala_calidad|duplicada|otro`, opcional). CHECK `fotos_descartada_inactiva_check`: una descartada no puede estar activa ni tener ubicaciones.
+- Función SQL **`foto_descartada(url)`**: fuente única para saber si una imagen está descartada.
+- **El descarte es por imagen**: `POST /api/photos/accion` con `descartar` marca todas las filas con la misma URL; `restaurar` las devuelve a "sin ubicar" (conserva sus marcas de menores). No se borra ni la fila ni el archivo.
+- **Todos los usos la respetan:** galerías (`lib/fotosPublicas.ts`), noticias/boletines (`GET /api/actividades-difusion` público filtra `photos[]`), informes del supervisor y del líder (`AND NOT foto_descartada(a.foto_url)`), y en `/vinculacion/supervisar` la foto sigue visible como evidencia pero con la etiqueta "Descartada: no se usa en la web ni en los informes".
+- **Banco:** las descartadas solo salen con el filtro `estado=descartada` (con "Restaurar"); la barra de acciones tiene motivo opcional.
+- **Eliminar definitivamente** (`DELETE /api/photos/[id]`) quedó protegido: solo administración del sitio, solo fotos subidas al banco (`origen` `admin`/`lider`), ya descartadas y cuya imagen no se use en ninguna asistencia, actividad u otra fila. Si no, 409 con "usa Descartar". Antes podía destruir en Cloudinary un archivo que usa una asistencia.
+
+**Títulos automáticos (`lib/ingestaFotos.ts`, `tituloParaFoto`):** evento/podcast → título de la actividad; asistencia → "Espacio — dd/mm/aaaa" (`app/api/espacios/asistencia/route.ts`); repetidos → "(2)", "(3)"…; **sin nombre conocido → "n - dd/mm/aa"** (número correlativo y fecha de creación, p. ej. `1 - 19/09/26`, formato pedido por el usuario). Las 26 fotos que estaban sin título se rellenaron con el script (asistencia y eventos; ninguna quedó sin origen conocido).
+
+**Nota:** `POST /api/actividades-difusion` público ahora usa `no-store` (lectura pública sin cookies, ver Sesión 31).

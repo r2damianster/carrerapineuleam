@@ -167,6 +167,46 @@ async function main() {
   r = await llamar('/api/photos?ubicacion=test-galeria');
   verificar('el público nunca ve fotos con menores', Array.isArray(r.datos) && !r.datos.some((foto) => foto.id === 'foto_test_pub1'));
 
+  console.log('\n— Descartar / restaurar / eliminar (el descarte no borra nada y es por imagen) —');
+  await crearFoto('foto_test_desc', { proyectos: ['docencia_innovadora'] });
+  await sql`INSERT INTO fotos (id, url, ubicaciones, activo, origen, proyectos) VALUES ('foto_test_desc_copia', 'https://example.com/foto_test_desc.jpg', '{}', true, 'admin', ARRAY['mentoring'])`;
+  r = await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_desc'], accion: 'descartar', motivo: 'duplicada' } });
+  verificar('líder descarta foto de su proyecto (con motivo) → 200', r.estado === 200, JSON.stringify(r.datos));
+  const [descartada] = await sql`SELECT descartada, activo, ubicaciones, motivo_descarte, descartada_por FROM fotos WHERE id = 'foto_test_desc'`;
+  verificar('  …queda descartada, inactiva, sin ubicaciones, con motivo y autor', descartada.descartada === true && descartada.activo === false && descartada.ubicaciones.length === 0 && descartada.motivo_descarte === 'duplicada' && String(descartada.descartada_por) === veronica.id, JSON.stringify(descartada));
+  const [copia] = await sql`SELECT descartada FROM fotos WHERE id = 'foto_test_desc_copia'`;
+  verificar('  …el descarte alcanza a TODAS las filas con la misma imagen', copia.descartada === true);
+  const [{ funcion }] = await sql`SELECT foto_descartada('https://example.com/foto_test_desc.jpg') AS funcion`;
+  verificar('  …foto_descartada(url) = true (la usan informes y noticias)', funcion === true);
+  r = await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_desc'], accion: 'publicar', ubicaciones: ['docencia-galeria'] } });
+  verificar('publicar una descartada → 409', r.estado === 409, `estado ${r.estado}`);
+  r = await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_desc'], accion: 'descartar', motivo: 'inventado' } });
+  verificar('motivo inválido → 400', r.estado === 400, `estado ${r.estado}`);
+  r = await llamar('/api/photos/banco?pageSize=60', { cookie: cookieVeronica });
+  verificar('listado normal NO incluye descartadas', !(r.datos?.items ?? []).some((foto) => foto.id === 'foto_test_desc'));
+  r = await llamar('/api/photos/banco?pageSize=60&estado=descartada', { cookie: cookieVeronica });
+  verificar('listado estado=descartada SÍ las incluye', (r.datos?.items ?? []).some((foto) => foto.id === 'foto_test_desc'));
+  let errorDescartada = null;
+  try { await sql`UPDATE fotos SET descartada = true WHERE id = 'foto_test_pub3'`; } catch (error) { errorDescartada = error; }
+  verificar('CHECK: una descartada no puede tener ubicaciones (23514)', errorDescartada?.code === '23514', errorDescartada ? errorDescartada.message : 'no falló');
+  r = await llamar('/api/photos/accion', { cookie: cookieArturo, metodo: 'POST', cuerpo: { ids: ['foto_test_desc'], accion: 'restaurar' } });
+  const [restaurada] = await sql`SELECT descartada, activo, ubicaciones, motivo_descarte FROM fotos WHERE id = 'foto_test_desc'`;
+  verificar('restaurar → 200, vuelve a "sin ubicar" y sin marcas de descarte', r.estado === 200 && restaurada.descartada === false && restaurada.activo === true && restaurada.ubicaciones.length === 0 && restaurada.motivo_descarte === null, `${r.estado} ${JSON.stringify(restaurada)}`);
+  r = await llamar('/api/photos/foto_test_desc', { cookie: cookieArturo, metodo: 'DELETE' });
+  verificar('eliminar una foto NO descartada → 409', r.estado === 409, `estado ${r.estado}`);
+  await crearFoto('foto_test_asis', { origen: 'asistencia' });
+  await sql`UPDATE fotos SET descartada = true, activo = false WHERE id = 'foto_test_asis'`;
+  r = await llamar('/api/photos/foto_test_asis', { cookie: cookieArturo, metodo: 'DELETE' });
+  verificar('eliminar foto de asistencia (aunque esté descartada) → 409', r.estado === 409, `estado ${r.estado}`);
+  await llamar('/api/photos/accion', { cookie: cookieArturo, metodo: 'POST', cuerpo: { ids: ['foto_test_desc'], accion: 'descartar' } });
+  r = await llamar('/api/photos/foto_test_desc', { cookie: cookieArturo, metodo: 'DELETE' });
+  verificar('eliminar descartada con OTRA fila que usa la misma imagen → 409', r.estado === 409, `estado ${r.estado}`);
+  await sql`DELETE FROM fotos WHERE id = 'foto_test_desc_copia'`;
+  r = await llamar('/api/photos/foto_test_desc', { cookie: cookieVeronica, metodo: 'DELETE' });
+  verificar('líder no puede eliminar (solo admin) → 403', r.estado === 403, `estado ${r.estado}`);
+  r = await llamar('/api/photos/foto_test_desc', { cookie: cookieArturo, metodo: 'DELETE' });
+  verificar('admin elimina una descartada subida al banco y sin otros usos → 200', r.estado === 200, `estado ${r.estado} ${JSON.stringify(r.datos)}`);
+
   console.log('\n— Proyectos asignables al registrar (WP5b) —');
   r = await llamar('/api/proyectos?asignables=1');
   verificar('sin sesión → 401', r.estado === 401, `estado ${r.estado}`);

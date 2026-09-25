@@ -82,6 +82,7 @@ export async function obtenerFotosDeUbicacion(
     SELECT *
     FROM fotos
     WHERE activo = true
+      AND descartada = false
       AND visibilidad = 'publicable'
       AND menores = 'no'
       AND ${slug} = ANY(ubicaciones)
@@ -115,6 +116,7 @@ export async function obtenerFotosDeUbicacion(
       FROM fotos
       WHERE origen = ${ubicacion.auto_origen}
         AND activo = true
+        AND descartada = false
         AND visibilidad = 'publicable'
         AND menores = 'no'
         AND id <> ALL(${idsYIncluidos}::text[])

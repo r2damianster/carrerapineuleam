@@ -20,13 +20,18 @@ type Accion =
   | 'ocultar'
   | 'mostrar'
   | 'descartar'
+  | 'restaurar'
   | 'marcar_revisada'
   | 'marcar_interna';
 
 const ACCIONES_SOLO_ADMIN: Accion[] = ['marcar_revisada', 'marcar_interna'];
 
+const MOTIVOS_DESCARTE = ['menores', 'mala_calidad', 'duplicada', 'otro'] as const;
+
 interface FotoRow {
   id: string;
+  url: string;
+  descartada: boolean;
   menores: string;
   visibilidad: string;
   ubicaciones: string[];
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
     if (!esDocente(sesion)) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
     const body = await request.json();
-    const { ids, accion, ubicaciones: ubicacionesPedidas = [] } = body;
+    const { ids, accion, ubicaciones: ubicacionesPedidas = [], motivo } = body;
 
     // ── Validación de input básico ─────────────────────────────────────────
     if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100) {
@@ -63,7 +68,10 @@ export async function POST(request: Request) {
     }
     const idsUnicos: string[] = Array.from(new Set(ids as string[]));
 
-    const ACCIONES_VALIDAS: Accion[] = ['publicar','quitar','ocultar','mostrar','descartar','marcar_revisada','marcar_interna'];
+    const ACCIONES_VALIDAS: Accion[] = ['publicar','quitar','ocultar','mostrar','descartar','restaurar','marcar_revisada','marcar_interna'];
+    if (motivo !== undefined && motivo !== null && motivo !== '' && !(MOTIVOS_DESCARTE as readonly string[]).includes(motivo)) {
+      return NextResponse.json({ error: 'motivo de descarte inválido.' }, { status: 400 });
+    }
     if (!ACCIONES_VALIDAS.includes(accion as Accion)) {
       return NextResponse.json({ error: `acción inválida: ${accion}` }, { status: 400 });
     }
@@ -85,7 +93,7 @@ export async function POST(request: Request) {
 
       // ── Cargar fotos ────────────────────────────────────────────────────
       const { rows: fotosRaw } = await client.query<FotoRow>(
-        `SELECT id, menores, visibilidad, ubicaciones, proyectos, origen, activo, fuente_id
+        `SELECT id, url, descartada, menores, visibilidad, ubicaciones, proyectos, origen, activo, fuente_id
          FROM fotos WHERE id = ANY($1)`,
         [idsUnicos]
       );
@@ -149,6 +157,12 @@ export async function POST(request: Request) {
       // ── Validar cada foto × ubicación × acción ──────────────────────
       for (const id of idsUnicos) {
         const foto = fotosMap.get(id)!;
+
+        // Una foto descartada no se puede publicar ni mostrar: primero hay que restaurarla.
+        if (foto.descartada && ['publicar', 'mostrar'].includes(accion)) {
+          errores.push({ id, motivo: 'Foto descartada: restáurala antes de usarla.' });
+          continue;
+        }
 
         // publicar: no se puede si tiene menores o es interna
         if (accion === 'publicar') {
@@ -281,8 +295,21 @@ export async function POST(request: Request) {
       } else if (accion === 'mostrar') {
         await client.query(`UPDATE fotos SET activo = true, updated = now() WHERE id = ANY($1)`, [idsUnicos]);
       } else if (accion === 'descartar') {
+        // El descarte es POR IMAGEN: alcanza a todas las filas con la misma URL (así no queda ninguna copia usable
+        // en el sitio, las noticias ni los informes). No borra nada, ni la fila ni el archivo.
         await client.query(
-          `UPDATE fotos SET activo = false, ubicaciones = '{}', updated = now() WHERE id = ANY($1)`,
+          `UPDATE fotos
+           SET descartada = true, activo = false, ubicaciones = '{}',
+               descartada_por = $2, descartada_en = now(), motivo_descarte = $3, updated = now()
+           WHERE url IN (SELECT url FROM fotos WHERE id = ANY($1))`,
+          [idsUnicos, Number(sesion.id), motivo || null]
+        );
+      } else if (accion === 'restaurar') {
+        // Vuelve a la bandeja "sin ubicar" (conserva sus marcas de menores); tampoco se publica sola.
+        await client.query(
+          `UPDATE fotos
+           SET descartada = false, activo = true, descartada_por = NULL, descartada_en = NULL, motivo_descarte = NULL, updated = now()
+           WHERE url IN (SELECT url FROM fotos WHERE id = ANY($1))`,
           [idsUnicos]
         );
       } else if (accion === 'marcar_revisada') {

@@ -85,7 +85,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-// DELETE: solo admin de sitio (elimina de Cloudinary también)
+// DELETE: eliminación DEFINITIVA (fila + archivo en Cloudinary). Solo administración del sitio y solo si es seguro:
+//   - la foto debe ser de las que se subieron directamente al banco (origen admin/lider),
+//   - debe estar ya DESCARTADA (primero se descarta, luego se puede eliminar),
+//   - y su imagen no debe usarse en ningún otro lugar (asistencias, eventos/noticias u otra fila del banco).
+// Para todo lo demás se usa "Descartar" (reversible, no borra nada ni rompe asistencias ni informes).
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
@@ -94,8 +98,23 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     const sql = neon(process.env.DATABASE_URL!);
-    const [foto] = await sql`SELECT cloudinary_public_id FROM fotos WHERE id = ${params.id}`;
+    const [foto] = await sql`SELECT id, url, origen, descartada, cloudinary_public_id FROM fotos WHERE id = ${params.id}`;
     if (!foto) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+
+    if (!['admin', 'lider'].includes(foto.origen)) {
+      return NextResponse.json({ error: 'Esta foto viene de una asistencia, evento o podcast: no se elimina, usa "Descartar".' }, { status: 409 });
+    }
+    if (!foto.descartada) {
+      return NextResponse.json({ error: 'Primero descarta la foto; solo una descartada se puede eliminar definitivamente.' }, { status: 409 });
+    }
+    const [uso] = await sql`
+      SELECT
+        (SELECT count(*)::int FROM fotos WHERE url = ${foto.url} AND id <> ${foto.id}) AS otras_filas,
+        (SELECT count(*)::int FROM asistencia_espacio WHERE foto_url = ${foto.url}) AS asistencias,
+        (SELECT count(*)::int FROM actividades_difusion WHERE evidencia_url = ${foto.url} OR ${foto.url} = ANY(photos)) AS actividades`;
+    if (uso.otras_filas > 0 || uso.asistencias > 0 || uso.actividades > 0) {
+      return NextResponse.json({ error: 'Esta imagen se usa en una asistencia, actividad u otra foto: no se puede eliminar. Déjala descartada.' }, { status: 409 });
+    }
 
     if (foto.cloudinary_public_id) {
       try {

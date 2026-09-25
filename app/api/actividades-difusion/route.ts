@@ -28,7 +28,17 @@ export async function GET(request: Request) {
     // publicar_actividades=false. Se deja funcionando por si `seccion` se
     // vuelve a necesitar con este filtro — el sitio público nunca lo manda.
     const incluirOcultas = searchParams.get('all') === 'true';
-    const sql = neon(process.env.DATABASE_URL!);
+    // Sin caché de datos: esta lectura es pública y no toca cookies (ver CLAUDE.md, Sesión 31).
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
+
+    // Fotos descartadas en el banco: no deben salir en noticias/actividades/boletines aunque sigan
+    // guardadas en photos[] (el descarte es por imagen y no borra nada).
+    const quitarFotosDescartadas = async (filas: any[]) => {
+      const descartadas = await sql`SELECT url FROM fotos WHERE descartada = true`;
+      if (descartadas.length === 0) return filas;
+      const urlsDescartadas = new Set(descartadas.map((fila: any) => fila.url));
+      return filas.map((fila) => ({ ...fila, photos: (fila.photos ?? []).filter((url: string) => !urlsDescartadas.has(url)) }));
+    };
 
     // ?admin=true -> panel unificado /admin/contenido: trae TODO (pendiente y
     // publicado, en cualquier canal) en una sola consulta. Antes cada pantalla
@@ -63,7 +73,7 @@ export async function GET(request: Request) {
         WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_noticias = true)
         ORDER BY "order" ASC, fecha DESC NULLS LAST
       `;
-      return NextResponse.json(rows);
+      return NextResponse.json(await quitarFotosDescartadas(rows));
     }
     if (seccion === 'actividades') {
       const rows = await sql`
@@ -71,7 +81,7 @@ export async function GET(request: Request) {
         WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_actividades = true)
         ORDER BY "order" ASC, fecha DESC NULLS LAST
       `;
-      return NextResponse.json(rows);
+      return NextResponse.json(await quitarFotosDescartadas(rows));
     }
 
     const rows = origen
@@ -85,7 +95,7 @@ export async function GET(request: Request) {
           WHERE aprobado_sitio = true
           ORDER BY "order" ASC, fecha DESC NULLS LAST
         `;
-    return NextResponse.json(rows);
+    return NextResponse.json(await quitarFotosDescartadas(rows));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
