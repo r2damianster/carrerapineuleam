@@ -315,7 +315,8 @@ export async function POST(request: Request) {
       }
 
       let buffer: Buffer;
-      const targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || datos.ciclo?.id || 1);
+      // El informe del supervisor es mensual y no pertenece a un ciclo; el del líder sí.
+      const targetCicloId = tipo === 'supervisor' ? null : ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || null);
       const targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
 
       if (tipo === 'supervisor') {
@@ -327,6 +328,8 @@ export async function POST(request: Request) {
       const [guardado] = await sql`
         INSERT INTO informes_vinculacion (tipo, ciclo_id, supervisor_id, mes, datos_json, generado_por)
         VALUES (${tipo}, ${targetCicloId}, ${targetSupervisorId}, ${mes || null}, ${JSON.stringify(datos)}, ${Number(usuario.id)})
+        ON CONFLICT (tipo, COALESCE(supervisor_id, 0), COALESCE(ciclo_id, 0), COALESCE(mes, '1970-01-01'::date))
+        DO UPDATE SET datos_json = EXCLUDED.datos_json, generado_por = EXCLUDED.generado_por, creado_en = now()
         RETURNING id
       `;
 
