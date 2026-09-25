@@ -26,21 +26,44 @@ interface Competencia {
 interface TabConfig {
   id: string;
   label: string;
-  badge?: string;
-  isAvailable: boolean;
 }
 
+const MALLA_PDF = '/files/2026-09-25_Malla-Ajustada-PINE.pdf';
+
+// Nombres propios (no son texto de interfaz, no pasan por i18n).
+const DOCENTES_CARRERA = [
+  'Mgtr. Bazurto Alcívar Gabriel José',
+  'Mgtr. Carrera Moreno Germán Wenceslao',
+  'Mgtr. Chávez Zambrano Verónica Vanessa',
+  'Mgtr. Corral Joniaux Jorge Antonio',
+  'Mgtr. Farfán Corrales Ulbio Gonzalo',
+  'Mgtr. Intriago Palacios Eder Agustín',
+  'Mgtr. López Farfán Rómulo Silvino',
+  'Mgtr. Villafuerte Holguín Jhonny Saulo Alberto',
+  'Mgtr. Zambrano Zambrano Cintya Maribel',
+  'Mgtr. Bello Piguave Johanna Elizabeth',
+  'Mgtr. Mena Sánchez Laura María',
+  'Mgtr. Basantes Robalino María Cristina',
+];
+
+const CONTACTOS_CARRERA = [
+  { role: 'director', name: 'Dr. Germán Carrera Moreno, PhD.', email: 'german.carrera@uleam.edu.ec' },
+  { role: 'secretaria', name: 'Ing. Yasmín Bermúdez Velasco', email: 'yasmin.bermudez@uleam.edu.ec' },
+];
+
 export default function CareerProfileSection() {
-  const [activeTab, setActiveTab] = useState<string>('egreso');
+  const [activeTab, setActiveTab] = useState<string>('mision');
   const [selectedCompetencia, setSelectedCompetencia] = useState<number | null>(null);
   const { t } = useLanguage();
   const cp = t.careerProfile;
 
-  // Pestañas de la carrera (las dos últimas aún sin contenido).
   const tabs: TabConfig[] = [
-    { id: 'egreso', label: cp.tabs.egreso, isAvailable: true },
-    { id: 'profesional', label: cp.tabs.profesional, badge: cp.comingSoon, isAvailable: false },
-    { id: 'ingreso', label: cp.tabs.ingreso, badge: cp.comingSoon, isAvailable: false },
+    { id: 'mision', label: cp.tabs.mision },
+    { id: 'descripcion', label: cp.tabs.descripcion },
+    { id: 'egreso', label: cp.tabs.egreso },
+    { id: 'malla', label: cp.tabs.malla },
+    { id: 'docentes', label: cp.tabs.docentes },
+    { id: 'contactos', label: cp.tabs.contactos },
   ];
 
   // Solo estilo visual de cada dominio; todo el texto (ES/EN) vive en lib/i18n.tsx → t.careerProfile.
@@ -171,17 +194,6 @@ export default function CareerProfileSection() {
                   }`}
                 >
                   <span>{tab.label}</span>
-                  {tab.badge && (
-                    <span
-                      className={`text-[10px] md:text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        isActive
-                          ? 'bg-uleam-gold text-uleam-blue'
-                          : 'bg-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -301,52 +313,128 @@ export default function CareerProfileSection() {
           </div>
         )}
 
-        {/* PESTAÑA: PERFIL PROFESIONAL (Preparado para el futuro) */}
-        {activeTab === 'profesional' && (
-          <div className="bg-white border border-gray-200 rounded-3xl p-8 md:p-12 text-center shadow-lg max-w-3xl mx-auto animate-fadeIn">
-            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+        {/* PESTAÑA: MISIÓN Y VISIÓN */}
+        {activeTab === 'mision' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto animate-fadeIn">
+            <div className="bg-white border border-blue-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h3 className="text-2xl font-bold text-uleam-blue mb-3">{cp.mision.missionTitle}</h3>
+              <div className="w-16 h-1 bg-uleam-gold rounded-full mb-4"></div>
+              <p className="text-gray-700 leading-relaxed">{cp.mision.missionText}</p>
             </div>
-            <span className="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-3">
-              {cp.inPreparation}
-            </span>
-            <h3 className="text-2xl md:text-3xl font-bold text-uleam-blue mb-4">
-              {cp.profesional.title}
-            </h3>
-            <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6">
-              {cp.profesional.text}
-            </p>
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500 max-w-md mx-auto">
-              💡 {cp.comingSoonNote}
+            <div className="bg-white border border-amber-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h3 className="text-2xl font-bold text-uleam-blue mb-3">{cp.mision.visionTitle}</h3>
+              <div className="w-16 h-1 bg-uleam-gold rounded-full mb-4"></div>
+              <p className="text-gray-700 leading-relaxed">{cp.mision.visionText}</p>
             </div>
           </div>
         )}
 
-        {/* PESTAÑA: PERFIL DE INGRESO (Preparado para el futuro) */}
-        {activeTab === 'ingreso' && (
-          <div className="bg-white border border-gray-200 rounded-3xl p-8 md:p-12 text-center shadow-lg max-w-3xl mx-auto animate-fadeIn">
-            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
+        {/* PESTAÑA: DESCRIPCIÓN DE LA CARRERA */}
+        {activeTab === 'descripcion' && (
+          <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {cp.descripcion.facts.map((fact) => (
+                <div key={fact.label} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">{fact.label}</span>
+                  <p className="text-uleam-blue font-semibold">{fact.value}</p>
+                </div>
+              ))}
             </div>
-            <span className="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full mb-3">
-              {cp.inPreparation}
-            </span>
-            <h3 className="text-2xl md:text-3xl font-bold text-uleam-blue mb-4">
-              {cp.ingreso.title}
-            </h3>
-            <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6">
-              {cp.ingreso.text}
-            </p>
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500 max-w-md mx-auto">
-              💡 {cp.comingSoonNote}
+
+            <div className="bg-gradient-to-r from-uleam-blue to-blue-900 text-white p-6 md:p-8 rounded-2xl shadow-xl">
+              <h3 className="text-xl font-bold mb-2">{cp.descripcion.objectiveTitle}</h3>
+              <p className="text-blue-100 leading-relaxed">{cp.descripcion.objectiveText}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ListaDescripcion title={cp.descripcion.admissionTitle} items={cp.descripcion.admissionItems} />
+              <ListaDescripcion title={cp.descripcion.requirementsTitle} intro={cp.descripcion.requirementsIntro} items={cp.descripcion.requirementsItems} />
+              <ListaDescripcion title={cp.descripcion.graduationTitle} items={cp.descripcion.graduationItems} />
+              <ListaDescripcion title={cp.descripcion.titulacionTitle} items={cp.descripcion.titulacionItems} />
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-uleam-blue mb-2">{cp.descripcion.occupationalTitle}</h3>
+              <p className="text-gray-700 leading-relaxed">{cp.descripcion.occupationalText}</p>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA: MALLA CURRICULAR */}
+        {activeTab === 'malla' && (
+          <div className="max-w-5xl mx-auto animate-fadeIn">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-uleam-blue mb-2">{cp.malla.title}</h3>
+              <p className="text-gray-600 mb-4">{cp.malla.text}</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <a href={MALLA_PDF} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-uleam-blue text-white font-semibold rounded-xl hover:bg-blue-900 transition-colors">
+                  {cp.malla.open}
+                </a>
+                <a href={MALLA_PDF} download className="px-5 py-2.5 bg-uleam-gold text-uleam-blue font-semibold rounded-xl hover:brightness-95 transition">
+                  {cp.malla.download}
+                </a>
+              </div>
+            </div>
+            <iframe src={MALLA_PDF} title={cp.malla.title} className="hidden md:block w-full h-[700px] rounded-2xl border border-gray-200 bg-white" />
+          </div>
+        )}
+
+        {/* PESTAÑA: DOCENTES */}
+        {activeTab === 'docentes' && (
+          <div className="max-w-4xl mx-auto animate-fadeIn">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-uleam-blue mb-2">{cp.docentes.title}</h3>
+              <p className="text-gray-600">{cp.docentes.text}</p>
+            </div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {DOCENTES_CARRERA.map((docente) => (
+                <li key={docente} className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 shadow-sm">
+                  {docente}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* PESTAÑA: CONTACTOS */}
+        {activeTab === 'contactos' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto animate-fadeIn">
+            {CONTACTOS_CARRERA.map((contacto) => (
+              <div key={contacto.email} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <span className="text-xs font-bold text-uleam-gold uppercase tracking-wider block mb-1">
+                  {contacto.role === 'director' ? cp.contactos.directorRole : cp.contactos.secretaryRole}
+                </span>
+                <p className="text-lg font-bold text-uleam-blue mb-2">{contacto.name}</p>
+                <a href={`mailto:${contacto.email}`} className="text-sm text-blue-700 hover:underline break-all">
+                  {contacto.email}
+                </a>
+              </div>
+            ))}
+            <div className="bg-gradient-to-r from-uleam-blue to-blue-900 text-white rounded-2xl p-6 shadow-xl">
+              <span className="text-xs font-bold text-uleam-gold uppercase tracking-wider block mb-1">{cp.contactos.scheduleTitle}</span>
+              <p className="text-lg font-bold">{cp.contactos.scheduleHours}</p>
+              <p className="text-blue-100">{cp.contactos.scheduleDays}</p>
             </div>
           </div>
         )}
       </div>
     </section>
+  );
+}
+
+function ListaDescripcion({ title, intro, items }: { title: string; intro?: string; items: string[] }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <h3 className="text-lg font-bold text-uleam-blue mb-3">{title}</h3>
+      {intro && <p className="text-sm text-gray-600 mb-3">{intro}</p>}
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
+            <span className="mt-1.5 w-2 h-2 rounded-full bg-uleam-gold flex-shrink-0"></span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
