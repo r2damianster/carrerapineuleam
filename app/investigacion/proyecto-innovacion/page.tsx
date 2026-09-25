@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import About from '@/components/About';
 import TeamSection from '@/components/TeamSection';
+import GaleriaProyecto from '@/components/GaleriaProyecto';
 import VideoGallery from '@/components/VideoGallery';
 import SubstantiveFunctionsSection from '@/components/SubstantiveFunctionsSection';
 import PublicationsSection from '@/components/PublicationsSection';
@@ -26,6 +27,7 @@ export default function PineProjectPage() {
         <VideoGallery />
         <SubstantiveFunctionsSection />
         <PublicationsSection />
+        <GaleriaProyecto ubicacion="internacionalizacion-galeria" claveTexto="internacionalizacion" />
         <Contact />
       </main>
       <Footer />

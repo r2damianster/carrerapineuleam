@@ -276,6 +276,13 @@ const translations = {
       empty: 'No hay fotos de actividades aún',
       lightboxAlt: 'Actividad',
     },
+    projectGalleries: {
+      lightboxAlt: 'Foto del proyecto',
+      internacionalizacion: { title: 'Galería del Proyecto', subtitle: 'Momentos destacados de Innovaciones Pedagógicas e Internacionalización' },
+      desarrolloHabilidades: { title: 'Galería del Proyecto', subtitle: 'Momentos destacados del Desarrollo de Habilidades Lingüísticas' },
+      mentoring: { title: 'Galería del Proyecto', subtitle: 'Momentos destacados de Mentoring' },
+      generic: { title: 'Galería del Proyecto', subtitle: 'Momentos destacados del proyecto' },
+    },
     contact: {
       sectionTitle: 'Contáctanos',
       sectionSubtitle: '¿Tienes preguntas o quieres colaborar? ¡Contáctanos!',
@@ -872,6 +879,13 @@ const translations = {
       loading: 'Loading gallery...',
       empty: 'No activity photos yet',
       lightboxAlt: 'Activity',
+    },
+    projectGalleries: {
+      lightboxAlt: 'Project photo',
+      internacionalizacion: { title: 'Project Gallery', subtitle: 'Highlights from Pedagogical Innovations and Internationalization' },
+      desarrolloHabilidades: { title: 'Project Gallery', subtitle: 'Highlights from Language Skills Development' },
+      mentoring: { title: 'Project Gallery', subtitle: 'Highlights from Mentoring' },
+      generic: { title: 'Project Gallery', subtitle: 'Project highlights' },
     },
     contact: {
       sectionTitle: 'Contact Us',

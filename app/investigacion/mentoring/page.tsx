@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
 import TeamSection from '@/components/TeamSection';
+import GaleriaProyecto from '@/components/GaleriaProyecto';
 import ProjectInfoPlaceholder from '@/components/ProjectInfoPlaceholder';
 import Contact from '@/components/Contact';
 
@@ -22,6 +23,8 @@ export default function MentoringPage() {
         <TeamSection project="mentoring" />
 
         <ProjectInfoPlaceholder projectKey="mentoringProject" />
+
+        <GaleriaProyecto ubicacion="mentoring-galeria" claveTexto="mentoring" />
 
         <Contact projectKey="mentoringProject" />
       </main>

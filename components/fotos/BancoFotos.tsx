@@ -5,8 +5,8 @@
 // (/api/photos/banco, /accion, /ubicaciones, /api/photos y /api/photos/[id]); aquí solo se
 // limita lo que se ofrece en pantalla.
 //
-// NO usar next/image aquí: los dominios de Cloudinary no están configurados en next.config.js y
-// rompería el despliegue. Se usa <img loading="lazy"> con la miniatura que ya trae la API.
+// Se usa <img loading="lazy"> con la miniatura Cloudinary que ya trae la API (400 px), en vez de
+// next/image, para no pasar cada miniatura del admin por el optimizador de imágenes de Next.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

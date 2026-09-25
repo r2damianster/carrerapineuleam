@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
 import TeamSection from '@/components/TeamSection';
+import GaleriaProyecto from '@/components/GaleriaProyecto';
 import ProjectInfoPlaceholder from '@/components/ProjectInfoPlaceholder';
 import Contact from '@/components/Contact';
 
@@ -22,6 +23,8 @@ export default function DesarrolloHabilidadesPage() {
         <TeamSection project="desarrollo_habilidades" />
 
         <ProjectInfoPlaceholder projectKey="desarrolloProject" />
+
+        <GaleriaProyecto ubicacion="desarrollo-habilidades-galeria" claveTexto="desarrolloHabilidades" />
 
         <Contact projectKey="desarrolloProject" />
       </main>

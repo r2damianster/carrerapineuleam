@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import ProjectHero from '@/components/ProjectHero';
 import ProjectIntegrationNote from '@/components/ProjectIntegrationNote';
 import TeamSection from '@/components/TeamSection';
+import GaleriaProyecto from '@/components/GaleriaProyecto';
 import ProjectInfoPlaceholder from '@/components/ProjectInfoPlaceholder';
 import Contact from '@/components/Contact';
 
@@ -44,6 +45,7 @@ export default async function ProyectoDinamicoPage({ params }: { params: { slug:
         <ProjectHero data={proyecto} />
         <ProjectIntegrationNote data={proyecto} />
         <TeamSection project={proyecto.id} />
+        <GaleriaProyecto ubicacion={`${proyecto.id}-galeria`} />
         {proyecto.info_text_es && <ProjectInfoPlaceholder data={proyecto} />}
         <Contact leaderName={proyecto.lider_nombre} leaderEmail={proyecto.lider_email} leaderOrcid={proyecto.lider_orcid} />
       </main>
