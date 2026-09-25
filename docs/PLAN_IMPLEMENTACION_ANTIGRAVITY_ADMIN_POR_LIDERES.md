@@ -18,21 +18,24 @@
 8. **Permisos:** la **portada** es solo de administración del sitio (ver D1). **Líder y colíder** de cada proyecto (`proyecto_miembros.rol_en_proyecto IN ('lider','colider')`, `activo`) administran las fotos **de su proyecto**, nada más.
 9. **Fotos ya existentes:** las 68 referencias a imágenes locales (`/images/...`) se suben a Cloudinary y se registran en el banco; las que hoy salen en portada/Docencia/RED LEA/Club conservan su ubicación; las demás quedan "sin ubicar".
 
+10. **Cada evento/podcast/QR se asigna a proyectos al subirlo (multi-proyecto).** Quien sube o genera el enlace elige de los proyectos que **le corresponden**; solo administración del sitio (D1) puede asignar cualquiera. Detalle en **WP5b**. Confirmado por el usuario 2026-09-26.
+
 ### Decisiones abiertas — el agente NO las resuelve por su cuenta
 
 | # | Tema | Valor por defecto a implementar | Quién confirma |
 |---|---|---|---|
 | **D1** | "Administración del sitio" = quién puede publicar en portada y ver fotos internas/con menores. El usuario dijo "admin y superadmin". Hoy `/admin/photos` lo usa también Jhonny (`contenido_sitio`). | `puedeAdministrarSitio(sesion)` = `contenido_sitio` **o** `admin` **o** `superadmin` (no quita acceso a nadie). Se define en **una sola función**; si se restringe, se cambia solo ahí. | Arturo |
-| **D2** | **RED LEA no tiene ningún líder ni colíder activo** en `proyecto_miembros` (0 miembros). Hasta que se asigne, solo administración del sitio puede gestionar sus fotos. | No inventar a nadie. El agente **no** inserta líderes. Se asigna desde `/admin/members` (rol por proyecto). | Arturo |
+| **D2** | **RESUELTA (usuario, 2026-09-26): el líder de RED LEA es Jhonny Villafuerte** (`usuarios.id = 13`). Hoy `proyecto_miembros` no tiene a nadie en `redlea`. | **Dato, no código:** Arturo lo asigna en `/admin/members` (rol `lider` en RED LEA); así corre `sincronizarProyectosDePersona` y se recalculan sus módulos. El agente **no** hace `INSERT` a mano en `proyecto_miembros`. ⚠️ Efecto colateral esperado: `redlea.area = 'investigacion'` → `lib/permisosPertenencia.ts` le **deriva el módulo `investigacion`** (verá "Gestionar Investigación" y `/investigacion/*`); hoy Jhonny no tiene ningún módulo. Es consistente con ser colíder del grupo, pero avisar a Arturo. Debe hacerse **antes de la Fase B**. | Arturo |
 | **D3** | Nombre exacto del modelo de visión de Groq (cambia con el tiempo). | Variable `GROQ_VISION_MODEL`; el agente verifica en la documentación vigente de Groq y documenta el valor usado. | agente + verificación |
+| **D5** | ¿Qué proyectos puede asignar un **pasante** (estudiante-instructor) al subir un evento/podcast? No está modelado (`proyecto_miembros` es de docentes). | Por defecto: **`['vinculacion']`** (y la regla existente de podcasts que añade `internacionalizacion` automáticamente se conserva, exenta de validación por ser añadida por el servidor). Cambiar solo en `proyectosAsignables()`. | Arturo |
 | **D4** | Fotos que llegan por **enlace temporal de externos** (`/api/enlaces-difusion/[token]`) no tienen declaración fiable. | Siempre `menores='revisar'`, `visibilidad='interna'` hasta que un admin las revise. | — (regla dura) |
 
 ### Datos reales de partida (verificados)
 
 - `fotos`: 45 filas (`redlea-galeria` 13 activas + 2 inactivas, `club-ingles` 3, `portada` 3 activas + 1 inactiva, `docencia-galeria` 23 con `origen='evidencia_evento'`). Columnas actuales: `id text PK, url, cloudinary_public_id, titulo, descripcion, ubicaciones text[] NOT NULL DEFAULT '{}', "order" int, activo bool, subido_por text (email), origen text, created, updated, posicion int 0-100`. CHECK `fotos_origen_check IN ('admin','evidencia_evento')`, `fotos_posicion_check`.
 - `proyectos.id` reales: `internacionalizacion`, `vinculacion`, `docencia_innovadora`, `redlea`, `desarrollo_habilidades`, `mentoring`. (`slug` de Vinculación es `dinamicas-linguisticas`; de Internacionalización `proyecto-innovacion`.)
-- Líder/colíder activos hoy: `desarrollo_habilidades` → Germán Carrera (lider, id 19) + María Cristina Basantes (colider, id 14); `docencia_innovadora` → Verónica Chávez (lider, id 20); `mentoring` → Verónica Chávez (lider); `internacionalizacion` → Arturo Rodríguez (lider, id 1) + Jhonny Villafuerte (colider, id 13); `vinculacion` → Cintya Zambrano (lider, id 8); `redlea` → **nadie** (D2).
-- `actividades_difusion`: `project_id` y `proyecto` están **vacíos en todas las filas actuales** → los eventos históricos no traen proyecto; quedarán con `proyecto_id NULL` (sin proyecto) salvo los ya ubicados.
+- Líder/colíder activos hoy: `desarrollo_habilidades` → Germán Carrera (lider, id 19) + María Cristina Basantes (colider, id 14); `docencia_innovadora` → Verónica Chávez (lider, id 20); `mentoring` → Verónica Chávez (lider); `internacionalizacion` → Arturo Rodríguez (lider, id 1) + Jhonny Villafuerte (colider, id 13); `vinculacion` → Cintya Zambrano (lider, id 8); `redlea` → **nadie hoy; será Jhonny Villafuerte (D2)**.
+- `actividades_difusion`: `project_id` y `proyecto` están **vacíos en todas las filas actuales** → los eventos históricos no traen proyecto; quedarán con `proyectos = '{}'` (sin proyecto) salvo los ya ubicados y las filas con `categoria = 'vinculacion'` (→ `['vinculacion']`, ver WP7). El campo `proyecto` (texto) lo consumen los informes: **no tocarlo**.
 - `asistencia_espacio`: 22 filas con `foto_url`. `espacios_enseñanza.area` es siempre `vinculacion` (12 espacios).
 - Referencias de imagen: 26 en Cloudinary, 68 locales (`/images/...`; `public/images` tiene solo 16 archivos, 20 MB → hay **muchas repeticiones**: subir cada archivo local **una sola vez**).
 - Cada `route.ts` es una función serverless de Vercel (cuota ≈300 por deploy). Este plan agrega **3** rutas nuevas y extiende 3 existentes. No agregar más.
@@ -67,15 +70,16 @@
 | WP2 | Capa de datos y permisos (`lib/`) | WP1 | A |
 | WP3 | API pública con topes + regla automática | WP2 | A |
 | WP4 | API de administración (banco, acciones, ubicaciones) | WP2 | A |
-| WP5 | Declaración de menores + ingesta (asistencia, eventos, podcasts, externos) | WP1, WP2 | A |
+| WP5 | Declaración de menores + ingesta (asistencia, eventos, podcasts, externos) | WP1, WP2, WP5b | A |
+| WP5b | **Asignación de proyectos al subir** (eventos, podcasts, enlaces QR) | WP1, WP2 | A |
 | WP6 | Groq visión (respaldo de menores) | WP5 | A |
-| WP7 | Backfill: Cloudinary + registro de lo existente | WP1, WP5 | A |
+| WP7 | Backfill: Cloudinary + registro de lo existente | WP1, WP5, WP5b | A |
 | WP8 | UI: `/admin/photos` reescrito (componente compartido) | WP3, WP4 | A |
 | WP9 | Panel del líder `/portal/proyecto/...` + galerías nuevas en páginas de proyecto | WP4, WP8 | B |
 | WP10 | Notificaciones | WP4 | B |
 | WP11 | Pruebas de permisos, documentación, despliegue | todo | cada fase |
 
-**Fase A = WP0–WP8** (resuelve la sobrepoblación y los menores; desplegable sola). **Fase B = WP9–WP10** (líderes). WP11 en cada fase.
+**Fase A = WP0–WP8 (incl. WP5b)** (resuelve la sobrepoblación y los menores; desplegable sola). **Fase B = WP9–WP10** (líderes). WP11 en cada fase.
 
 ---
 
@@ -100,7 +104,7 @@ CREATE TABLE IF NOT EXISTS respaldo_fotos_20260926 AS SELECT * FROM fotos;
 
 -- 1. Columnas nuevas (aditivas: el código actual sigue funcionando)
 ALTER TABLE fotos
-  ADD COLUMN IF NOT EXISTS proyecto_id     text    REFERENCES proyectos(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS proyectos       text[]  NOT NULL DEFAULT '{}',   -- ids de proyectos a los que pertenece la foto (multi-proyecto; sin FK: se valida en la app)
   ADD COLUMN IF NOT EXISTS fuente_id       text,
   ADD COLUMN IF NOT EXISTS fecha_evento    date,
   ADD COLUMN IF NOT EXISTS categoria       text,
@@ -123,7 +127,7 @@ ALTER TABLE fotos VALIDATE CONSTRAINT fotos_publicable_sin_menores;  -- falla si
 -- 3. Idempotencia de la ingesta (una foto de una fuente no se duplica)
 CREATE UNIQUE INDEX IF NOT EXISTS fotos_fuente_unica ON fotos (origen, fuente_id, url) WHERE fuente_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS fotos_ubicaciones_gin ON fotos USING gin (ubicaciones);
-CREATE INDEX IF NOT EXISTS fotos_proyecto_idx    ON fotos (proyecto_id);
+CREATE INDEX IF NOT EXISTS fotos_proyectos_gin   ON fotos USING gin (proyectos);
 CREATE INDEX IF NOT EXISTS fotos_origen_idx      ON fotos (origen, created DESC);
 
 -- 4. Catálogo de ubicaciones con tope
@@ -154,8 +158,10 @@ Seed (`INSERT ... ON CONFLICT (slug) DO NOTHING`):
 | `desarrollo-habilidades-galeria` | Galería de Desarrollo de Habilidades | `desarrollo_habilidades` | 8 | false | — | 0 |
 | `mentoring-galeria` | Galería de Mentoring | `mentoring` | 8 | false | — | 0 |
 
-Backfill de `proyecto_id` en las 45 filas existentes (después del seed):
-`UPDATE fotos f SET proyecto_id = u.proyecto_id FROM fotos_ubicaciones u WHERE f.proyecto_id IS NULL AND u.slug = f.ubicaciones[1] AND u.proyecto_id IS NOT NULL;` (las de `portada` quedan `NULL`).
+Backfill de `proyectos` en las 45 filas existentes (después del seed):
+`UPDATE fotos f SET proyectos = ARRAY[u.proyecto_id] FROM fotos_ubicaciones u WHERE cardinality(f.proyectos) = 0 AND u.slug = f.ubicaciones[1] AND u.proyecto_id IS NOT NULL;` (las de `portada` quedan `'{}'`).
+
+Más columnas de WP5b (misma migración, `IF NOT EXISTS`): `ALTER TABLE actividades_difusion ADD COLUMN IF NOT EXISTS proyectos text[] NOT NULL DEFAULT '{}';` y `ALTER TABLE enlaces_difusion ADD COLUMN IF NOT EXISTS proyectos text[] NOT NULL DEFAULT '{}';`. **No** modificar `actividades_difusion.project_id` ni `proyecto`.
 
 **Verificación obligatoria (SELECT, pegar el resultado en el PR):** columnas nuevas presentes; 7 filas en `fotos_ubicaciones`; `SELECT count(*) FROM fotos` = 45 (sin pérdida); `SELECT count(*) FROM fotos WHERE cardinality(ubicaciones)>0 AND (menores<>'no' OR visibilidad<>'publicable')` = 0.
 
@@ -237,11 +243,11 @@ Todas: `getAppSessionFromCookies()` → 401 si no hay; 403 si `!esDocente(sesion
 
 ### 4.1 `GET /api/photos/banco` — `app/api/photos/banco/route.ts` (nueva)
 
-Listado con filtros y paginación. Parámetros (todos opcionales; **validar y acotar**, nunca interpolar): `q` (título/descripcion, `ILIKE` parametrizado), `origen` (uno de los 6 valores), `ubicacion` (slug o `sin_ubicar`), `proyecto` (id o `sin_proyecto`), `desde`/`hasta` (fecha sobre `COALESCE(fecha_evento, created::date)`), `menores` (`no|si|revisar`), `estado` (`publicada|sin_ubicar|oculta`), `page` (≥1), `pageSize` (1–60, por defecto 24). Respuesta: `{ items, total, page, pageSize }`. Cada item incluye `miniatura` (`miniaturaCloudinary`).
+Listado con filtros y paginación. Parámetros (todos opcionales; **validar y acotar**, nunca interpolar): `q` (título/descripcion, `ILIKE` parametrizado), `origen` (uno de los 6 valores), `ubicacion` (slug o `sin_ubicar`), `proyecto` (id o `sin_proyecto` = `cardinality(proyectos)=0`), `desde`/`hasta` (fecha sobre `COALESCE(fecha_evento, created::date)`), `menores` (`no|si|revisar`), `estado` (`publicada|sin_ubicar|oculta`), `page` (≥1), `pageSize` (1–60, por defecto 24). Respuesta: `{ items, total, page, pageSize }`. Cada item incluye `miniatura` (`miniaturaCloudinary`).
 
 **Alcance por rol (crítico para privacidad):**
 - `puedeAdministrarSitio` → ve todo, incluido `visibilidad='interna'` y `menores≠'no'` (bandeja de revisión).
-- Líder/colíder → agregar `AND proyecto_id = ANY(${idsDeMisProyectos}) AND visibilidad='publicable' AND menores='no' AND <fragmentoFuenteAprobada>`. **Nunca** ve fotos internas ni con menores ni de otros proyectos ni con `proyecto_id NULL`.
+- Líder/colíder → agregar `AND proyectos && ${idsDeMisProyectos}::text[] AND visibilidad='publicable' AND menores='no' AND <fragmentoFuenteAprobada>` (`&&` = solapamiento de arreglos). **Nunca** ve fotos internas ni con menores ni de proyectos ajenos ni con `proyectos` vacío.
 - Docente sin proyectos → `{ items: [], total: 0 }` (no 403).
 - Si `proyecto` pedido no está en sus proyectos → `[]` (no revelar existencia).
 
@@ -265,8 +271,8 @@ Acciones en lote. Cuerpo: `{ ids: string[] (1–100, únicos), accion, ubicacion
 1. Cargar `fotos_ubicaciones` de las `ubicaciones` pedidas; si alguna no existe o `!activo` → 400.
 2. `publicar`: **rechazar (409)** si la foto tiene `menores≠'no'` o `visibilidad≠'publicable'` (mensaje: "Foto con menores o interna: no se puede publicar"). Rechazar si su fuente no está aprobada (`<gate>` falso).
 3. Ubicación `solo_admin` (portada) → solo `puedeAdministrarSitio`; si no → 403 **para todo el lote** (falla atómica, ver 5).
-4. Ubicación con `proyecto_id = P` → `puedeAdministrarSitio` **o** `puedeGestionarProyecto(P)`.
-5. El líder solo puede operar fotos con `proyecto_id ∈ sus proyectos`. Publicar una foto de su proyecto A en una ubicación del proyecto B → 403. Un líder no puede tocar fotos con `proyecto_id NULL`.
+4. Ubicación con `proyecto_id = P` (columna de `fotos_ubicaciones`) → `puedeAdministrarSitio` **o** (`puedeGestionarProyecto(P)` **y** `P ∈ foto.proyectos`).
+5. El líder solo puede operar fotos cuyo arreglo `proyectos` solape con los suyos. Una foto etiquetada `[A,B]` la puede publicar el líder de A en ubicaciones de A (no en las de B salvo que también gestione B). Publicar en una ubicación de un proyecto que no gestiona → 403. Un líder no puede tocar fotos con `proyectos` vacío.
 6. `quitar` por líder: solo quita ubicaciones que él gestiona; las ajenas de la misma foto se conservan.
 
 **Atomicidad:** validar **todas** las fotos y ubicaciones primero; si una falla, no se modifica ninguna (responder `{ error, detalle: [{id, motivo}] }`). Ejecutar los `UPDATE` dentro de una transacción (`Pool` + `BEGIN/COMMIT`, patrón de `app/api/espacios/asistencia/route.ts`) o en una sola sentencia `UPDATE ... WHERE id = ANY(...)`. Nunca un bucle de updates sin transacción.
@@ -280,8 +286,8 @@ Acciones en lote. Cuerpo: `{ ids: string[] (1–100, únicos), accion, ubicacion
 
 ### 4.4 Extender `POST /api/photos` (crear) y `PATCH /api/photos/[id]`
 
-- `POST` hoy exige `contenido_sitio`. Nuevo: `puedeAdministrarSitio` **o** líder con `proyecto_id` (cuerpo) ∈ sus proyectos. El líder **debe** enviar `proyecto_id` y solo `ubicaciones` de ese proyecto; el servidor **ignora** cualquier `origen`/`menores`/`visibilidad` que envíe el cliente: fuerza `origen='lider'` (o `'admin'` si es admin), `menores='no'`, `visibilidad='publicable'`, `subido_por` = email de sesión, `subido_por_id = Number(sesion.id)`. Si el cliente declara `hay_menores = true` → guardar `menores='si'`, `visibilidad='interna'`, `ubicaciones=[]`, `activo=false`. Pasar la foto por Groq (WP6) antes de aceptarla como `no`.
-- `PATCH /api/photos/[id]`: conserva el atajo de un solo campo `activo`; agrega edición de `titulo`, `descripcion`, `posicion` (0–100), `order`, y —solo admin— `proyecto_id`. Autorización por foto igual que 4.2.
+- `POST` hoy exige `contenido_sitio`. Nuevo: `puedeAdministrarSitio` **o** líder con `proyectos` (cuerpo, arreglo) ⊆ sus proyectos. El líder **debe** enviar `proyectos` (≥1) y solo `ubicaciones` de esos proyectos; el servidor **ignora** cualquier `origen`/`menores`/`visibilidad` que envíe el cliente: fuerza `origen='lider'` (o `'admin'` si es admin), `menores='no'`, `visibilidad='publicable'`, `subido_por` = email de sesión, `subido_por_id = Number(sesion.id)`. Si el cliente declara `hay_menores = true` → guardar `menores='si'`, `visibilidad='interna'`, `ubicaciones=[]`, `activo=false`. Pasar la foto por Groq (WP6) antes de aceptarla como `no`.
+- `PATCH /api/photos/[id]`: conserva el atajo de un solo campo `activo`; agrega edición de `titulo`, `descripcion`, `posicion` (0–100), `order`, y —solo admin— `proyectos` (reasignar). Autorización por foto igual que 4.2.
 - `DELETE /api/photos/[id]`: **sigue solo `puedeAdministrarSitio`** (borra en Cloudinary). Los líderes usan `descartar`.
 
 ---
@@ -293,7 +299,7 @@ Acciones en lote. Cuerpo: `{ ids: string[] (1–100, únicos), accion, ubicacion
 ### 5.1 Asistencia — `app/api/espacios/asistencia/route.ts`
 
 - Cuerpo nuevo: `hay_menores: boolean` (si falta → `false`). El formulario (`app/vinculacion/asistencia/page.tsx`) agrega la casilla **"¿Aparecen menores de edad en la foto?"** (No por defecto, con texto de ayuda: "Si marcas Sí, la foto solo la verá el supervisor y no se publicará").
-- El handler ya usa transacción (`INSERT INTO asistencia_espacio ... foto_url, foto_public_id`). Obtener el `id` con `RETURNING id` y llamar a `registrarFotoEnBanco` **después del `COMMIT`** con: `origen='asistencia'`, `fuente_id = String(idAsistencia)`, `url = foto_url`, `cloudinary_public_id = foto_public_id`, `subido_por_id = Number(usuario.id)`, `fecha_evento = fecha`, `proyecto_id = 'vinculacion'` (todos los espacios son `area='vinculacion'`).
+- El handler ya usa transacción (`INSERT INTO asistencia_espacio ... foto_url, foto_public_id`). Obtener el `id` con `RETURNING id` y llamar a `registrarFotoEnBanco` **después del `COMMIT`** con: `origen='asistencia'`, `fuente_id = String(idAsistencia)`, `url = foto_url`, `cloudinary_public_id = foto_public_id`, `subido_por_id = Number(usuario.id)`, `fecha_evento = fecha`, `proyectos = ARRAY['vinculacion']` (todos los espacios son `area='vinculacion'`; en asistencia el proyecto es fijo, no se elige).
 - No se altera el flujo de aprobación de asistencia. El `<gate>` (WP2) impide publicar hasta que el supervisor apruebe.
 - **No** agregar columna `hay_menores` a `asistencia_espacio` (la verdad vive en `fotos.menores`).
 
@@ -305,7 +311,7 @@ Acciones en lote. Cuerpo: `{ ids: string[] (1–100, únicos), accion, ubicacion
   - `tipo = 'podcast'` → `origen='podcast'`; **conservar** la línea `const photos = evidencia_url && tipo !== 'podcast' ? [...] : []` (NewsSection depende de ella; no tocar).
   - otros tipos → `origen='evento'`.
   - `fuente_id = String(id)`, `fecha_evento = fecha`, `categoria = categoria`, `subido_por_id = registrador_id`.
-  - `proyecto_id`: primer valor de `video_proyecto_id`/`proyecto` que **exista** en `proyectos.id` (validar con `SELECT id FROM proyectos WHERE id = ANY(...)`); si no hay → `NULL`. Leer el cuerpo real del handler antes: hoy `project_id` y `proyecto` están vacíos en todas las filas históricas.
+  - `proyectos`: **copiar los `proyectos` ya validados de la actividad** (WP5b). No recalcular ni adivinar.
 
 ### 5.3 Enlaces temporales de externos — `app/api/enlaces-difusion/[token]/route.ts` (POST)
 
@@ -313,6 +319,48 @@ Misma ingesta que 5.2 pero **siempre** `menores='revisar'`, `visibilidad='intern
 
 ### 5.4 Subida directa del líder/admin
 Cubierta en 4.4 (`POST /api/photos`).
+
+---
+
+## WP5b — Asignación de proyectos al subir (eventos, podcasts, enlaces QR)
+
+**Regla del usuario:** al subir un evento o podcast **se debe escoger a qué proyecto(s) pertenece**; los proyectos elegibles dependen de **quién lo sube o quién genera el QR**; solo administración del sitio (D1) puede asignar cualquier proyecto.
+
+### 5b.1 Quién puede asignar qué — `proyectosAsignables(sql, usuario)` en `lib/permisosProyecto.ts`
+
+| Quién | Proyectos que puede asignar |
+|---|---|
+| Administración del sitio (`puedeAdministrarSitio`) | **Todos** los `proyectos.activo = true` |
+| Docente (`rol` `profesor`/`admin`) | Solo los de `proyecto_miembros` donde **está activo, con cualquier rol** (líder, colíder, supervisor, vinculación, participante). Quien no es miembro de ninguno → lista vacía |
+| Estudiante-instructor (pasante) | D5: por defecto `['vinculacion']` si es instructor de algún espacio (`espacio_instructores`) |
+| Secretaria / beneficiario | Ninguno (403 en las APIs) |
+| **Externo con enlace temporal** | **No elige**: usa los `proyectos` fijados por quien generó el enlace |
+
+Devuelve `{ id, nombre_oficial }[]`. Misma disciplina que WP2: consulta en Neon en cada petición, `Number(usuario.id)`, `sql` inyectado.
+
+### 5b.2 Migración (ya incluida en WP1)
+`actividades_difusion.proyectos text[]` y `enlaces_difusion.proyectos text[]` (NOT NULL DEFAULT `'{}'`). **No** tocar `project_id` ni `proyecto` (los informes leen `proyecto`).
+
+### 5b.3 API
+- **`GET /api/proyectos?asignables=1`** — se agrega al `route.ts` existente (**no crear ruta nueva**). Exige sesión; devuelve `proyectosAsignables`. Leer el `GET` actual completo: hoy sirve el nav público y `?all=true`; el nuevo parámetro es una rama **antes** de los demás y **no altera** su comportamiento público.
+- **Validación en el servidor (obligatoria; el cliente no es confiable)** — una sola función `validarProyectosAsignables(sql, usuario, proyectosPedidos)`: ≥1 proyecto, sin repetidos, todos existen y están activos, y `⊆ proyectosAsignables(usuario)`. Fallo → **400** (vacío/inexistente) o **403** ("No puedes asignar el proyecto X"). Se aplica en:
+  - `POST /api/difusion` → guarda en `actividades_difusion.proyectos` (columna nueva) **y** sigue escribiendo `proyecto`/`categoria` como hoy.
+  - `POST /api/videos` y `lib/registrarVideoPropuesto.ts` → los proyectos que **elige el usuario** se validan; la regla vigente (Sesión 38) que **añade `internacionalizacion` automáticamente** a `videos.proyecto_id[]` la agrega el servidor y **no** se valida contra los asignables.
+  - `POST /api/enlaces-difusion` (generar QR) → requiere `proyectos` (≥1, validados contra los asignables **del generador**); se guardan en `enlaces_difusion.proyectos`.
+  - `POST /api/enlaces-difusion/[token]` (público, externo) → **ignora cualquier `proyectos` del cuerpo** y usa los del enlace; los copia a `actividades_difusion.proyectos`.
+  - `POST /api/espacios/asistencia` → no elige (fijo `['vinculacion']`).
+- Administración del sitio pasa la validación con cualquier proyecto activo (no hay atajo distinto: `proyectosAsignables` ya devuelve todos).
+
+### 5b.4 UI
+- Componente nuevo **`components/SelectorProyectosEvento.tsx`**: checklist multi-selección alimentada por `GET /api/proyectos?asignables=1`; obligatorio ≥1; si solo hay uno, aparece marcado y bloqueado con la etiqueta; si hay cero, mensaje "No perteneces a ningún proyecto: pide a un administrador que te asigne" y **botón de envío deshabilitado**. Español fijo (portal).
+- Usarlo en: `/vinculacion/difusion`, `/gestion-carrera`, `components/EnlaceDifusionModal.tsx` (al generar el QR) y `/portal/subir-video`. En los formularios de **podcast** que ya usan `SelectorAreaProyectoPodcast`, convivir: el selector de área/proyecto existente define el proyecto principal del podcast; este componente **no lo reemplaza**, lo complementa solo donde el formulario no tenía selección (eventos). Leer ambos formularios completos antes de tocarlos y **no duplicar claves en el `useState`**.
+- `/vinculacion/publico-difusion/[token]`: **sin selector** (los proyectos ya vienen del enlace); mostrar en modo lectura "Este registro se asociará a: …".
+
+### 5b.5 Efecto en fotos
+La ingesta (WP5.2/5.3) copia `actividades_difusion.proyectos` a `fotos.proyectos`. Es lo que permite que el líder vea en su banco las fotos de eventos de su proyecto.
+
+### 5b.6 Datos históricos
+`actividades_difusion.proyectos = '{}'` salvo las filas con `categoria = 'vinculacion'` (→ `['vinculacion']`). Las demás quedan "sin proyecto": solo administración las ve y las asigna desde el modal de edición (WP8).
 
 ---
 
@@ -348,8 +396,8 @@ Archivo: `scripts/backfill-fotos-banco.js` (Node, `--env-file=.env.local`). **Mo
 3. **Subir a Cloudinary cada archivo local UNA sola vez** (mapa `rutaLocal → {secure_url, public_id}` en memoria; carpeta `pine_project_uploads/legado`; leer de `public/` con `path.join(process.cwd(), 'public', ruta)`). Si el archivo **no existe** o pesa > 10 MB → registrar en el reporte y **continuar** (jamás abortar). Pausa breve entre subidas. **No borrar** los archivos de `public/images`.
 4. **Actualizar** `fotos.url` y `cloudinary_public_id` de las filas locales existentes (conservan `ubicaciones`, `order`, `activo`, `posicion`).
 5. **Insertar en `fotos`** (con `registrarFotoEnBanco`/SQL equivalente e `ON CONFLICT DO NOTHING`):
-   - (b)/(c) → `origen='evento'` (o `'podcast'` si `tipo='podcast'`), `ubicaciones='{}'`, `activo=true`, `menores='no'`, `proyecto_id` solo si el valor existe en `proyectos.id` (hoy **todos NULL**), `fuente_id = actividades_difusion.id::text`, `fecha_evento = fecha`.
-   - (d) asistencia → `origen='asistencia'`, `fuente_id = asistencia_espacio.id::text`, `menores='revisar'`, `visibilidad='interna'`, `activo=false`, `ubicaciones='{}'`, `proyecto_id='vinculacion'`, `subido_por_id = registrado_por`. **Decisión del usuario:** quedan en la bandeja de revisión.
+   - (b)/(c) → `origen='evento'` (o `'podcast'` si `tipo='podcast'`), `ubicaciones='{}'`, `activo=true`, `menores='no'`, `proyectos = '{}'` salvo `categoria = 'vinculacion'` → `ARRAY['vinculacion']` (y en `actividades_difusion.proyectos` lo mismo), `fuente_id = actividades_difusion.id::text`, `fecha_evento = fecha`.
+   - (d) asistencia → `origen='asistencia'`, `fuente_id = asistencia_espacio.id::text`, `menores='revisar'`, `visibilidad='interna'`, `activo=false`, `ubicaciones='{}'`, `proyectos=ARRAY['vinculacion']`, `subido_por_id = registrado_por`. **Decisión del usuario:** quedan en la bandeja de revisión.
 6. **Las ubicaciones ya publicadas se conservan** (no reasignar). Lo que hoy no aparece en ninguna página queda "sin ubicar".
 7. **Reporte final** (imprimir y pegar en el PR): filas insertadas por origen; archivos locales subidos; archivos faltantes; duplicados omitidos; `SELECT count(*)` por `origen` y por `menores`. Verificar que `count(*) FROM fotos WHERE cardinality(ubicaciones)>0` **no cambió** respecto a antes del backfill.
 8. Los `actividades_difusion.photos[]` **no se tocan** (`NewsSection`/`lib/db.ts:getNewsletters()` siguen leyéndolos).
@@ -362,12 +410,12 @@ Componente único: **`components/fotos/BancoFotos.tsx`** (`'use client'`), props
 
 Contenido:
 1. **Barra de cupos** (de `GET /api/photos/ubicaciones`): una ficha por ubicación con `publicadas / max_fotos` (rojo si excede; texto "El sitio muestra solo las {max} primeras").
-2. **Filtros** (mapean 1:1 a `GET /api/photos/banco`): búsqueda, origen, ubicación (incluye "Sin ubicar"), proyecto, rango de fechas, menores, estado. Estado en la URL (`useSearchParams`) para poder compartir/recargar. Paginación (24 por página).
+2. **Filtros** (mapean 1:1 a `GET /api/photos/banco`): búsqueda, origen, ubicación (incluye "Sin ubicar"), proyecto (multi-proyecto), rango de fechas, menores, estado. Estado en la URL (`useSearchParams`) para poder compartir/recargar. Paginación (24 por página).
 3. **Cuadrícula** de miniaturas (`<img loading="lazy">` con `miniaturaCloudinary`, **no** `next/image` con dominios nuevos sin configurar `next.config.js`). Cada tarjeta: insignias de origen, proyecto, ubicaciones, `menores` (rojo si `si`/`revisar`), "fuente sin aprobar" (solo admin), casilla de selección.
 4. **Barra de acciones en lote** (visible con ≥1 seleccionada): **Publicar en…** (checklist de ubicaciones **filtrada a las que el usuario puede usar**; las `solo_admin` no aparecen para líderes), **Quitar de…**, **Ocultar/Mostrar**, **Descartar**. Tras publicar, mostrar los `avisos` de tope. Confirmación explícita antes de `descartar`.
 5. **Fotos con menores** (`menores≠'no'`): la casilla "Publicar en…" **deshabilitada** con texto "Con menores: no publicable". Solo admin ve **Marcar como revisada** (sin menores) y **Marcar como interna**.
-6. **Edición de una foto** (modal): título, descripción, `posicion` (slider), `order` (número: orden dentro de la ubicación), proyecto (solo admin). Explicar en la UI que el sitio muestra primero las de menor `order`.
-7. **Subida directa:** admin sin `proyecto_id` (queda sin proyecto); líder con su proyecto fijo. Casilla "¿Aparecen menores de edad?" obligatoria en el formulario de subida.
+6. **Edición de una foto** (modal): título, descripción, `posicion` (slider), `order` (número: orden dentro de la ubicación), proyectos (selector múltiple, solo admin). Explicar en la UI que el sitio muestra primero las de menor `order`.
+7. **Subida directa:** admin elige uno o más proyectos (o ninguno: queda sin proyecto); líder con sus proyectos (checklist limitado a los suyos, mínimo 1). Casilla "¿Aparecen menores de edad?" obligatoria en el formulario de subida.
 8. Estados: cargando, vacío ("No hay fotos con estos filtros"), error con botón reintentar. Sin `alert()` bloqueantes para éxitos.
 9. `app/admin/photos/page.tsx` queda como delgado wrapper: `<BancoFotos modo="admin" />`. Mantener el gate existente (`contenido_sitio` por `/admin/*` en middleware).
 
@@ -403,7 +451,7 @@ En `POST /api/proyectos` (crear proyecto `plantilla_simple`), insertar en la mis
 
 Leer `lib/notificaciones.ts` y `NOTIFICACIONES.md` completos y seguir su checklist. Reglas **derivadas** (conteos en vivo, sin tabla nueva), agregadas al final de `REGLAS_NOTIFICACION`:
 1. `fotos-menores-por-revisar` — audiencia: `puedeAdministrarSitio`. Cuenta `fotos WHERE menores='revisar'`. `href: '/admin/photos?menores=revisar'`. Severidad `pendiente`.
-2. `fotos-sin-ubicar-proyecto` — audiencia: líder/colíder por proyecto. Cuenta fotos del proyecto `publicable`, `menores='no'`, `cardinality(ubicaciones)=0`, fuente aprobada, creadas en los últimos 14 días. `href: '/portal/proyecto/<id>/fotos?estado=sin_ubicar'`. Severidad `info`.
+2. `fotos-sin-ubicar-proyecto` — audiencia: líder/colíder por proyecto. Cuenta fotos con `proyectos && <ids del proyecto>`, `publicable`, `menores='no'`, `cardinality(ubicaciones)=0`, fuente aprobada, creadas en los últimos 14 días. `href: '/portal/proyecto/<id>/fotos?estado=sin_ubicar'`. Severidad `info`.
 Cada `aplica()` debe ser **la misma condición** que protege la pantalla destino. Agregar las filas correspondientes a `NOTIFICACIONES.md`.
 
 ---
@@ -424,9 +472,16 @@ Usar `scripts/_lib-sign-session.mjs` (firma cookies sin contraseña; ver `scratc
 | Colíder Cristina (id 14) | publicar foto de `desarrollo_habilidades` en `desarrollo-habilidades-galeria` | 200 |
 | Participante de un proyecto (no líder) | publicar | 403 |
 | Líder | publicar foto con `menores='revisar'` | 409 |
-| Líder | `GET /api/photos/banco` | nunca devuelve filas `interna`, `menores≠no`, `proyecto_id NULL` ni de otro proyecto |
+| Líder | `GET /api/photos/banco` | nunca devuelve filas `interna`, `menores≠no`, `proyectos` vacío ni de otro proyecto |
 | Admin de sitio | publicar en `portada`; `marcar_revisada` | 200 |
 | Admin de sitio | lote de 3 ids con 1 inválido | 4xx y **ninguna** foto modificada (atomicidad) |
+| Docente Cristina (miembro de `desarrollo_habilidades` e `internacionalizacion`) | `POST /api/difusion` con `proyectos: ['redlea']` | 403 |
+| Docente Cristina | `POST /api/difusion` con `proyectos: ['desarrollo_habilidades']` | 200 |
+| Docente sin proyectos | `POST /api/difusion` | 400/403 y `GET /api/proyectos?asignables=1` = `[]` |
+| Admin de sitio | `POST /api/difusion` con `proyectos: ['redlea','mentoring']` | 200 |
+| Docente | generar QR con proyecto ajeno | 403; con proyecto propio → 200 |
+| Externo (sin sesión) | `POST /api/enlaces-difusion/[token]` enviando `proyectos: ['redlea']` distinto al del enlace | 200 pero se guarda el proyecto **del enlace**, no el del cuerpo |
+| Pasante | `POST /api/difusion` con `proyectos: ['mentoring']` | 403; con `['vinculacion']` → 200 |
 | Público (sin sesión) | `GET /api/photos?ubicacion=docencia-galeria` con 12 fotos publicadas | ≤ 8 filas (6 manuales + 2 podcast) |
 | Público | `GET /api/photos?ubicacion=inexistente` | `[]` |
 | SQL directo | `UPDATE fotos SET ubicaciones='{portada}' WHERE menores='revisar'` | error `23514` (CHECK) |
@@ -451,7 +506,7 @@ La meta es que cada líder administre **todos** los datos de su proyecto. Esta e
 |---|---|
 | Texto del proyecto (hero, integración, info, contacto) | Columnas `proyectos.hero_*`, `integration_text_*`, `info_text_*` existen; hoy `PATCH /api/proyectos/[slug]` es solo `contenido_sitio`. Abrirlo al líder **solo de su proyecto** y solo a esos campos. Proyectos `personalizada` tienen secciones con código propio: el líder solo edita lo que la BD controla. |
 | Equipo del proyecto | `proyecto_miembros` + `/admin/members`. Un líder gestiona miembros **de su proyecto** (no roles de otros proyectos ni `modulos_acceso`). Cuidado: `lib/permisosPertenencia.ts` deriva módulos del rol en el proyecto → un líder no debe poder ascender a otro a líder de Vinculación. |
-| Noticias, actividades y podcasts de su proyecto | `actividades_difusion.project_id`/`proyecto` y `videos.proyecto_id[]` (hoy casi siempre vacíos): exigir proyecto al registrar; el líder aprueba/oculta lo de su proyecto; `contenido_sitio` sigue siendo la moderación global. |
+| Noticias, actividades y podcasts de su proyecto | Tras WP5b ya existe `actividades_difusion.proyectos[]` (obligatorio al registrar) y `videos.proyecto_id[]`: el líder aprueba/oculta lo de su proyecto; `contenido_sitio` sigue siendo la moderación global. |
 | Publicaciones por proyecto | `publications` no tiene columna de proyecto: requiere migración. |
 | Tope y galerías editables por líder | Hoy solo admin edita `fotos_ubicaciones`. |
 
@@ -465,7 +520,7 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 |---|---|
 | Foto con menores publicada por error | Tres barreras: (1) declaración del estudiante, (2) Groq como respaldo, (3) `CHECK fotos_publicable_sin_menores` en BD + filtro en `GET` público + validación en la API. |
 | Groq falla o es lento | `analizarMenoresEnFoto` devuelve `null`, nunca bloquea el registro; queda con la declaración del estudiante. |
-| Líder ve/publica fotos ajenas | Alcance por `proyecto_id` en cada consulta y en cada acción; pruebas 11.1; permisos consultados en Neon, no en la cookie. |
+| Líder ve/publica fotos ajenas | Alcance por `proyectos` (solape de arreglos) en cada consulta y en cada acción; pruebas 11.1; permisos consultados en Neon, no en la cookie. |
 | Docencia baja de 23 a 8 fotos al desplegar | Avisado (WP1); el admin cura el `order` inmediatamente. Tope suave: nada se borra. |
 | Backfill duplica o pierde fotos | Simulación por defecto, `ON CONFLICT DO NOTHING`, respaldo `respaldo_fotos_20260926`, reporte con conteos. |
 | Exceso de funciones Vercel | Solo 3 rutas nuevas (`banco`, `accion`, `ubicaciones`); el resto son páginas y extensiones. |
@@ -484,6 +539,8 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 - [ ] Matriz 11.1 completa en verde (incluye "Ver como").
 - [ ] Backfill: reporte pegado; conteo de fotos ubicadas sin cambios.
 - [ ] Fotos de asistencia previas en `menores='revisar'`/`interna` (22).
+- [ ] WP5b: validación de proyectos asignables en `difusion`, `videos`, `enlaces-difusion` (+ público) y selector en los 4 formularios.
+- [ ] D2 hecho por Arturo (Jhonny líder de RED LEA) antes de la Fase B; D5 confirmada.
 - [ ] Notificaciones (WP10) + `NOTIFICACIONES.md`.
 - [ ] Documentación (§11.3).
 - [ ] Deploy en `READY` y revisión visual en producción.
