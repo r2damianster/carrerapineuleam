@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DataTable from '@/components/admin/DataTable';
 import type { Member } from '@/types';
 import { GRADOS_TERCER_NIVEL, GRADOS_CUARTO_NIVEL } from '@/lib/gradosCatalogo';
+import { ROLES_PROYECTO, ETIQUETA_ROL_PROYECTO } from '@/lib/equipoProyecto';
 
 export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -27,6 +28,7 @@ export default function AdminMembersPage() {
     is_leader: false,
     order: 0,
     projects: [] as string[],
+    roles_proyecto: {} as Record<string, string>,
     genero: '',
     fecha_nacimiento: '',
     grado: '',
@@ -84,7 +86,7 @@ export default function AdminMembersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], genero: '', fecha_nacimiento: '', grado: '', posgrado: '', titulo_especifico: '' });
+    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], roles_proyecto: {}, genero: '', fecha_nacimiento: '', grado: '', posgrado: '', titulo_especifico: '' });
     setEditingMember(null);
     setShowForm(false);
   };
@@ -99,6 +101,7 @@ export default function AdminMembersPage() {
       is_leader: member.is_leader,
       order: member.order,
       projects: member.projects || [],
+      roles_proyecto: member.roles_proyecto || {},
       genero: member.genero || '',
       fecha_nacimiento: member.fecha_nacimiento || '',
       grado: member.grado || '',
@@ -287,9 +290,13 @@ export default function AdminMembersPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
+                  disabled={!!editingMember?.usuario_id}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none disabled:bg-gray-100 disabled:text-gray-500"
                   placeholder="Sin título (ej: Arturo Rodríguez, no 'Dr. Arturo Rodríguez')"
                 />
+                {editingMember?.usuario_id ? (
+                  <p className="text-xs text-gray-500 mt-1">El nombre viene de la persona (usuarios) y se corrige allí; aquí solo se lee.</p>
+                ) : null}
               </div>
 
               <div>
@@ -397,20 +404,32 @@ export default function AdminMembersPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Proyectos (en qué páginas aparece este miembro)</label>
                 <div className="space-y-2">
                   {PROJECT_OPTIONS.map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.projects.includes(opt.value)}
-                        onChange={(e) => {
-                          const projects = e.target.checked
-                            ? [...formData.projects, opt.value]
-                            : formData.projects.filter((p) => p !== opt.value);
-                          setFormData({ ...formData, projects });
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-gray-700">{opt.label}</span>
-                    </label>
+                    <div key={opt.value} className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.projects.includes(opt.value)}
+                          onChange={(e) => {
+                            const projects = e.target.checked
+                              ? [...formData.projects, opt.value]
+                              : formData.projects.filter((p) => p !== opt.value);
+                            setFormData({ ...formData, projects });
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-700">{opt.label}</span>
+                      </label>
+                      {formData.projects.includes(opt.value) && (
+                        <select
+                          value={formData.roles_proyecto[opt.value] || 'participante'}
+                          onChange={(e) => setFormData({ ...formData, roles_proyecto: { ...formData.roles_proyecto, [opt.value]: e.target.value } })}
+                          className="ml-2 px-2 py-1 border border-gray-300 rounded text-xs"
+                          aria-label={`Rol en ${opt.label}`}
+                        >
+                          {ROLES_PROYECTO.map((rol) => <option key={rol} value={rol}>{ETIQUETA_ROL_PROYECTO[rol]}</option>)}
+                        </select>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

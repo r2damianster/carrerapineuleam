@@ -38,7 +38,7 @@ export async function GET() {
 
     const [member] = await sql`
       SELECT pending_photo, pending_grado, pending_posgrado, pending_orcid, pending_titulo_especifico
-      FROM members WHERE email = ${usuario.email}
+      FROM members WHERE usuario_id = ${Number(usuario.id)} OR email = ${usuario.email} LIMIT 1
     `;
     const tienePendientesEnWeb = !!member && !!(
       member.pending_photo || member.pending_grado || member.pending_posgrado ||

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { Member } from '@/types';
 import { useLanguage } from '@/lib/i18n';
 import { GRADO_ABREVIADO, POSGRADO_ABREVIADO } from '@/lib/gradosCatalogo';
+import { CLAVE_BADGE_ROL_PROYECTO } from '@/lib/equipoProyecto';
 
 interface TeamSectionProps {
   project?: string; // filtra el equipo a mostrar por proyecto (ver types/index.ts:Member.projects)
@@ -97,13 +98,9 @@ export default function TeamSection({ project }: TeamSectionProps) {
   );
 }
 
-// Etiqueta de rol distinta a la global cuando un miembro aparece en más de un proyecto con
-// un rol diferente ahí — ej. Arturo es Líder en Internacionalización pero solo Supervisor en Vinculación.
-// Los valores son keys de t.team.badges, resueltas en TeamCard con el idioma activo.
-const ROLE_BADGE_OVERRIDES: Record<string, Record<string, string>> = {
-  vinculacion: { member_1: 'supervisor' },
-  desarrollo_habilidades: { member_3: 'coleader' },
-};
+// El rol de cada persona en ESTE proyecto (líder, colíder, supervisor…) viene de proyecto_miembros
+// (member.rol_en_proyecto, ver lib/equipoProyecto.ts). Sin proyecto (listado general) se usa el
+// respaldo por is_leader. Las claves resuelven t.team.badges con el idioma activo.
 
 // Abreviaturas para componer el nombre mostrado en la tarjeta pública —
 // `member.name` guarda solo el nombre, grado/posgrado son campos aparte
@@ -115,9 +112,9 @@ function displayNameConTitulo(member: Member): string {
 }
 
 function TeamCard({ member, project, badges }: { member: Member; project?: string; badges: Record<string, string> }) {
-  const badgeKey =
-    (project && ROLE_BADGE_OVERRIDES[project]?.[member.id]) ||
-    (member.is_leader ? 'leader' : member.order === 2 ? 'coleader' : member.id === 'member_7' ? 'vinculacion' : 'participant');
+  const badgeKey = member.rol_en_proyecto
+    ? CLAVE_BADGE_ROL_PROYECTO[member.rol_en_proyecto]
+    : (member.is_leader ? 'leader' : 'participant');
   const badge = badges[badgeKey];
 
   return (

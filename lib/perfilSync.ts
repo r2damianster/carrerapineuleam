@@ -12,7 +12,7 @@ export async function solicitarPublicacionPerfil(
   email: string,
   cambios: { orcid?: string | null; foto_url?: string | null; grado?: string | null; posgrado?: string | null; titulo_especifico?: string | null }
 ) {
-  const [member] = await sql`SELECT id FROM members WHERE email = ${email}`;
+  const [member] = await sql`SELECT id FROM members WHERE usuario_id = ${usuarioId} OR email = ${email} ORDER BY (usuario_id = ${usuarioId}) DESC LIMIT 1`;
   if (!member) return;
 
   const { orcid, foto_url, grado, posgrado, titulo_especifico } = cambios;

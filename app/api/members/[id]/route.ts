@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { sincronizarProyectosDePersona } from '@/lib/equipoProyecto';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -57,22 +58,28 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json(actualizado);
     }
 
-    const { name, role, orcid, email, photo, is_leader, order, projects, genero, fecha_nacimiento, grado, posgrado, titulo_especifico, activo } = body;
+    const { name, role, orcid, email, photo, is_leader, order, projects, roles_proyecto, genero, fecha_nacimiento, grado, posgrado, titulo_especifico, activo } = body;
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
+    // Con la tarjeta enlazada a una persona (usuarios), el nombre lo manda usuarios y no se
+    // sobrescribe desde aquí; solo las tarjetas sin enlace conservan su nombre propio.
     const [actualizado] = await sql`
       UPDATE members
-      SET name = ${name}, role = ${role}, orcid = ${orcid || null}, email = ${email || ''},
+      SET name = CASE WHEN usuario_id IS NULL THEN ${name} ELSE name END,
+          role = ${role}, orcid = ${orcid || null}, email = ${email || ''},
           photo = ${photo || null}, is_leader = ${!!is_leader}, "order" = ${order ?? 0},
-          projects = ${projects || []}, genero = ${genero || null}, fecha_nacimiento = ${fecha_nacimiento || null},
+          genero = ${genero || null}, fecha_nacimiento = ${fecha_nacimiento || null},
           grado = ${grado || null}, posgrado = ${posgrado || null}, titulo_especifico = ${titulo_especifico || null},
           activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo), updated = now()
       WHERE id = ${params.id}
       RETURNING *
     `;
     if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+    if (actualizado.usuario_id && Array.isArray(projects)) {
+      await sincronizarProyectosDePersona(sql, Number(actualizado.usuario_id), projects, roles_proyecto, order ?? 0);
+    }
     return NextResponse.json(actualizado);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
