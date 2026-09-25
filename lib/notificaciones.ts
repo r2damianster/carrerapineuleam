@@ -165,6 +165,41 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       };
     },
   },
+  {
+    // Supervisor de Vinculación: informe mensual del mes anterior sin generar.
+    id: 'informe-supervisor-pendiente',
+    aplica: (sesion) => puedeSupervisarVinculacion(sesion),
+    consultar: async (sql, sesion) => {
+      const hoy = new Date(Date.now() - 5 * 60 * 60 * 1000);
+      const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1).toISOString().slice(0, 7);
+      const supervisorId = Number(sesion.id);
+
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM asistencia_espacio ae
+        JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
+        WHERE e.area = 'vinculacion'
+          AND ae.estado_aprobacion = 'aprobado'
+          AND TO_CHAR(ae.fecha, 'YYYY-MM') = ${mesAnterior}
+          AND (${esSuperAdminOLider(sesion)}::boolean IS TRUE OR e.profesor_id = ${supervisorId})
+          AND NOT EXISTS (
+            SELECT 1 FROM informes_vinculacion i
+            WHERE i.tipo = 'supervisor'
+              AND i.mes = ${mesAnterior}
+              AND i.supervisor_id = ${supervisorId}
+          )
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'informe-supervisor-pendiente',
+        cantidad: 1,
+        mensaje: `Tienes pendiente generar el informe mensual de Vinculación correspondiente a ${mesAnterior}.`,
+        href: '/vinculacion/informes',
+        severidad: 'pendiente',
+      };
+    },
+  },
 ];
 
 /**

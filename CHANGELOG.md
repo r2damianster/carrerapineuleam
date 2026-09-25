@@ -10,7 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
 
-## [0.12.6] - 2026-09-24 (Sesión 50, continuación)
+## [0.12.7] - 2026-09-25 (Sesión 51)
+
+### ✨ Added
+- **Informes Automáticos de Vinculación (`/vinculacion/informes`)**:
+  - Generación de documentos `.docx` oficiales con la librería `docx` para el **Informe Mensual Supervisor** y el **Informe Semestral Líder**.
+  - Integración de gráficos PNG automáticos vía QuickChart (pasantes vs. 96h, asistencia por espacio, pastel género, barras edad, evolución mensual y planificado vs ejecutado).
+  - Pestañas para vista previa editable, CRUD de obstáculos (`supervision_obstaculos`), redacción de borrador con IA para el líder (`enriquecerTexto`) e historial descargable (`informes_vinculacion`).
+- **Configuración y Ficha de Proyecto (`/vinculacion/proyecto`)**:
+  - Gestión de Objetivos, Actividades del Plan (con opción "Copiar al ciclo siguiente"), Metas por ciclo, Presupuesto y Textos Cualitativos.
+- **Captura Operativa (Asistencia y Supervisión)**:
+  - Vincular sesión con Actividad del Plan o marcar Actividad No Prevista en `/vinculacion/asistencia`.
+  - Campo de observaciones del supervisor y casilla `usar_en_informe` en fotos de evidencias.
+- **Regla de Notificación**:
+  - Agregada regla `informe-supervisor-pendiente` en `lib/notificaciones.ts` y documentada en `NOTIFICACIONES.md`.
 
 ### ✨ Added
 - **Notificaciones del Portal:** bloque "🔔 Pendientes" en `/portal/dashboard` y `GET /api/notificaciones`. Avisos derivados en vivo desde Neon (sin tabla): asistencias por aprobar, horas por aprobar (podcast, investigación y autónomas) para supervisores; videos y difusión por aprobar para `contenido_sitio`; asistencia rechazada para el pasante (ventana de 14 días). Reglas en `lib/notificaciones.ts`; guía y checklist para funciones futuras en `NOTIFICACIONES.md`.

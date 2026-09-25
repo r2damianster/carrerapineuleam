@@ -21,6 +21,7 @@ Bloque **"🔔 Pendientes"** al inicio de `/portal/dashboard` + endpoint `GET /a
 | `videos-por-aprobar` | `modulos_acceso: contenido_sitio` | `videos.aprobado_sitio=false` | `/admin/videos` |
 | `difusion-por-aprobar` | `modulos_acceso: contenido_sitio` | `actividades_difusion.aprobado_sitio=false` (incluye `origen='externo_temporal'`) | `/admin/contenido` |
 | `asistencias-rechazadas` | `rol: estudiante` (pasante) | Sus `asistencia_espacio` con `estado_aprobacion='rechazado'` en los últimos 14 días (sin tabla de "leído": la ventana de tiempo apaga el aviso) | `/portal/mi-avance` (panel rojo con espacio, fecha y motivo, vía `GET /api/mi-avance`) |
+| `informe-supervisor-pendiente` | Supervisor de Vinculación (`puedeSupervisarVinculacion`) | Sesiones aprobadas en el mes anterior sin registro en `informes_vinculacion` | `/vinculacion/informes` |
 
 ## ✅ Checklist obligatoria al crear una función nueva
 Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revisar, completar, responder, corregir un rechazo), entonces:
