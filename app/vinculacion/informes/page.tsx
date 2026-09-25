@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function InformesVinculacionPage() {
+function InformesVinculacionContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tipoQuery = searchParams.get('tipo'); // 'supervisor' | 'lider'
@@ -562,5 +562,13 @@ export default function InformesVinculacionPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function InformesVinculacionPage() {
+  return (
+    <Suspense fallback={null}>
+      <InformesVinculacionContenido />
+    </Suspense>
   );
 }
