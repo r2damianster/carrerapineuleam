@@ -235,7 +235,7 @@ export async function generarDocxSupervisor(datos: DatosSupervisor, graficos: {
             new TableCell({ borders: CELL_BORDER, children: [new Paragraph({ text: String(t.sesiones_aprobadas) })] }),
             new TableCell({ borders: CELL_BORDER, children: [new Paragraph({ text: String(t.beneficiarios_atendidos) })] }),
             new TableCell({ borders: CELL_BORDER, children: [new Paragraph({ text: `${t.horas_acreditadas} h` })] }),
-            new TableCell({ borders: CELL_BORDER, children: [new Paragraph({ text: t.comentarios.join('; ') || 'Sin observaciones' })] }),
+            new TableCell({ borders: CELL_BORDER, children: [new Paragraph({ text: (t.comentarios || []).join('; ') || 'Sin observaciones' })] }),
           ],
         })
       );

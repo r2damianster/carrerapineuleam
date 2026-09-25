@@ -75,7 +75,8 @@ export async function GET(request: Request) {
 
     if (accion === 'obstaculos') {
       const obstaculos = await sql`
-        SELECT * FROM supervision_obstaculos
+        SELECT id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
+        FROM supervision_obstaculos
         WHERE supervisor_id = ${Number(usuario.id)} AND mes = ${mes}
         ORDER BY id ASC
       `;
@@ -140,9 +141,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Mes y descripción son requeridos' }, { status: 400 });
       }
       const [nuevo] = await sql`
-        INSERT INTO supervision_obstaculos (supervisor_id, mes, descripcion, impacto, recomendacion)
+        INSERT INTO supervision_obstaculos (supervisor_id, mes, restriccion, impacto, accion_correctiva)
         VALUES (${Number(usuario.id)}, ${mes}, ${descripcion}, ${impacto || 'medio'}, ${recomendacion || null})
-        RETURNING *
+        RETURNING id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
       `;
       return NextResponse.json({ success: true, obstaculo: nuevo });
     }
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
       }
 
       const [guardado] = await sql`
-        INSERT INTO informes_vinculacion (tipo, ciclo_id, supervisor_id, mes, datos_json, creado_por)
+        INSERT INTO informes_vinculacion (tipo, ciclo_id, supervisor_id, mes, datos_json, generado_por)
         VALUES (${tipo}, ${targetCicloId}, ${targetSupervisorId}, ${mes || null}, ${JSON.stringify(datos)}, ${Number(usuario.id)})
         RETURNING id
       `;

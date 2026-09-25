@@ -91,7 +91,7 @@ export async function datosInformeSupervisor(
   const periodo = await resolverPeriodo(sql, { tipo: 'supervisor', mes: params.mes });
 
   const [proyecto] = await sql`
-    SELECT id, nombre, codigo, unidad_academica, carrera, entidad_beneficiaria, zona,
+    SELECT id, nombre_oficial AS nombre, codigo, unidad_academica, carrera, entidad_beneficiaria, zona,
            codigo_documento_supervisor, revision_documento_supervisor
     FROM proyectos WHERE id = 'vinculacion'
   `;
@@ -147,12 +147,12 @@ export async function datosInformeSupervisor(
     `,
     sql`
       SELECT
-        COALESCE(p.descripcion, 'Sesiones del Espacio') AS actividad_descripcion,
+        COALESCE(p.actividad, 'Sesiones del Espacio') AS actividad_descripcion,
         e.nombre AS espacio_nombre,
         COUNT(a.id)::int AS sesiones_aprobadas,
-        COALESCE(SUM(array_length(a.beneficiarios_presentes, 1)), 0)::int AS beneficiarios_atendidos,
+        COALESCE(SUM((SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)), 0)::int AS beneficiarios_atendidos,
         ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1)::float AS horas_acreditadas,
-        ARRAY_AGG(DISTINCT a.comentario_supervisor) FILTER (WHERE a.comentario_supervisor IS NOT NULL) AS comentarios
+        COALESCE(ARRAY_AGG(DISTINCT a.comentario_supervisor) FILTER (WHERE a.comentario_supervisor IS NOT NULL), '{}') AS comentarios
       FROM asistencia_espacio a
       JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
       LEFT JOIN proyecto_actividades_plan p ON a.actividad_plan_id = p.id
@@ -160,13 +160,13 @@ export async function datosInformeSupervisor(
         AND a.estado_aprobacion = 'aprobado'
         AND a.fecha BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
         AND a.no_prevista = false
-      GROUP BY p.descripcion, e.nombre
+      GROUP BY p.actividad, e.nombre
     `,
     sql`
       SELECT
         e.nombre AS espacio_nombre,
         to_char(a.fecha, 'YYYY-MM-DD') AS fecha,
-        COALESCE(array_length(a.beneficiarios_presentes, 1), 0)::int AS beneficiarios_atendidos,
+        (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS beneficiarios_atendidos,
         ROUND(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0::numeric, 1)::float AS horas_acreditadas,
         a.observaciones
       FROM asistencia_espacio a
@@ -182,8 +182,8 @@ export async function datosInformeSupervisor(
         a.foto_url AS url,
         to_char(a.fecha, 'YYYY-MM-DD') AS fecha,
         e.nombre AS espacio_nombre,
-        COALESCE(array_length(a.beneficiarios_presentes, 1), 0)::int AS num_beneficiarios,
-        COALESCE(array_length(a.instructores_presentes, 1), 0)::int AS num_pasantes
+        (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS num_beneficiarios,
+        (SELECT COUNT(*) FROM asistencia_instructores ai WHERE ai.asistencia_id = a.id)::int AS num_pasantes
       FROM asistencia_espacio a
       JOIN "espacios_enseñanza" e ON a.espacio_id = e.id
       WHERE a.espacio_id = ANY(${espaciosIds})
@@ -301,23 +301,25 @@ export async function datosInformeLider(
 
   const [objetivosRes, metasRes, presupuestoRes, textosRes, evolucionRes] = await Promise.all([
     sql`
-      SELECT o.id, o.descripcion, o.tipo,
+      SELECT o.id, o.texto AS descripcion, o.tipo,
              COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
                'id', a.id,
-               'descripcion', a.descripcion,
+               'descripcion', a.actividad,
                'metodologia', a.metodologia
              )) FILTER (WHERE a.id IS NOT NULL), '[]') AS actividades
       FROM proyecto_objetivos o
       LEFT JOIN proyecto_actividades_plan a ON a.objetivo_id = o.id AND a.activo = true
-      WHERE o.proyecto_id = 'vinculacion'
-      GROUP BY o.id, o.descripcion, o.tipo
+      WHERE o.proyecto_id = 'vinculacion' AND o.activo = true
+      GROUP BY o.id, o.texto, o.tipo
       ORDER BY o.orden ASC
     `,
     sql`
       SELECT * FROM proyecto_metas_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
     `,
     sql`
-      SELECT partida, descripcion, monto_solicitado, monto_ejecutado, porcentaje_ejecucion
+      SELECT cedula_presupuestaria AS partida, concepto AS descripcion,
+             solicitado AS monto_solicitado, ejecutado AS monto_ejecutado,
+             CASE WHEN COALESCE(solicitado, 0) > 0 THEN ROUND((COALESCE(ejecutado, 0) / solicitado * 100)::numeric, 1)::float ELSE 0 END AS porcentaje_ejecucion
       FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
     `,
     sql`
