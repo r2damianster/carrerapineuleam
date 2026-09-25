@@ -72,15 +72,14 @@
 | WP4 | API de administración (banco, acciones, ubicaciones) | WP2 | A |
 | WP5 | Declaración de menores + ingesta (asistencia, eventos, podcasts, externos) | WP1, WP2, WP5b | A |
 | WP5b | **Asignación de proyectos al subir** (eventos, podcasts, enlaces QR) | WP1, WP2 | A |
+| WP6 | Groq visión (respaldo de menores) | WP5 | A |
 | WP7 | Backfill: Cloudinary + registro de lo existente | WP1, WP5, WP5b | A |
 | WP8 | UI: `/admin/photos` reescrito (componente compartido) | WP3, WP4 | A |
 | WP9 | Panel del líder `/portal/proyecto/...` + galerías nuevas en páginas de proyecto | WP4, WP8 | B |
 | WP10 | Notificaciones | WP4 | B |
 | WP11 | Pruebas de permisos, documentación, despliegue | todo | cada fase |
 
-> **WP6 eliminado (2026-09-25):** La detección de menores es exclusivamente humana. No se usa Groq ni ninguna IA de visión. Motivo: privacidad — enviar fotos de posibles menores de edad a una API cloud de terceros es inaceptable en un contexto educativo. La protección recae en tres capas sin IA: (1) declaración del estudiante al subir, (2) constraint `fotos_publicable_sin_menores` en BD, (3) revisión humana en la bandeja de admin (`menores='revisar'`).
-
-**Fase A = WP0–WP8 (incl. WP5b, sin WP6)** (resuelve la sobrepoblación y los menores; desplegable sola). **Fase B = WP9–WP10** (líderes). WP11 en cada fase.
+**Fase A = WP0–WP8 (incl. WP5b)** (resuelve la sobrepoblación y los menores; desplegable sola). **Fase B = WP9–WP10** (líderes). WP11 en cada fase.
 
 
 ### H1 — Hallazgo de la revisión (2026-09-26): el cableado de derivación de módulos NO está activo en `main`
@@ -119,8 +118,8 @@ ALTER TABLE fotos
   ADD COLUMN IF NOT EXISTS categoria       text,
   ADD COLUMN IF NOT EXISTS subido_por_id   integer REFERENCES usuarios(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS menores         text    NOT NULL DEFAULT 'no',
-  ADD COLUMN IF NOT EXISTS visibilidad     text    NOT NULL DEFAULT 'publicable';
-  -- NOTA: ia_resultado eliminado (WP6 eliminado, sin Groq).
+  ADD COLUMN IF NOT EXISTS visibilidad     text    NOT NULL DEFAULT 'publicable',
+  ADD COLUMN IF NOT EXISTS ia_resultado    jsonb;
 
 -- 2. CHECKs (origen se AMPLÍA; no crear una columna paralela)
 ALTER TABLE fotos DROP CONSTRAINT IF EXISTS fotos_origen_check;
@@ -128,22 +127,10 @@ ALTER TABLE fotos ADD CONSTRAINT fotos_origen_check
   CHECK (origen IN ('admin','evidencia_evento','evento','podcast','asistencia','lider'));
 ALTER TABLE fotos ADD CONSTRAINT fotos_menores_check     CHECK (menores IN ('no','si','revisar'));
 ALTER TABLE fotos ADD CONSTRAINT fotos_visibilidad_check CHECK (visibilidad IN ('publicable','interna'));
-
--- ⚠️ PASO OBLIGATORIO antes del constraint de publicabilidad:
--- Detectar filas que lo violarían (foto con menores≠'no' que ya tiene ubicaciones asignadas).
--- Si esta consulta devuelve ALGUNA fila: NO ejecutar el ALTER TABLE siguiente.
--- Corregir primero (ubicaciones='{}' o menores='no') y reportar a Arturo.
-SELECT id, menores, visibilidad, ubicaciones
-FROM fotos
-WHERE menores <> 'no' AND cardinality(ubicaciones) > 0;
--- Se espera: 0 filas. Si hay alguna, DETENERSE y reportar.
-
 -- Guardia de última línea: una foto con menores / interna NO puede tener ubicaciones públicas.
 ALTER TABLE fotos ADD CONSTRAINT fotos_publicable_sin_menores
   CHECK ((menores = 'no' AND visibilidad = 'publicable') OR cardinality(ubicaciones) = 0) NOT VALID;
--- NOT VALID: aplica solo a filas nuevas/modificadas. Las existentes se validan con VALIDATE.
--- VALIDATE fallará si la SELECT anterior devolvió filas — no forzar, reportar al usuario.
-ALTER TABLE fotos VALIDATE CONSTRAINT fotos_publicable_sin_menores;
+ALTER TABLE fotos VALIDATE CONSTRAINT fotos_publicable_sin_menores;  -- falla si hay filas que la violan: no forzar, reportar
 
 -- 3. Idempotencia de la ingesta (una foto de una fuente no se duplica)
 CREATE UNIQUE INDEX IF NOT EXISTS fotos_fuente_unica ON fotos (origen, fuente_id, url) WHERE fuente_id IS NOT NULL;
@@ -242,7 +229,9 @@ También exportar `fragmentoFuenteAprobada` para reutilizarlo en el listado del 
 
 `miniaturaCloudinary(url, ancho = 400)`: si `url` contiene `/upload/` inserta `w_${ancho},c_fill,q_auto,f_auto/` justo después; si no, devuelve `url` sin cambios (rutas locales o externas). Nunca lanza.
 
+### `lib/groqVision.ts` (nuevo) — ver WP6.
 
+---
 
 ## WP3 — API pública con topes
 
@@ -294,25 +283,7 @@ Acciones en lote. Cuerpo: `{ ids: string[] (1–100, únicos), accion, ubicacion
 5. El líder solo puede operar fotos cuyo arreglo `proyectos` solape con los suyos. Una foto etiquetada `[A,B]` la puede publicar el líder de A en ubicaciones de A (no en las de B salvo que también gestione B). Publicar en una ubicación de un proyecto que no gestiona → 403. Un líder no puede tocar fotos con `proyectos` vacío.
 6. `quitar` por líder: solo quita ubicaciones que él gestiona; las ajenas de la misma foto se conservan.
 
-**Atomicidad — CRÍTICO (usar `Pool`, no `neon()`):** El driver `@neondatabase/serverless` con `neon()` por defecto **no admite transacciones multi-statement**: cada llamada es una petición HTTP independiente. Usar obligatoriamente el patrón con `Pool` (igual que `app/api/espacios/asistencia/route.ts`):
-```ts
-import { Pool } from '@neondatabase/serverless';
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const client = await pool.connect();
-try {
-  await client.query('BEGIN');
-  // validar todas las fotos y ubicaciones sin escribir nada
-  // si cualquier validación falla → throw (el catch hace ROLLBACK)
-  // si todo OK → ejecutar UPDATE ... WHERE id = ANY($1)
-  await client.query('COMMIT');
-} catch (err) {
-  await client.query('ROLLBACK');
-  throw err;
-} finally {
-  client.release();
-}
-```
-Validar **todas** las fotos y ubicaciones primero (antes del BEGIN si es solo lectura; dentro del bloque si requiere lock); si una falla, no se modifica ninguna (responder `{ error, detalle: [{id, motivo}] }`). **Nunca** un bucle de updates con `neon()` sin transacción — si falla en el ítem 5 de 10, los primeros 4 ya están modificados y no hay rollback.
+**Atomicidad:** validar **todas** las fotos y ubicaciones primero; si una falla, no se modifica ninguna (responder `{ error, detalle: [{id, motivo}] }`). Ejecutar los `UPDATE` dentro de una transacción (`Pool` + `BEGIN/COMMIT`, patrón de `app/api/espacios/asistencia/route.ts`) o en una sola sentencia `UPDATE ... WHERE id = ANY(...)`. Nunca un bucle de updates sin transacción.
 
 **Respuesta** incluye `avisos` (tope suave): para cada ubicación publicada → `{ slug, publicadas, max_fotos }` con `publicadas` = fotos activas y publicables en esa ubicación tras la operación; la UI muestra "Hay N fotos, el sitio mostrará solo las M primeras" si `publicadas > max_fotos`. **No se rechaza** por tope (decisión: suave).
 
@@ -323,7 +294,7 @@ Validar **todas** las fotos y ubicaciones primero (antes del BEGIN si es solo le
 
 ### 4.4 Extender `POST /api/photos` (crear) y `PATCH /api/photos/[id]`
 
-- `POST` hoy exige `contenido_sitio`. Nuevo: `puedeAdministrarSitio` **o** líder con `proyectos` (cuerpo, arreglo) ⊆ sus proyectos. El líder **debe** enviar `proyectos` (≥1) y solo `ubicaciones` de esos proyectos; el servidor **ignora** cualquier `origen`/`menores`/`visibilidad` que envíe el cliente: fuerza `origen='lider'` (o `'admin'` si es admin), `menores='no'`, `visibilidad='publicable'`, `subido_por` = email de sesión, `subido_por_id = Number(sesion.id)`. Si el cliente declara `hay_menores = true` → guardar `menores='si'`, `visibilidad='interna'`, `ubicaciones=[]`, `activo=false`. **Sin Groq** (WP6 eliminado): la declaración del estudiante es la fuente de verdad; si declaró `no` queda `menores='no'`; un admin puede corregirlo después con `marcar_interna`.
+- `POST` hoy exige `contenido_sitio`. Nuevo: `puedeAdministrarSitio` **o** líder con `proyectos` (cuerpo, arreglo) ⊆ sus proyectos. El líder **debe** enviar `proyectos` (≥1) y solo `ubicaciones` de esos proyectos; el servidor **ignora** cualquier `origen`/`menores`/`visibilidad` que envíe el cliente: fuerza `origen='lider'` (o `'admin'` si es admin), `menores='no'`, `visibilidad='publicable'`, `subido_por` = email de sesión, `subido_por_id = Number(sesion.id)`. Si el cliente declara `hay_menores = true` → guardar `menores='si'`, `visibilidad='interna'`, `ubicaciones=[]`, `activo=false`. Pasar la foto por Groq (WP6) antes de aceptarla como `no`.
 - `PATCH /api/photos/[id]`: conserva el atajo de un solo campo `activo`; agrega edición de `titulo`, `descripcion`, `posicion` (0–100), `order`, y —solo admin— `proyectos` (reasignar). Autorización por foto igual que 4.2.
 - `DELETE /api/photos/[id]`: **sigue solo `puedeAdministrarSitio`** (borra en Cloudinary). Los líderes usan `descartar`.
 
@@ -331,7 +302,7 @@ Validar **todas** las fotos y ubicaciones primero (antes del BEGIN si es solo le
 
 ## WP5 — Declaración de menores e ingesta al banco
 
-**Regla común de ingesta** (helper `lib/ingestaFotos.ts`, función `registrarFotoEnBanco(sql, datos)`): inserta con `ON CONFLICT (origen, fuente_id, url) WHERE fuente_id IS NOT NULL DO NOTHING`; valores por defecto: `activo = true`, `ubicaciones = '{}'` (sin ubicar), `posicion = 50`, `"order" = 0`. Si `hayMenores` → `menores='si'`, `visibilidad='interna'`, `activo=false`. Si es externo (D4) → `menores='revisar'`, `visibilidad='interna'`. **Sin llamada a Groq ni a ninguna IA** (WP6 eliminado). **Una falla de ingesta jamás debe hacer fallar el registro principal** (asistencia/evento): envolver en `try/catch`, registrar `console.error` y continuar.
+**Regla común de ingesta** (helper `lib/ingestaFotos.ts`, función `registrarFotoEnBanco(sql, datos)`): inserta con `ON CONFLICT (origen, fuente_id, url) WHERE fuente_id IS NOT NULL DO NOTHING`; valores por defecto: `activo = true`, `ubicaciones = '{}'` (sin ubicar), `posicion = 50`, `"order" = 0`. Si `hayMenores` → `menores='si'`, `visibilidad='interna'`, `activo=false`. Si es externo (D4) → `menores='revisar'`, `visibilidad='interna'`. **Una falla de ingesta jamás debe hacer fallar el registro principal** (asistencia/evento): envolver en `try/catch`, registrar `console.error` y continuar.
 
 ### 5.1 Asistencia — `app/api/espacios/asistencia/route.ts`
 
@@ -401,18 +372,22 @@ La ingesta (WP5.2/5.3) copia `actividades_difusion.proyectos` a `fotos.proyectos
 
 ---
 
-## ~~WP6 — Groq visión~~ (ELIMINADO — 2026-09-25)
+## WP6 — Groq visión (respaldo, nunca decisión única)
 
-> **Motivo:** Enviar imágenes de posibles menores de edad a una API cloud de terceros (Groq, servidores EE.UU.) es inaceptable en un entorno educativo. La detección de menores es **exclusivamente humana**.
->
-> **Cómo funciona sin Groq:** tres capas son suficientes:
-> 1. **Declaración del estudiante** al subir (`hay_menores: boolean`). Si marca Sí → `menores='si'`, `visibilidad='interna'`, `activo=false`. La foto no sale del banco hasta que un admin la revise.
-> 2. **Bandeja de revisión humana** para externos (`menores='revisar'`): todas las fotos de enlaces QR externos y las 22 de asistencia histórica entran aquí. El admin las revisa en `/admin/photos?menores=revisar` y usa `marcar_revisada` o `marcar_interna`.
-> 3. **`CHECK fotos_publicable_sin_menores`** en BD: barrera de última línea que impide que una foto con `menores≠'no'` tenga `ubicaciones` asignadas, aunque haya un bug en la app.
->
-> **Archivos eliminados del scope:** `lib/groqVision.ts` (no crear). **Variable eliminada de `.env.local.example`:** `GROQ_VISION_MODEL` (no agregar). **Columna eliminada de WP1:** `ia_resultado` (no crear).
+Archivo `lib/groqVision.ts` (mismo estilo que `lib/groqAudio.ts`: `GROQ_API_KEY`, `fetch`, errores tipados):
 
+```ts
+export type VeredictoMenores = 'no' | 'si' | 'dudoso';
+export async function analizarMenoresEnFoto(urlImagen: string): Promise<{ veredicto: VeredictoMenores; personas: number } | null>;
+```
 
+- Endpoint: `https://api.groq.com/openai/v1/chat/completions`, modelo `process.env.GROQ_VISION_MODEL` (D3: verificar el nombre vigente en la doc de Groq; no inventarlo), `response_format: { type: 'json_object' }`, `temperature: 0`, `AbortController` con **timeout 10 s**.
+- Enviar la imagen **reducida**: `urlImagen` con transformación `w_800,q_auto` (Cloudinary). No enviar nombres ni metadatos de personas.
+- Prompt fijo (en español, en una constante): pedir **solo** JSON `{"veredicto":"no|si|dudoso","personas":<entero>}` sobre si en la imagen aparecen personas que parezcan menores de 18 años; ante duda, `dudoso`.
+- **Nunca lanza hacia el llamador:** timeout, error HTTP, JSON inválido o `GROQ_API_KEY` ausente → devuelve `null`.
+- Uso (dentro de `registrarFotoEnBanco`, después de insertar, en segundo plano dentro del mismo request con `await` acotado por el timeout): guardar el resultado en `ia_resultado` (jsonb). Si `veredicto` ∈ (`si`,`dudoso`) → `menores='revisar'`, `visibilidad='interna'`, `ubicaciones='{}'`, `activo=false`. Si `null` (Groq caído) → **no bloquear**: queda como declaró el estudiante y `ia_resultado = {"error": true}`.
+- **Jamás degradar** una declaración `si` del estudiante por un veredicto `no` de la IA.
+- Advertir en el PR: las imágenes se envían a un tercero (Groq). Es una decisión que propuso el usuario; documentarla en `CLAUDE.md` (sección de la sesión).
 
 ---
 
@@ -558,9 +533,8 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 
 | Riesgo | Mitigación en este plan |
 |---|---|
-| Foto con menores publicada por error | Tres barreras (sin IA): (1) declaración del estudiante al subir (`hay_menores`), (2) bandeja de revisión humana del admin (`menores='revisar'` para externos e históricos), (3) `CHECK fotos_publicable_sin_menores` en BD + filtro en `GET` público + validación en la API. |
-| `VALIDATE CONSTRAINT` explota en filas existentes con menores + ubicaciones | WP1 incluye SELECT previo obligatorio; si devuelve filas se detiene y reporta antes de ejecutar el `ALTER TABLE`. |
-| `POST /api/photos/accion` sin transacción real (usar `neon()` directo) | WP4.2 exige `Pool` + `BEGIN/COMMIT`; comentario explicativo en el código sobre por qué `neon()` solo no admite transacciones multi-statement. |
+| Foto con menores publicada por error | Tres barreras: (1) declaración del estudiante, (2) Groq como respaldo, (3) `CHECK fotos_publicable_sin_menores` en BD + filtro en `GET` público + validación en la API. |
+| Groq falla o es lento | `analizarMenoresEnFoto` devuelve `null`, nunca bloquea el registro; queda con la declaración del estudiante. |
 | Líder ve/publica fotos ajenas | Alcance por `proyectos` (solape de arreglos) en cada consulta y en cada acción; pruebas 11.1; permisos consultados en Neon, no en la cookie. |
 | Docencia baja de 23 a 8 fotos al desplegar | Avisado (WP1); el admin cura el `order` inmediatamente. Tope suave: nada se borra. |
 | Backfill duplica o pierde fotos | Simulación por defecto, `ON CONFLICT DO NOTHING`, respaldo `respaldo_fotos_20260926`, reporte con conteos. |
@@ -575,7 +549,7 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 ## 14. Checklist de cierre (marcar antes de pedir el merge)
 
 - [ ] Rama `feat/admin-lideres-fotos`; nada commiteado en `main`.
-- [ ] WP1 aplicado en Neon con SELECT de verificación; respaldo existente; SELECT pre-VALIDATE devuelve 0 filas.
+- [ ] WP1 aplicado en Neon con SELECT de verificación; respaldo existente.
 - [ ] `tsc` y `build` limpios; sin conflictos ni archivos de 0 bytes.
 - [ ] Los 4 componentes públicos ocultan su sección con lista vacía.
 - [ ] Matriz 11.1 completa en verde (incluye "Ver como").
@@ -584,8 +558,95 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 - [ ] WP5b: validación de proyectos asignables en `difusion`, `videos`, `enlaces-difusion` (+ público) y selector en los 4 formularios.
 - [x] D2 **hecho** el 2026-09-26 por SQL (Jhonny líder de RED LEA + `investigacion` excluido). En WP0 solo se verifica con el SELECT de D2; Jhonny sin acceso a `/admin/*`.
 - [ ] H1 anotado en el PR (cableado de permisos por pertenencia sigue revertido; no restaurarlo aquí).
-- [ ] **No existe** `lib/groqVision.ts`; no existe `GROQ_VISION_MODEL` en `.env.local.example`; no existe columna `ia_resultado` en `fotos` (WP6 eliminado).
 - [ ] Notificaciones (WP10) + `NOTIFICACIONES.md`.
 - [ ] Documentación (§11.3).
 - [ ] Deploy en `READY` y revisión visual en producción.
 
+---
+
+## 15. Registro de ejecución (Antigravity)
+
+> Cada sesión de Antigravity documenta aquí lo que ejecutó, los resultados reales de la BD y los archivos tocados. **No editar a mano.**
+
+---
+
+### Sesión 2026-09-25 — WP0 a WP4 + correcciones al plan
+
+**Rama:** `feat/admin-lideres-fotos` (creada desde `main` @ `0767d11`)
+**Commit:** `b9bacdb`
+**TSC:** limpio (0 errores) antes del commit.
+
+#### Correcciones aplicadas al plan antes de ejecutar
+
+| # | Corrección | Sección |
+|---|---|---|
+| 1 | **WP6 eliminado** — detección de menores exclusivamente humana. Sin Groq, sin `lib/groqVision.ts`, sin columna `ia_resultado`, sin `GROQ_VISION_MODEL`. Tres capas sustitutas: declaración del estudiante + bandeja de revisión admin + `CHECK fotos_publicable_sin_menores`. | §2, WP6, WP5, WP4.4, §13, §14 |
+| 2 | **SELECT pre-VALIDATE obligatorio** — antes de `VALIDATE CONSTRAINT fotos_publicable_sin_menores`, el script ejecuta `SELECT id FROM fotos WHERE menores <> 'no' AND cardinality(ubicaciones) > 0` y aborta si hay filas. Resultado real: **0 filas** → safe. | WP1 |
+| 3 | **Atomicidad con `Pool`** — documentada con ejemplo de código completo (`BEGIN/COMMIT/ROLLBACK/release`). Explicación de por qué `neon()` solo no admite transacciones multi-statement. | WP4.2 |
+
+#### WP0 — Preparación y auditoría
+
+- `git fetch` + `git log` ejecutados. Último commit en `main`: `0767d11`.
+- Rama `feat/admin-lideres-fotos` creada correctamente. Verificado con `git branch --show-current`.
+- Archivos clave leídos completos antes de editar: `middleware.ts`, `lib/session.ts`, `lib/modulos.ts`, `app/api/photos/route.ts`, `app/admin/photos/page.tsx` (línea 58: único llamador de `?all=true`).
+- Scripts existentes revisados para usar el patrón correcto (`migrate-topes-horas.js` como plantilla).
+
+#### WP1 — Migración de BD (aplicada en Neon `dark-feather-21824720`)
+
+Script: [`scripts/migrate-fotos-banco.js`](../scripts/migrate-fotos-banco.js)
+
+**Resultado real del script:**
+```
+[0] respaldo_fotos_20260926 → 45 filas
+[1] Columnas añadidas (idempotente)
+[2.pre] 0 filas violadoras → VALIDATE safe
+[2] Constraints OK (fotos_origen_check ampliado, fotos_menores_check, fotos_visibilidad_check, fotos_publicable_sin_menores)
+[3] Índices: fotos_fuente_unica, fotos_ubicaciones_gin, fotos_proyectos_gin, fotos_origen_idx
+[4] fotos_ubicaciones: 7 filas (portada, club-ingles, docencia-galeria, redlea-galeria, internacionalizacion-galeria, desarrollo-habilidades-galeria, mentoring-galeria)
+[5] Backfill fotos.proyectos OK
+[6] actividades_difusion.proyectos añadida; enlaces_difusion.proyectos añadida
+[7] fotos.count = 45 ✅ | fotos violadoras = 0 ✅ | fotos_ubicaciones = 7 ✅
+    columnas nuevas: categoria, fecha_evento, fuente_id, menores, proyectos, subido_por_id, visibilidad
+```
+
+**Columnas NO creadas (WP6 eliminado):** `ia_resultado` ← no existe, no crear.
+
+**Aviso de contenido para Arturo:** Docencia Innovadora pasará de mostrar hasta 23 fotos → máximo 8 (6 manuales + 2 podcast automáticas). RED LEA: 13 → máximo 10. Curar el campo `order` inmediatamente después del deploy.
+
+#### WP2 — Capa de datos y permisos (`lib/`)
+
+| Archivo | Descripción |
+|---|---|
+| [`lib/permisosProyecto.ts`](../lib/permisosProyecto.ts) | `puedeAdministrarSitio` (D1), `proyectosGestionables`, `puedeGestionarProyecto`, `proyectosAsignables`, `validarProyectosAsignables`. Siempre consulta Neon en cada petición. |
+| [`lib/fotosPublicas.ts`](../lib/fotosPublicas.ts) | `obtenerFotosDeUbicacion` (con topes + gate de fuente aprobada + auto-fill), `fragmentoFuenteAprobada`. |
+| [`lib/cloudinaryUrl.ts`](../lib/cloudinaryUrl.ts) | `miniaturaCloudinary(url, ancho)` — puro, sin deps. |
+| [`lib/ingestaFotos.ts`](../lib/ingestaFotos.ts) | `registrarFotoEnBanco` — idempotente con `ON CONFLICT DO NOTHING`, manejo de menores humano-only, nunca lanza hacia el llamador. |
+
+#### WP3 — API pública con topes
+
+| Archivo | Cambios |
+|---|---|
+| [`app/api/photos/route.ts`](../app/api/photos/route.ts) | `GET ?ubicacion=X` → `obtenerFotosDeUbicacion` (topes + gate). `GET ?all=true` → ahora exige sesión + `puedeAdministrarSitio`. `GET` sin params → `[]`. Agrega `export const dynamic = 'force-dynamic'`. |
+
+**Búsqueda de llamadores de `?all=true`:** solo `app/admin/photos/page.tsx` (línea 58). Se reemplazará completamente en WP8 → no hay que tocar nada ahora.
+
+#### WP4 — API de administración
+
+| Archivo | Descripción |
+|---|---|
+| [`app/api/photos/banco/route.ts`](../app/api/photos/banco/route.ts) | `GET` paginado con filtros (q, origen, ubicacion, proyecto, desde, hasta, menores, estado, page, pageSize). Alcance por rol: admin ve todo; líder solo fotos de sus proyectos publicables con fuente aprobada. |
+| [`app/api/photos/accion/route.ts`](../app/api/photos/accion/route.ts) | `POST` acciones en lote (publicar, quitar, ocultar, mostrar, descartar, marcar_revisada, marcar_interna). **`Pool + BEGIN/COMMIT`** — atomicidad real. Matriz de autorización por foto × ubicación. Respuesta incluye avisos de tope suave. |
+| [`app/api/photos/ubicaciones/route.ts`](../app/api/photos/ubicaciones/route.ts) | `GET` catálogo con conteo de publicadas, filtrado por alcance. `PATCH` edición de topes (solo admin). |
+
+#### Pendiente (próxima sesión)
+
+| WP | Contenido |
+|---|---|
+| WP4.4 | Extender `POST /api/photos` (crear) y `PATCH /api/photos/[id]` para líderes + declaración de menores |
+| WP5 | Declaración `hay_menores` en handlers de asistencia y difusión (leer completos antes de tocar) |
+| WP5b | `proyectosAsignables` en `GET /api/proyectos`, validación en difusión/videos/enlaces, componente `SelectorProyectosEvento.tsx` |
+| WP7 | Script `backfill-fotos-banco.js` (simulación por defecto) |
+| WP8 | Componente `BancoFotos.tsx` + reescritura de `/admin/photos/page.tsx` |
+| WP9 | Panel del líder `/portal/proyecto/[proyectoId]/fotos` (Fase B) |
+| WP10 | Notificaciones `fotos-menores-por-revisar` y `fotos-sin-ubicar-proyecto` |
+| WP11 | Script de pruebas de permisos `scripts/test-fotos-permisos.mjs` |
