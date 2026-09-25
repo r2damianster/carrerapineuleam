@@ -36,16 +36,17 @@ export default async function PortalDashboard() {
   const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = esDocenteSesion(session);
   const esSecretaria = esSecretariaSesion(session);
-  // Proyectos propios que lidera (proyectos.lider_id, Sesión 51): solo los de plantilla simple; los
+  // Proyectos propios que lidera (rol líder en proyecto_miembros, Sesión 51): solo los de plantilla simple; los
   // proyectos con página propia (Internacionalización, Vinculación) ya tienen sus tarjetas de gestión.
   let proyectosPropios: { id: string; nombre: string }[] = [];
   if (esDocente) {
     const sqlProyectos = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const filasProyectos = await sqlProyectos`
-      SELECT id, COALESCE(nav_label, nombre_oficial) AS nombre
-      FROM proyectos
-      WHERE lider_id = ${parseInt(session.id, 10)} AND tipo = 'plantilla_simple' AND activo = true
-      ORDER BY "order", id`;
+      SELECT p.id, COALESCE(p.nav_label, p.nombre_oficial) AS nombre
+      FROM proyecto_miembros pm JOIN proyectos p ON p.id = pm.proyecto_id
+      WHERE pm.usuario_id = ${parseInt(session.id, 10)} AND pm.rol_en_proyecto = 'lider' AND pm.activo
+        AND p.tipo = 'plantilla_simple' AND p.activo = true
+      ORDER BY p."order", p.id`;
     proyectosPropios = filasProyectos.map((fila: any) => ({ id: String(fila.id), nombre: String(fila.nombre) }));
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { obtenerLideresPorProyecto, conLider } from '@/lib/liderProyecto';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
 import { enriquecerTexto } from '@/app/utilidades/_lib/enriquecerTexto';
@@ -34,7 +35,8 @@ export async function GET(request: Request) {
         FROM ciclos_academicos
         ORDER BY id DESC
       `;
-      return NextResponse.json({ success: true, ficha: proyecto || null, docentes, ciclos });
+      const lideres = await obtenerLideresPorProyecto(sql);
+      return NextResponse.json({ success: true, ficha: proyecto ? conLider(proyecto, lideres) : null, docentes, ciclos });
     }
 
     if (seccion === 'objetivos') {
@@ -162,7 +164,7 @@ export async function POST(request: Request) {
         vigencia_inicio, vigencia_fin, ods, linea_investigacion, zona,
         codigo_documento_lider, revision_documento_lider,
         codigo_documento_supervisor, revision_documento_supervisor,
-        firmante_responsable_id, lider_id
+        firmante_responsable_id
       } = body;
 
       await sql`
@@ -181,7 +183,6 @@ export async function POST(request: Request) {
           codigo_documento_supervisor = ${codigo_documento_supervisor || null},
           revision_documento_supervisor = ${revision_documento_supervisor || null},
           firmante_responsable_id = ${firmante_responsable_id || null},
-          lider_id = ${lider_id || null},
           actualizado_en = now()
         WHERE id = 'vinculacion'
       `;

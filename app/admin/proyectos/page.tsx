@@ -315,11 +315,9 @@ export default function AdminProyectosPage() {
                   </div>
 
                   <h3 className="font-bold text-uleam-blue mt-4">Líder / contacto</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <input type="text" placeholder="Nombre" value={formData.lider_nombre} onChange={(e) => setFormData({ ...formData, lider_nombre: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-lg outline-none" />
-                    <input type="email" placeholder="Email" value={formData.lider_email} onChange={(e) => setFormData({ ...formData, lider_email: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-lg outline-none" />
-                    <input type="text" placeholder="ORCID (opcional)" value={formData.lider_orcid} onChange={(e) => setFormData({ ...formData, lider_orcid: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-lg outline-none" />
-                  </div>
+                  <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                    El líder de cada proyecto se define en <strong>Miembros</strong>: marca el proyecto y elige el rol <strong>Líder</strong>. Su nombre, correo y ORCID de contacto salen de su tarjeta pública.
+                  </p>
                 </>
               )}
             </div>

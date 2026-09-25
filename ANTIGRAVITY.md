@@ -13,6 +13,7 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Claude Code:** Encargado de implementaciones puntuales, revisiones de código rápidas, ajustes de UI (Tailwind) y tareas de mantenimiento del día a día.
 
 ### Reglas de Sincronización
+0b. **Permisos y líderes:** el líder de un proyecto y los módulos `vinculacion`/`vinculacion_gestion`/`investigacion` ahora se derivan de `proyecto_miembros` (ver `CLAUDE.md`, Sesión 51). No escribas `proyectos.lider_id` ni `usuarios.modulos_acceso` a mano: usa el equipo del proyecto y `lib/permisosPertenencia.ts`.
 0. **Ramas y worktrees (decisión del usuario, 2026-09-25):** cada agente trabaja en su propia rama con `git worktree`; el árbol principal no se edita en paralelo. Integra a `main` solo con `tsc` y `build` en verde, sin marcas de conflicto ni archivos vacíos. Ver `CLAUDE.md` → regla 10b.
 1. **Compartir Estado:** Cada vez que realices un cambio estructural importante, actualiza el archivo `CLAUDE.md` para que Claude esté enterado de las nuevas convenciones o cambios en el esquema de Neon.
 2. **Respetar Tareas:** Si un requerimiento es mejor manejado por Claude (ej. un ajuste menor de CSS), puedes sugerirle al usuario delegarlo.

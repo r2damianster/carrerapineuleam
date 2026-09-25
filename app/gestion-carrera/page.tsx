@@ -70,7 +70,7 @@ export default function GestionCarreraPage() {
     // Desarrollo de Habilidades Lingüísticas, Mentoring) — no todo lo que tenga
     // area='investigacion' en la tabla `proyectos` (esa también incluye RED LEA,
     // que es una red no un proyecto propio, y Docencia Innovadora, que no tiene
-    // líder de investigación propio, ver proyectos.lider_id).
+    // líder de investigación propio, ver proyecto_miembros).
     const PROYECTOS_INVESTIGACION_IDS = ['internacionalizacion', 'desarrollo_habilidades', 'mentoring'];
     fetch('/api/proyectos?all=true')
       .then(res => res.ok ? res.json() : [])

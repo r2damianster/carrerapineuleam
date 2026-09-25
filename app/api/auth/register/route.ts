@@ -73,8 +73,8 @@ export async function POST(request: Request) {
     // `members` para este email, el ORCID se propone como pendiente de aprobación
     // (solicitarPublicacionPerfil) — nunca se crea una tarjeta nueva por registrarse.
     const userResult = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, cedula, orcid, genero, fecha_nacimiento)
-      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${cedula}, ${orcid}, ${genero}, ${fecha_nacimiento})
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, modulos_manuales, cedula, orcid, genero, fecha_nacimiento)
+      VALUES (${nombres}, ${apellidos}, ${email}, ${password_hash}, ${rol}, ${modulosAcceso}, ${modulosAcceso}, ${cedula}, ${orcid}, ${genero}, ${fecha_nacimiento})
       RETURNING id
     `;
 
