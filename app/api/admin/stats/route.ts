@@ -21,12 +21,18 @@ export async function GET(request: Request) {
     const hasta: string | null = periodo ? String(periodo.fecha_fin).slice(0, 10) : null;
 
     // 1. Estudiantes de investigación (Meta: 6 en 2 años)
+    // Acumulado: módulo investigacion o alguna actividad. Con período: solo quienes reportaron
+    // actividades de investigación con fecha dentro del período (el módulo no tiene fecha).
     const investigadores = await sql`
       SELECT COUNT(DISTINCT u.id)::int as total
       FROM usuarios u
       LEFT JOIN actividades_investigacion_pasante a ON a.usuario_id = u.id
+        AND (${desde}::date IS NULL OR a.fecha BETWEEN ${desde}::date AND ${hasta}::date)
       WHERE u.rol = 'estudiante'
-        AND ('investigacion' = ANY(u.modulos_acceso) OR a.id IS NOT NULL)
+        AND (
+          (${desde}::date IS NULL AND 'investigacion' = ANY(u.modulos_acceso))
+          OR a.id IS NOT NULL
+        )
     `;
 
     // 2. Satisfacción de beneficiarios (Meta: 70% o > 3.5/5.0)
