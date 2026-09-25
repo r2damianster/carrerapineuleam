@@ -274,9 +274,14 @@ export default function SupervisarAsistenciaPage() {
               <span>Todo lo que debes aprobar, en una sola lista. Las horas cuentan solo al aprobar.</span>
             </p>
           </div>
-          <Link href="/vinculacion/supervisar/indicadores" className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0">
-            <span>📊 Ver Indicadores & Analítica &rarr;</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Link href="/vinculacion/informes" className="bg-uleam-blue text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:opacity-90 transition-all flex items-center gap-1.5">
+              <span>📄 Generar Informe Mensual (.docx) &rarr;</span>
+            </Link>
+            <Link href="/vinculacion/supervisar/indicadores" className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5">
+              <span>📊 Ver Indicadores & Analítica &rarr;</span>
+            </Link>
+          </div>
         </div>
 
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
