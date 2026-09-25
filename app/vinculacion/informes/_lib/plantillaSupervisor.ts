@@ -126,7 +126,7 @@ export interface DatosInformeSupervisor {
   general: Record<string, any>;
   tareas: any[];
   no_previstas: any[];
-  participacion: { pasantes: any[]; grupos: any[]; genero: Record<string, number>; edad: Record<string, number> };
+  participacion: { pasantes: any[]; grupos: any[]; genero: Record<string, number>; edad: Record<string, number>; audiencia_podcast?: number };
   fotos: { url: string; fecha: string; espacio_nombre: string; num_beneficiarios: number; num_pasantes: number }[];
   obstaculos?: { descripcion: string; recomendacion: string }[];
 }
@@ -235,13 +235,13 @@ export async function generarInformeSupervisorDesdePlantilla(
   // 2.3 Actividades no previstas.
   const nuevaNoPrevistas = construirTablaTareas(
     tablaNoPrevistas,
-    datos.no_previstas.map(sesion => [
-      `Sesión en ${sesion.espacio_nombre} (${sesion.fecha})`,
-      '100%',
-      String(sesion.pasantes ?? 0),
-      `${sesion.beneficiarios_atendidos ?? 0} beneficiarios atendidos`,
-      '',
-      [`${sesion.horas_acreditadas ?? 0} h`, sesion.observaciones].filter(Boolean).join('. '),
+    datos.no_previstas.map(actividad => [
+      actividad.tarea,
+      actividad.avance != null ? `${actividad.avance}%` : '—',
+      String(actividad.alumnos ?? 0),
+      actividad.productos_sociales || '',
+      actividad.productos_academicos || '',
+      actividad.observaciones || '',
     ])
   );
   xml = sustituir(xml, tablaNoPrevistas, nuevaNoPrevistas);
@@ -264,12 +264,16 @@ export async function generarInformeSupervisorDesdePlantilla(
       { tamano: 18 }
     )
   );
+  const audienciaPodcast = datos.participacion.audiencia_podcast ?? 0;
+  const lineaAudiencia = audienciaPodcast > 0
+    ? parrafo(corrida(`Audiencia alcanzada por los podcasts de Vinculación del periodo: ${audienciaPodcast} personas.`, { tamano: 18 }))
+    : '';
   const imagenPasantes = graficos.pasantes ? imagenComoParrafo(graficos.pasantes, 'png', 420) : '';
   const imagenGenero = graficos.genero ? imagenComoParrafo(graficos.genero, 'png', 300) : '';
   const agregarAlFinalDeCelda = (filaXml: string, contenido: string) => filaXml.replace(/<\/w:tc>(?![\s\S]*<\/w:tc>)/, () => `${contenido}</w:tc>`);
   let nuevaParticipacion = tablaParticipacion;
   if (filasParticipacion[2]) nuevaParticipacion = nuevaParticipacion.replace(filasParticipacion[2], agregarAlFinalDeCelda(filasParticipacion[2], lineasEstudiantes + imagenPasantes));
-  if (filasParticipacion[4]) nuevaParticipacion = nuevaParticipacion.replace(filasParticipacion[4], agregarAlFinalDeCelda(filasParticipacion[4], lineaSexo + imagenGenero));
+  if (filasParticipacion[4]) nuevaParticipacion = nuevaParticipacion.replace(filasParticipacion[4], agregarAlFinalDeCelda(filasParticipacion[4], lineaSexo + lineaAudiencia + imagenGenero));
   xml = sustituir(xml, tablaParticipacion, nuevaParticipacion);
 
   // 4. Obstáculos: Restricciones / Acción correctiva.

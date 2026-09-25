@@ -5,7 +5,7 @@ import { puedeSupervisarVinculacion, puedeGestionarVinculacion } from '@/lib/mod
 import { datosInformeLider } from '@/lib/informesVinculacion';
 import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervisor';
 import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
-import { datosInformeSupervisor } from '@/lib/informeSupervisorTareas';
+import { datosInformeSupervisor, recopilarSenalesObstaculos } from '@/lib/informeSupervisorTareas';
 import { generarDocxLider } from '../_lib/docxLider';
 import {
   generarGraficoPasantesHoras,
@@ -145,37 +145,76 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { accion } = body;
 
-    if (accion === 'redactar-productos') {
-      const { tarea, periodo } = body;
-      if (!tarea?.nombre) return NextResponse.json({ error: 'Falta la tarea' }, { status: 400 });
+    if (accion === 'redactar-todo') {
+      const { mes: mesBody, supervisor_id: supervisorIdBody, forzar } = body;
+      const mes = String(mesBody || '').slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(mes)) return NextResponse.json({ error: 'Mes inválido' }, { status: 400 });
+      const supervisorId = supervisorIdBody && puedeGestionarVinculacion(usuario) ? Number(supervisorIdBody) : Number(usuario.id);
+      const mesFecha = `${mes}-01`;
+
+      const datos = await datosInformeSupervisor(sql, { supervisorId, mes });
+      const senales = await recopilarSenalesObstaculos(sql, supervisorId, mes);
+      const existentes = await sql`SELECT id FROM supervision_obstaculos WHERE supervisor_id = ${supervisorId} AND mes = ${mesFecha}::date`;
+      const necesitaObstaculos = forzar ? true : existentes.length === 0;
+      const tareasConActividad = datos.tareas.filter((tarea: any) => (tarea.realizado ?? 0) > 0 || tarea.observaciones);
+
+      const resumenTareas = tareasConActividad.map((tarea: any) => ({
+        codigo: tarea.codigo,
+        tarea: tarea.nombre,
+        meta: `${tarea.meta ?? 'sin meta'} ${tarea.unidad}`,
+        realizado: tarea.realizado ?? 0,
+        estudiantes: tarea.alumnos,
+        registros: tarea.observaciones,
+      }));
+      const indicaciones =
+        'Eres un docente supervisor de un proyecto de vinculación con la sociedad de una universidad ecuatoriana. Redactas con tono formal, en español, usando SOLO los datos dados (no inventes cifras, nombres ni lugares, sin placeholders entre corchetes).';
+      const pedido =
+        `Periodo: ${datos.periodo.etiquetaPeriodo}, corte a ${datos.periodo.etiqueta}.\n` +
+        `TAREAS CON ACTIVIDAD: ${JSON.stringify(resumenTareas)}\n` +
+        `SEÑALES DEL PERIODO: ${JSON.stringify(senales)}\n\n` +
+        'Devuelve SOLO un JSON con esta forma: {"tareas":[{"codigo":"1.1","productos_sociales":"...","productos_academicos":"..."}],"obstaculos":[{"descripcion":"...","recomendacion":"..."}]}.\n' +
+        'productos_sociales = beneficio para la comunidad y los beneficiarios; productos_academicos = aprendizajes o evidencias para los estudiantes universitarios; máx. 40 palabras cada uno, una entrada por cada tarea con actividad.\n' +
+        (necesitaObstaculos
+          ? 'obstaculos: de 1 a 3 restricciones con su acción correctiva. Primero deduce las restricciones de las observaciones existentes (SEÑALES.observaciones). Si no hay observaciones, infiere restricciones razonables a partir de los datos (sesiones pendientes o rechazadas, tareas sin registros o con bajo avance frente a su meta) y redáctalas como riesgos reales del periodo, sin afirmar hechos que los datos no respalden.'
+          : 'obstaculos: devuelve una lista vacía.');
       try {
         const respuesta = await pedirCompletionIA(
-          [
-            { role: 'system', content: 'Eres un docente supervisor de un proyecto de vinculación con la sociedad de una universidad ecuatoriana. Redactas con tono formal, en español.' },
-            {
-              role: 'user',
-              content:
-                `Redacta los "productos obtenidos" de esta tarea del proyecto para el informe de seguimiento.\n` +
-                `Tarea: ${tarea.codigo} ${tarea.nombre}\nPeriodo: ${periodo || ''}\n` +
-                `Meta: ${tarea.meta ?? 'sin meta'} ${tarea.unidad || ''}. Realizado: ${tarea.realizado ?? 0}. Estudiantes participantes: ${tarea.alumnos ?? 0}.\n` +
-                `Registros: ${tarea.observaciones || 'sin detalle'}\n\n` +
-                'REGLAS: usa solo los datos dados, no inventes cifras, nombres ni lugares. Sin placeholders entre corchetes. ' +
-                'productos_sociales = beneficio para la comunidad/beneficiarios (máx. 40 palabras). ' +
-                'productos_academicos = aprendizajes o evidencias para los estudiantes universitarios (máx. 40 palabras).\n' +
-                'Responde SOLO un JSON: {"productos_sociales":"...","productos_academicos":"..."}',
-            },
-          ],
+          [{ role: 'system', content: indicaciones }, { role: 'user', content: pedido }],
           { temperature: 0.3, responseFormatJson: true }
         );
         const resultado = JSON.parse(respuesta);
-        return NextResponse.json({
-          success: true,
-          productos_sociales: String(resultado.productos_sociales || ''),
-          productos_academicos: String(resultado.productos_academicos || ''),
-        });
+        const obstaculosNuevos: any[] = [];
+        if (necesitaObstaculos) {
+          if (forzar && existentes.length) await sql`DELETE FROM supervision_obstaculos WHERE supervisor_id = ${supervisorId} AND mes = ${mesFecha}::date`;
+          for (const obstaculo of (resultado.obstaculos || []).slice(0, 3)) {
+            if (!obstaculo?.descripcion) continue;
+            const [fila] = await sql`
+              INSERT INTO supervision_obstaculos (supervisor_id, mes, restriccion, impacto, accion_correctiva)
+              VALUES (${supervisorId}, ${mesFecha}::date, ${String(obstaculo.descripcion)}, 'medio', ${obstaculo.recomendacion ? String(obstaculo.recomendacion) : null})
+              RETURNING id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
+            `;
+            obstaculosNuevos.push(fila);
+          }
+        }
+        return NextResponse.json({ success: true, tareas: resultado.tareas || [], obstaculos: obstaculosNuevos });
       } catch (error) {
         return NextResponse.json({ error: formatearErrorIA(error) }, { status: 500 });
       }
+    }
+
+    if (accion === 'guardar-no-prevista') {
+      const { mes: mesBody, tarea, avance, alumnos, productos_sociales, productos_academicos, observaciones } = body;
+      const mesFecha = /^\d{4}-\d{2}$/.test(mesBody || '') ? `${mesBody}-01` : mesBody;
+      if (!mesFecha || !String(tarea || '').trim()) {
+        return NextResponse.json({ error: 'Mes y tarea son requeridos' }, { status: 400 });
+      }
+      const [nueva] = await sql`
+        INSERT INTO informe_no_previstas (supervisor_id, mes, tarea, avance, alumnos, productos_sociales, productos_academicos, observaciones)
+        VALUES (${Number(usuario.id)}, ${mesFecha}::date, ${String(tarea).trim()}, ${Math.min(100, Math.max(0, Number(avance) || 0))},
+                ${Math.max(0, Number(alumnos) || 0)}, ${productos_sociales || null}, ${productos_academicos || null}, ${observaciones || null})
+        RETURNING id, tarea, avance, alumnos, productos_sociales, productos_academicos, observaciones
+      `;
+      return NextResponse.json({ success: true, actividad: { ...nueva, manual: true } });
     }
 
     if (accion === 'guardar-obstaculo') {
@@ -245,9 +284,13 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'Se requiere id de obstáculo' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'Se requiere id' }, { status: 400 });
 
     const sql = neon(process.env.DATABASE_URL!);
+    if (searchParams.get('tipo') === 'no-prevista') {
+      await sql`DELETE FROM informe_no_previstas WHERE id = ${parseInt(id)} AND supervisor_id = ${Number(usuario.id)}`;
+      return NextResponse.json({ success: true });
+    }
     await sql`
       DELETE FROM supervision_obstaculos
       WHERE id = ${parseInt(id)} AND supervisor_id = ${Number(usuario.id)}

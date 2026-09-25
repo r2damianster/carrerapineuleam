@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -195,7 +195,9 @@ function InformesVinculacionContenido() {
     }
   };
 
-  const [redactandoTarea, setRedactandoTarea] = useState<number | null>(null);
+  const [redactandoTodo, setRedactandoTodo] = useState(false);
+  const mesesConIAIntentada = useRef<Set<string>>(new Set());
+  const [nuevaNoPrevista, setNuevaNoPrevista] = useState({ tarea: '', avance: '100', alumnos: '0', productos_sociales: '', productos_academicos: '', observaciones: '' });
 
   const actualizarTarea = (indiceTarea: number, cambios: Record<string, string>) => {
     setDatosSupervisor((previo: any) => ({
@@ -204,21 +206,67 @@ function InformesVinculacionContenido() {
     }));
   };
 
-  const redactarProductosIA = async (indiceTarea: number) => {
-    setRedactandoTarea(indiceTarea);
+  // IA en un solo paso: productos de todas las tareas y obstáculos (de las observaciones existentes o inferidos).
+  const redactarTodoIA = async (forzar: boolean) => {
+    setRedactandoTodo(true);
     try {
       const respuesta = await fetch('/vinculacion/informes/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'redactar-productos', tarea: datosSupervisor.tareas[indiceTarea], periodo: datosSupervisor.periodo?.etiquetaPeriodo }),
+        body: JSON.stringify({ accion: 'redactar-todo', mes, forzar }),
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) throw new Error(resultado.error);
-      actualizarTarea(indiceTarea, { productos_sociales: resultado.productos_sociales, productos_academicos: resultado.productos_academicos });
+      setDatosSupervisor((previo: any) => ({
+        ...previo,
+        tareas: previo.tareas.map((tarea: any) => {
+          const redactada = (resultado.tareas || []).find((item: any) => item.codigo === tarea.codigo);
+          if (!redactada) return tarea;
+          return {
+            ...tarea,
+            productos_sociales: forzar || !tarea.productos_sociales ? redactada.productos_sociales : tarea.productos_sociales,
+            productos_academicos: forzar || !tarea.productos_academicos ? redactada.productos_academicos : tarea.productos_academicos,
+          };
+        }),
+      }));
+      if (resultado.obstaculos?.length) setObstaculos(forzar ? resultado.obstaculos : previos => [...previos, ...resultado.obstaculos]);
     } catch (error: any) {
-      alert(`Error al generar borrador con IA: ${error.message}`);
+      setMensaje(`No se pudieron redactar los borradores con IA: ${error.message}`);
     } finally {
-      setRedactandoTarea(null);
+      setRedactandoTodo(false);
+    }
+  };
+
+  // Al abrir un mes, los borradores se generan solos (una sola vez por mes) para no hacer clic en cada cuadro.
+  useEffect(() => {
+    if (tab !== 'supervisor' || !datosSupervisor?.periodo || mesesConIAIntentada.current.has(mes)) return;
+    mesesConIAIntentada.current.add(mes);
+    redactarTodoIA(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, mes, datosSupervisor?.periodo?.etiqueta]);
+
+  const agregarNoPrevista = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevaNoPrevista.tarea.trim()) return;
+    try {
+      const respuesta = await fetch('/vinculacion/informes/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'guardar-no-prevista', mes, ...nuevaNoPrevista }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) throw new Error(resultado.error);
+      setDatosSupervisor((previo: any) => ({ ...previo, no_previstas: [...(previo.no_previstas || []), resultado.actividad] }));
+      setNuevaNoPrevista({ tarea: '', avance: '100', alumnos: '0', productos_sociales: '', productos_academicos: '', observaciones: '' });
+    } catch (error: any) {
+      alert(`Error al guardar la actividad: ${error.message}`);
+    }
+  };
+
+  const eliminarNoPrevista = async (id: number) => {
+    const respuesta = await fetch(`/vinculacion/informes/api?id=${id}&tipo=no-prevista`, { method: 'DELETE' });
+    if (respuesta.ok) {
+      setDatosSupervisor((previo: any) => ({ ...previo, no_previstas: previo.no_previstas.filter((actividad: any) => actividad.id !== id) }));
     }
   };
 
@@ -365,7 +413,18 @@ function InformesVinculacionContenido() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold text-uleam-blue mb-1">2. Tareas del Proyecto — {datosSupervisor.periodo?.etiquetaPeriodo}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <h2 className="text-lg font-bold text-uleam-blue">2. Tareas del Proyecto — {datosSupervisor.periodo?.etiquetaPeriodo}</h2>
+                <button
+                  type="button"
+                  onClick={() => redactarTodoIA(true)}
+                  disabled={redactandoTodo}
+                  className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
+                >
+                  {redactandoTodo ? 'Redactando con IA...' : '✨ Regenerar todos los borradores con IA'}
+                </button>
+              </div>
+              {redactandoTodo && <p className="text-xs text-purple-700 mb-2">La IA está redactando los productos y obstáculos del periodo…</p>}
               <p className="text-xs text-gray-500 mb-4">
                 Avance calculado con tus registros aprobados frente a la meta de cada tarea. Las tareas sin registros aprobados no se listan en la sección 2.2 del documento, pero sí aparecen en el cronograma.
               </p>
@@ -396,28 +455,39 @@ function InformesVinculacionContenido() {
                           <textarea rows={3} value={tarea.productos_academicos || ''} onChange={e => actualizarTarea(indiceTarea, { productos_academicos: e.target.value })} className="w-full p-2 border rounded text-xs" />
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => redactarProductosIA(indiceTarea)}
-                        disabled={redactandoTarea === indiceTarea}
-                        className="mt-2 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
-                      >
-                        {redactandoTarea === indiceTarea ? 'Redactando con IA...' : '✨ Generar borrador con IA'}
-                      </button>
                     </div>
                   ))}
                 </div>
               )}
-              {datosSupervisor.no_previstas?.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-bold text-gray-700 mb-1">Actividades no previstas (2.3)</h3>
-                  <ul className="text-xs text-gray-600 list-disc pl-5">
-                    {datosSupervisor.no_previstas.map((sesion: any, indiceSesion: number) => (
-                      <li key={indiceSesion}>{sesion.espacio_nombre} · {sesion.fecha} · {sesion.horas_acreditadas} h</li>
+              <div className="mt-6 border-t pt-4">
+                <h3 className="text-sm font-bold text-gray-700 mb-1">2.3 Actividades no previstas inicialmente</h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  Se incluyen solas las sesiones aprobadas en espacios de categoría «otro». Aquí puedes agregar las que se incorporaron durante la ejecución del proyecto.
+                </p>
+                {datosSupervisor.no_previstas?.length > 0 && (
+                  <ul className="text-xs text-gray-700 space-y-1 mb-3">
+                    {datosSupervisor.no_previstas.map((actividad: any, indiceActividad: number) => (
+                      <li key={actividad.id ?? `auto-${indiceActividad}`} className="flex items-start justify-between gap-2 bg-gray-50 border rounded p-2">
+                        <span><strong>{actividad.tarea}</strong> · {actividad.avance}% · {actividad.alumnos} estudiante(s){actividad.observaciones ? ` · ${actividad.observaciones}` : ''}</span>
+                        {actividad.manual && <button type="button" onClick={() => eliminarNoPrevista(actividad.id)} className="text-red-600 hover:underline shrink-0">Eliminar</button>}
+                      </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                )}
+                <form onSubmit={agregarNoPrevista} className="bg-gray-50 p-3 rounded-lg border space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input required placeholder="Tarea / actividad no prevista" value={nuevaNoPrevista.tarea} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, tarea: e.target.value })} className="sm:col-span-1 px-2 py-1.5 border rounded text-xs" />
+                    <input type="number" min="0" max="100" placeholder="Avance %" value={nuevaNoPrevista.avance} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, avance: e.target.value })} className="px-2 py-1.5 border rounded text-xs" />
+                    <input type="number" min="0" placeholder="No. alumnos" value={nuevaNoPrevista.alumnos} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, alumnos: e.target.value })} className="px-2 py-1.5 border rounded text-xs" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input placeholder="Productos (fines sociales)" value={nuevaNoPrevista.productos_sociales} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, productos_sociales: e.target.value })} className="px-2 py-1.5 border rounded text-xs" />
+                    <input placeholder="Productos (fines académicos)" value={nuevaNoPrevista.productos_academicos} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, productos_academicos: e.target.value })} className="px-2 py-1.5 border rounded text-xs" />
+                    <input placeholder="Observaciones" value={nuevaNoPrevista.observaciones} onChange={e => setNuevaNoPrevista({ ...nuevaNoPrevista, observaciones: e.target.value })} className="px-2 py-1.5 border rounded text-xs" />
+                  </div>
+                  <button type="submit" className="px-3 py-1.5 bg-uleam-blue text-white text-xs font-bold rounded hover:opacity-90">+ Agregar actividad no prevista</button>
+                </form>
+              </div>
               <p className="text-xs text-gray-500 mt-4">
                 Adjuntos: {datosSupervisor.fotos?.length || 0} foto(s) de sesiones aprobadas de {datosSupervisor.general?.mes}, elegidas al azar (una por espacio primero) con leyenda de espacio y fecha.
               </p>

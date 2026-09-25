@@ -25,6 +25,7 @@ export interface RegistrosFuente {
   sesiones: number;
   horas: number;
   detalle: string;
+  audiencia?: number; // audiencia alcanzada (podcasts y eventos)
 }
 
 export interface TareaInforme {
@@ -36,6 +37,7 @@ export interface TareaInforme {
   realizado: number | null;
   avance: number | null; // 0-100
   alumnos: number;
+  audiencia: number;
   productos_sociales: string;
   productos_academicos: string;
   observaciones: string;
@@ -134,36 +136,40 @@ export async function registrosPorFuente(
 
   if (fuente === 'podcast') {
     const episodios = await sql`
-      SELECT v.id, v.title, hp.usuario_id
+      SELECT v.id, v.title, hp.usuario_id, COALESCE(v.audiencia_alcanzada, 0)::int AS audiencia
       FROM horas_podcast_pasante hp
       JOIN videos v ON v.id = hp.video_id
       WHERE hp.usuario_id = ANY(${idsPasantes}) AND hp.estado_aprobacion = 'aprobado'
         AND LEFT(COALESCE(v.published_date::text, v.created::text), 10)::date BETWEEN ${desde}::date AND ${hasta}::date
     `;
     const ids = Array.from(new Set(episodios.map((fila: any) => fila.id)));
+    const audienciaPodcast = ids.reduce((total: number, id: any) => total + (episodios.find((fila: any) => fila.id === id)?.audiencia ?? 0), 0);
     return {
       cantidad: ids.length,
+      audiencia: audienciaPodcast,
       pasantesIds: Array.from(new Set(episodios.map((fila: any) => fila.usuario_id))),
       sesiones: ids.length,
       horas: 0,
-      detalle: ids.length ? `${ids.length} episodio(s) de podcast aprobados` : '',
+      detalle: ids.length ? `${ids.length} episodio(s) de podcast aprobados, audiencia alcanzada: ${audienciaPodcast} personas` : '',
     };
   }
 
   if (fuente === 'evento') {
     const eventos = await sql`
-      SELECT d.id, d.titulo, d.registrador_id
+      SELECT d.id, d.titulo, d.registrador_id, COALESCE(d.audiencia_alcanzada, 0)::int AS audiencia
       FROM actividades_difusion d
       WHERE d.tipo <> 'podcast' AND d.aprobado_sitio = true
         AND d.fecha BETWEEN ${desde}::date AND ${hasta}::date
         AND (d.registrador_id = ANY(${[...idsPasantes, supervisorId]}) OR ${supervisorId} = ANY(d.profesores_responsables))
     `;
+    const audienciaEventos = eventos.reduce((total: number, fila: any) => total + fila.audiencia, 0);
     return {
       cantidad: eventos.length,
+      audiencia: audienciaEventos,
       pasantesIds: Array.from(new Set(eventos.map((fila: any) => fila.registrador_id).filter((id: number) => pasantesIds.includes(id)))),
       sesiones: eventos.length,
       horas: 0,
-      detalle: eventos.length ? `Eventos: ${eventos.map((fila: any) => fila.titulo).join('; ')}` : '',
+      detalle: eventos.length ? `Eventos: ${eventos.map((fila: any) => fila.titulo).join('; ')} (audiencia alcanzada: ${audienciaEventos})` : '',
     };
   }
 
@@ -299,6 +305,7 @@ export async function datosInformeSupervisor(
         realizado: acumulado.cantidad,
         avance: calcularAvance(acumulado.cantidad, actividad.meta),
         alumnos: acumulado.pasantesIds.length,
+        audiencia: acumulado.audiencia ?? 0,
         productos_sociales: '',
         productos_academicos: '',
         observaciones: acumulado.detalle,
@@ -309,20 +316,39 @@ export async function datosInformeSupervisor(
     })
   );
 
-  // Actividades no previstas: sesiones aprobadas en espacios de categoría "otro".
+  // Actividades no previstas (2.3): sesiones aprobadas en espacios de categoría "otro" o marcadas como no previstas,
+  // más las actividades que el supervisor registra a mano en el informe.
   const idsOtro = espacios.filter((espacio: any) => espacio.categoria === 'otro').map((espacio: any) => espacio.id);
-  const noPrevistas = idsOtro.length
-    ? await sql`
-        SELECT e.nombre AS espacio_nombre, to_char(a.fecha, 'YYYY-MM-DD') AS fecha, a.observaciones,
-               (SELECT COUNT(*) FROM asistencia_instructores ai WHERE ai.asistencia_id = a.id)::int AS pasantes,
-               (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS beneficiarios_atendidos,
-               ROUND(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0::numeric, 1)::float AS horas_acreditadas
-        FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
-        WHERE a.espacio_id = ANY(${idsOtro}) AND a.estado_aprobacion = 'aprobado'
-          AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
-        ORDER BY a.fecha ASC
-      `
-    : [];
+  const sesionesFueraDePlan = await sql`
+    SELECT e.nombre AS espacio_nombre, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.observaciones,
+           (SELECT COUNT(*) FROM asistencia_instructores ai WHERE ai.asistencia_id = a.id)::int AS pasantes,
+           (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS beneficiarios_atendidos,
+           ROUND(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0::numeric, 1)::float AS horas_acreditadas
+    FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
+    WHERE a.espacio_id = ANY(${idsConsulta}) AND (a.espacio_id = ANY(${idsOtro.length ? idsOtro : [0]}) OR a.no_prevista = true)
+      AND a.estado_aprobacion = 'aprobado'
+      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
+    ORDER BY a.fecha ASC
+  `;
+  const registradasAMano = await sql`
+    SELECT id, tarea, avance, alumnos, productos_sociales, productos_academicos, observaciones
+    FROM informe_no_previstas
+    WHERE supervisor_id = ${params.supervisorId} AND mes BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
+    ORDER BY mes ASC, id ASC
+  `;
+  const noPrevistas = [
+    ...sesionesFueraDePlan.map((sesion: any) => ({
+      id: null,
+      manual: false,
+      tarea: `Sesión en ${sesion.espacio_nombre} (${sesion.fecha})`,
+      avance: 100,
+      alumnos: sesion.pasantes ?? 0,
+      productos_sociales: `${sesion.beneficiarios_atendidos ?? 0} beneficiarios atendidos`,
+      productos_academicos: '',
+      observaciones: [`${sesion.horas_acreditadas ?? 0} h`, sesion.observaciones].filter(Boolean).join('. '),
+    })),
+    ...registradasAMano.map((actividad: any) => ({ ...actividad, manual: true })),
+  ];
 
   const [beneficiarios] = await sql`
     SELECT COUNT(DISTINCT ie.beneficiario_id)::int AS total FROM inscripciones_espacio ie WHERE ie.espacio_id = ANY(${idsConsulta})
@@ -399,7 +425,42 @@ export async function datosInformeSupervisor(
     },
     tareas,
     no_previstas: noPrevistas,
-    participacion: { pasantes: horasPasantes, grupos: gruposEspacios, genero, edad },
+    participacion: {
+      pasantes: horasPasantes,
+      grupos: gruposEspacios,
+      genero,
+      edad,
+      audiencia_podcast: tareas.filter(tarea => tarea.fuente === 'podcast').reduce((total, tarea) => total + tarea.audiencia, 0),
+    },
     fotos: elegirFotos(fotosCandidatas),
+  };
+}
+
+/** Textos existentes del periodo (observaciones, comentarios, rechazos) para deducir obstáculos. */
+export async function recopilarSenalesObstaculos(sql: Sql, supervisorId: number, mes: string) {
+  const mesNormalizado = mes.slice(0, 7);
+  const periodoProyecto = periodoDeMes(mesNormalizado);
+  const desde = periodoProyecto?.desde ?? `${mesNormalizado}-01`;
+  const hasta = `${mesNormalizado}-${dosDigitos(new Date(Number(mesNormalizado.slice(0, 4)), Number(mesNormalizado.slice(5, 7)), 0).getDate())}`;
+  const sesiones = await sql`
+    SELECT e.nombre AS espacio, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.estado_aprobacion AS estado,
+           a.observaciones, a.comentario_supervisor, a.motivo_rechazo
+    FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
+    WHERE e.area = 'vinculacion' AND e.profesor_id = ${supervisorId}
+      AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
+    ORDER BY a.fecha DESC
+  `;
+  const conTexto = sesiones
+    .filter((sesion: any) => sesion.observaciones || sesion.comentario_supervisor || sesion.motivo_rechazo)
+    .map((sesion: any) => ({
+      espacio: sesion.espacio,
+      fecha: sesion.fecha,
+      texto: [sesion.observaciones, sesion.comentario_supervisor, sesion.motivo_rechazo ? `Rechazada: ${sesion.motivo_rechazo}` : ''].filter(Boolean).join(' | '),
+    }));
+  return {
+    observaciones: conTexto,
+    sesionesPendientes: sesiones.filter((sesion: any) => sesion.estado === 'pendiente').length,
+    sesionesRechazadas: sesiones.filter((sesion: any) => sesion.estado === 'rechazado').length,
+    sesionesTotales: sesiones.length,
   };
 }
