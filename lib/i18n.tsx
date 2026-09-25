@@ -74,9 +74,6 @@ const translations = {
       },
     },
     careerProfile: {
-      eyebrow: "Formación Académica PINE",
-      title: "Conoce la Carrera",
-      intro: "Misión, visión, descripción, malla curricular, docentes y contactos de la carrera de Pedagogía de los Idiomas Nacionales y Extranjeros.",
       tabs: { egreso: "Perfil de Egreso", mision: "Misión y Visión", descripcion: "Descripción de la Carrera", malla: "Malla Curricular", docentes: "Docentes", contactos: "Contactos" },
       mision: {
         missionTitle: "Misión",
@@ -660,9 +657,6 @@ const translations = {
       },
     },
     careerProfile: {
-      eyebrow: "PINE Academic Training",
-      title: "Discover the Program",
-      intro: "Mission, vision, program description, curriculum, faculty, and contacts of the Pedagogy of National and Foreign Languages program.",
       tabs: { egreso: "Graduate Profile", mision: "Mission & Vision", descripcion: "Program Description", malla: "Curriculum", docentes: "Faculty", contactos: "Contacts" },
       mision: {
         missionTitle: "Mission",
