@@ -47,7 +47,19 @@ interface RegistroHoras {
   espacio_nombre?: string | null;
 }
 
-type Pestana = 'asistencia' | 'podcast' | 'investigacion' | 'autonomas';
+type TipoHoras = 'podcast' | 'investigacion' | 'autonomas';
+type TipoRegistro = 'asistencia' | TipoHoras;
+type FiltroTipo = 'todos' | TipoRegistro;
+
+const TIPOS_REGISTRO: TipoRegistro[] = ['asistencia', 'podcast', 'investigacion', 'autonomas'];
+
+// Etiqueta de color por tipo: todo lo supervisable va en una sola lista, distinguido por esta marca.
+const ETIQUETA_TIPO: Record<TipoRegistro, { texto: string; clases: string }> = {
+  asistencia: { texto: 'Asistencia', clases: 'bg-sky-100 text-sky-800' },
+  podcast: { texto: 'Podcast', clases: 'bg-purple-100 text-purple-800' },
+  investigacion: { texto: 'Investigación', clases: 'bg-indigo-100 text-indigo-800' },
+  autonomas: { texto: 'Autónoma', clases: 'bg-amber-100 text-amber-800' },
+};
 
 const ESTADO_BADGE: Record<string, string> = {
   pendiente: 'bg-yellow-100 text-yellow-800',
@@ -55,72 +67,100 @@ const ESTADO_BADGE: Record<string, string> = {
   rechazado: 'bg-red-100 text-red-800',
 };
 
+type RegistroUnificado =
+  | { clave: string; tipo: 'asistencia'; marcaTiempo: number; estado: string; asistencia: Registro }
+  | { clave: string; tipo: TipoHoras; marcaTiempo: number; estado: string; horas: RegistroHoras };
+
+const aMarcaTiempo = (fecha: string | null | undefined) => {
+  if (!fecha) return 0;
+  const fechaObjeto = new Date(fecha.includes('T') ? fecha : `${fecha}T00:00:00`);
+  return isNaN(fechaObjeto.getTime()) ? 0 : fechaObjeto.getTime();
+};
+
+const formatearFecha = (fecha: string | null | undefined) => {
+  if (!fecha) return '';
+  const fechaObjeto = new Date(fecha.includes('T') ? fecha : `${fecha}T00:00:00`);
+  return isNaN(fechaObjeto.getTime()) ? fecha : fechaObjeto.toLocaleDateString('es-EC');
+};
+
 export default function SupervisarAsistenciaPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
-  const [registros, setRegistros] = useState<Registro[]>([]);
+  const [registrosAsistencia, setRegistrosAsistencia] = useState<Registro[]>([]);
+  const [registrosHoras, setRegistrosHoras] = useState<{ tipo: TipoHoras; registro: RegistroHoras }[]>([]);
   const [espacios, setEspacios] = useState<{ id: number; nombre: string }[]>([]);
   const [instructores, setInstructores] = useState<Instructor[]>([]);
   const [esLider, setEsLider] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [procesandoId, setProcesandoId] = useState<number | null>(null);
+  const [procesandoClave, setProcesandoClave] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
   const [estado, setEstado] = useState('pendiente');
   const [espacioId, setEspacioId] = useState('');
   const [instructorId, setInstructorId] = useState('');
-  const [orden, setOrden] = useState('fecha');
-
-  const [pestana, setPestana] = useState<Pestana>('asistencia');
+  // Filtro por etiqueta: todos (por defecto) o un solo tipo.
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos');
   // Editor de episodios de podcast: undefined = cerrado, null = elegir un video, string = editar ese video.
   const [episodioEnEdicion, setEpisodioEnEdicion] = useState<string | null | undefined>(undefined);
   const [periodoId, setPeriodoId] = useState<string | null>(null); // null = aún sin resolver; '' = todos
   const [supervisor, setSupervisor] = useState('todos');
   const [periodos, setPeriodos] = useState<{ id: number; nombre: string; fecha_inicio: string; fecha_fin: string }[]>([]);
   const [supervisores, setSupervisores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
-  const [registrosHoras, setRegistrosHoras] = useState<RegistroHoras[]>([]);
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (estado) params.set('estado', estado);
-    if (periodoId) params.set('periodo_id', periodoId);
-    if (supervisor) params.set('supervisor', supervisor);
-    let url: string;
-    if (pestana === 'asistencia') {
-      if (espacioId) params.set('espacio_id', espacioId);
-      if (instructorId) params.set('instructor_id', instructorId);
-      if (orden) params.set('orden', orden);
-      url = `/api/vinculacion/supervisar-asistencia?${params}`;
-    } else {
-      params.set('tipo', pestana);
-      url = `/api/vinculacion/supervisar-horas?${params}`;
-    }
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.success) {
-      if (pestana === 'asistencia') {
-        setRegistros(data.data);
-        setEspacios(data.espacios);
-        setInstructores(data.instructores);
-      } else {
-        setRegistrosHoras(data.data);
+    const parametrosBase = new URLSearchParams();
+    if (estado) parametrosBase.set('estado', estado);
+    if (periodoId) parametrosBase.set('periodo_id', periodoId);
+    if (supervisor) parametrosBase.set('supervisor', supervisor);
+
+    const parametrosAsistencia = new URLSearchParams(parametrosBase);
+    if (espacioId) parametrosAsistencia.set('espacio_id', espacioId);
+    if (instructorId) parametrosAsistencia.set('instructor_id', instructorId);
+    parametrosAsistencia.set('orden', 'fecha');
+
+    const urlHoras = (tipo: TipoHoras) => {
+      const parametros = new URLSearchParams(parametrosBase);
+      parametros.set('tipo', tipo);
+      return `/api/vinculacion/supervisar-horas?${parametros}`;
+    };
+
+    try {
+      const tiposHoras: TipoHoras[] = ['podcast', 'investigacion', 'autonomas'];
+      const [respuestaAsistencia, ...respuestasHoras] = await Promise.all([
+        fetch(`/api/vinculacion/supervisar-asistencia?${parametrosAsistencia}`).then(r => r.json()),
+        ...tiposHoras.map(tipo => fetch(urlHoras(tipo)).then(r => r.json())),
+      ]);
+
+      if (respuestaAsistencia.success) {
+        setRegistrosAsistencia(respuestaAsistencia.data);
+        setEspacios(respuestaAsistencia.espacios);
+        setInstructores(respuestaAsistencia.instructores);
+        setEsLider(!!respuestaAsistencia.esLider);
+        setSupervisores(respuestaAsistencia.supervisores || []);
+        if (respuestaAsistencia.periodos) {
+          setPeriodos(respuestaAsistencia.periodos);
+          // Período por defecto: el vigente (el que contiene hoy), o el más reciente.
+          setPeriodoId(previo => {
+            if (previo !== null) return previo;
+            const hoy = new Date().toISOString().slice(0, 10);
+            const vigente = respuestaAsistencia.periodos.find((p: any) => p.fecha_inicio.slice(0, 10) <= hoy && hoy <= p.fecha_fin.slice(0, 10));
+            return String((vigente || respuestaAsistencia.periodos[0])?.id ?? '');
+          });
+        }
       }
-      setEsLider(!!data.esLider);
-      setSupervisores(data.supervisores || []);
-      if (data.periodos) {
-        setPeriodos(data.periodos);
-        // Período por defecto: el vigente (el que contiene hoy), o el más reciente.
-        setPeriodoId(previo => {
-          if (previo !== null) return previo;
-          const hoy = new Date().toISOString().slice(0, 10);
-          const vigente = data.periodos.find((p: any) => p.fecha_inicio.slice(0, 10) <= hoy && hoy <= p.fecha_fin.slice(0, 10));
-          return String((vigente || data.periodos[0])?.id ?? '');
-        });
-      }
+
+      const horasUnificadas: { tipo: TipoHoras; registro: RegistroHoras }[] = [];
+      respuestasHoras.forEach((respuesta, indice) => {
+        if (respuesta.success) {
+          respuesta.data.forEach((registro: RegistroHoras) => horasUnificadas.push({ tipo: tiposHoras[indice], registro }));
+        }
+      });
+      setRegistrosHoras(horasUnificadas);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [estado, espacioId, instructorId, orden, pestana, periodoId, supervisor]);
+  }, [estado, espacioId, instructorId, periodoId, supervisor]);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -139,51 +179,43 @@ export default function SupervisarAsistenciaPage() {
     if (!checkingSession) cargar();
   }, [checkingSession, cargar]);
 
-  const handleAprobar = async (id: number) => {
-    setProcesandoId(id);
-    setMessage('');
-    try {
-      const res = await fetch(`/api/vinculacion/supervisar-asistencia/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'aprobar' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      await cargar();
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
-    } finally {
-      setProcesandoId(null);
-    }
-  };
+  // Lista única: asistencia + podcast + investigación + autónomas, pendientes primero y luego más recientes.
+  const registrosUnificados: RegistroUnificado[] = [
+    ...registrosAsistencia.map((asistencia): RegistroUnificado => ({
+      clave: `asistencia-${asistencia.id}`,
+      tipo: 'asistencia',
+      marcaTiempo: aMarcaTiempo(asistencia.fecha),
+      estado: asistencia.estado_aprobacion,
+      asistencia,
+    })),
+    ...registrosHoras.map(({ tipo, registro }): RegistroUnificado => ({
+      clave: `${tipo}-${registro.id}`,
+      tipo,
+      marcaTiempo: aMarcaTiempo(registro.fecha),
+      estado: registro.estado_aprobacion,
+      horas: registro,
+    })),
+  ].sort((a, b) => {
+    const pendienteA = a.estado === 'pendiente' ? 1 : 0;
+    const pendienteB = b.estado === 'pendiente' ? 1 : 0;
+    if (pendienteA !== pendienteB) return pendienteB - pendienteA;
+    return b.marcaTiempo - a.marcaTiempo;
+  });
 
-  const handleRechazar = async (id: number) => {
-    const motivo = window.prompt('Motivo del rechazo (opcional):') || '';
-    setProcesandoId(id);
-    setMessage('');
-    try {
-      const res = await fetch(`/api/vinculacion/supervisar-asistencia/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'rechazar', motivo }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      await cargar();
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
-    } finally {
-      setProcesandoId(null);
-    }
-  };
+  const conteoPorTipo = (tipo: TipoRegistro) => registrosUnificados.filter(registro => registro.tipo === tipo).length;
+  const registrosVisibles = filtroTipo === 'todos'
+    ? registrosUnificados
+    : registrosUnificados.filter(registro => registro.tipo === filtroTipo);
 
-  const decidirHoras = async (registro: RegistroHoras, accion: 'aprobar' | 'rechazar') => {
+  const decidir = async (registro: RegistroUnificado, accion: 'aprobar' | 'rechazar') => {
     const motivo = accion === 'rechazar' ? (window.prompt('Motivo del rechazo (opcional):') || '') : '';
-    setProcesandoId(registro.id);
+    setProcesandoClave(registro.clave);
     setMessage('');
     try {
-      const res = await fetch(`/api/vinculacion/supervisar-horas/${pestana}/${registro.id}`, {
+      const url = registro.tipo === 'asistencia'
+        ? `/api/vinculacion/supervisar-asistencia/${registro.asistencia.id}`
+        : `/api/vinculacion/supervisar-horas/${registro.tipo}/${registro.horas.id}`;
+      const res = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion, motivo }),
@@ -194,12 +226,15 @@ export default function SupervisarAsistenciaPage() {
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
     } finally {
-      setProcesandoId(null);
+      setProcesandoClave(null);
     }
   };
 
-  const totalHorasAprobadas = registrosHoras.filter(r => r.estado_aprobacion === 'aprobado').reduce((suma, r) => suma + r.horas, 0);
-  const totalHorasPendientes = registrosHoras.filter(r => r.estado_aprobacion === 'pendiente').reduce((suma, r) => suma + r.horas, 0);
+  const registrosConHoras = registrosVisibles.filter(
+    (registro): registro is Extract<RegistroUnificado, { horas: RegistroHoras }> => registro.tipo !== 'asistencia'
+  );
+  const totalHorasAprobadas = registrosConHoras.filter(r => r.estado === 'aprobado').reduce((suma, r) => suma + r.horas.horas, 0);
+  const totalHorasPendientes = registrosConHoras.filter(r => r.estado === 'pendiente').reduce((suma, r) => suma + r.horas.horas, 0);
 
   const horasSesion = (r: Registro) => {
     if (!r.hora_inicio || !r.hora_fin) return null;
@@ -212,6 +247,8 @@ export default function SupervisarAsistenciaPage() {
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
   }
+
+  const mostrarFiltrosAsistencia = filtroTipo === 'todos' || filtroTipo === 'asistencia';
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -234,7 +271,7 @@ export default function SupervisarAsistenciaPage() {
                   Mis Pasantes Asignados
                 </span>
               )}
-              <span>Aprueba o rechaza asistencia, podcast e investigación de tus pasantes. Las horas cuentan solo al aprobar.</span>
+              <span>Todo lo que debes aprobar, en una sola lista. Las horas cuentan solo al aprobar.</span>
             </p>
           </div>
           <Link href="/vinculacion/supervisar/indicadores" className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0">
@@ -243,18 +280,6 @@ export default function SupervisarAsistenciaPage() {
         </div>
 
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
-
-        <div className="flex gap-2 mb-4 border-b border-gray-200">
-          {([['asistencia', 'Asistencia'], ['podcast', 'Podcast'], ['investigacion', 'Investigación'], ['autonomas', 'Autónomas']] as [Pestana, string][]).map(([clave, etiqueta]) => (
-            <button
-              key={clave}
-              onClick={() => setPestana(clave)}
-              className={`px-4 py-2 text-sm font-semibold -mb-px border-b-2 ${pestana === clave ? 'border-uleam-blue text-uleam-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              {etiqueta}
-            </button>
-          ))}
-        </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
@@ -283,72 +308,146 @@ export default function SupervisarAsistenciaPage() {
               <option value="todos">Todos</option>
             </select>
           </div>
+          {mostrarFiltrosAsistencia && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Espacio (asistencia)</label>
+                <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                  <option value="">Todos</option>
+                  {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Estudiante-instructor (asistencia)</label>
+                <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                  <option value="">Todos</option>
+                  {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+                </select>
+              </div>
+            </>
+          )}
         </div>
 
-        {pestana === 'asistencia' && (
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Espacio</label>
-            <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="">Todos</option>
-              {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Estudiante-instructor</label>
-            <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="">Todos</option>
-              {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Ordenar por</label>
-            <select value={orden} onChange={e => setOrden(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="fecha">Fecha (recientes primero)</option>
-              <option value="beneficiarios">N.º de beneficiarios</option>
-              <option value="espacio">Espacio</option>
-              <option value="estudiante">Estudiante</option>
-            </select>
-          </div>
-        </div>
-        )}
-
-        {pestana === 'podcast' && (
-          <div className="mb-3">
-            <button onClick={() => setEpisodioEnEdicion(null)} className="px-4 py-2 text-sm font-semibold rounded-lg bg-uleam-blue text-white hover:opacity-90">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs font-medium text-gray-500">Tipo:</span>
+          <button
+            onClick={() => setFiltroTipo('todos')}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${filtroTipo === 'todos' ? 'bg-uleam-blue text-white border-transparent' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}
+          >
+            Todos ({registrosUnificados.length})
+          </button>
+          {TIPOS_REGISTRO.map(tipo => (
+            <button
+              key={tipo}
+              onClick={() => setFiltroTipo(tipo)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${filtroTipo === tipo ? `${ETIQUETA_TIPO[tipo].clases} border-current` : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}
+            >
+              {ETIQUETA_TIPO[tipo].texto} ({conteoPorTipo(tipo)})
+            </button>
+          ))}
+          {(filtroTipo === 'todos' || filtroTipo === 'podcast') && (
+            <button onClick={() => setEpisodioEnEdicion(null)} className="ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg bg-uleam-blue text-white hover:opacity-90">
               + Asignar horas de un episodio ya subido
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {pestana !== 'asistencia' && (
+        {registrosConHoras.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-4 text-sm">
-            <span className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg font-semibold">Aprobadas: {Math.round(totalHorasAprobadas * 100) / 100} h</span>
+            <span className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg font-semibold">Horas aprobadas (podcast, investigación, autónomas): {Math.round(totalHorasAprobadas * 100) / 100} h</span>
             <span className="bg-yellow-50 text-yellow-800 px-3 py-1.5 rounded-lg font-semibold">Pendientes: {Math.round(totalHorasPendientes * 100) / 100} h</span>
           </div>
         )}
 
         {loading && <p className="text-gray-500">Cargando...</p>}
-        {!loading && pestana === 'asistencia' && registros.length === 0 && (
+        {!loading && registrosVisibles.length === 0 && (
           <p className="text-gray-400 bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">Sin registros para este filtro.</p>
         )}
 
-        {!loading && pestana !== 'asistencia' && registrosHoras.length === 0 && (
-          <p className="text-gray-400 bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">Sin registros para este filtro.</p>
+        {episodioEnEdicion !== undefined && (
+          <EditorEpisodioPodcast
+            videoId={episodioEnEdicion}
+            onCerrar={() => setEpisodioEnEdicion(undefined)}
+            onGuardado={() => { setEpisodioEnEdicion(undefined); cargar(); }}
+          />
         )}
 
-        {pestana !== 'asistencia' && (
-          <div className="space-y-4">
-            {registrosHoras.map(r => (
-              <div key={r.id} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
+        <div className="space-y-4">
+          {registrosVisibles.map(registro => {
+            const etiqueta = ETIQUETA_TIPO[registro.tipo];
+            const botonesDecision = (
+              <div className="flex sm:flex-col gap-2 shrink-0">
+                {registro.tipo === 'podcast' && registro.horas.video_id && (
+                  <button onClick={() => setEpisodioEnEdicion(registro.horas.video_id!)} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100">Editar episodio</button>
+                )}
+                {registro.estado !== 'aprobado' && (
+                  <button onClick={() => decidir(registro, 'aprobar')} disabled={procesandoClave === registro.clave} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">Aprobar</button>
+                )}
+                {registro.estado !== 'rechazado' && (
+                  <button onClick={() => decidir(registro, 'rechazar')} disabled={procesandoClave === registro.clave} className="px-4 py-2 bg-red-50 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50">Rechazar</button>
+                )}
+              </div>
+            );
+
+            if (registro.tipo === 'asistencia') {
+              const r = registro.asistencia;
+              const horas = horasSesion(r);
+              return (
+                <div key={registro.clave} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
+                  {r.foto_url && (
+                    <a href={r.foto_url} target="_blank" rel="noreferrer" className="shrink-0">
+                      <img src={r.foto_url} alt="Evidencia" className="w-full sm:w-32 h-32 object-cover rounded-lg border border-gray-200" />
+                    </a>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${etiqueta.clases}`}>{etiqueta.texto}</span>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[r.estado_aprobacion]}`}>{r.estado_aprobacion}</span>
+                      <span className="font-bold text-gray-800">{r.espacio_nombre}</span>
+                      <span className="text-sm text-gray-500">{formatearFecha(r.fecha)}</span>
+                      {r.hora_inicio && r.hora_fin && (
+                        <span className="text-sm text-gray-500">{r.hora_inicio.slice(0, 5)}–{r.hora_fin.slice(0, 5)}{horas !== null && ` (${horas} h)`}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700">Registrado por: <strong>{r.registrado_por_nombres} {r.registrado_por_apellidos}</strong></p>
+                    <p className="text-sm text-gray-700">Beneficiarios presentes: <strong>{r.num_beneficiarios}</strong></p>
+                    {r.instructores.length > 0 && (
+                      <p className="text-xs text-gray-500">Instructores del espacio: {r.instructores.map(i => i.nombre).join(', ')}</p>
+                    )}
+                    {r.asistentes_instructor?.length > 0 && (
+                      <p className="text-sm text-gray-700 mt-1">
+                        Pasantes que asistieron:{' '}
+                        {r.asistentes_instructor.map((a, idx) => (
+                          <span key={a.id}>
+                            {idx > 0 && ', '}
+                            <strong>{a.nombre}</strong>
+                            {a.tipo === 'invitado' && <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Invitado</span>}
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                    {r.observaciones && <p className="text-sm text-gray-600 mt-1 italic">"{r.observaciones}"</p>}
+                    {r.estado_aprobacion === 'rechazado' && r.motivo_rechazo && (
+                      <p className="text-sm text-red-600 mt-1">Motivo de rechazo: {r.motivo_rechazo}</p>
+                    )}
+                  </div>
+                  {botonesDecision}
+                </div>
+              );
+            }
+
+            const r = registro.horas;
+            return (
+              <div key={registro.clave} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${etiqueta.clases}`}>{etiqueta.texto}</span>
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[r.estado_aprobacion]}`}>{r.estado_aprobacion}</span>
                     <span className="font-bold text-gray-800">{r.nombres} {r.apellidos}</span>
-                    <span className="text-sm text-gray-500">{r.fecha ? new Date(r.fecha.includes('T') ? r.fecha : `${r.fecha}T00:00:00`).toLocaleDateString('es-EC') : ''}</span>
+                    <span className="text-sm text-gray-500">{formatearFecha(r.fecha)}</span>
                     <span className="text-sm font-semibold text-uleam-blue">{r.horas} h</span>
                   </div>
-                  {pestana === 'podcast' ? (
+                  {registro.tipo === 'podcast' ? (
                     <p className="text-sm text-gray-700">
                       {r.titulo} {r.tipo_podcast && <span className="text-xs text-gray-500">({r.tipo_podcast})</span>}
                       {r.youtube_url && <a href={r.youtube_url} target="_blank" rel="noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">Ver episodio</a>}
@@ -360,103 +459,11 @@ export default function SupervisarAsistenciaPage() {
                     <p className="text-sm text-red-600 mt-1">Motivo de rechazo: {r.motivo_rechazo}</p>
                   )}
                 </div>
-                <div className="flex sm:flex-col gap-2 shrink-0">
-                  {pestana === 'podcast' && r.video_id && (
-                    <button onClick={() => setEpisodioEnEdicion(r.video_id!)} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100">Editar episodio</button>
-                  )}
-                  {r.estado_aprobacion !== 'aprobado' && (
-                    <button onClick={() => decidirHoras(r, 'aprobar')} disabled={procesandoId === r.id} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">Aprobar</button>
-                  )}
-                  {r.estado_aprobacion !== 'rechazado' && (
-                    <button onClick={() => decidirHoras(r, 'rechazar')} disabled={procesandoId === r.id} className="px-4 py-2 bg-red-50 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50">Rechazar</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {episodioEnEdicion !== undefined && (
-          <EditorEpisodioPodcast
-            videoId={episodioEnEdicion}
-            onCerrar={() => setEpisodioEnEdicion(undefined)}
-            onGuardado={() => { setEpisodioEnEdicion(undefined); cargar(); }}
-          />
-        )}
-
-        {pestana === 'asistencia' && (
-        <div className="space-y-4">
-          {registros.map(r => {
-            const horas = horasSesion(r);
-            return (
-              <div key={r.id} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
-                {r.foto_url && (
-                  <a href={r.foto_url} target="_blank" rel="noreferrer" className="shrink-0">
-                    <img src={r.foto_url} alt="Evidencia" className="w-full sm:w-32 h-32 object-cover rounded-lg border border-gray-200" />
-                  </a>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[r.estado_aprobacion]}`}>{r.estado_aprobacion}</span>
-                    <span className="font-bold text-gray-800">{r.espacio_nombre}</span>
-                    <span className="text-sm text-gray-500">
-                      {(() => {
-                        if (!r.fecha) return '';
-                        const dateObj = new Date(r.fecha.includes('T') ? r.fecha : `${r.fecha}T00:00:00`);
-                        return isNaN(dateObj.getTime()) ? r.fecha : dateObj.toLocaleDateString('es-EC');
-                      })()}
-                    </span>
-                    {r.hora_inicio && r.hora_fin && (
-                      <span className="text-sm text-gray-500">{r.hora_inicio.slice(0,5)}–{r.hora_fin.slice(0,5)}{horas !== null && ` (${horas} h)`}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-700">Registrado por: <strong>{r.registrado_por_nombres} {r.registrado_por_apellidos}</strong></p>
-                  <p className="text-sm text-gray-700">Beneficiarios presentes: <strong>{r.num_beneficiarios}</strong></p>
-                  {r.instructores.length > 0 && (
-                    <p className="text-xs text-gray-500">Instructores del espacio: {r.instructores.map(i => i.nombre).join(', ')}</p>
-                  )}
-                  {r.asistentes_instructor?.length > 0 && (
-                    <p className="text-sm text-gray-700 mt-1">
-                      Pasantes que asistieron:{' '}
-                      {r.asistentes_instructor.map((a, idx) => (
-                        <span key={a.id}>
-                          {idx > 0 && ', '}
-                          <strong>{a.nombre}</strong>
-                          {a.tipo === 'invitado' && <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">Invitado</span>}
-                        </span>
-                      ))}
-                    </p>
-                  )}
-                  {r.observaciones && <p className="text-sm text-gray-600 mt-1 italic">"{r.observaciones}"</p>}
-                  {r.estado_aprobacion === 'rechazado' && r.motivo_rechazo && (
-                    <p className="text-sm text-red-600 mt-1">Motivo de rechazo: {r.motivo_rechazo}</p>
-                  )}
-                </div>
-                <div className="flex sm:flex-col gap-2 shrink-0">
-                  {r.estado_aprobacion !== 'aprobado' && (
-                    <button
-                      onClick={() => handleAprobar(r.id)}
-                      disabled={procesandoId === r.id}
-                      className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
-                    >
-                      Aprobar
-                    </button>
-                  )}
-                  {r.estado_aprobacion !== 'rechazado' && (
-                    <button
-                      onClick={() => handleRechazar(r.id)}
-                      disabled={procesandoId === r.id}
-                      className="px-4 py-2 bg-red-50 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50"
-                    >
-                      Rechazar
-                    </button>
-                  )}
-                </div>
+                {botonesDecision}
               </div>
             );
           })}
         </div>
-        )}
       </div>
     </div>
   );
