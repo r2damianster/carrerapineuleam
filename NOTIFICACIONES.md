@@ -22,6 +22,8 @@ Bloque **"🔔 Pendientes"** al inicio de `/portal/dashboard` + endpoint `GET /a
 | `difusion-por-aprobar` | `modulos_acceso: contenido_sitio` | `actividades_difusion.aprobado_sitio=false` (incluye `origen='externo_temporal'`) | `/admin/contenido` |
 | `asistencias-rechazadas` | `rol: estudiante` (pasante) | Sus `asistencia_espacio` con `estado_aprobacion='rechazado'` en los últimos 14 días (sin tabla de "leído": la ventana de tiempo apaga el aviso) | `/portal/mi-avance` (panel rojo con espacio, fecha y motivo, vía `GET /api/mi-avance`) |
 | `informe-supervisor-pendiente` | Supervisor de Vinculación (`puedeSupervisarVinculacion`) | Sesiones aprobadas en el mes anterior sin registro en `informes_vinculacion` | `/vinculacion/informes` |
+| `fotos-menores-por-revisar` | `modulos_acceso: contenido_sitio` | `fotos.menores='revisar'` (fotos de externos y de asistencia previas al banco; nunca se publican hasta revisarlas) | `/admin/photos?menores=revisar` |
+| `fotos-sin-ubicar-proyecto` | Docente líder/colíder activo de algún proyecto y que **no** sea administración del sitio | Fotos de su proyecto `publicable`, sin menores, con fuente aprobada, **sin ubicación**, creadas en los últimos 14 días | `/portal/proyecto/<id>/fotos?estado=sin_ubicar` (o `/portal/proyecto` si lidera varios) |
 
 ## ✅ Checklist obligatoria al crear una función nueva
 Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revisar, completar, responder, corregir un rechazo), entonces:

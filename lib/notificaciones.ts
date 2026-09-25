@@ -1,7 +1,8 @@
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { AppSession } from './session';
 import { esSuperAdminOLider } from './permisos-supervision';
-import { puedeSupervisarVinculacion } from './modulos';
+import { esDocente, puedeSupervisarVinculacion } from './modulos';
+import { puedeAdministrarSitio } from './permisosProyecto';
 
 /**
  * Módulo de notificaciones del Portal PINE.
@@ -162,6 +163,64 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
         mensaje: `Tienes ${plural(total, 'evento/actividad', 'eventos/actividades')} de difusión por aprobar.`,
         href: '/admin/contenido',
         severidad: 'pendiente',
+      };
+    },
+  },
+  {
+    // Administración del sitio: fotos con menores (o dudosas) esperando revisión humana. La foto NO se
+    // publica hasta que alguien la marque como revisada. Destino /admin/photos (middleware: contenido_sitio).
+    id: 'fotos-menores-por-revisar',
+    aplica: (sesion) => sesion.modulos_acceso.includes('contenido_sitio'),
+    consultar: async (sql) => {
+      const [fila] = await sql`SELECT COUNT(*)::int AS total FROM fotos WHERE menores = 'revisar'`;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'fotos-menores-por-revisar',
+        cantidad: total,
+        mensaje: `Tienes ${plural(total, 'foto', 'fotos')} por revisar (posibles menores de edad).`,
+        href: '/admin/photos?menores=revisar',
+        severidad: 'pendiente',
+      };
+    },
+  },
+  {
+    // Líder/colíder de proyecto (sin ser administración del sitio): fotos nuevas de su proyecto sin ubicar
+    // en los últimos 14 días. Misma condición que el panel /portal/proyecto (docente + líder/colíder activo).
+    id: 'fotos-sin-ubicar-proyecto',
+    aplica: (sesion) => esDocente(sesion) && !puedeAdministrarSitio(sesion),
+    consultar: async (sql, sesion) => {
+      const usuarioId = Number(sesion.id);
+      if (Number.isNaN(usuarioId)) return null;
+      const proyectos = await sql`
+        SELECT proyecto_id FROM proyecto_miembros
+        WHERE usuario_id = ${usuarioId} AND activo = true AND rol_en_proyecto IN ('lider', 'colider')
+      `;
+      const proyectoIds = proyectos.map((fila) => String(fila.proyecto_id));
+      if (proyectoIds.length === 0) return null;
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM fotos
+        WHERE proyectos && ${proyectoIds}::text[]
+          AND visibilidad = 'publicable' AND menores = 'no' AND activo = true
+          AND cardinality(ubicaciones) = 0
+          AND created > now() - interval '14 days'
+          AND (
+            origen IN ('admin', 'lider', 'evidencia_evento')
+            OR (origen IN ('evento', 'podcast') AND EXISTS (
+              SELECT 1 FROM actividades_difusion a WHERE a.id::text = fotos.fuente_id AND a.aprobado_sitio = true))
+            OR (origen = 'asistencia' AND EXISTS (
+              SELECT 1 FROM asistencia_espacio s WHERE s.id::text = fotos.fuente_id AND s.estado_aprobacion = 'aprobado'))
+          )
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'fotos-sin-ubicar-proyecto',
+        cantidad: total,
+        mensaje: `Tu proyecto tiene ${plural(total, 'foto nueva', 'fotos nuevas')} sin ubicar en la web.`,
+        href: proyectoIds.length === 1 ? `/portal/proyecto/${proyectoIds[0]}/fotos?estado=sin_ubicar` : '/portal/proyecto',
+        severidad: 'info',
       };
     },
   },
