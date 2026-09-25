@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     const hasta: string | null = periodo ? String(periodo.fecha_fin).slice(0, 10) : null;
 
     // 1. Estudiantes de investigación (Meta: 6 en 2 años)
-    // Acumulado: módulo investigacion o alguna actividad. Con período: solo quienes reportaron
-    // actividades de investigación con fecha dentro del período (el módulo no tiene fecha).
+    // Acumulado: módulo investigacion o alguna actividad. Con período: quienes reportaron
+    // actividades dentro del período, más quienes tienen el módulo si el período es el vigente
+    // (el módulo no tiene fecha, refleja la asignación actual).
     const investigadores = await sql`
       SELECT COUNT(DISTINCT u.id)::int as total
       FROM usuarios u
@@ -30,7 +31,10 @@ export async function GET(request: Request) {
         AND (${desde}::date IS NULL OR a.fecha BETWEEN ${desde}::date AND ${hasta}::date)
       WHERE u.rol = 'estudiante'
         AND (
-          (${desde}::date IS NULL AND 'investigacion' = ANY(u.modulos_acceso))
+          (
+            'investigacion' = ANY(u.modulos_acceso)
+            AND (${desde}::date IS NULL OR CURRENT_DATE BETWEEN ${desde}::date AND ${hasta}::date)
+          )
           OR a.id IS NOT NULL
         )
     `;
