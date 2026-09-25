@@ -82,7 +82,7 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-carrera
 
   const navLinksHardcodeados: NavItem[] = [
     { href: '/', label: t.nav.home },
-    { href: '/#perfil-egreso', label: perfilEgresoLabel },
+    { href: '/#la-carrera', label: perfilEgresoLabel },
     { label: t.nav.docencia, children: [{ href: '/docencia/docencia-innovadora', label: t.docenciaProject.navLabel }] },
     {
       label: t.nav.investigacion,
@@ -112,7 +112,7 @@ export default function Header({ siteName, logoSrc = '/images/logos/logo-carrera
   const navLinks: NavItem[] = proyectosDb
     ? [
         { href: '/', label: t.nav.home },
-        { href: '/#perfil-egreso', label: perfilEgresoLabel },
+        { href: '/#la-carrera', label: perfilEgresoLabel },
         { label: t.nav.docencia, children: proyectosDeGrupo('docencia') },
         {
           label: t.nav.investigacion,

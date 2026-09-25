@@ -23,7 +23,7 @@ const translations = {
       innovacionesLabel: 'Innovaciones Pedagógicas',
       portalPine: 'Portal PINE',
       siteName: 'Pedagogía de los Idiomas Nacionales y Extranjeros',
-      perfilEgreso: 'Perfil de Egreso',
+      perfilEgreso: 'La Carrera',
     },
     hero: {
       title1: 'Innovaciones Pedagógicas',
@@ -71,6 +71,63 @@ const translations = {
         supervisor: 'Supervisor',
         vinculacion: 'Vinculación',
         participant: 'Participante',
+      },
+    },
+    careerInfo: {
+      tabs: { mision: "Misión y Visión", carrera: "La Carrera", malla: "Malla Curricular", contacto: "Contacto" },
+      mision: {
+        title: "Misión",
+        text: "Formar profesionales competentes en la enseñanza del inglés para hablantes de otras lenguas, con un alto sentido de autoaprendizaje, compromiso y liderazgo en el sistema educativo nacional a través del desarrollo y fortalecimiento de competencias lingüístico-comunicativas, metodológicas, investigativas y actitudinales que les permita contribuir a la transformación y mejoramiento de la educación ecuatoriana.",
+      },
+      vision: {
+        title: "Visión",
+        text: "Ser líderes en la formación de profesionales competentes, critico-reflexivos y propositivos en el campo de la enseñanza del inglés para hablantes de otras lenguas del sistema de educación superior, con conciencia del Buen Vivir y comprometidos con el desarrollo socio-económico de nuestro país.",
+      },
+      datasheet: [
+        { label: "Carrera", value: "Pedagogía de los Idiomas Nacionales y Extranjeros" },
+        { label: "Título que otorga", value: "Licenciado/a en Pedagogía del Idioma Inglés" },
+        { label: "Modalidad de aprendizaje", value: "Presencial" },
+        { label: "Número de períodos", value: "Ocho (8) períodos académicos" },
+      ],
+      objectiveTitle: "Objetivo general",
+      objective: "Formar docentes a nivel de grado, desde el humanismo social que se desempeñen en el área de inglés, en los niveles del sistema educativo formal y no formal, comprometidos con la investigación, vinculación, interculturalidad e inclusión; coherentes con los principios del Buen Vivir",
+      admission: {
+        title: "Perfil de ingreso",
+        profile: [
+          "Poseer título de bachiller o su equivalente, de conformidad con la Ley.",
+          "Haber cumplido los requisitos normados por el Sistema de Nivelación y Admisión, el mismo que observará los principios de igualdad de oportunidades, mérito y capacidad.",
+        ],
+        requirementsTitle: "Requisitos de ingreso",
+        requirementsIntro: "Los requisitos de ingreso serán los contemplados en el Artículo 13 del Reglamento de Régimen Académico, cuyo texto dice:",
+        legalText: [
+          "Ingreso a tercer nivel.- Para el ingreso al tercer nivel, se requiere poseer título de bachiller o su equivalente, de conformidad con la Ley…",
+          "En el caso de las IES públicas, haber cumplido los requisitos normados por el Sistema de Nivelación y Admisión que observará los principios de igualdad de oportunidades, libertad de elección de carrera y de méritos.",
+          "Las IES aceptarán los títulos de bachiller obtenidos en el extranjero, reconocidos o equiparados por el Ministerio de Educación. Para tal efecto, las IES podrán implementar plazos especiales para la presentación de la documentación, que contemplen el tiempo que el Ministerio de Educación requiere para el reconocimiento o equiparación de estos estudios.",
+        ],
+        loesNote: "Los mismos que se encuentran en concordancia con el Artículo 82 de la LOES.",
+      },
+      graduation: {
+        title: "Requisitos de graduación",
+        requirements: ["Aprobar la malla curricular", "Aprobación del trabajo de titulación."],
+        modalitiesTitle: "Modalidades de titulación",
+        modalities: ["Artículo científico.", "Sistematización de experiencias.", "TEFL application process.", "TEFL community service."],
+      },
+      occupational: {
+        title: "Campo ocupacional",
+        text: "La carrera Pedagogía del Idioma Inglés de la Universidad Laica Eloy Alfaro de Manabí, como respuesta a las expectativas y necesidades de la sociedad, forma profesionales quienes estarán comprometidos con el proceso de adquisición y aprendizaje del Idioma Inglés como lengua extranjera, a nivel de educación básica, bachillerato en instituciones educativas públicas y privadas al igual que en los institutos tecnológicos.",
+      },
+      malla: {
+        title: "Malla Curricular",
+        text: "Consulta la malla curricular ajustada de la carrera.",
+        cta: "Ver malla curricular (PDF)",
+      },
+      contact: {
+        coordinatorRole: "Coordinador de Carrera",
+        coordinatorName: "Dr. Germán Carrera Moreno, PhD.",
+        secretaryRole: "Secretaria",
+        secretaryName: "Ing. Yasmín Bermúdez Velasco",
+        scheduleLabel: "Horario de atención:",
+        schedule: "de 08:00 a 17:00, lunes a viernes",
       },
     },
     careerProfile: {
@@ -563,7 +620,7 @@ const translations = {
       innovacionesLabel: 'Pedagogical Innovations',
       portalPine: 'PINE Portal',
       siteName: 'National and Foreign Languages Pedagogy',
-      perfilEgreso: 'Graduate Profile',
+      perfilEgreso: 'The Program',
     },
     hero: {
       title1: 'Pedagogical Innovations',
@@ -611,6 +668,63 @@ const translations = {
         supervisor: 'Supervisor',
         vinculacion: 'Outreach',
         participant: 'Member',
+      },
+    },
+    careerInfo: {
+      tabs: { mision: "Mission & Vision", carrera: "The Program", malla: "Curriculum", contacto: "Contact" },
+      mision: {
+        title: "Mission",
+        text: "To train competent professionals in teaching English to speakers of other languages, with a strong sense of self-learning, commitment and leadership in the national education system, through the development and strengthening of linguistic-communicative, methodological, research and attitudinal competencies that allow them to contribute to the transformation and improvement of Ecuadorian education.",
+      },
+      vision: {
+        title: "Vision",
+        text: "To be leaders in training competent, critical-reflective and proactive professionals in the field of teaching English to speakers of other languages in the higher education system, aware of Buen Vivir and committed to the socio-economic development of our country.",
+      },
+      datasheet: [
+        { label: "Program", value: "Pedagogy of National and Foreign Languages" },
+        { label: "Degree awarded", value: "Bachelor's Degree in English Language Pedagogy" },
+        { label: "Learning mode", value: "On-site" },
+        { label: "Number of terms", value: "Eight (8) academic terms" },
+      ],
+      objectiveTitle: "General objective",
+      objective: "To train undergraduate teachers, from a social humanism perspective, who work in the area of English at all levels of the formal and non-formal education system, committed to research, community outreach, interculturality and inclusion, in line with the principles of Buen Vivir.",
+      admission: {
+        title: "Admission profile",
+        profile: [
+          "Hold a high school diploma or its equivalent, in accordance with the Law.",
+          "Have met the requirements set by the Leveling and Admission System, which observes the principles of equal opportunity, merit and capacity.",
+        ],
+        requirementsTitle: "Admission requirements",
+        requirementsIntro: "Admission requirements are those set out in Article 13 of the Academic Regime Regulation, which states:",
+        legalText: [
+          "Admission to third level.- To enter the third level, a high school diploma or its equivalent is required, in accordance with the Law…",
+          "In the case of public HEIs, applicants must have met the requirements set by the Leveling and Admission System, which observes the principles of equal opportunity, freedom to choose a degree program and merit.",
+          "HEIs will accept high school diplomas obtained abroad that are recognized or equated by the Ministry of Education. For this purpose, HEIs may set special deadlines for submitting documentation, taking into account the time the Ministry of Education needs to recognize or equate these studies.",
+        ],
+        loesNote: "These are consistent with Article 82 of the LOES (Organic Law of Higher Education).",
+      },
+      graduation: {
+        title: "Graduation requirements",
+        requirements: ["Pass the curriculum", "Approval of the degree project."],
+        modalitiesTitle: "Degree project modalities",
+        modalities: ["Scientific article.", "Systematization of experiences.", "TEFL application process.", "TEFL community service."],
+      },
+      occupational: {
+        title: "Career field",
+        text: "The English Language Pedagogy program at Universidad Laica Eloy Alfaro de Manabí, in response to society's expectations and needs, trains professionals committed to the process of acquiring and learning English as a foreign language, at the basic education and high school levels in public and private schools, as well as in technological institutes.",
+      },
+      malla: {
+        title: "Curriculum",
+        text: "Check the program's adjusted curriculum.",
+        cta: "View curriculum (PDF)",
+      },
+      contact: {
+        coordinatorRole: "Program Coordinator",
+        coordinatorName: "Dr. Germán Carrera Moreno, PhD.",
+        secretaryRole: "Secretary",
+        secretaryName: "Ing. Yasmín Bermúdez Velasco",
+        scheduleLabel: "Office hours:",
+        schedule: "08:00 to 17:00, Monday to Friday",
       },
     },
     careerProfile: {

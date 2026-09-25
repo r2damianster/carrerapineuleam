@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HubProjectsSection from '@/components/HubProjectsSection';
-import CareerProfileSection from '@/components/CareerProfileSection';
+import CareerInfoSection from '@/components/CareerInfoSection';
 import NewsSection from '@/components/NewsSection';
 import ConnectionsSection from '@/components/ConnectionsSection';
 import PhotoCarousel from '@/components/PhotoCarousel';
@@ -17,7 +17,7 @@ export default function HubPage() {
       <main>
         <PhotoCarousel ubicacion="portada" />
         <HubProjectsSection />
-        <CareerProfileSection />
+        <CareerInfoSection />
         <NewsSection />
         <ConnectionsSection compact />
       </main>
