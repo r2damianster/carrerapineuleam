@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ArbolProblemasEditor from './_components/ArbolProblemasEditor';
 
 export default function ProyectoVinculacionPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ficha' | 'objetivos' | 'metas' | 'presupuesto' | 'textos'>('ficha');
+  const [activeTab, setActiveTab] = useState<'ficha' | 'objetivos' | 'arbol' | 'metas' | 'presupuesto' | 'textos'>('ficha');
   const [mensaje, setMensaje] = useState('');
 
   // Data states
@@ -19,10 +20,10 @@ export default function ProyectoVinculacionPage() {
 
   // 1. Ficha State
   const [fichaForm, setFichaForm] = useState({
-    codigo: '', unidad_academica: 'Facultad de Educación, Turismo, Artes y Humanidades',
+    codigo: '', unidad_academica: 'Facultad de Educación y Turismo',
     carrera: 'Pedagogía de los Idiomas Nacionales y Extranjeros', entidad_beneficiaria: '',
     vigencia_inicio: '', vigencia_fin: '', ods: '', linea_investigacion: '',
-    zona: 'Distrito 13D02 Manta',
+    zona: 'Manta (Distrito 13D02)', parroquia: 'Parroquia Manta',
     codigo_documento_lider: 'PINE-INF-LID-2026', revision_documento_lider: '01',
     codigo_documento_supervisor: 'PINE-INF-SUP-2026', revision_documento_supervisor: '01',
     firmante_responsable_id: '', lider_id: ''
@@ -421,6 +422,7 @@ export default function ProyectoVinculacionPage() {
           {[
             { id: 'ficha', label: 'Ficha del Proyecto' },
             { id: 'objetivos', label: 'Objetivos y Actividades' },
+            { id: 'arbol', label: 'Árbol de Problemas' },
             { id: 'metas', label: 'Metas por Ciclo' },
             { id: 'presupuesto', label: 'Presupuesto' },
             { id: 'textos', label: 'Textos Cualitativos del Ciclo' },
@@ -451,6 +453,10 @@ export default function ProyectoVinculacionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Zona (Fija)</label>
                 <input value={fichaForm.zona} disabled className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-100 text-gray-600" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parroquia</label>
+                <input value={(fichaForm as any).parroquia || ''} onChange={e => setFichaForm({ ...fichaForm, parroquia: e.target.value } as any)} className="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
               </div>
             </div>
 
@@ -614,6 +620,8 @@ export default function ProyectoVinculacionPage() {
         )}
 
         {/* TAB 3: METAS POR CICLO */}
+        {activeTab === 'arbol' && <ArbolProblemasEditor />}
+
         {activeTab === 'metas' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b pb-4">

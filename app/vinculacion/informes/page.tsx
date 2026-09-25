@@ -6,6 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const ANIO_ACTUAL = new Date().getFullYear();
+const periodoInicial = (() => {
+  const ahora = new Date(Date.now() - 5 * 60 * 60 * 1000);
+  const mesActual = ahora.getUTCMonth() + 1;
+  if (mesActual >= 4 && mesActual <= 8) return { anio: ahora.getUTCFullYear(), numero: 1 };
+  if (mesActual >= 9) return { anio: ahora.getUTCFullYear(), numero: 2 };
+  return { anio: ahora.getUTCFullYear() - 1, numero: 2 };
+})();
 const ANIOS_DISPONIBLES = Array.from({ length: 5 }, (_, indiceAnio) => String(ANIO_ACTUAL + 1 - indiceAnio));
 
 function InformesVinculacionContenido() {
@@ -27,6 +34,8 @@ function InformesVinculacionContenido() {
   const [mes, setMes] = useState(hoyEcuador);
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [cicloId, setCicloId] = useState<string>('');
+  const [numeroLider, setNumeroLider] = useState<string>(String(periodoInicial.numero));
+  const [anioLider, setAnioLider] = useState<string>(String(periodoInicial.anio));
 
   // Datos de Informe
   const [datosSupervisor, setDatosSupervisor] = useState<any>(null);
@@ -100,7 +109,7 @@ function InformesVinculacionContenido() {
     } else if (tab === 'lider') {
       if (!esLider) return;
       setLoading(true);
-      fetch(`/vinculacion/informes/api?accion=datos&tipo=lider&ciclo_id=${cicloId}`)
+      fetch(`/vinculacion/informes/api?accion=datos&tipo=lider&anio=${anioLider}&numero=${numeroLider}`)
         .then(r => r.json())
         .then(d => {
           if (d.success) setDatosLider(d.datos);
@@ -115,7 +124,7 @@ function InformesVinculacionContenido() {
         })
         .finally(() => setLoading(false));
     }
-  }, [usuario, tab, mes, cicloId, esLider]);
+  }, [usuario, tab, mes, anioLider, numeroLider, esLider]);
 
   const agregarObstaculo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +177,7 @@ function InformesVinculacionContenido() {
           accion: 'generar',
           tipo,
           mes: tipo === 'supervisor' ? mes : null,
-          ciclo_id: tipo === 'lider' ? cicloId : null,
+          ciclo_id: tipo === 'lider' ? datosLider?.periodo?.cicloId ?? null : null,
           datos: payloadDatos,
         }),
       });
@@ -182,7 +191,7 @@ function InformesVinculacionContenido() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${tipo}_${tipo === 'supervisor' ? mes : 'semestral'}.docx`;
+      a.download = `Informe_${tipo}_${tipo === 'supervisor' ? mes : datosLider?.periodo?.etiqueta || 'semestral'}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -270,34 +279,59 @@ function InformesVinculacionContenido() {
     }
   };
 
-  const redactarBorradorIA = async (clave: string) => {
-    setRedactandoClave(clave);
+  const [redactandoLider, setRedactandoLider] = useState(false);
+  const periodosConIAIntentada = useRef<Set<string>>(new Set());
+
+  const actualizarProblemaLider = (indiceProblema: number, campo: string, valor: string) => {
+    setDatosLider((previo: any) => ({
+      ...previo,
+      problemaResultados: previo.problemaResultados.map((problema: any, indice: number) => (indice === indiceProblema ? { ...problema, [campo]: valor } : problema)),
+    }));
+  };
+
+  // IA en un solo paso para todos los cuadros del informe del líder.
+  const redactarLiderIA = async (forzar: boolean) => {
+    setRedactandoLider(true);
     try {
-      const res = await fetch('/vinculacion/proyecto/api', {
+      const respuesta = await fetch('/vinculacion/informes/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seccion: 'generar_texto',
-          clave,
-          contexto: datosLider,
-        }),
+        body: JSON.stringify({ accion: 'redactar-lider', anio: Number(anioLider), numero: Number(numeroLider), forzar }),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error);
-
-      setDatosLider((prev: any) => ({
-        ...prev,
-        textos: {
-          ...prev.textos,
-          [clave]: d.texto,
-        },
-      }));
-    } catch (err: any) {
-      alert(`Error al generar borrador con IA: ${err.message}`);
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) throw new Error(resultado.error);
+      setDatosLider((previo: any) => ({ ...previo, textos: { ...previo.textos, ...resultado.textos }, problemaResultados: resultado.problemaResultados }));
+    } catch (error: any) {
+      setMensaje(`No se pudieron redactar los textos con IA: ${error.message}`);
     } finally {
-      setRedactandoClave(null);
+      setRedactandoLider(false);
     }
   };
+
+  const guardarTextosLider = async () => {
+    try {
+      const respuesta = await fetch('/vinculacion/informes/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'guardar-textos-lider', ciclo_id: datosLider?.periodo?.cicloId, textos: datosLider?.textos, problemaResultados: datosLider?.problemaResultados }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) throw new Error(resultado.error);
+      setMensaje('Textos guardados: se reutilizarán la próxima vez que abras este periodo.');
+    } catch (error: any) {
+      setMensaje(`Error al guardar los textos: ${error.message}`);
+    }
+  };
+
+  // Al abrir un periodo, los textos se redactan solos (una vez por periodo) si aún no existen.
+  useEffect(() => {
+    const clavePeriodo = `${anioLider}-${numeroLider}`;
+    if (tab !== 'lider' || !datosLider?.periodo || periodosConIAIntentada.current.has(clavePeriodo)) return;
+    periodosConIAIntentada.current.add(clavePeriodo);
+    redactarLiderIA(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, anioLider, numeroLider, datosLider?.periodo?.etiqueta]);
+
 
   if (loading && !datosSupervisor && !datosLider) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Cargando informes de vinculación...</div>;
@@ -565,81 +599,120 @@ function InformesVinculacionContenido() {
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Ciclo Académico del Informe</label>
-                <select
-                  value={cicloId}
-                  onChange={e => setCicloId(e.target.value)}
-                  className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
-                >
-                  {ciclos.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Periodo del informe semestral</label>
+                <div className="flex gap-2">
+                  <select
+                    value={numeroLider}
+                    onChange={e => setNumeroLider(e.target.value)}
+                    className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
+                  >
+                    <option value="1">Periodo 1 (abril – agosto)</option>
+                    <option value="2">Periodo 2 (septiembre – diciembre)</option>
+                  </select>
+                  <select
+                    value={anioLider}
+                    onChange={e => setAnioLider(e.target.value)}
+                    className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
+                  >
+                    {ANIOS_DISPONIBLES.map(anio => (
+                      <option key={anio} value={anio}>{anio}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <button
-                onClick={() => generarInforme('lider')}
-                disabled={generando}
-                className="px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow transition disabled:opacity-50"
-              >
-                {generando ? 'Generando Documento...' : 'Descargar Informe Semestral .docx'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => redactarLiderIA(true)}
+                  disabled={redactandoLider}
+                  className="px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
+                >
+                  {redactandoLider ? 'Redactando con IA...' : '✨ Regenerar textos con IA'}
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarTextosLider}
+                  className="px-3 py-2 bg-gray-100 text-gray-800 border rounded-lg text-xs font-bold hover:bg-gray-200"
+                >
+                  Guardar textos
+                </button>
+                <button
+                  onClick={() => generarInforme('lider')}
+                  disabled={generando}
+                  className="px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow transition disabled:opacity-50"
+                >
+                  {generando ? 'Generando Documento...' : 'Descargar Informe Semestral .docx'}
+                </button>
+              </div>
             </div>
+            {redactandoLider && <p className="text-xs text-purple-700">La IA está redactando los textos del informe…</p>}
 
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold text-uleam-blue mb-4">Resumen de Metas del Ciclo</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-uleam-blue">
-                    {datosLider.metas?.estudiantes_reales || 0} / {datosLider.metas?.meta_estudiantes || 0}
-                  </div>
-                  <div className="text-xs font-semibold text-gray-600">Pasantes Participantes</div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-700">
-                    {datosLider.metas?.beneficiarios_directos_reales || 0} / {datosLider.metas?.meta_beneficiarios_directos || 0}
-                  </div>
-                  <div className="text-xs font-semibold text-gray-600">Beneficiarios Directos</div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-700">
-                    {datosLider.metas?.docentes_reales || 0} / {datosLider.metas?.meta_docentes || 0}
-                  </div>
-                  <div className="text-xs font-semibold text-gray-600">Docentes Tutores</div>
-                </div>
+              <h2 className="text-lg font-bold text-uleam-blue mb-1">Avance del proyecto — {datosLider.periodo?.etiquetaLarga}</h2>
+              <p className="text-xs text-gray-500 mb-4">Suma de lo aprobado de todos los supervisores, con corte al {datosLider.periodo?.hasta}.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center mb-4">
+                <div className="bg-blue-50 p-3 rounded-lg"><div className="text-xl font-bold text-uleam-blue">{datosLider.participacion?.estudiantes?.ejecutados ?? 0}</div><div className="text-xs font-semibold text-gray-600">Estudiantes participantes</div></div>
+                <div className="bg-amber-50 p-3 rounded-lg"><div className="text-xl font-bold text-amber-700">{datosLider.participacion?.docentes?.ejecutados ?? 0}</div><div className="text-xs font-semibold text-gray-600">Docentes participantes</div></div>
+                <div className="bg-green-50 p-3 rounded-lg"><div className="text-xl font-bold text-green-700">{datosLider.participacion?.beneficiarios_directos ?? 0}</div><div className="text-xs font-semibold text-gray-600">Beneficiarios directos</div></div>
+                <div className="bg-purple-50 p-3 rounded-lg"><div className="text-xl font-bold text-purple-700">{datosLider.participacion?.beneficiarios_indirectos ?? 0}</div><div className="text-xs font-semibold text-gray-600">Beneficiarios indirectos (audiencia)</div></div>
               </div>
+              {!datosLider.tareas || datosLider.tareas.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No hay tareas cargadas para este periodo. Se definen en Proyecto de Vinculación (el ciclo debe llamarse igual que el periodo, por ejemplo {datosLider.periodo?.etiqueta}).</p>
+              ) : (
+                <div className="space-y-2">
+                  {datosLider.tareas.map((tarea: any) => (
+                    <div key={tarea.codigo} className="text-sm">
+                      <div className="flex justify-between"><span className="font-semibold text-gray-800">{tarea.codigo} {tarea.nombre}</span><span className="font-bold text-uleam-blue">{tarea.avance != null ? `${tarea.avance}%` : 'Sin cálculo'}</span></div>
+                      <div className="w-full bg-gray-200 rounded h-2 my-1"><div className="bg-uleam-blue h-2 rounded" style={{ width: `${tarea.avance ?? 0}%` }} /></div>
+                      <p className="text-xs text-gray-500">Realizado {tarea.realizado ?? 0} de {tarea.meta ?? '—'} {tarea.unidad}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-600 mt-4">
+                Propósito (nivel MCER): Pre-Test a {datosLider.mcer?.pretests ?? 0} beneficiarios; Post-Test a {datosLider.mcer?.postests ?? 0}. {datosLider.mcer?.postests === 0 ? 'En proceso: falta aplicar el Post-Test.' : ''}
+              </p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border space-y-6">
-              <h2 className="text-lg font-bold text-uleam-blue">Redacción Cualitativa del Informe Semestral</h2>
+            <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
+              <h2 className="text-lg font-bold text-uleam-blue">Problema inicial vs. resultados</h2>
+              <div className="text-xs text-gray-600 bg-gray-50 border rounded p-3">
+                <p><strong>Problema central:</strong> {datosLider.arbol?.central}</p>
+                <p className="mt-1">Se toma del árbol de problemas del proyecto (cada causa directa es una fila del formato).</p>
+              </div>
+              {(datosLider.problemaResultados || []).map((problema: any, indiceProblema: number) => (
+                <div key={indiceProblema} className="border rounded-lg p-3 space-y-2">
+                  <p className="text-sm font-semibold text-gray-800">Causa {indiceProblema + 1}: {problema.causa}</p>
+                  {[
+                    { campo: 'resultados', titulo: 'Resultados / logros de la actividad' },
+                    { campo: 'aporte_ensenanza', titulo: 'Aportes al proceso de enseñanza-aprendizaje' },
+                    { campo: 'aporte_metas', titulo: 'Aportes al logro de metas de los ODS' },
+                  ].map(({ campo, titulo }) => (
+                    <div key={campo}>
+                      <label className="block text-xs font-bold text-gray-600 mb-1">{titulo}</label>
+                      <textarea rows={2} value={problema[campo] || ''} onChange={e => actualizarProblemaLider(indiceProblema, campo, e.target.value)} className="w-full p-2 border rounded text-xs" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
+              <h2 className="text-lg font-bold text-uleam-blue">Textos del informe</h2>
               {[
-                { clave: 'introduccion', titulo: '5.1 Introducción y Contexto' },
-                { clave: 'diagnostico', titulo: '5.2 Diagnóstico de la Situación Inicial' },
-                { clave: 'resultados_cualitativos', titulo: '5.3 Resultados Cualitativos e Impacto Social' },
-                { clave: 'lecciones_aprendidas', titulo: '5.4 Lecciones Aprendidas' },
-                { clave: 'conclusiones', titulo: '5.5 Conclusiones' },
-                { clave: 'recomendaciones', titulo: '5.6 Recomendaciones' },
-              ].map(sec => (
-                <div key={sec.clave} className="space-y-2 border-b pb-4">
-                  <div className="flex justify-between items-center">
-                    <label className="font-bold text-gray-800 text-sm">{sec.titulo}</label>
-                    <button
-                      type="button"
-                      onClick={() => redactarBorradorIA(sec.clave)}
-                      disabled={redactandoClave === sec.clave}
-                      className="px-3 py-1 text-xs bg-purple-100 text-purple-800 font-semibold rounded hover:bg-purple-200 transition disabled:opacity-50"
-                    >
-                      {redactandoClave === sec.clave ? 'Redactando con IA...' : '✨ Generar borrador con IA'}
-                    </button>
-                  </div>
+                { clave: 'nuevos_problemas', titulo: 'Identificación de nuevos problemas (sugerencias para nuevos proyectos de investigación)' },
+                { clave: 'contribucion_conocimientos', titulo: 'Contribución a la generación de nuevos proyectos y/o reformulación de éstos' },
+                { clave: 'mejora_oferta', titulo: 'Propuesta de mejora a la oferta académica' },
+                { clave: 'aporte_proyectos', titulo: 'Aporte a la elaboración de proyectos de titulación en articulación con los resultados de vinculación' },
+              ].map(seccion => (
+                <div key={seccion.clave}>
+                  <label className="block font-bold text-gray-800 text-sm mb-1">{seccion.titulo}</label>
                   <textarea
-                    rows={4}
-                    value={datosLider.textos?.[sec.clave] || ''}
+                    rows={3}
+                    value={datosLider.textos?.[seccion.clave] || ''}
                     onChange={e => {
-                      const val = e.target.value;
-                      setDatosLider((prev: any) => ({
-                        ...prev,
-                        textos: { ...prev.textos, [sec.clave]: val },
-                      }));
+                      const valor = e.target.value;
+                      setDatosLider((previo: any) => ({ ...previo, textos: { ...previo.textos, [seccion.clave]: valor } }));
                     }}
                     className="w-full p-3 border rounded-lg text-sm text-gray-800 outline-none focus:border-uleam-blue"
                   />

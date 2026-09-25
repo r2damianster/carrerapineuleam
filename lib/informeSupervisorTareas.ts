@@ -17,6 +17,8 @@ export interface ContextoSupervisor {
   espaciosClubIds: number[];
   espaciosInvestigacionIds: number[];
   pasantesIds: number[];
+  /** Docentes responsables cuyos eventos cuentan (supervisor: solo él; proyecto: todos). */
+  docentesIds?: number[];
 }
 
 export interface RegistrosFuente {
@@ -46,7 +48,7 @@ export interface TareaInforme {
   ejecucionPorMes: Record<number, boolean>;
 }
 
-const dosDigitos = (valor: number) => String(valor).padStart(2, '0');
+export const dosDigitos = (valor: number) => String(valor).padStart(2, '0');
 
 function calcularAvance(realizado: number | null, meta: number | null): number | null {
   if (realizado == null || meta == null || meta <= 0) return null;
@@ -69,6 +71,7 @@ export async function registrosPorFuente(
 ): Promise<RegistrosFuente> {
   const vacio: RegistrosFuente = { cantidad: 0, pasantesIds: [], sesiones: 0, horas: 0, detalle: '' };
   const { pasantesIds, espaciosClubIds, supervisorId } = contexto;
+  const docentesIds = contexto.docentesIds?.length ? contexto.docentesIds : [supervisorId];
   const idsPasantes = pasantesIds.length ? pasantesIds : [0];
 
   if (fuente === 'asistencia_club') {
@@ -160,7 +163,7 @@ export async function registrosPorFuente(
       FROM actividades_difusion d
       WHERE d.tipo <> 'podcast' AND d.aprobado_sitio = true
         AND d.fecha BETWEEN ${desde}::date AND ${hasta}::date
-        AND (d.registrador_id = ANY(${[...idsPasantes, supervisorId]}) OR ${supervisorId} = ANY(d.profesores_responsables))
+        AND (d.registrador_id = ANY(${[...idsPasantes, ...docentesIds]}) OR d.profesores_responsables && ${docentesIds}::int[])
     `;
     const audienciaEventos = eventos.reduce((total: number, fila: any) => total + fila.audiencia, 0);
     return {
@@ -194,14 +197,14 @@ export async function registrosPorFuente(
   return { ...vacio, cantidad: null };
 }
 
-function elegirFotos(candidatas: any[]): any[] {
+export function elegirFotos(candidatas: any[], maximo = MAXIMO_FOTOS): any[] {
   const mezcladas = [...candidatas].sort(() => Math.random() - 0.5);
   // Las marcadas por el supervisor primero; luego una por espacio; luego el resto al azar.
   const marcadas = mezcladas.filter(foto => foto.usar_en_informe);
   const elegidas: any[] = [];
   const espaciosUsados = new Set<string>();
   const agregar = (foto: any) => {
-    if (elegidas.length < MAXIMO_FOTOS && !elegidas.includes(foto)) elegidas.push(foto);
+    if (elegidas.length < maximo && !elegidas.includes(foto)) elegidas.push(foto);
   };
   marcadas.forEach(agregar);
   marcadas.forEach(foto => espaciosUsados.add(foto.espacio_nombre));
@@ -407,7 +410,7 @@ export async function datosInformeSupervisor(
     general: {
       proyecto_nombre: proyecto?.nombre_oficial || 'Dinámicas Lingüísticas en Contextos Locales',
       proyecto_codigo: proyecto?.codigo || '',
-      unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación, Turismo, Artes y Humanidades',
+      unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación y Turismo',
       carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
       entidad_beneficiaria: proyecto?.entidad_beneficiaria || '',
       vigencia: proyecto?.vigencia_inicio && proyecto?.vigencia_fin ? `${proyecto.vigencia_inicio} - ${proyecto.vigencia_fin}` : '',

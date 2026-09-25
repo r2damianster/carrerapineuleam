@@ -7,9 +7,9 @@ import PizZip from 'pizzip';
 
 const RUTA_PLANTILLA = path.join(process.cwd(), 'app', 'vinculacion', 'informes', '_templates', 'informe-supervisor.docx');
 const EMU_POR_PIXEL = 9525;
-const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const COLOR_EJECUTADO = '70AD47';
-const COLOR_PLANIFICADO = 'BDD7EE';
+export const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+export const COLOR_EJECUTADO = '70AD47';
+export const COLOR_PLANIFICADO = 'BDD7EE';
 
 interface ImagenIncrustada {
   relacion: string;
@@ -17,41 +17,41 @@ interface ImagenIncrustada {
   datos: Buffer;
 }
 
-const escaparXml = (texto: unknown) =>
+export const escaparXml = (texto: unknown) =>
   String(texto ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-function corrida(texto: string, opciones: { negrita?: boolean; tamano?: number } = {}) {
+export function corrida(texto: string, opciones: { negrita?: boolean; tamano?: number } = {}) {
   const propiedades =
     `<w:rPr><w:rFonts w:eastAsia="Times New Roman" w:cstheme="minorHAnsi"/>${opciones.negrita ? '<w:b/>' : ''}` +
     `${opciones.tamano ? `<w:sz w:val="${opciones.tamano}"/><w:szCs w:val="${opciones.tamano}"/>` : ''}</w:rPr>`;
   return `<w:r>${propiedades}<w:t xml:space="preserve">${escaparXml(texto)}</w:t></w:r>`;
 }
 
-function parrafo(contenido: string, alineacion?: 'center' | 'left') {
+export function parrafo(contenido: string, alineacion?: 'center' | 'left') {
   return `<w:p><w:pPr><w:spacing w:before="0" w:after="0"/>${alineacion ? `<w:jc w:val="${alineacion}"/>` : ''}</w:pPr>${contenido}</w:p>`;
 }
 
-function celdaSimple(ancho: number, contenido: string, relleno?: string) {
+export function celdaSimple(ancho: number, contenido: string, relleno?: string) {
   return `<w:tc><w:tcPr><w:tcW w:w="${ancho}" w:type="dxa"/>${relleno ? `<w:shd w:val="clear" w:color="auto" w:fill="${relleno}"/>` : ''}<w:vAlign w:val="center"/></w:tcPr>${contenido || parrafo('')}</w:tc>`;
 }
 
 const BORDES_TABLA =
   '<w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="808080"/><w:left w:val="single" w:sz="4" w:space="0" w:color="808080"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="808080"/><w:right w:val="single" w:sz="4" w:space="0" w:color="808080"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="808080"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="808080"/></w:tblBorders>';
 
-function tabla(anchos: number[], filas: string[], conBordes = true) {
+export function tabla(anchos: number[], filas: string[], conBordes = true) {
   const rejilla = anchos.map(ancho => `<w:gridCol w:w="${ancho}"/>`).join('');
   const total = anchos.reduce((suma, ancho) => suma + ancho, 0);
   return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${conBordes ? BORDES_TABLA : ''}<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${rejilla}</w:tblGrid>${filas.join('')}</w:tbl>`;
 }
 
-const fila = (celdas: string[]) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${celdas.join('')}</w:tr>`;
+export const fila = (celdas: string[]) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${celdas.join('')}</w:tr>`;
 
 /** Lee ancho y alto de un PNG (IHDR) o JPEG (marcador SOF). */
-function dimensionesImagen(datos: Buffer): { ancho: number; alto: number } | null {
+export function dimensionesImagen(datos: Buffer): { ancho: number; alto: number } | null {
   if (datos.length > 24 && datos.readUInt32BE(0) === 0x89504e47) {
     return { ancho: datos.readUInt32BE(16), alto: datos.readUInt32BE(20) };
   }
@@ -70,7 +70,7 @@ function dimensionesImagen(datos: Buffer): { ancho: number; alto: number } | nul
   return null;
 }
 
-function dibujoEnLinea(relacion: string, ancho: number, alto: number, identificador: number) {
+export function dibujoEnLinea(relacion: string, ancho: number, alto: number, identificador: number) {
   const anchoEmu = Math.round(ancho * EMU_POR_PIXEL);
   const altoEmu = Math.round(alto * EMU_POR_PIXEL);
   return (
@@ -84,7 +84,7 @@ function dibujoEnLinea(relacion: string, ancho: number, alto: number, identifica
   );
 }
 
-async function descargarFoto(url: string): Promise<Buffer | null> {
+export async function descargarFoto(url: string): Promise<Buffer | null> {
   // Cloudinary: recorte uniforme 4:3 en JPG liviano, así todas las fotos quedan del mismo tamaño.
   const urlOptimizada = url.includes('/upload/') ? url.replace('/upload/', '/upload/c_fill,w_640,h_480,q_auto,f_jpg/') : url;
   const controlador = new AbortController();
@@ -343,7 +343,7 @@ export async function generarInformeSupervisorDesdePlantilla(
       zip.file(`word/media/${nombreArchivo}`, imagen.datos);
       relaciones = relaciones.replace('</Relationships>', `<Relationship Id="${imagen.relacion}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${nombreArchivo}"/></Relationships>`);
     });
-    if (imagenes.some(imagen => imagen.extension === 'jpeg') && !/Extension="jpe?g"/i.test(tipos)) {
+    if (imagenes.some(imagen => imagen.extension === 'jpeg') && !/Extension="jpg"/i.test(tipos)) {
       tipos = tipos.replace('<Default Extension="png"', '<Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png"');
     }
     zip.file('word/_rels/document.xml.rels', relaciones);

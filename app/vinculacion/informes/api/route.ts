@@ -2,16 +2,17 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion, puedeGestionarVinculacion } from '@/lib/modulos';
-import { datosInformeLider } from '@/lib/informesVinculacion';
+import { datosInformeLiderPlantilla } from '@/lib/informeLiderTareas';
+import { periodoPorDefecto } from '@/lib/periodosProyecto';
+import { generarInformeLiderDesdePlantilla } from '../_lib/plantillaLider';
 import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervisor';
 import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
 import { datosInformeSupervisor, recopilarSenalesObstaculos } from '@/lib/informeSupervisorTareas';
-import { generarDocxLider } from '../_lib/docxLider';
 import {
   generarGraficoPasantesHoras,
   generarGraficoGenero,
-  generarGraficoEvolucionMensual,
-  generarGraficoPlanVsEjecutado,
+  generarGraficoAvanceTareas,
+  generarGraficoEdad,
 } from '../_lib/graficos';
 
 /** Informe del supervisor: plantilla institucional + gráficos de participación. */
@@ -26,6 +27,16 @@ async function generarBufferSupervisor(datos: any): Promise<Buffer> {
     generarGraficoGenero(datos.participacion?.genero || {}),
   ]);
   return generarInformeSupervisorDesdePlantilla(datos, { pasantes: graficoPasantes, genero: graficoGenero });
+}
+
+/** Informe del líder: plantilla institucional + gráficos de avance y de beneficiarios. */
+async function generarBufferLider(datos: any): Promise<Buffer> {
+  const [graficoAvance, graficoGenero, graficoEdad] = await Promise.all([
+    generarGraficoAvanceTareas((datos.tareas || []).map((tarea: any) => ({ codigo: tarea.codigo, avance: tarea.avance }))),
+    generarGraficoGenero(datos.participacion?.genero || {}),
+    generarGraficoEdad(datos.participacion?.edad || {}),
+  ]);
+  return generarInformeLiderDesdePlantilla(datos, { avance: graficoAvance, genero: graficoGenero, edad: graficoEdad });
 }
 
 export async function GET(request: Request) {
@@ -60,12 +71,10 @@ export async function GET(request: Request) {
         if (!puedeGestionarVinculacion(usuario)) {
           return NextResponse.json({ error: 'Solo el Líder de proyecto puede ver el informe semestral' }, { status: 403 });
         }
-        let cicloId = cicloIdParam ? parseInt(cicloIdParam) : null;
-        if (!cicloId) {
-          const [cicloActivo] = await sql`SELECT id FROM ciclos_academicos ORDER BY id DESC LIMIT 1`;
-          cicloId = cicloActivo?.id || 1;
-        }
-        const datos = await datosInformeLider(sql, { cicloId: cicloId! });
+        const porDefecto = periodoPorDefecto();
+        const anio = Number(searchParams.get('anio')) || porDefecto.anio;
+        const numero = Number(searchParams.get('numero')) === 1 ? 1 : Number(searchParams.get('numero')) === 2 ? 2 : porDefecto.numero;
+        const datos = await datosInformeLiderPlantilla(sql, { anio, numero });
         return NextResponse.json({ success: true, datos });
       }
     }
@@ -112,11 +121,7 @@ export async function GET(request: Request) {
       if (informe.tipo === 'supervisor') {
         buffer = await generarBufferSupervisor(datos);
       } else {
-        const [gEvolucion, gPlanVsEj] = await Promise.all([
-          generarGraficoEvolucionMensual(datos.evolucion || []),
-          generarGraficoPlanVsEjecutado(datos.metas || {}),
-        ]);
-        buffer = await generarDocxLider(datos, { evolucion: gEvolucion, planVsEjecutado: gPlanVsEj });
+        buffer = await generarBufferLider(datos);
       }
 
       return new Response(new Uint8Array(buffer), {
@@ -144,6 +149,76 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const body = await request.json();
     const { accion } = body;
+
+    if (accion === 'redactar-lider') {
+      if (!puedeGestionarVinculacion(usuario)) return NextResponse.json({ error: 'Solo el líder puede redactar este informe' }, { status: 403 });
+      const anio = Number(body.anio);
+      const numero = Number(body.numero) === 1 ? 1 : 2;
+      const forzar = Boolean(body.forzar);
+      const datos = await datosInformeLiderPlantilla(sql, { anio, numero });
+      const yaRedactado = !forzar && datos.textos.nuevos_problemas && datos.problemaResultados.every(problema => problema.resultados);
+      if (yaRedactado) return NextResponse.json({ success: true, textos: datos.textos, problemaResultados: datos.problemaResultados, reutilizado: true });
+
+      const resumen = {
+        periodo: datos.periodo.etiquetaLarga,
+        arbol: datos.arbol,
+        tareas: datos.tareas.map((tarea: any) => ({ codigo: tarea.codigo, tarea: tarea.nombre, objetivo: tarea.objetivo, meta: `${tarea.meta ?? 'sin meta'} ${tarea.unidad}`, realizado: tarea.realizado ?? 0, avance: tarea.avance, estudiantes: tarea.alumnos, registros: tarea.observaciones })),
+        participacion: datos.participacion,
+        mcer: datos.mcer,
+        obstaculos: datos.obstaculos,
+      };
+      const indicaciones =
+        'Eres el líder de un proyecto de vinculación con la sociedad de una universidad ecuatoriana. Redactas con tono formal, en español, usando SOLO los datos dados (no inventes cifras, nombres ni lugares, sin placeholders entre corchetes). No menciones ODS, contextos (rural, urbano…), instituciones ni lugares que no aparezcan en los datos.';
+      const pedido =
+        `DATOS DEL PROYECTO Y DEL PERIODO: ${JSON.stringify(resumen)}\n\n` +
+        'Devuelve SOLO un JSON con esta forma: {"problemaResultados":[{"resultados":"...","aporte_ensenanza":"...","aporte_metas":"..."}],"nuevos_problemas":"...","contribucion_conocimientos":"...","mejora_oferta":"...","aporte_proyectos":"..."}.\n' +
+        `problemaResultados tiene exactamente ${datos.arbol.causas.length} elementos, uno por cada causa directa del árbol de problemas, en el mismo orden (la causa 1 se relaciona con la tarea 1.x y el componente de enseñanza, la 2 con 2.x difusión, la 3 con 3.x investigación). ` +
+        'resultados = logros concretos obtenidos frente a esa causa (máx. 45 palabras); aporte_ensenanza = aporte al proceso de enseñanza-aprendizaje/formación de los estudiantes (máx. 35 palabras); aporte_metas = aporte al cumplimiento de metas de los ODS y del marco lógico (máx. 35 palabras). ' +
+        'nuevos_problemas = lista de 2 a 4 líneas (una por línea) con problemas nuevos o temas de investigación sugeridos, deducidos de los obstáculos y de las tareas con bajo avance. ' +
+        'contribucion_conocimientos, mejora_oferta y aporte_proyectos = un párrafo breve cada uno (máx. 60 palabras): contribución a nuevos proyectos o su reformulación; propuesta de mejora a la oferta académica; aporte a proyectos de titulación en articulación con los resultados de vinculación.';
+      try {
+        const respuesta = await pedirCompletionIA([{ role: 'system', content: indicaciones }, { role: 'user', content: pedido }], { temperature: 0.3, responseFormatJson: true });
+        const resultado = JSON.parse(respuesta);
+        const problemaResultados = datos.problemaResultados.map((base: any, indice: number) => ({
+          ...base,
+          resultados: String(resultado.problemaResultados?.[indice]?.resultados || ''),
+          aporte_ensenanza: String(resultado.problemaResultados?.[indice]?.aporte_ensenanza || ''),
+          aporte_metas: String(resultado.problemaResultados?.[indice]?.aporte_metas || ''),
+        }));
+        const textos = {
+          nuevos_problemas: Array.isArray(resultado.nuevos_problemas) ? resultado.nuevos_problemas.join('\n') : String(resultado.nuevos_problemas || ''),
+          contribucion_conocimientos: String(resultado.contribucion_conocimientos || ''),
+          mejora_oferta: String(resultado.mejora_oferta || ''),
+          aporte_proyectos: String(resultado.aporte_proyectos || ''),
+        };
+        if (datos.periodo.cicloId) {
+          const guardar = { ...textos, problema_resultados: JSON.stringify(problemaResultados) } as Record<string, string>;
+          for (const [clave, texto] of Object.entries(guardar)) {
+            await sql`
+              INSERT INTO proyecto_textos_ciclo (proyecto_id, ciclo_id, clave, texto) VALUES ('vinculacion', ${datos.periodo.cicloId}, ${clave}, ${texto})
+              ON CONFLICT (proyecto_id, ciclo_id, clave) DO UPDATE SET texto = EXCLUDED.texto
+            `;
+          }
+        }
+        return NextResponse.json({ success: true, textos, problemaResultados });
+      } catch (error) {
+        return NextResponse.json({ error: formatearErrorIA(error) }, { status: 500 });
+      }
+    }
+
+    if (accion === 'guardar-textos-lider') {
+      if (!puedeGestionarVinculacion(usuario)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+      const { ciclo_id, textos, problemaResultados } = body;
+      if (!ciclo_id) return NextResponse.json({ error: 'No existe un ciclo con el nombre de este periodo' }, { status: 400 });
+      const guardar = { ...(textos || {}), problema_resultados: JSON.stringify(problemaResultados || []) } as Record<string, string>;
+      for (const [clave, texto] of Object.entries(guardar)) {
+        await sql`
+          INSERT INTO proyecto_textos_ciclo (proyecto_id, ciclo_id, clave, texto) VALUES ('vinculacion', ${Number(ciclo_id)}, ${clave}, ${String(texto || '')})
+          ON CONFLICT (proyecto_id, ciclo_id, clave) DO UPDATE SET texto = EXCLUDED.texto
+        `;
+      }
+      return NextResponse.json({ success: true });
+    }
 
     if (accion === 'redactar-todo') {
       const { mes: mesBody, supervisor_id: supervisorIdBody, forzar } = body;
@@ -240,17 +315,13 @@ export async function POST(request: Request) {
       }
 
       let buffer: Buffer;
-      const targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.ciclo?.id || 1);
+      const targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || datos.ciclo?.id || 1);
       const targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
 
       if (tipo === 'supervisor') {
         buffer = await generarBufferSupervisor(datos);
       } else {
-        const [gEvolucion, gPlanVsEj] = await Promise.all([
-          generarGraficoEvolucionMensual(datos.evolucion || []),
-          generarGraficoPlanVsEjecutado(datos.metas || {}),
-        ]);
-        buffer = await generarDocxLider(datos, { evolucion: gEvolucion, planVsEjecutado: gPlanVsEj });
+        buffer = await generarBufferLider(datos);
       }
 
       const [guardado] = await sql`

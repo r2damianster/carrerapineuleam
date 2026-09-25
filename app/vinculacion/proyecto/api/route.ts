@@ -38,6 +38,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, ficha: proyecto || null, docentes, ciclos });
     }
 
+    if (seccion === 'arbol') {
+      const nodos = await sql`
+        SELECT id, nivel, padre_id, texto, orden FROM proyecto_arbol_problemas
+        WHERE proyecto_id = 'vinculacion' AND activo = true ORDER BY orden, id
+      `;
+      return NextResponse.json({ success: true, nodos });
+    }
+
     if (seccion === 'objetivos') {
       const objetivos = await sql`
         SELECT * FROM proyecto_objetivos 
@@ -157,10 +165,43 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   try {
+    if (seccion === 'arbol') {
+      const NIVELES = ['central', 'causa_directa', 'causa_indirecta', 'efecto_directo', 'efecto_final'];
+      if (accion === 'crear') {
+        const { nivel, texto, padre_id } = body;
+        if (!NIVELES.includes(nivel) || !String(texto || '').trim()) {
+          return NextResponse.json({ error: 'Nivel y texto son requeridos' }, { status: 400 });
+        }
+        if (nivel === 'causa_indirecta' && !padre_id) {
+          return NextResponse.json({ error: 'Una causa indirecta necesita su causa directa' }, { status: 400 });
+        }
+        const [ultimo] = await sql`
+          SELECT COALESCE(MAX(orden), 0)::int AS orden FROM proyecto_arbol_problemas
+          WHERE proyecto_id = 'vinculacion' AND nivel = ${nivel} AND padre_id IS NOT DISTINCT FROM ${padre_id || null}
+        `;
+        const [nuevo] = await sql`
+          INSERT INTO proyecto_arbol_problemas (proyecto_id, nivel, padre_id, texto, orden)
+          VALUES ('vinculacion', ${nivel}, ${padre_id || null}, ${String(texto).trim()}, ${ultimo.orden + 1})
+          RETURNING id, nivel, padre_id, texto, orden
+        `;
+        return NextResponse.json({ success: true, nodo: nuevo });
+      }
+      if (accion === 'editar') {
+        const { id, texto } = body;
+        if (!id || !String(texto || '').trim()) return NextResponse.json({ error: 'Id y texto son requeridos' }, { status: 400 });
+        await sql`UPDATE proyecto_arbol_problemas SET texto = ${String(texto).trim()} WHERE id = ${id} AND proyecto_id = 'vinculacion'`;
+        return NextResponse.json({ success: true });
+      }
+      if (accion === 'eliminar') {
+        await sql`DELETE FROM proyecto_arbol_problemas WHERE id = ${body.id} AND proyecto_id = 'vinculacion'`;
+        return NextResponse.json({ success: true });
+      }
+    }
+
     if (seccion === 'ficha') {
       const {
         codigo, unidad_academica, carrera, entidad_beneficiaria,
-        vigencia_inicio, vigencia_fin, ods, linea_investigacion, zona,
+        vigencia_inicio, vigencia_fin, ods, linea_investigacion, zona, parroquia,
         codigo_documento_lider, revision_documento_lider,
         codigo_documento_supervisor, revision_documento_supervisor,
         firmante_responsable_id, lider_id
@@ -176,7 +217,8 @@ export async function POST(request: Request) {
           vigencia_fin = ${vigencia_fin || null},
           ods = ${ods || null},
           linea_investigacion = ${linea_investigacion || null},
-          zona = ${zona || 'Distrito 13D02 Manta'},
+          zona = ${zona || 'Manta (Distrito 13D02)'},
+          parroquia = ${parroquia || null},
           codigo_documento_lider = ${codigo_documento_lider || null},
           revision_documento_lider = ${revision_documento_lider || null},
           codigo_documento_supervisor = ${codigo_documento_supervisor || null},
