@@ -8,7 +8,7 @@ const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario) {
+    if (!usuario || usuario.rol === 'secretaria') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

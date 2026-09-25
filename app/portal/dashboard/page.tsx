@@ -6,7 +6,7 @@ import { liderProyectoPropio } from '@/lib/data';
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import { obtenerTopes } from '@/lib/topesHoras';
-import { esDocente as esDocenteSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
+import { esDocente as esDocenteSesion, esSecretaria as esSecretariaSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
 import PendientesPortal from '@/components/PendientesPortal';
 import Header from '@/components/Header';
@@ -36,6 +36,7 @@ export default async function PortalDashboard() {
 
   const { modulos_acceso, nombres, rol, email } = session;
   const esDocente = esDocenteSesion(session);
+  const esSecretaria = esSecretariaSesion(session);
   const proyectoPropio = liderProyectoPropio[email];
 
   // Horas acreditables por podcast de Vinculación (Sesión 38) — solo cuenta
@@ -213,8 +214,19 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Utilidades — cualquier docente */}
-            {esDocente && (
+            {/* Secretaria: solo perfil (Utilidades va en su tarjeta propia, abajo). */}
+            {esSecretaria && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Mi Perfil</h3>
+                <p className="text-gray-600 mb-4 text-sm">Tus datos personales y profesionales.</p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/portal/perfil" className="text-indigo-600 hover:underline">» Ver/Editar Mi Perfil</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Utilidades — cualquier docente y la secretaria */}
+            {(esDocente || esSecretaria) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Utilidades</h3>
                 <p className="text-gray-600 mb-4 text-sm">
@@ -258,7 +270,7 @@ export default async function PortalDashboard() {
 
           </div>
 
-          {!esDocente && modulos_acceso.length === 0 && rol !== 'estudiante' && (
+          {!esDocente && !esSecretaria && modulos_acceso.length === 0 && rol !== 'estudiante' && (
             <div className="bg-yellow-50 p-6 rounded-lg text-yellow-800 text-center">
               Tu cuenta no tiene módulos asignados aún. Por favor contacta al administrador.
             </div>

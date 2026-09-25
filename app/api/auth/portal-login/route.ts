@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     // nada que completar ahí para poder inscribir/subir podcast.
     const redirect = redirectParam
       ? decodeURIComponent(redirectParam)
-      : (esPrimeraActivacion && user.rol === 'profesor' ? '/portal/perfil' : '/portal/dashboard');
+      : (esPrimeraActivacion && (user.rol === 'profesor' || user.rol === 'secretaria') ? '/portal/perfil' : '/portal/dashboard');
 
     const response = NextResponse.json({ success: true, redirect });
     

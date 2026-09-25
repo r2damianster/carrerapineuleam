@@ -5,7 +5,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario) {
+    if (!usuario || usuario.rol === 'secretaria') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

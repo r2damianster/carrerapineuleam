@@ -32,6 +32,19 @@ export function esDocente(usuario: UsuarioConModulos): boolean {
   return usuario?.rol === 'profesor' || usuario?.rol === 'admin';
 }
 
+// Secretaria de Carrera: rol propio sin módulos. Solo entra a Mi Perfil y a /utilidades
+// (ver allowlist en middleware.ts); nada más del portal.
+export const RUTAS_SECRETARIA = ['/portal/dashboard', '/portal/perfil', '/utilidades'];
+
+export function esSecretaria(usuario: UsuarioConModulos): boolean {
+  return usuario?.rol === 'secretaria';
+}
+
+// Utilidades (generadores de documentos): cualquier docente y la secretaria.
+export function puedeUsarUtilidades(usuario: UsuarioConModulos): boolean {
+  return esDocente(usuario) || esSecretaria(usuario);
+}
+
 // Líder de Vinculación (o superadmin): gestiona espacios/pasantes y ve la supervisión de todos.
 export function esLiderVinculacion(usuario: UsuarioConModulos): boolean {
   return tieneModulo(usuario, 'vinculacion_gestion') || tieneModulo(usuario, 'superadmin');

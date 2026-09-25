@@ -6,7 +6,7 @@ import { puedeOperarEspacio } from '@/lib/permisos-espacio';
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario) {
+    if (!usuario || usuario.rol === 'secretaria') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

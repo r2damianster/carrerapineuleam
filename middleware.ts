@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySessionCookieValue, createSessionCookieValue, SESSION_COOKIE, type AppSession } from '@/lib/session';
-import { puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion } from '@/lib/modulos';
+import { puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, esSecretaria, puedeUsarUtilidades, RUTAS_SECRETARIA } from '@/lib/modulos';
 
 // Expiración "sliding": reemite la cookie con maxAge completo (8h, ver
 // lib/session.ts) en cada request autenticado que pasa por el middleware —
@@ -68,6 +68,12 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL('/portal/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    // Secretaria: solo Mi Perfil, Utilidades y el dashboard. Cualquier otra ruta protegida
+    // se le niega por defecto (no depende de que cada chequeo de abajo la excluya).
+    if (esSecretaria(session) && !RUTAS_SECRETARIA.some(ruta => pathname.startsWith(ruta))) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
     if (
@@ -145,7 +151,7 @@ export async function middleware(request: NextRequest) {
 
     // Utilidades: generadores de documentos (Acta Técnica, Oficios, Convocatorias,
     // PAT Maestría, Pares Lectores) — abierto a cualquier docente, no ligado a modulos_acceso.
-    if (pathname.startsWith('/utilidades') && !['profesor', 'admin'].includes(session.rol)) {
+    if (pathname.startsWith('/utilidades') && !puedeUsarUtilidades(session)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

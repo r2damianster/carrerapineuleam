@@ -15,7 +15,7 @@ import { puedeOperarEspacio } from '@/lib/permisos-espacio';
 // obligatorio, porque esa persona ya tiene su pretest de antes.
 export async function POST(request: Request) {
   const usuario = await getAppSessionFromCookies();
-  if (!usuario) {
+  if (!usuario || usuario.rol === 'secretaria') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
