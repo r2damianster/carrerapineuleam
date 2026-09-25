@@ -106,7 +106,9 @@ const celdasDeFila = (filaXml: string) => filaXml.match(/<w:tc>[\s\S]*?<\/w:tc>/
 
 /** Agrega texto al primer párrafo de una celda (deja intacto lo que ya trae la plantilla). */
 function agregarTexto(celdaXml: string, texto: string, opciones: { negrita?: boolean; tamano?: number } = {}) {
-  return celdaXml.replace('</w:p>', () => `${corrida(texto, opciones)}</w:p>`);
+  if (celdaXml.includes('</w:p>')) return celdaXml.replace('</w:p>', () => `${corrida(texto, opciones)}</w:p>`);
+  // Párrafo vacío autocerrado: <w:p .../>
+  return celdaXml.replace(/<w:p((?:\s[^>]*?)?)\/>/, (_todo, atributos) => `<w:p${atributos}>${corrida(texto, opciones)}</w:p>`);
 }
 
 /** Reemplaza el contenido de una fila de datos vacía por valores, uno por celda. */
@@ -205,7 +207,7 @@ export async function generarInformeSupervisorDesdePlantilla(
     : parrafo(corrida('No hay tareas planificadas cargadas para este periodo en el plan del proyecto.', { tamano: 18 }));
   const filasCrono = filasDeTabla(tablaCronograma);
   const filaCuerpoCrono = filasCrono[2];
-  const nuevaFilaCuerpoCrono = filaCuerpoCrono.replace(/(<w:p [^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>)([\s\S]*)<\/w:tc>/, (_todo, primerParrafo, resto) => `${primerParrafo}${bloqueCronograma}${resto}</w:tc>`);
+  const nuevaFilaCuerpoCrono = filaCuerpoCrono.replace(/<\/w:tc>(?![\s\S]*<\/w:tc>)/, () => `${bloqueCronograma}<w:p/></w:tc>`);
   xml = sustituir(xml, tablaCronograma, sustituir(tablaCronograma, filaCuerpoCrono, nuevaFilaCuerpoCrono));
 
   // 2.2 Tareas planificadas realizadas (se omiten las tareas sin registros aprobados).
@@ -306,10 +308,17 @@ export async function generarInformeSupervisorDesdePlantilla(
   } else {
     bloqueAdjuntos = parrafo(corrida('No hay fotografías de sesiones aprobadas en el mes seleccionado.', { tamano: 18 }));
   }
-  const posicionEvidencias = xml.indexOf('Evidencias');
-  const cierreParrafoEvidencias = xml.indexOf('</w:p>', posicionEvidencias) + '</w:p>'.length;
-  // Una celda no puede terminar en una tabla: se deja un párrafo vacío después.
-  xml = xml.slice(0, cierreParrafoEvidencias) + bloqueAdjuntos + '<w:p/>' + xml.slice(cierreParrafoEvidencias);
+  // Se agrega al final de la última celda de la tabla «Adjuntos» (no depende de la nota «Evidencias…»).
+  const tablaAdjuntos = (xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) || []).find(tablaXml => textoDeCelda(tablaXml).replace(/\s+/g, ' ').trim().startsWith('Adjuntos'));
+  if (tablaAdjuntos) {
+    // Una celda no puede terminar en una tabla: se deja un párrafo vacío después.
+    const nuevaAdjuntos = tablaAdjuntos.replace(/<\/w:tc>(?![\s\S]*<\/w:tc>)/, () => `${bloqueAdjuntos}<w:p/></w:tc>`);
+    xml = sustituir(xml, tablaAdjuntos, nuevaAdjuntos);
+  } else {
+    const posicionAdjuntos = xml.indexOf('Adjuntos');
+    const cierreParrafo = xml.indexOf('</w:p>', posicionAdjuntos) + '</w:p>'.length;
+    xml = xml.slice(0, cierreParrafo) + bloqueAdjuntos + '<w:p/>' + xml.slice(cierreParrafo);
+  }
 
   // Firmas: nombres bajo las líneas de la plantilla.
   const posicionFirma = xml.indexOf('Docente Supervisor');
