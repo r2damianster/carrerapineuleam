@@ -75,7 +75,7 @@ const translations = {
     },
     careerProfile: {
       eyebrow: "Formación Académica PINE",
-      title: "Perfiles de la Carrera",
+      title: "Perfil de Egreso",
       intro: "Conoce los estándares, competencias y campos de desarrollo que definen a nuestros estudiantes y graduados en Pedagogía de los Idiomas Nacionales y Extranjeros.",
       tabs: { egreso: "Perfil de Egreso", profesional: "Perfil Profesional", ingreso: "Perfil de Ingreso" },
       comingSoon: "Próximamente",
@@ -615,7 +615,7 @@ const translations = {
     },
     careerProfile: {
       eyebrow: "PINE Academic Training",
-      title: "Career Profiles",
+      title: "Graduate Profile",
       intro: "Discover the standards, competencies, and development fields defining our students and graduates in Pedagogy of National and Foreign Languages.",
       tabs: { egreso: "Graduate Profile", profesional: "Professional Profile", ingreso: "Applicant Profile" },
       comingSoon: "Coming Soon",

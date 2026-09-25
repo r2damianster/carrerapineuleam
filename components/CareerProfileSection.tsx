@@ -143,9 +143,6 @@ export default function CareerProfileSection() {
       <div className="container mx-auto px-4">
         {/* Encabezado Principal */}
         <div className="text-center mb-10 md:mb-14">
-          <span className="inline-block text-xs md:text-sm font-bold tracking-wider text-uleam-gold uppercase bg-uleam-blue/10 px-4 py-1.5 rounded-full mb-3">
-            {cp.eyebrow}
-          </span>
           <h2 className="text-3xl md:text-5xl font-extrabold text-uleam-blue mb-4 tracking-tight">
             {cp.title}
           </h2>
