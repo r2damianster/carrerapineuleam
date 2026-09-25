@@ -6,7 +6,6 @@ import { clasificarRangoEdad } from './informesVinculacion';
 import { construirPeriodo } from './periodosProyecto';
 import {
   registrosPorFuente,
-  elegirFotos,
   dosDigitos,
   type ContextoSupervisor,
   type TareaInforme,
@@ -15,7 +14,6 @@ import {
 type Sql = NeonQueryFunction<false, false>;
 
 const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const MAXIMO_FOTOS_LIDER = 8;
 
 export const CLAVES_TEXTOS_LIDER = ['nuevos_problemas', 'contribucion_conocimientos', 'mejora_oferta', 'aporte_proyectos', 'problema_resultados'] as const;
 
@@ -29,6 +27,28 @@ export interface ProblemaResultado {
   resultados: string;
   aporte_ensenanza: string;
   aporte_metas: string;
+}
+
+/** "PÉREZ LÓPEZ juan" -> "Pérez López Juan" (los nombres llegan con mayúsculas mezcladas). */
+export function tituloNombre(texto: string): string {
+  const particulas = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e']);
+  return String(texto || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((palabra, indice) => (indice > 0 && particulas.has(palabra) ? palabra : palabra.charAt(0).toUpperCase() + palabra.slice(1)))
+    .join(' ');
+}
+
+/** Una foto por cada espacio (sin tope): la marcada por el supervisor si existe; si no, una al azar. */
+export function unaFotoPorEspacio(candidatas: any[]): any[] {
+  const porEspacio = new Map<string, any[]>();
+  candidatas.forEach(foto => porEspacio.set(foto.espacio_nombre, [...(porEspacio.get(foto.espacio_nombre) || []), foto]));
+  return Array.from(porEspacio.values()).map(fotos => {
+    const marcadas = fotos.filter(foto => foto.usar_en_informe);
+    const conjunto = marcadas.length ? marcadas : fotos;
+    return conjunto[Math.floor(Math.random() * conjunto.length)];
+  });
 }
 
 function hoyEcuador(): { anio: number; mes: number; texto: string } {
@@ -51,7 +71,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
     FROM proyectos WHERE id = 'vinculacion'
   `;
   const [lider] = await sql`
-    SELECT nombres, apellidos FROM usuarios
+    SELECT id, nombres, apellidos FROM usuarios
     WHERE id = ${proyecto?.lider_id ?? 0} OR (${proyecto?.lider_email ?? ''} <> '' AND email = ${proyecto?.lider_email ?? ''})
     LIMIT 1
   `;
@@ -202,6 +222,32 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
       AND a.fecha BETWEEN ${desde}::date AND ${hastaCorte}::date
   `;
 
+  // Adjuntos: lista de docentes (supervisores y líder), estudiantes y beneficiarios que participaron.
+  const idsDocentes = Array.from(new Set([...(contexto.docentesIds || []), ...(lider?.id ? [lider.id] : [])]));
+  const docentesFilas = idsDocentes.length
+    ? await sql`SELECT id, nombres, apellidos FROM usuarios WHERE id = ANY(${idsDocentes}) ORDER BY apellidos, nombres`
+    : [];
+  const idsEstudiantes = estudiantesEjecutados.size ? Array.from(estudiantesEjecutados) : contexto.pasantesIds;
+  const estudiantesFilas = idsEstudiantes.length
+    ? await sql`SELECT id, nombres, apellidos FROM usuarios WHERE id = ANY(${idsEstudiantes}) ORDER BY apellidos, nombres`
+    : [];
+  const beneficiariosFilas = await sql`
+    SELECT u.id, u.nombres, u.apellidos, string_agg(DISTINCT e.nombre, ', ') AS espacios
+    FROM inscripciones_espacio ie
+    JOIN usuarios u ON u.id = ie.beneficiario_id
+    JOIN "espacios_enseñanza" e ON e.id = ie.espacio_id
+    WHERE ie.espacio_id = ANY(${idsConsulta})
+    GROUP BY u.id, u.nombres, u.apellidos ORDER BY u.apellidos, u.nombres
+  `;
+  const participantes = {
+    docentes: docentesFilas.map((fila: any) => ({
+      nombre: tituloNombre(`${fila.apellidos} ${fila.nombres}`),
+      rol: [lider?.id === fila.id ? 'Líder del proyecto' : '', (contexto.docentesIds || []).includes(fila.id) ? 'Supervisor' : ''].filter(Boolean).join(' y '),
+    })),
+    estudiantes: estudiantesFilas.map((fila: any) => tituloNombre(`${fila.apellidos} ${fila.nombres}`)),
+    beneficiarios: beneficiariosFilas.map((fila: any) => ({ nombre: tituloNombre(`${fila.apellidos} ${fila.nombres}`), espacio: fila.espacios || '' })),
+  };
+
   const nombrePersona = (fila: any) => (fila ? `${fila.nombres} ${fila.apellidos}` : '');
   return {
     periodo: {
@@ -254,6 +300,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
     },
     mcer: { pretests: mcer?.pretests || 0, postests: mcer?.postests || 0, meta_participantes: 100 },
     obstaculos,
-    fotos: elegirFotos(fotosCandidatas, MAXIMO_FOTOS_LIDER),
+    fotos: unaFotoPorEspacio(fotosCandidatas),
+    participantes,
   };
 }
