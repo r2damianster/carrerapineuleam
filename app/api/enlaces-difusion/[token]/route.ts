@@ -3,6 +3,7 @@ import { neon, Pool } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGenerarEnlaceDifusion } from '@/lib/permisos-enlace-difusion';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
+import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
 
 // Público (sin sesión) — valida el token y devuelve lo necesario para armar
 // el formulario: a quién se le dio el acceso (para saludarlo) y las listas
@@ -194,8 +195,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
   // Externos → esExterno=true → menores='revisar', interna — NUNCA publicable directamente.
   // Una falla aquí no afecta el registro ya guardado.
   if (evidencia_url && actividadId) {
-    const { neon: neonDriver } = await import('@neondatabase/serverless');
-    const sql = neonDriver(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const origenFoto = tipo === 'podcast' ? 'podcast' : 'evento';
     await registrarFotoEnBanco(sql, {
       url: evidencia_url,
