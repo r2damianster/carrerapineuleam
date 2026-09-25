@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         ORDER BY nombres ASC
       `;
       const ciclos = await sql`
-        SELECT id, nombre, fecha_inicio, fecha_fin, activo
+        SELECT id, nombre, fecha_inicio, fecha_fin
         FROM ciclos_academicos
         ORDER BY id DESC
       `;
