@@ -174,7 +174,6 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
                   <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
-                  <Link href="/vinculacion/informes?tipo=lider" className="text-purple-600 hover:underline">» Informe Semestral del Líder (.docx)</Link>
                 </div>
               </div>
             )}
@@ -188,7 +187,6 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar actividades y horas</Link>
                   <Link href="/vinculacion/supervisar/indicadores" className="text-indigo-600 hover:underline">» Panel de Supervisión (Indicadores)</Link>
-                  <Link href="/vinculacion/informes?tipo=supervisor" className="text-indigo-600 hover:underline">» Informe Mensual del Supervisor (.docx)</Link>
                 </div>
               </div>
             )}
