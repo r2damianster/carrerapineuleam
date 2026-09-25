@@ -183,11 +183,11 @@ En `lib/notificaciones.ts` (`REGLAS_NOTIFICACION`) + fila en `NOTIFICACIONES.md`
 | IA redacta texto erróneo | Siempre borrador editable; nunca se guarda sin acción del líder |
 
 ## 4. Checklist de "listo para producción" por fase
-- [x] Migración Fase 1 aplicada y verificada con SELECT en Neon.
-- [x] `tsc --noEmit` y `npm run build` limpios localmente (0 errores).
-- [x] Pruebas de roles OK (rutas protegidas en middleware.ts).
-- [ ] Informe real generado y revisado por el usuario (Fase 2-3).
-- [ ] Notificaciones y documentación actualizadas (Fase 4).
+- [ ] Migración aplicada y verificada con SELECT; snapshot tomado.
+- [ ] `tsc` y `build` limpios; sin claves duplicadas en estados de formularios.
+- [ ] Pruebas de roles OK (403 donde corresponde).
+- [ ] Informe real generado y revisado por el usuario.
+- [ ] Notificaciones y documentación actualizadas.
 - [ ] Vercel `READY`, logs sin errores.
 
 ## 5. Pendientes del usuario para desbloquear
@@ -195,25 +195,3 @@ En `lib/notificaciones.ts` (`REGLAS_NOTIFICACION`) + fila en `NOTIFICACIONES.md`
 2. Confirmar quién es el **Responsable de Vinculación y Emprendimiento** (firmante).
 3. Backfill de género de los 69 beneficiarios (o autorizar carga por Excel).
 4. Dónde guardar los .docx generados (recomendado: Cloudinary `raw`, ya en uso).
-
----
-
-## 6. Registro de ejecución realizada (Antigravity — 2026-09-25)
-
-### Fase 1 completada (WP0, WP1, WP2, WP4)
-- **Rama Git**: `feat/informes-vinculacion`.
-- **Plantillas Word (WP0)**: Copiadas a `app/utilidades/_templates/Informe_Vinculacion_Lider.docx` e `Informe_Vinculacion_Supervisor.docx`.
-- **Ampliación de BD (WP1)**:
-  - En lugar de crear tabla `proyecto_ficha` aislada, se amplió directamente la tabla `proyectos` con las columnas requeridas: `codigo`, `unidad_academica`, `carrera`, `entidad_beneficiaria`, `vigencia_inicio`, `vigencia_fin`, `ods`, `linea_investigacion`, `zona`, `codigo_documento_lider`, `revision_documento_lider`, `codigo_documento_supervisor`, `revision_documento_supervisor`, `firmante_responsable_id`, `lider_id`, `actualizado_en`.
-  - Tablas nuevas creadas en Neon: `proyecto_metas_ciclo`, `proyecto_objetivos`, `proyecto_actividades_plan`, `proyecto_presupuesto`, `proyecto_textos_ciclo`, `supervision_obstaculos`, `informes_vinculacion`.
-  - Columnas agregadas en `asistencia_espacio`: `actividad_plan_id`, `no_prevista`, `usar_en_informe`, `comentario_supervisor`.
-  - Scripts: `scripts/migrate-informes-vinculacion.js` (ejecutado con éxito) y `scripts/rollback-informes-vinculacion.js`.
-- **Género de beneficiarios (WP2)**:
-  - Actualizado `POST /api/beneficiarios/registrar-y-evaluar` y `POST /api/enlaces/[token]/pretest` para validar y guardar `genero` (`femenino|masculino|otro|prefiero_no_decir`).
-  - Creado selector `<select>` en `/vinculacion/registrar-evaluar` y pretest público (`/vinculacion/publico/[token]`).
-  - Creado endpoint batch `PATCH /api/beneficiarios/genero` y pantalla de backfill masivo `/vinculacion/beneficiarios/genero`.
-- **Pantalla del Proyecto (WP4)**:
-  - Protegida en `middleware.ts` para `puedeGestionarVinculacion`.
-  - Endpoint consolidado `app/vinculacion/proyecto/api/route.ts` con auditoría en `superadmin_audit_log`.
-  - Pantalla `/vinculacion/proyecto` con 5 pestañas: Ficha, Objetivos/Actividades (con "Copiar al ciclo siguiente"), Metas por ciclo, Presupuesto (% ejecución calculado) y Textos cualitativos del ciclo con "Redactar borrador con IA" (`enriquecerTexto`).
-- **Verificación**: `npx tsc --noEmit` y `npm run build` limpios en producción.
