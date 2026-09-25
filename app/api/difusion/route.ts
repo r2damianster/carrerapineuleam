@@ -3,6 +3,9 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 import { registrarVideoPropuesto } from '@/lib/registrarVideoPropuesto';
+import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
+import { validarProyectosAsignables } from '@/lib/permisosProyecto';
+import { esDocente } from '@/lib/modulos';
 
 export async function POST(request: Request) {
   try {
@@ -34,6 +37,10 @@ export async function POST(request: Request) {
       video_participantes,
       video_invitados_internos,
       video_invitados_externos,
+      // WP5.2 nuevos
+      hay_menores,    // boolean — declaración de menores en la foto de evidencia
+      // WP5b nuevo
+      proyectos: proyectosPedidos, // string[] — proyectos a los que pertenece esta actividad
     } = data;
     const registrador_id = usuario.id;
 
@@ -58,6 +65,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos' }, { status: 400 });
     }
 
+    // WP5b — validar proyectos asignables por el usuario
+    // Pasantes (estudiante) tienen proyectos fijos; docentes los validan aquí.
+    let proyectosValidados: string[] = [];
+    if (usuario.rol === 'estudiante') {
+      // D5: pasantes → eventos=['vinculacion'], podcasts=['vinculacion','internacionalizacion']
+      proyectosValidados = tipo === 'podcast'
+        ? ['vinculacion', 'internacionalizacion']
+        : ['vinculacion'];
+    } else if (esDocente(usuario)) {
+      // Docentes eligen proyectos — validar contra sus asignables
+      const validacion = await validarProyectosAsignables(sql, usuario, proyectosPedidos);
+      if (!validacion.valido) {
+        return NextResponse.json({ error: validacion.error }, { status: validacion.status });
+      }
+      proyectosValidados = validacion.ids;
+    }
+
     const periodo_academico = calcularPeriodoAcademico(new Date(fecha));
 
     // `evidencia_url` en tipo 'podcast' suele ser una captura de métricas
@@ -68,13 +92,18 @@ export async function POST(request: Request) {
     // como imagen destacada) — si no, quedaba subida a Cloudinary pero invisible.
     const photos = evidencia_url && tipo !== 'podcast' ? [evidencia_url] : [];
 
-    await sql`
+    // WP5b: guardar proyectosValidados en actividades_difusion.proyectos (columna nueva WP1)
+    // Seguimos escribiendo `proyecto` y `categoria` como antes (los informes los leen).
+    const [actividad] = await sql`
       INSERT INTO actividades_difusion
         (titulo, tipo, fecha, hora, ciclo_id, registrador_id, audiencia_alcanzada, evidencia_url, photos,
-         categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables, periodo_academico)
+         categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables, periodo_academico,
+         proyectos)
       VALUES
         (${titulo}, ${tipo}, ${fecha}, ${hora || null}, ${ciclo_id || null}, ${registrador_id}, ${audiencia_alcanzada}, ${evidencia_url || null}, ${photos},
-         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds}, ${periodo_academico})
+         ${categoria || 'vinculacion'}, ${proyecto || null}, ${asignatura || null}, ${descripcion || null}, ${observaciones || null}, ${responsablesIds}, ${periodo_academico},
+         ${proyectosValidados})
+      RETURNING id
     `;
 
     // Si se subió un video (tipo "podcast", ver components/SubirVideoDifusion.tsx),
@@ -108,6 +137,25 @@ export async function POST(request: Request) {
         invitadosInternos: Array.isArray(video_invitados_internos) ? video_invitados_internos : [],
         invitadosExternos: Array.isArray(video_invitados_externos) ? video_invitados_externos : [],
         audienciaAlcanzada: audiencia_alcanzada || 0,
+      });
+    }
+
+    // WP5.2: ingestar foto al banco si hay evidencia_url (solo para eventos, no podcasts).
+    // Podcasts: evidencia_url es captura de métricas, no una foto de difusión.
+    // Nunca debe fallar el registro principal.
+    if (evidencia_url && actividad?.id) {
+      const origenFoto = tipo === 'podcast' ? 'podcast' : 'evento';
+      await registrarFotoEnBanco(sql, {
+        url: evidencia_url,
+        origen: origenFoto,
+        fuente_id: String(actividad.id),
+        fecha_evento: fecha,
+        categoria: categoria || 'vinculacion',
+        proyectos: proyectosValidados,
+        subido_por_id: Number(usuario.id),
+        subido_por: usuario.email,
+        hayMenores: hay_menores === true,
+        esExterno: false,
       });
     }
 

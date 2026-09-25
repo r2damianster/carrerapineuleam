@@ -66,6 +66,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     titulo, tipo, fecha, hora, audiencia_alcanzada, evidencia_url,
     categoria, proyecto, asignatura, descripcion, observaciones,
     profesores_responsables, youtube_video_id, video_category,
+    hay_menores, // WP5.3 — declaración de menores (externo sin identificar → esExterno=true de todas formas)
   } = body;
 
   if (!registrador_externo_nombre || !registrador_externo_nombre.trim()) {
@@ -83,6 +84,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
+  let actividadId: string | null = null;
   try {
     await client.query('BEGIN');
 
@@ -128,22 +130,38 @@ export async function POST(request: Request, { params }: { params: { token: stri
       return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos' }, { status: 400 });
     }
 
+    // WP5b: proyectos del enlace — tomados del creador del enlace (ya vetado)
+    // Para evitar consultas extra en el cliente externo (sin sesión), se toman
+    // los proyectos del profesor que creó el enlace directamente en la BD.
+    const { rows: proyectosRows } = await client.query(
+      `SELECT p.id FROM proyecto_miembros pm
+       JOIN proyectos p ON p.id = pm.proyecto_id
+       WHERE pm.usuario_id = $1 AND pm.activo = true AND p.activo = true`,
+      [enlace.creado_por]
+    );
+    const proyectosDelCreador: string[] = proyectosRows.map((r: any) => r.id);
+    // Si el creador no tiene proyectos (caso borde), usar vinculacion por defecto
+    const proyectosParaActividad = proyectosDelCreador.length > 0 ? proyectosDelCreador : ['vinculacion'];
+
     const periodo_academico = calcularPeriodoAcademico(new Date(fecha));
     const photos = evidencia_url && tipo !== 'podcast' ? [evidencia_url] : [];
 
-    await client.query(
+    const { rows: [actividad] } = await client.query(
       `INSERT INTO actividades_difusion
         (titulo, tipo, fecha, hora, registrador_id, audiencia_alcanzada, evidencia_url, photos,
          categoria, proyecto, asignatura, descripcion, observaciones, profesores_responsables, periodo_academico,
-         origen, registrador_externo_nombre, registrador_externo_contacto)
+         origen, registrador_externo_nombre, registrador_externo_contacto, proyectos)
        VALUES
-        ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'externo_temporal', $15, $16)`,
+        ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'externo_temporal', $15, $16, $17)
+       RETURNING id`,
       [
         titulo, tipo, fecha, hora || null, audiencia_alcanzada || null, evidencia_url || null, photos,
         categoria || 'vinculacion', proyecto || null, asignatura || null, descripcion || null, observaciones || null,
         responsablesIds, periodo_academico, registrador_externo_nombre.trim(), registrador_externo_contacto || null,
+        proyectosParaActividad,
       ]
     );
+    actividadId = actividad?.id ? String(actividad.id) : null;
 
     // Video del podcast (opcional, Sesión 37) — ya se subió a YouTube en el
     // navegador vía /api/youtube/iniciar-subida (autorizado con este mismo
@@ -163,7 +181,6 @@ export async function POST(request: Request, { params }: { params: { token: stri
     await client.query(`UPDATE enlaces_difusion SET usos_actuales = usos_actuales + 1 WHERE token = $1`, [params.token]);
 
     await client.query('COMMIT');
-    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Enlace difusión submit error:', error);
@@ -172,6 +189,27 @@ export async function POST(request: Request, { params }: { params: { token: stri
     client.release();
     await pool.end();
   }
+
+  // WP5.3: ingestar foto al banco DESPUÉS del COMMIT.
+  // Externos → esExterno=true → menores='revisar', interna — NUNCA publicable directamente.
+  // Una falla aquí no afecta el registro ya guardado.
+  if (evidencia_url && actividadId) {
+    const { neon: neonDriver } = await import('@neondatabase/serverless');
+    const sql = neonDriver(process.env.DATABASE_URL!);
+    const origenFoto = tipo === 'podcast' ? 'podcast' : 'evento';
+    await registrarFotoEnBanco(sql, {
+      url: evidencia_url,
+      origen: origenFoto,
+      fuente_id: actividadId,
+      fecha_evento: fecha,
+      categoria: categoria || 'vinculacion',
+      proyectos: [],   // se asignarán cuando el admin apruebe la actividad
+      hayMenores: hay_menores === true,
+      esExterno: true, // externo sin identificar → siempre interna
+    });
+  }
+
+  return NextResponse.json({ success: true }, { status: 201 });
 }
 
 // Protegido — revoca el enlace antes de tiempo. Solo quien lo creó, o

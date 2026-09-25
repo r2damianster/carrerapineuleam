@@ -3,6 +3,7 @@ import { Pool } from '@neondatabase/serverless';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
+import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
 
 export async function GET(request: Request) {
   try {
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
     const {
       espacio_id, fecha, beneficiarios_presentes, observaciones, hora_inicio, hora_fin, foto_url, foto_public_id,
       instructores_presentes, invitados_presentes,
+      hay_menores, // WP5.1 — declaración de menores al subir la foto de evidencia
     } = await request.json();
 
     if (!espacio_id || !fecha) {
@@ -85,6 +87,7 @@ export async function POST(request: Request) {
 
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const client = await pool.connect();
+    let asistenciaId: number | null = null;
     try {
       await client.query('BEGIN');
 
@@ -112,6 +115,7 @@ export async function POST(request: Request) {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
         [espacio_id, fecha, observaciones ?? null, usuario.id, hora_inicio, hora_fin, foto_url ?? null, foto_public_id ?? null]
       );
+      asistenciaId = asistencia.id;
 
       for (const beneficiarioId of beneficiarios_presentes as number[]) {
         await client.query(
@@ -134,7 +138,6 @@ export async function POST(request: Request) {
       }
 
       await client.query('COMMIT');
-      return NextResponse.json({ success: true, id: asistencia.id }, { status: 201 });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -142,6 +145,27 @@ export async function POST(request: Request) {
       client.release();
       await pool.end();
     }
+
+    // WP5.1: ingestar la foto al banco DESPUÉS del COMMIT principal.
+    // Una falla aquí NO revierte la asistencia ya guardada.
+    // Todos los espacios son area='vinculacion' → proyectos=['vinculacion'] (asunción validada en WP0).
+    if (foto_url && asistenciaId !== null) {
+      const sql = neon(process.env.DATABASE_URL!);
+      await registrarFotoEnBanco(sql, {
+        url: foto_url,
+        cloudinary_public_id: foto_public_id ?? null,
+        origen: 'asistencia',
+        fuente_id: String(asistenciaId),
+        fecha_evento: fecha,
+        proyectos: ['vinculacion'],
+        subido_por_id: Number(usuario.id),
+        subido_por: usuario.email,
+        hayMenores: hay_menores === true,
+        esExterno: false,
+      });
+    }
+
+    return NextResponse.json({ success: true, id: asistenciaId }, { status: 201 });
   } catch (error: any) {
     console.error('Asistencia insert error:', error);
     return NextResponse.json({ error: 'Error al guardar', details: error.message }, { status: 500 });

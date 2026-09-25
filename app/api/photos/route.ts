@@ -1,47 +1,35 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { obtenerFotosDeUbicacion } from '@/lib/fotosPublicas';
-import { puedeAdministrarSitio } from '@/lib/permisosProyecto';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const incluirInactivos = searchParams.get('all') === 'true';
     const ubicacion = searchParams.get('ubicacion');
-    const incluirTodas = searchParams.get('all') === 'true';
 
-    // GET público (con topes) — cache desactivado explícitamente (bug Sesión 31)
+    // GET público, no llama cookies() en ningún punto -> Next lo trataría
+    // como estático y el Data Cache de @neondatabase/serverless cachearía
+    // la query para siempre (bug real ya mordido en Sesión 31, ver
+    // CLAUDE.md). cache:'no-store' lo desactiva explícitamente.
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
 
-    // ?all=true ya no es público — requiere administración del sitio.
-    // El admin usa /api/photos/banco (WP4). Este path queda por compatibilidad transitoria
-    // hasta que /admin/photos se reescriba en WP8.
-    if (incluirTodas) {
-      const sesion = await getAppSessionFromCookies();
-      if (!sesion || !puedeAdministrarSitio(sesion)) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-      }
-      const rows = await sql`
-        SELECT * FROM fotos ORDER BY "order" ASC, created DESC
-      `;
-      return NextResponse.json(rows);
-    }
-
-    // GET con ubicacion → aplica topes y gate de fuente aprobada
-    if (ubicacion) {
-      const fotos = await obtenerFotosDeUbicacion(sql, ubicacion);
-      return NextResponse.json(fotos);
-    }
-
-    // GET sin parámetros → [] (no volcar toda la tabla al público)
-    return NextResponse.json([]);
+    const rows = ubicacion
+      ? await sql`
+          SELECT * FROM fotos
+          WHERE (${incluirInactivos} OR activo = true) AND ${ubicacion} = ANY(ubicaciones)
+          ORDER BY "order" ASC
+        `
+      : await sql`
+          SELECT * FROM fotos
+          WHERE (${incluirInactivos} OR activo = true)
+          ORDER BY "order" ASC
+        `;
+    return NextResponse.json(rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
 
 export async function POST(request: Request) {
   try {
