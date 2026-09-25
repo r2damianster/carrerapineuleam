@@ -1,15 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 
+// Encabezado de la portada: nombre de la carrera. Va antes de "Perfiles de la Carrera".
+// (Los boletines ya no son una tarjeta aquí: se enlazan junto a las últimas noticias y en el pie de página.)
 export default function HubProjectsSection() {
   const { t } = useLanguage();
 
   return (
-    <section id="proyectos" className="py-10 md:py-20 bg-white">
+    <section id="carrera" className="pt-10 md:pt-16 pb-2 md:pb-4 bg-white">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10 md:mb-14">
+        <div className="text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-uleam-blue mb-4">
             {t.hub.sectionTitle}
           </h2>
@@ -17,26 +18,6 @@ export default function HubProjectsSection() {
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             {t.hub.sectionSubtitle}
           </p>
-        </div>
-
-        <div className="max-w-sm mx-auto">
-          <Link
-            href="/boletines"
-            className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center hover:shadow-xl transition-all hover:border-uleam-blue"
-          >
-            <div className="relative w-32 h-32 mb-5 bg-gradient-to-br from-uleam-gold/10 to-uleam-blue/10 rounded-lg flex items-center justify-center">
-              <svg className="w-16 h-16 text-uleam-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold text-uleam-gold uppercase tracking-wide mb-2">
-              {t.hub.careerLabel}
-            </span>
-            <h3 className="text-lg font-bold text-uleam-blue mb-3 leading-snug">
-              {t.hub.boletinesCard.title}
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">{t.hub.boletinesCard.description}</p>
-          </Link>
         </div>
       </div>
     </section>

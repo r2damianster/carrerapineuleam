@@ -146,10 +146,11 @@ const translations = {
     },
     news: {
       sectionTitle: 'Últimas Noticias',
-      sectionSubtitle: 'Mantente al día con las novedades del proyecto',
+      sectionSubtitle: 'Mantente al día con las novedades de la carrera',
       loading: 'Cargando noticias...',
       empty: 'No hay noticias aún',
       viewAll: 'Ver Todas las Noticias →',
+      viewBulletins: 'Ver boletines →',
       readMore: 'Leer más',
     },
     photoCarousel: {
@@ -197,17 +198,7 @@ const translations = {
     },
     hub: {
       sectionTitle: 'Carrera de Pedagogía de los Idiomas Nacionales y Extranjero - ULEAM',
-      sectionSubtitle: 'Proyectos, redes de cooperación y boletines de la carrera',
-      groupName: 'Grupo de Investigación',
-      careerLabel: 'Carrera',
-      pineCard: {
-        title: 'Proyecto de Innovaciones Pedagógicas e Internacionalización',
-        description: 'Proyecto integral de investigación sobre innovaciones pedagógicas, internacionalización de la educación y transformación de prácticas áulicas en la ULEAM.',
-      },
-      boletinesCard: {
-        title: 'Boletines',
-        description: 'Boletines bimensuales que agrupan noticias y actividades de la carrera.',
-      },
+      sectionSubtitle: 'Formación, perfiles y novedades de la carrera',
     },
     boletines: {
       pageTitle: 'Boletines de la Carrera',
@@ -300,6 +291,7 @@ const translations = {
         outreach: 'Vinculación',
         teaching: 'Docencia',
         news: 'Noticias',
+        newsletters: 'Boletines',
         partnerships: 'Alianzas',
         portalPine: 'Portal PINE',
         internationalizationProject: 'Proyecto Internacionalización',
@@ -694,10 +686,11 @@ const translations = {
     },
     news: {
       sectionTitle: 'Latest News',
-      sectionSubtitle: 'Stay up to date with project news',
+      sectionSubtitle: 'Stay up to date with news from the degree program',
       loading: 'Loading news...',
       empty: 'No news yet',
       viewAll: 'View All News →',
+      viewBulletins: 'View newsletters →',
       readMore: 'Read more',
     },
     photoCarousel: {
@@ -745,17 +738,7 @@ const translations = {
     },
     hub: {
       sectionTitle: 'Bachelor\'s Degree in National and Foreign Languages Pedagogy - ULEAM',
-      sectionSubtitle: 'Projects, cooperation networks and degree newsletters',
-      groupName: 'Research Group',
-      careerLabel: 'Degree Program',
-      pineCard: {
-        title: 'Pedagogical Innovations and Internationalization Project',
-        description: 'Comprehensive research project on pedagogical innovations, internationalization of education and transformation of classroom practices at ULEAM.',
-      },
-      boletinesCard: {
-        title: 'Newsletters',
-        description: 'Bimonthly newsletters grouping news and activities from the degree program.',
-      },
+      sectionSubtitle: 'Training, profiles and news from the degree program',
     },
     boletines: {
       pageTitle: 'Degree Newsletters',
@@ -848,6 +831,7 @@ const translations = {
         outreach: 'Outreach',
         teaching: 'Teaching',
         news: 'News',
+        newsletters: 'Newsletters',
         partnerships: 'Partnerships',
         portalPine: 'PINE Portal',
         internationalizationProject: 'Internationalization Project',

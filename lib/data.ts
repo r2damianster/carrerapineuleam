@@ -144,6 +144,7 @@ export const footerContexts: Record<string, FooterContext> = {
       { labelKey: 'outreach', href: '/vinculacion/dinamicas-linguisticas' },
       { labelKey: 'teaching', href: '/docencia/docencia-innovadora' },
       { labelKey: 'news', href: '#noticias' },
+      { labelKey: 'newsletters', href: '/boletines' },
       { labelKey: 'partnerships', href: '#alianzas' },
       { labelKey: 'publications', href: '/publicaciones' },
       { labelKey: 'portalPine', href: '/portal/login' },
