@@ -23,6 +23,7 @@ export interface Member {
   usuario_id?: number | null;
   rol_en_proyecto?: 'lider' | 'colider' | 'supervisor' | 'vinculacion' | 'participante';
   roles_proyecto?: Record<string, string>;
+  ordenes_proyecto?: Record<string, number>;
   // Ocultar sin borrar (Sesión 30) — false = no sale en ningún GET público.
   activo: boolean;
   created: string;

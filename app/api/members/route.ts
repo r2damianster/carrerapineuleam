@@ -32,7 +32,8 @@ export async function GET(request: Request) {
           SELECT to_jsonb(m) || jsonb_build_object(
                    'name', COALESCE(NULLIF(trim(u.nombres || ' ' || u.apellidos), ''), m.name),
                    'projects', COALESCE((SELECT array_agg(pm.proyecto_id ORDER BY pm.proyecto_id) FROM proyecto_miembros pm WHERE pm.usuario_id = m.usuario_id), '{}'),
-                   'roles_proyecto', COALESCE((SELECT jsonb_object_agg(pm.proyecto_id, pm.rol_en_proyecto) FROM proyecto_miembros pm WHERE pm.usuario_id = m.usuario_id), '{}'::jsonb)
+                   'roles_proyecto', COALESCE((SELECT jsonb_object_agg(pm.proyecto_id, pm.rol_en_proyecto) FROM proyecto_miembros pm WHERE pm.usuario_id = m.usuario_id), '{}'::jsonb),
+                   'ordenes_proyecto', COALESCE((SELECT jsonb_object_agg(pm.proyecto_id, pm.orden) FROM proyecto_miembros pm WHERE pm.usuario_id = m.usuario_id), '{}'::jsonb)
                  ) AS data
           FROM members m
           LEFT JOIN usuarios u ON u.id = m.usuario_id
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { name, role, orcid, email, photo, is_leader, order, projects, roles_proyecto, usuario_id, genero, fecha_nacimiento, grado, posgrado, titulo_especifico } = await request.json();
+    const { name, role, orcid, email, photo, is_leader, order, projects, roles_proyecto, ordenes_proyecto, usuario_id, genero, fecha_nacimiento, grado, posgrado, titulo_especifico } = await request.json();
     if (!name || !role) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
       VALUES (${id}, ${name}, ${role}, ${orcid || null}, ${email || ''}, ${photo || null}, ${!!is_leader}, ${order ?? 0}, ${genero || null}, ${fecha_nacimiento || null}, ${grado || null}, ${posgrado || null}, ${titulo_especifico || null}, ${personaId})
       RETURNING *
     `;
-    await sincronizarProyectosDePersona(sql, personaId, projects || [], roles_proyecto, order ?? 0);
+    await sincronizarProyectosDePersona(sql, personaId, projects || [], roles_proyecto, order ?? 0, ordenes_proyecto);
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

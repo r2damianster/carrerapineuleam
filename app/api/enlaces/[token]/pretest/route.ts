@@ -1,3 +1,4 @@
+import { esTokenEnlaceValido } from '@/lib/tokens';
 import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
@@ -19,6 +20,9 @@ const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
 //   espacio si no lo estaba), en vez de fallar por email duplicado o crear
 //   un registro repetido de la misma persona.
 export async function POST(request: Request, { params }: { params: { token: string } }) {
+  if (!esTokenEnlaceValido(params.token)) {
+    return NextResponse.json({ error: 'Enlace no válido' }, { status: 404 });
+  }
   const body = await request.json();
   const {
     ya_registrado,

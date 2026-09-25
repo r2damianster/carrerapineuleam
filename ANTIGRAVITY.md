@@ -13,6 +13,7 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Claude Code:** Encargado de implementaciones puntuales, revisiones de código rápidas, ajustes de UI (Tailwind) y tareas de mantenimiento del día a día.
 
 ### Reglas de Sincronización
+0. **Ramas y worktrees (decisión del usuario, 2026-09-25):** cada agente trabaja en su propia rama con `git worktree`; el árbol principal no se edita en paralelo. Integra a `main` solo con `tsc` y `build` en verde, sin marcas de conflicto ni archivos vacíos. Ver `CLAUDE.md` → regla 10b.
 1. **Compartir Estado:** Cada vez que realices un cambio estructural importante, actualiza el archivo `CLAUDE.md` para que Claude esté enterado de las nuevas convenciones o cambios en el esquema de Neon.
 2. **Respetar Tareas:** Si un requerimiento es mejor manejado por Claude (ej. un ajuste menor de CSS), puedes sugerirle al usuario delegarlo.
 3. **Skills Compartidos:** Utilizar las convenciones y directrices de UI y TypeScript definidas conjuntamente. **Desde la Sesión 25, la fuente de verdad del sitio público es Neon Postgres, no `lib/data.ts`** (ver más abajo).

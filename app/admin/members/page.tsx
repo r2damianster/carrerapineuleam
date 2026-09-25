@@ -29,6 +29,7 @@ export default function AdminMembersPage() {
     order: 0,
     projects: [] as string[],
     roles_proyecto: {} as Record<string, string>,
+    ordenes_proyecto: {} as Record<string, number | string>,
     genero: '',
     fecha_nacimiento: '',
     grado: '',
@@ -86,7 +87,7 @@ export default function AdminMembersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], roles_proyecto: {}, genero: '', fecha_nacimiento: '', grado: '', posgrado: '', titulo_especifico: '' });
+    setFormData({ name: '', role: '', orcid: '', email: '', is_leader: false, order: 0, projects: [], roles_proyecto: {}, ordenes_proyecto: {}, genero: '', fecha_nacimiento: '', grado: '', posgrado: '', titulo_especifico: '' });
     setEditingMember(null);
     setShowForm(false);
   };
@@ -102,6 +103,7 @@ export default function AdminMembersPage() {
       order: member.order,
       projects: member.projects || [],
       roles_proyecto: member.roles_proyecto || {},
+      ordenes_proyecto: member.ordenes_proyecto || {},
       genero: member.genero || '',
       fecha_nacimiento: member.fecha_nacimiento || '',
       grado: member.grado || '',
@@ -428,6 +430,18 @@ export default function AdminMembersPage() {
                         >
                           {ROLES_PROYECTO.map((rol) => <option key={rol} value={rol}>{ETIQUETA_ROL_PROYECTO[rol]}</option>)}
                         </select>
+                      )}
+                      {formData.projects.includes(opt.value) && (
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.ordenes_proyecto[opt.value] ?? ''}
+                          onChange={(e) => setFormData({ ...formData, ordenes_proyecto: { ...formData.ordenes_proyecto, [opt.value]: e.target.value } })}
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                          placeholder="Orden"
+                          aria-label={`Orden en ${opt.label}`}
+                          title="Posición en este proyecto (1 = primero)"
+                        />
                       )}
                     </div>
                   ))}
