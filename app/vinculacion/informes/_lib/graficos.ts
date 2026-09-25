@@ -230,3 +230,20 @@ export async function generarGraficoPlanVsEjecutado(metas: {
 
   return solicitarGraficoQuickChart(config, 800, 400);
 }
+
+export async function generarGraficoAvanceTareas(tareas: { codigo: string; avance: number | null }[]): Promise<Buffer | null> {
+  if (!tareas || tareas.length === 0) return null;
+  const config = {
+    type: 'horizontalBar',
+    data: {
+      labels: tareas.map(tarea => `Tarea ${tarea.codigo}`),
+      datasets: [{ label: 'Avance (%)', backgroundColor: '#003366', data: tareas.map(tarea => tarea.avance ?? 0) }],
+    },
+    options: {
+      title: { display: true, text: 'Avance del proyecto por tarea del periodo (%)', fontSize: 16 },
+      legend: { display: false },
+      scales: { xAxes: [{ ticks: { beginAtZero: true, max: 100 } }] },
+    },
+  };
+  return solicitarGraficoQuickChart(config, 800, Math.max(300, tareas.length * 55));
+}

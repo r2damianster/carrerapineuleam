@@ -48,3 +48,10 @@ export function periodoDeMes(mes: string): PeriodoProyecto | null {
   if (numeroMes >= MESES_PERIODO[2].inicio && numeroMes <= MESES_PERIODO[2].fin) return construirPeriodo(anio, 2);
   return null;
 }
+
+/** Periodo vigente según hoy (hora de Ecuador); enero–marzo cae en el periodo 2 del año anterior. */
+export function periodoPorDefecto(): PeriodoProyecto {
+  const ahora = new Date(Date.now() - 5 * 60 * 60 * 1000);
+  const mes = `${ahora.getUTCFullYear()}-${String(ahora.getUTCMonth() + 1).padStart(2, '0')}`;
+  return periodoDeMes(mes) ?? construirPeriodo(ahora.getUTCFullYear() - 1, 2);
+}
