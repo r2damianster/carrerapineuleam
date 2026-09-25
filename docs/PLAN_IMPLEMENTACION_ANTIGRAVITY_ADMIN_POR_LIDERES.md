@@ -24,10 +24,10 @@
 
 | # | Tema | Valor por defecto a implementar | Quién confirma |
 |---|---|---|---|
-| **D1** | "Administración del sitio" = quién puede publicar en portada y ver fotos internas/con menores. El usuario dijo "admin y superadmin". Hoy `/admin/photos` lo usa también Jhonny (`contenido_sitio`). | `puedeAdministrarSitio(sesion)` = `contenido_sitio` **o** `admin` **o** `superadmin` (no quita acceso a nadie). Se define en **una sola función**; si se restringe, se cambia solo ahí. | Arturo |
-| **D2** | **RESUELTA (usuario, 2026-09-26): el líder de RED LEA es Jhonny Villafuerte** (`usuarios.id = 13`). Hoy `proyecto_miembros` no tiene a nadie en `redlea`. | **Dato, no código:** Arturo lo asigna en `/admin/members` (rol `lider` en RED LEA); así corre `sincronizarProyectosDePersona` y se recalculan sus módulos. El agente **no** hace `INSERT` a mano en `proyecto_miembros`. ⚠️ Efecto colateral esperado: `redlea.area = 'investigacion'` → `lib/permisosPertenencia.ts` le **deriva el módulo `investigacion`** (verá "Gestionar Investigación" y `/investigacion/*`); hoy Jhonny no tiene ningún módulo. Es consistente con ser colíder del grupo, pero avisar a Arturo. Debe hacerse **antes de la Fase B**. | Arturo |
+| **D1** | **RESUELTA (usuario, 2026-09-26).** "Administración del sitio" = portada, fotos internas/con menores, topes y cualquier proyecto asignable. Verificado en Neon: **solo Arturo** tiene `admin`/`contenido_sitio`/`superadmin`. **Jhonny Villafuerte NO es admin y no debe administrar contenido general**: solo gestiona los proyectos donde es líder/colíder (Internacionalización como colíder, RED LEA como líder). | `puedeAdministrarSitio` = `contenido_sitio` **o** `admin` **o** `superadmin` (hoy equivale a Arturo). **Nunca** conceder acceso a `/admin/*` ni a la portada a alguien por ser líder/colíder de un proyecto. Un líder entra solo por `/portal/proyecto/...`. Si más adelante se quiere excluir a `contenido_sitio`, se cambia en esa única función. | — |
+| **D2** | **RESUELTA (usuario, 2026-09-26): Jhonny Villafuerte (`usuarios.id = 13`) es líder de RED LEA y sigue siendo colíder de Internacionalización.** Hoy `proyecto_miembros` no tiene a nadie en `redlea`. | **Dato, no código:** Arturo lo asigna en `/admin/members` (rol `lider` en RED LEA); así corre `sincronizarProyectosDePersona`. El agente **no** hace `INSERT` a mano en `proyecto_miembros`. ⚠️ **Trampa de permisos:** `redlea.area = 'investigacion'` y `lib/permisosPertenencia.ts` deriva el módulo **`investigacion`** a todo líder de un proyecto de investigación → Jhonny recibiría "Gestionar Investigación" y `/investigacion/informes` (informes de **todo** el grupo), justo lo que el usuario **no** quiere. **Mitigación obligatoria (dato, hecho por Arturo tras asignarlo):** en `/admin/roles` quitar `investigacion` a Jhonny (queda en `usuarios.modulos_excluidos`, mecanismo ya existente y auditado). Verificar después: `SELECT modulos_acceso, modulos_excluidos FROM usuarios WHERE id = 13` → `modulos_acceso = '{}'`. El panel `/portal/proyecto/...` **no depende** de `modulos_acceso` (consulta `proyecto_miembros` en vivo), así que esta exclusión no le quita la gestión de sus dos proyectos. | Arturo |
 | **D3** | Nombre exacto del modelo de visión de Groq (cambia con el tiempo). | Variable `GROQ_VISION_MODEL`; el agente verifica en la documentación vigente de Groq y documenta el valor usado. | agente + verificación |
-| **D5** | ¿Qué proyectos puede asignar un **pasante** (estudiante-instructor) al subir un evento/podcast? No está modelado (`proyecto_miembros` es de docentes). | Por defecto: **`['vinculacion']`** (y la regla existente de podcasts que añade `internacionalizacion` automáticamente se conserva, exenta de validación por ser añadida por el servidor). Cambiar solo en `proyectosAsignables()`. | Arturo |
+| **D5** | **RESUELTA (usuario, 2026-09-26): los pasantes son de Vinculación; sus podcasts pertenecen a Vinculación **e** Internacionalización ("Innovaciones Pedagógicas e Internacionalización").** | Pasante: **eventos** → `['vinculacion']` fijo. **Podcasts** → `['vinculacion','internacionalizacion']` fijo. Es la regla que ya existe hoy (`video_proyecto_id: 'vinculacion'` en `/vinculacion/difusion` + `internacionalizacion` añadida por el servidor, Sesión 38); WP5b solo la **formaliza** y la copia a `actividades_difusion.proyectos` y `fotos.proyectos`. El pasante no ve selector: solo la etiqueta "Se asociará a: …". | — |
 | **D4** | Fotos que llegan por **enlace temporal de externos** (`/api/enlaces-difusion/[token]`) no tienen declaración fiable. | Siempre `menores='revisar'`, `visibilidad='interna'` hasta que un admin las revise. | — (regla dura) |
 
 ### Datos reales de partida (verificados)
@@ -182,7 +182,7 @@ import type { AppSession } from './session';
 
 export const ROLES_GESTORES_PROYECTO = ['lider', 'colider'] as const;
 
-// D1: única definición de "administración del sitio". Cambiar aquí si se restringe.
+// D1: única definición de "administración del sitio" (hoy equivale a Arturo). Un líder/colíder de proyecto NO entra aquí jamás.
 export function puedeAdministrarSitio(usuario: Pick<AppSession, 'modulos_acceso'> | null | undefined): boolean {
   const modulos = usuario?.modulos_acceso ?? [];
   return modulos.includes('contenido_sitio') || modulos.includes('admin') || modulos.includes('superadmin');
@@ -332,7 +332,7 @@ Cubierta en 4.4 (`POST /api/photos`).
 |---|---|
 | Administración del sitio (`puedeAdministrarSitio`) | **Todos** los `proyectos.activo = true` |
 | Docente (`rol` `profesor`/`admin`) | Solo los de `proyecto_miembros` donde **está activo, con cualquier rol** (líder, colíder, supervisor, vinculación, participante). Quien no es miembro de ninguno → lista vacía |
-| Estudiante-instructor (pasante) | D5: por defecto `['vinculacion']` si es instructor de algún espacio (`espacio_instructores`) |
+| Estudiante-instructor (pasante) | **Eventos:** `['vinculacion']`. **Podcasts:** `['vinculacion','internacionalizacion']` (D5). Fijos, sin selector; solo si es instructor de algún espacio (`espacio_instructores`) |
 | Secretaria / beneficiario | Ninguno (403 en las APIs) |
 | **Externo con enlace temporal** | **No elige**: usa los `proyectos` fijados por quien generó el enlace |
 
@@ -481,7 +481,14 @@ Usar `scripts/_lib-sign-session.mjs` (firma cookies sin contraseña; ver `scratc
 | Admin de sitio | `POST /api/difusion` con `proyectos: ['redlea','mentoring']` | 200 |
 | Docente | generar QR con proyecto ajeno | 403; con proyecto propio → 200 |
 | Externo (sin sesión) | `POST /api/enlaces-difusion/[token]` enviando `proyectos: ['redlea']` distinto al del enlace | 200 pero se guarda el proyecto **del enlace**, no el del cuerpo |
-| Pasante | `POST /api/difusion` con `proyectos: ['mentoring']` | 403; con `['vinculacion']` → 200 |
+| Pasante | evento con `proyectos: ['mentoring']` | 403 (solo `['vinculacion']`, y el servidor lo fija aunque el cuerpo diga otra cosa) |
+| Pasante | podcast | queda con `['vinculacion','internacionalizacion']` en `actividades_difusion.proyectos`, `videos.proyecto_id` y en la foto |
+| **Jhonny (id 13: colíder Internacionalización + líder RED LEA)** | publicar foto de `internacionalizacion` en `internacionalizacion-galeria` y de `redlea` en `redlea-galeria` | 200 |
+| Jhonny | publicar en `portada`, `docencia-galeria` o `club-ingles` | 403 |
+| Jhonny | abrir `/admin/photos` y `/admin/*` | redirige a `/portal/login` (sin `contenido_sitio`) |
+| Jhonny | `GET /api/photos/banco` | solo fotos con `proyectos` que incluyan `internacionalizacion` o `redlea` |
+| Jhonny | abrir `/investigacion/informes` y `/investigacion/espacios` | redirige (`investigacion` excluido, D2) |
+| Pasante podcast: foto | visible en el banco de | Arturo, Jhonny (colíder Internacionalización), Cintya (Vinculación) |
 | Público (sin sesión) | `GET /api/photos?ubicacion=docencia-galeria` con 12 fotos publicadas | ≤ 8 filas (6 manuales + 2 podcast) |
 | Público | `GET /api/photos?ubicacion=inexistente` | `[]` |
 | SQL directo | `UPDATE fotos SET ubicaciones='{portada}' WHERE menores='revisar'` | error `23514` (CHECK) |
@@ -540,7 +547,7 @@ Regla para esas entregas: **el permiso siempre se calcula en el servidor, por pr
 - [ ] Backfill: reporte pegado; conteo de fotos ubicadas sin cambios.
 - [ ] Fotos de asistencia previas en `menores='revisar'`/`interna` (22).
 - [ ] WP5b: validación de proyectos asignables en `difusion`, `videos`, `enlaces-difusion` (+ público) y selector en los 4 formularios.
-- [ ] D2 hecho por Arturo (Jhonny líder de RED LEA) antes de la Fase B; D5 confirmada.
+- [ ] D2 hecho por Arturo antes de la Fase B: Jhonny líder de RED LEA **y** `investigacion` excluido en `/admin/roles` (verificar con el SELECT de D2). Jhonny sin acceso a `/admin/*`.
 - [ ] Notificaciones (WP10) + `NOTIFICACIONES.md`.
 - [ ] Documentación (§11.3).
 - [ ] Deploy en `READY` y revisión visual en producción.
