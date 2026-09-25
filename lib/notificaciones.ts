@@ -76,29 +76,31 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       const veTodo = esSuperAdminOLider(sesion);
       const profesorId = Number(sesion.id);
       const [fila] = await sql`
-        SELECT (
+        SELECT
           (SELECT COUNT(*) FROM horas_podcast_pasante h WHERE h.estado_aprobacion = 'pendiente'
              AND (${veTodo}::boolean IS TRUE OR EXISTS (
                SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-               WHERE ei.usuario_id = h.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
-          +
+               WHERE ei.usuario_id = h.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId}))) AS podcast,
           (SELECT COUNT(*) FROM actividades_investigacion_pasante a WHERE a.estado_aprobacion = 'pendiente'
              AND (${veTodo}::boolean IS TRUE OR EXISTS (
                SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
-          +
+               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId}))) AS investigacion,
           (SELECT COUNT(*) FROM actividades_autonomas_pasante a WHERE a.estado_aprobacion = 'pendiente'
              AND (${veTodo}::boolean IS TRUE OR EXISTS (
                SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId})))
-        )::int AS total
+               WHERE ei.usuario_id = a.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${profesorId}))) AS autonomas
       `;
-      const total = Number(fila?.total || 0);
+      const conteos = { podcast: Number(fila?.podcast || 0), investigacion: Number(fila?.investigacion || 0), autonomas: Number(fila?.autonomas || 0) };
+      const total = conteos.podcast + conteos.investigacion + conteos.autonomas;
       if (total === 0) return null;
       return {
         id: 'horas-por-aprobar',
         cantidad: total,
-        mensaje: `Tienes ${plural(total, 'registro de podcast, investigación o actividad autónoma', 'registros de podcast, investigación o actividades autónomas')} por aprobar.`,
+        mensaje: `Tienes ${plural(total, 'registro', 'registros')} por aprobar (${[
+          conteos.podcast && `${conteos.podcast} de podcast`,
+          conteos.investigacion && `${conteos.investigacion} de investigación`,
+          conteos.autonomas && `${conteos.autonomas} de actividades autónomas`,
+        ].filter(Boolean).join(', ')}).`,
         href: '/vinculacion/supervisar',
         severidad: 'pendiente',
       };

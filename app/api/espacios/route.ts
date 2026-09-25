@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
-import { puedeAdministrarArea, puedeGestionarVinculacion } from '@/lib/modulos';
+import { puedeAdministrarArea, puedeGestionarVinculacion, esLiderVinculacion } from '@/lib/modulos';
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +16,10 @@ export async function GET(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
 
     // Estudiante: solo ve los espacios donde es instructor.
-    // Profesor/admin: ve todos los de la(s) area(s) que le corresponden.
+    // Profesor/admin: espacios de vinculación solo los propios (profesor_id = él); el líder de
+    // Vinculación y el superadmin ven todos. Los de otras áreas (investigación) no cambian.
+    const veTodoVinculacion = esLiderVinculacion(usuario);
+    const profesorId = Number(usuario.id);
     const espacios = usuario.rol === 'estudiante'
       ? await sql`
           SELECT e.*, c.nombre as ciclo_nombre,
@@ -35,6 +38,7 @@ export async function GET(request: Request) {
           FROM espacios_enseñanza e
           LEFT JOIN ciclos_academicos c ON e.ciclo_id = c.id
           WHERE (${area}::text IS NULL OR e.area = ${area})
+            AND (e.area <> 'vinculacion' OR ${veTodoVinculacion}::boolean IS TRUE OR e.profesor_id = ${profesorId})
           ORDER BY e.id DESC
         `;
 
