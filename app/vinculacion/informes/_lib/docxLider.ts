@@ -42,6 +42,7 @@ interface DatosLider {
     tipo: string;
     actividades: { id: number; descripcion: string; metodologia: string; estado?: string }[];
   }[];
+  mcer?: { pretests: number; postests: number; meta_participantes: number };
   metas: {
     meta_estudiantes: number;
     estudiantes_reales: number;
@@ -308,6 +309,26 @@ export async function generarDocxLider(
           }),
         ],
         alignment: AlignmentType.CENTER,
+      })
+    );
+  }
+
+  if (datos.mcer) {
+    const { pretests, postests, meta_participantes: metaParticipantes } = datos.mcer;
+    children.push(new Paragraph({ spacing: { before: 200 } }));
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Propósito del proyecto (avance de nivel MCER): ', bold: true }),
+          new TextRun({
+            text:
+              `meta de ${metaParticipantes} participantes que mejoran 1 subnivel del MCER en 2 años. ` +
+              `Pre-Test aplicado a ${pretests} beneficiarios; Post-Test aplicado a ${postests}. ` +
+              (postests === 0
+                ? 'En proceso: aún falta aplicar el Post-Test, por lo que todavía no se puede medir el avance de subnivel.'
+                : 'El avance de subnivel se calcula comparando el Pre-Test y el Post-Test de cada beneficiario.'),
+          }),
+        ],
       })
     );
   }

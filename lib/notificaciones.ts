@@ -185,7 +185,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
           AND NOT EXISTS (
             SELECT 1 FROM informes_vinculacion i
             WHERE i.tipo = 'supervisor'
-              AND i.mes = ${mesAnterior}
+              AND i.mes = (${mesAnterior} || '-01')::date
               AND i.supervisor_id = ${supervisorId}
           )
       `;

@@ -154,6 +154,13 @@ export async function datosInformeLider(
     `,
   ]);
 
+  // Propósito del marco lógico: 100 participantes suben 1 subnivel MCER en 2 años (Pre-Test vs Post-Test).
+  const [mcerRes] = await sql`
+    SELECT COUNT(DISTINCT beneficiario_id) FILTER (WHERE tipo = 'inicial')::int AS pretests,
+           COUNT(DISTINCT beneficiario_id) FILTER (WHERE tipo = 'final')::int AS postests
+    FROM evaluaciones_mcer
+  `;
+
   const textosMap: Record<string, string> = {};
   textosRes.forEach((t: any) => { textosMap[t.clave] = t.texto; });
 
@@ -163,7 +170,7 @@ export async function datosInformeLider(
   return {
     ciclo: { id: params.cicloId, nombre: ciclo?.nombre || periodo.etiqueta },
     general: {
-      proyecto_nombre: proyecto?.nombre || 'Proyecto de Vinculación PINE',
+      proyecto_nombre: proyecto?.nombre_oficial || proyecto?.nombre || 'Proyecto de Vinculación PINE',
       codigo: proyecto?.codigo || 'PINE-VINC-2026',
       unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación',
       carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
@@ -181,6 +188,7 @@ export async function datosInformeLider(
       revision_documento: proyecto?.revision_documento_lider || '01',
     },
     objetivos: objetivosRes,
+    mcer: { pretests: mcerRes?.pretests || 0, postests: mcerRes?.postests || 0, meta_participantes: 100 },
     metas: {
       meta_estudiantes: metas.meta_estudiantes || 0,
       estudiantes_reales: reales.estudiantes_reales || 0,
