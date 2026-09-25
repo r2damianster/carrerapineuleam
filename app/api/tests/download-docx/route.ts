@@ -21,6 +21,7 @@ export async function GET(request: Request) {
             spacing: { after: 300 }
           }),
           new Paragraph({ text: "Nombres: ________________________________  Apellidos: ________________________________", spacing: { after: 150 } }),
+          new Paragraph({ text: "Género: Femenino ( )  Masculino ( )  Otro ( )  Prefiero no decir ( )", spacing: { after: 150 } }),
           new Paragraph({ text: "Contacto: _____________________________  Email (opcional): _____________________________", spacing: { after: 150 } }),
           new Paragraph({ text: "Edad: ________  Tiene discapacidad: Sí ( ) No ( )  ¿Cuál?: ________________________________", spacing: { after: 150 } }),
           new Paragraph({ text: "Situación ocupacional: Solo estudia ( )  Estudia y trabaja ( )  Solo trabaja ( )  Desempleado y no estudia ( )", spacing: { after: 150 } }),

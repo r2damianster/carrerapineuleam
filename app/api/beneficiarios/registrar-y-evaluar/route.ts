@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
+import { esGeneroValido } from '@/lib/generos';
+import { normalizarNombrePropio } from '@/lib/nombres';
 
 // Registro de un beneficiario NUEVO + su Pre-Test MCER en una sola
 // transacción — a pedido explícito del usuario: no puede quedar un
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const {
     espacio_id,
-    nombres, apellidos, contacto, email,
+    nombres, apellidos, genero, contacto, email,
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
     respuestas_json, puntaje_obtenido, nivel_asignado, evidencia_url,
@@ -30,6 +32,9 @@ export async function POST(request: Request) {
 
   if (!nombres || !apellidos || !espacio_id) {
     return NextResponse.json({ error: 'Faltan campos obligatorios del beneficiario' }, { status: 400 });
+  }
+  if (!esGeneroValido(genero)) {
+    return NextResponse.json({ error: 'Indica el género del beneficiario' }, { status: 400 });
   }
   if (!respuestas_json || puntaje_obtenido === undefined || !nivel_asignado) {
     return NextResponse.json({ error: 'Falta el Pre-Test — el registro solo se completa junto con la evaluación' }, { status: 400 });
@@ -49,9 +54,9 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
 
     const { rows: [nuevoUsuario] } = await client.query(
-      `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso)
-       VALUES ($1, $2, $3, $4, 'beneficiario', '{}') RETURNING id, nombres, apellidos`,
-      [nombres, apellidos, emailFinal, passwordHash]
+      `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, genero)
+       VALUES ($1, $2, $3, $4, 'beneficiario', '{}', $5) RETURNING id, nombres, apellidos`,
+      [normalizarNombrePropio(nombres), normalizarNombrePropio(apellidos), emailFinal, passwordHash, genero]
     );
 
     await client.query(

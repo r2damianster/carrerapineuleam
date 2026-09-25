@@ -40,7 +40,6 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/topes-horas',
     '/vinculacion/supervisar',
     '/vinculacion/proyecto',
-    '/vinculacion/beneficiarios/genero',
     '/vinculacion/difusion',
     '/vinculacion/evaluacion-final',
     '/vinculacion/encuesta',
@@ -99,11 +98,6 @@ export async function middleware(request: NextRequest) {
 
     // Ficha del proyecto de Vinculación (objetivos, plan, presupuesto): solo líder / superadmin.
     if (pathname.startsWith('/vinculacion/proyecto') && !puedeGestionarVinculacion(session)) {
-       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
-    }
-
-    // Completar el género de los beneficiarios: supervisores y líder.
-    if (pathname.startsWith('/vinculacion/beneficiarios/genero') && !puedeSupervisarVinculacion(session)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

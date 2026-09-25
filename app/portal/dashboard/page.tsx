@@ -185,7 +185,6 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
                   <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
                   <Link href="/vinculacion/proyecto" className="text-purple-600 hover:underline">» Ficha del proyecto (objetivos, plan y presupuesto)</Link>
-                  <Link href="/vinculacion/beneficiarios/genero" className="text-purple-600 hover:underline">» Completar género de beneficiarios</Link>
                 </div>
               </div>
             )}

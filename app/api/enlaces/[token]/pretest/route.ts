@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { esGeneroValido } from '@/lib/generos';
+import { normalizarNombrePropio } from '@/lib/nombres';
 
 const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
 
@@ -20,7 +22,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
   const body = await request.json();
   const {
     ya_registrado,
-    nombres, apellidos, contacto, email,
+    nombres, apellidos, genero, contacto, email,
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
     respuestas_json, puntaje_obtenido, nivel_asignado,
@@ -34,6 +36,8 @@ export async function POST(request: Request, { params }: { params: { token: stri
     }
   } else if (!nombres || !apellidos) {
     return NextResponse.json({ error: 'Faltan nombres/apellidos' }, { status: 400 });
+  } else if (!esGeneroValido(genero)) {
+    return NextResponse.json({ error: 'Indica tu género' }, { status: 400 });
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -94,6 +98,10 @@ export async function POST(request: Request, { params }: { params: { token: stri
       }
       beneficiarioId = existente[0].id;
       beneficiarioNombre = existente[0];
+      // Quien ya estaba registrado sin género lo completa aquí (solo si aún no lo tiene; nunca se sobrescribe).
+      if (esGeneroValido(genero)) {
+        await client.query(`UPDATE usuarios SET genero = $1 WHERE id = $2 AND genero IS NULL`, [genero, beneficiarioId]);
+      }
       await client.query(
         `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [enlace.espacio_id, beneficiarioId]
@@ -105,9 +113,9 @@ export async function POST(request: Request, { params }: { params: { token: stri
       const passwordHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
 
       const { rows: [nuevoUsuario] } = await client.query(
-        `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso)
-         VALUES ($1, $2, $3, $4, 'beneficiario', '{}') RETURNING id, nombres, apellidos`,
-        [nombres, apellidos, emailFinal, passwordHash]
+        `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, genero)
+         VALUES ($1, $2, $3, $4, 'beneficiario', '{}', $5) RETURNING id, nombres, apellidos`,
+        [normalizarNombrePropio(nombres), normalizarNombrePropio(apellidos), emailFinal, passwordHash, genero]
       );
       beneficiarioId = nuevoUsuario.id;
       beneficiarioNombre = nuevoUsuario;
