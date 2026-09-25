@@ -4,6 +4,10 @@ import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ANIO_ACTUAL = new Date().getFullYear();
+const ANIOS_DISPONIBLES = Array.from({ length: 5 }, (_, indiceAnio) => String(ANIO_ACTUAL + 1 - indiceAnio));
+
 function InformesVinculacionContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -281,12 +285,26 @@ function InformesVinculacionContenido() {
             <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Seleccionar Mes de Informe</label>
-                <input
-                  type="month"
-                  value={mes}
-                  onChange={e => setMes(e.target.value)}
-                  className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={mes.slice(5, 7)}
+                    onChange={e => setMes(`${mes.slice(0, 4)}-${e.target.value}`)}
+                    className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
+                  >
+                    {NOMBRES_MESES.map((nombreMes, indiceMes) => (
+                      <option key={nombreMes} value={String(indiceMes + 1).padStart(2, '0')}>{nombreMes}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={mes.slice(0, 4)}
+                    onChange={e => setMes(`${e.target.value}-${mes.slice(5, 7)}`)}
+                    className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
+                  >
+                    {ANIOS_DISPONIBLES.map(anio => (
+                      <option key={anio} value={anio}>{anio}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <button
                 onClick={() => generarInforme('supervisor')}
@@ -536,7 +554,7 @@ function InformesVinculacionContenido() {
                             {h.tipo.toUpperCase()}
                           </span>
                         </td>
-                        <td className="p-3 font-semibold">{h.mes || h.ciclo_nombre}</td>
+                        <td className="p-3 font-semibold">{h.mes ? String(h.mes).slice(0, 7) : h.ciclo_nombre}</td>
                         <td className="p-3 text-xs text-gray-600">
                           {h.supervisor_nombres ? `${h.supervisor_nombres} ${h.supervisor_apellidos}` : 'Líder / Admin'}
                         </td>

@@ -25,6 +25,8 @@ export async function GET(request: Request) {
     const accion = searchParams.get('accion') || 'datos';
     const tipo = searchParams.get('tipo') || 'supervisor';
     const mes = searchParams.get('mes') || new Date().toISOString().slice(0, 7);
+    // Las columnas `mes` de Neon son tipo date: 'YYYY-MM' se normaliza al primer día.
+    const mesFecha = /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : mes;
     const cicloIdParam = searchParams.get('ciclo_id');
     const supervisorIdParam = searchParams.get('supervisor_id');
 
@@ -77,7 +79,7 @@ export async function GET(request: Request) {
       const obstaculos = await sql`
         SELECT id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
         FROM supervision_obstaculos
-        WHERE supervisor_id = ${Number(usuario.id)} AND mes = ${mes}
+        WHERE supervisor_id = ${Number(usuario.id)} AND mes = ${mesFecha}
         ORDER BY id ASC
       `;
       return NextResponse.json({ success: true, obstaculos });
@@ -136,7 +138,8 @@ export async function POST(request: Request) {
     const { accion } = body;
 
     if (accion === 'guardar-obstaculo') {
-      const { mes, descripcion, impacto, recomendacion } = body;
+      const { mes: mesBody, descripcion, impacto, recomendacion } = body;
+      const mes = /^\d{4}-\d{2}$/.test(mesBody || '') ? `${mesBody}-01` : mesBody;
       if (!mes || !descripcion) {
         return NextResponse.json({ error: 'Mes y descripción son requeridos' }, { status: 400 });
       }
@@ -149,7 +152,8 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'generar') {
-      const { tipo, mes, ciclo_id, datos } = body;
+      const { tipo, mes: mesBody, ciclo_id, datos } = body;
+      const mes = /^\d{4}-\d{2}$/.test(mesBody || '') ? `${mesBody}-01` : mesBody;
 
       if (!datos) {
         return NextResponse.json({ error: 'Faltan los datos del informe' }, { status: 400 });
