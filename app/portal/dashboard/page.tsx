@@ -179,13 +179,12 @@ export default async function PortalDashboard() {
             {puedeGestionarVinculacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestión de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Crear espacios, administrar pasantes y configurar el proyecto.</p>
+                <p className="text-gray-600 mb-4 text-sm">Crear espacios y administrar pasantes.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/vinculacion/proyecto" className="text-purple-600 hover:underline">» Ficha y Plan del Proyecto (Objetivos / Presupuesto)</Link>
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
                   <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
-                  <Link href="/vinculacion/informes" className="text-purple-600 hover:underline font-bold text-sm">📄 Informes Oficiales .docx (Supervisor / Líder)</Link>
+                  <Link href="/vinculacion/proyecto" className="text-purple-600 hover:underline">» Ficha del proyecto (objetivos, plan y presupuesto)</Link>
                 </div>
               </div>
             )}
@@ -195,11 +194,10 @@ export default async function PortalDashboard() {
             {puedeSupervisarVinculacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Supervisión de Vinculación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Aprueba o rechaza asistencia, podcast e investigación de tus pasantes, y genera informes mensuales.</p>
+                <p className="text-gray-600 mb-4 text-sm">Aprueba o rechaza asistencia, podcast e investigación de tus pasantes, y revisa sus horas.</p>
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar actividades y horas</Link>
                   <Link href="/vinculacion/supervisar/indicadores" className="text-indigo-600 hover:underline">» Panel de Supervisión (Indicadores)</Link>
-                  <Link href="/vinculacion/informes" className="text-indigo-600 hover:underline font-bold text-sm">📄 Generar Informe Mensual (.docx)</Link>
                 </div>
               </div>
             )}

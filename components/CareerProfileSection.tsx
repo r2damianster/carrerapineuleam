@@ -162,22 +162,8 @@ export default function CareerProfileSection() {
     : competencias;
 
   return (
-    <section id="perfil-egreso" className="py-12 md:py-20 bg-gradient-to-b from-gray-50 via-white to-gray-50 scroll-mt-20">
+    <section id="perfil-egreso" className="pt-4 pb-12 md:pb-20 bg-gradient-to-b from-gray-50 via-white to-gray-50 scroll-mt-20">
       <div className="container mx-auto px-4">
-        {/* Encabezado Principal */}
-        <div className="text-center mb-10 md:mb-14">
-          <span className="inline-block text-xs md:text-sm font-bold tracking-wider text-uleam-gold uppercase bg-uleam-blue/10 px-4 py-1.5 rounded-full mb-3">
-            {cp.eyebrow}
-          </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-uleam-blue mb-4 tracking-tight">
-            {cp.title}
-          </h2>
-          <div className="w-24 h-1.5 bg-uleam-gold mx-auto mb-5 rounded-full"></div>
-          <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            {cp.intro}
-          </p>
-        </div>
-
         {/* Bar de Pestañas (Estructura extensible a futuro) */}
         <div className="flex justify-center mb-10">
           <div className="inline-flex p-1.5 bg-gray-200/80 backdrop-blur-sm rounded-2xl shadow-inner border border-gray-300/60 max-w-full overflow-x-auto scrollbar-none">
