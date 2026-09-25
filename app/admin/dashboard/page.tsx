@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
           videos: videosRes.length,
           publications: publicationsRes.length,
           news: contenidoRes.filter((r: any) => r.publicar_noticias).length,
-          activities: contenidoRes.filter((r: any) => r.publicar_actividades).length,
+          activities: contenidoRes.length,
           categories: categoriesRes.length,
         });
       } catch (error) {

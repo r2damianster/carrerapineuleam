@@ -25,10 +25,9 @@ interface ContenidoRow {
   slug?: string;
   aprobado_sitio: boolean;
   publicar_noticias: boolean;
-  publicar_actividades: boolean;
 }
 
-type Filtro = 'todos' | 'pendientes' | 'noticias' | 'actividades';
+type Filtro = 'todos' | 'pendientes' | 'noticias';
 
 const TIPO_LABEL: Record<string, string> = {
   podcast: 'Podcast',
@@ -56,7 +55,6 @@ const FORM_INICIAL = {
   slug: '',
   is_featured: false,
   publicar_noticias: false,
-  publicar_actividades: false,
 };
 
 // Panel único de contenido: fusiona lo que antes eran 3 pantallas separadas
@@ -128,7 +126,6 @@ export default function AdminContenidoPage() {
     switch (filtro) {
       case 'pendientes': return rows.filter(r => !r.aprobado_sitio);
       case 'noticias': return rows.filter(r => r.publicar_noticias);
-      case 'actividades': return rows.filter(r => r.publicar_actividades);
       default: return rows;
     }
   }, [rows, filtro]);
@@ -137,7 +134,6 @@ export default function AdminContenidoPage() {
     todos: rows.length,
     pendientes: rows.filter(r => !r.aprobado_sitio).length,
     noticias: rows.filter(r => r.publicar_noticias).length,
-    actividades: rows.filter(r => r.publicar_actividades).length,
   }), [rows]);
 
   const resetForm = () => {
@@ -175,7 +171,6 @@ export default function AdminContenidoPage() {
       slug: row.slug || '',
       is_featured: row.is_featured || false,
       publicar_noticias: row.publicar_noticias || false,
-      publicar_actividades: row.publicar_actividades || false,
     });
     setErrorIA('');
     setImagenFile(null);
@@ -214,8 +209,6 @@ export default function AdminContenidoPage() {
 
   const handleToggleNoticias = (row: ContenidoRow) =>
     patch(row.id, { publicar_noticias: !row.publicar_noticias }).catch(() => alert('Error al cambiar visibilidad'));
-  const handleToggleActividades = (row: ContenidoRow) =>
-    patch(row.id, { publicar_actividades: !row.publicar_actividades }).catch(() => alert('Error al cambiar visibilidad'));
   const handleToggleDestacado = (row: ContenidoRow) =>
     patch(row.id, { is_featured: !row.is_featured }).catch(() => alert('Error al cambiar destacado'));
   const handleAprobar = (row: ContenidoRow) =>
@@ -293,7 +286,6 @@ export default function AdminContenidoPage() {
           slug,
           is_featured: formData.is_featured,
           publicar_noticias: formData.publicar_noticias,
-          publicar_actividades: formData.publicar_actividades,
           ...(esDifusion ? {
             proyecto: formData.categoria === 'investigacion' ? formData.proyecto : '',
             asignatura: formData.categoria === 'asignatura' ? formData.asignatura : '',
@@ -318,7 +310,6 @@ export default function AdminContenidoPage() {
             slug,
             is_featured: formData.is_featured,
             publicar_noticias: formData.publicar_noticias,
-            publicar_actividades: formData.publicar_actividades,
           }),
         });
         if (!res.ok) {
@@ -378,15 +369,6 @@ export default function AdminContenidoPage() {
       ),
     },
     {
-      key: 'publicar_actividades',
-      label: 'Actividades',
-      render: (item: ContenidoRow) => (
-        <button onClick={() => handleToggleActividades(item)} className={`px-2 py-1 rounded text-xs font-bold ${item.publicar_actividades ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}>
-          {item.publicar_actividades ? 'Sí — ocultar' : 'Oculta — mostrar'}
-        </button>
-      ),
-    },
-    {
       key: 'aprobado_sitio',
       label: 'Estado',
       render: (item: ContenidoRow) =>
@@ -404,7 +386,6 @@ export default function AdminContenidoPage() {
     { key: 'todos', label: `Todo (${conteos.todos})` },
     { key: 'pendientes', label: `Pendientes de aprobar (${conteos.pendientes})` },
     { key: 'noticias', label: `Noticias (${conteos.noticias})` },
-    { key: 'actividades', label: `Actividades (${conteos.actividades})` },
   ];
 
   if (showForm) {
@@ -644,15 +625,6 @@ export default function AdminContenidoPage() {
                     className="w-5 h-5"
                   />
                   <span className="text-sm text-gray-700">Sección Noticias (<code>/</code>)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.publicar_actividades}
-                    onChange={(e) => setFormData({ ...formData, publicar_actividades: e.target.checked })}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm text-gray-700">Galería de Actividades</span>
                 </label>
               </div>
             </div>
