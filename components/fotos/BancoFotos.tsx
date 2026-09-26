@@ -25,6 +25,7 @@ interface FotoBanco {
   menores: 'no' | 'si' | 'revisar';
   visibilidad: 'publicable' | 'interna';
   descartada?: boolean;
+  fuente_aprobada?: boolean;
   motivo_descarte?: string | null;
   fecha_evento: string | null;
   created: string;
@@ -148,6 +149,8 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
   const nombreProyecto = (id: string) => proyectos.find((proyecto) => proyecto.id === id)?.nombre_oficial ?? id;
 
   const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA));
+  // Publicar exige que la fuente (asistencia/evento/podcast) esté aprobada; se avisa antes de intentarlo.
+  const seleccionConFuenteSinAprobar = fotos.some((foto) => seleccionadas.includes(foto.id) && foto.fuente_aprobada === false);
 
   const cambiarFiltro = (campo: keyof typeof filtros, valor: string) => {
     setPagina(1);
@@ -284,7 +287,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
             </div>
           ) : (
           <div className="flex flex-wrap gap-2 text-sm">
-            <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
+            <button type="button" disabled={ubicacionesParaPublicar.length === 0 || seleccionConFuenteSinAprobar} title={seleccionConFuenteSinAprobar ? 'Hay fotos cuya asistencia/evento aún no está aprobado' : undefined} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
             <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('quitar', ubicacionesParaPublicar)} className="rounded bg-amber-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Quitar de…</button>
             <button type="button" onClick={() => ejecutarAccion('ocultar')} className="rounded bg-gray-600 px-3 py-1.5 font-semibold text-white">Ocultar</button>
             <button type="button" onClick={() => ejecutarAccion('mostrar')} className="rounded bg-gray-500 px-3 py-1.5 font-semibold text-white">Mostrar</button>
@@ -301,6 +304,9 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
             )}
             <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
           </div>
+          )}
+          {seleccionConFuenteSinAprobar && (
+            <p className="text-xs font-semibold text-amber-800">Hay fotos seleccionadas cuya asistencia o evento aún no está aprobado: apruébalo primero en Supervisar (asistencias) o en Contenido y Difusión (eventos) para poder publicarlas.</p>
           )}
           <p className="text-xs text-gray-600">Descartar no borra nada: la foto deja de usarse en el sitio, las noticias y los informes, y se puede restaurar. Las fotos con menores no se pueden publicar. Si pasas el máximo de una ubicación, el sitio muestra solo las primeras.</p>
         </section>
@@ -339,6 +345,11 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
                   {foto.descartada && (
                     <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">
                       Descartada{foto.motivo_descarte ? `: ${ETIQUETA_MOTIVO[foto.motivo_descarte] ?? foto.motivo_descarte}` : ''}
+                    </span>
+                  )}
+                  {foto.fuente_aprobada === false && (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Solo se puede publicar cuando la asistencia (o el evento/podcast) esté aprobada.">
+                      {foto.origen === 'asistencia' ? 'Asistencia sin aprobar' : 'Fuente sin aprobar'}
                     </span>
                   )}
                   {!foto.activo && !foto.descartada && <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-yellow-800">Oculta</span>}

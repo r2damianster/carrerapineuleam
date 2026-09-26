@@ -142,7 +142,15 @@ export async function GET(request: Request) {
 
     // ── Página de resultados ──────────────────────────────────────────────
     const rows = await sql`
-      SELECT * FROM fotos
+      SELECT fotos.*,
+        (
+          origen IN ('admin', 'lider', 'evidencia_evento')
+          OR (origen IN ('evento', 'podcast') AND EXISTS (
+            SELECT 1 FROM actividades_difusion a WHERE a.id::text = fotos.fuente_id AND a.aprobado_sitio = true))
+          OR (origen = 'asistencia' AND EXISTS (
+            SELECT 1 FROM asistencia_espacio s WHERE s.id::text = fotos.fuente_id AND s.estado_aprobacion = 'aprobado'))
+        ) AS fuente_aprobada
+      FROM fotos
       WHERE ${whereBase}
         ${whereTexto}
         ${whereOrigen}
@@ -159,10 +167,6 @@ export async function GET(request: Request) {
     const items = rows.map((f: any) => ({
       ...f,
       miniatura: miniaturaCloudinary(f.url, 400),
-      // Insignia "fuente sin aprobar" visible solo para admin
-      fuenteSinAprobar: esAdmin && ['evento', 'podcast', 'asistencia'].includes(f.origen)
-        ? null // se marca en el frontend si no está en el gate
-        : undefined,
     }));
 
     return NextResponse.json({ items, total: Number(total), page, pageSize });
