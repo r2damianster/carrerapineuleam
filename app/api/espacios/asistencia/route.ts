@@ -172,7 +172,30 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, id: asistenciaId }, { status: 201 });
+    // Aviso (NO bloquea): otras asistencias no rechazadas del mismo espacio y día, con horario que se cruza y
+    // al menos un beneficiario en común. Un mismo día puede haber dos grupos legítimos, por eso solo se avisa.
+    let posiblesDuplicados: number[] = [];
+    if (asistenciaId !== null) {
+      try {
+        const sqlAviso = neon(process.env.DATABASE_URL!);
+        const filas = await sqlAviso`
+          SELECT o.id
+          FROM asistencia_espacio nueva
+          JOIN asistencia_espacio o
+            ON o.id <> nueva.id AND o.espacio_id = nueva.espacio_id AND o.fecha = nueva.fecha
+           AND o.hora_inicio < nueva.hora_fin AND nueva.hora_inicio < o.hora_fin
+           AND o.estado_aprobacion <> 'rechazado'
+          WHERE nueva.id = ${asistenciaId}
+            AND EXISTS (
+              SELECT 1 FROM asistencia_beneficiarios b1
+              JOIN asistencia_beneficiarios b2 ON b2.beneficiario_id = b1.beneficiario_id
+              WHERE b1.asistencia_id = nueva.id AND b2.asistencia_id = o.id)
+          ORDER BY o.id`;
+        posiblesDuplicados = filas.map((fila) => Number(fila.id));
+      } catch { /* el aviso es opcional: nunca debe fallar el registro */ }
+    }
+
+    return NextResponse.json({ success: true, id: asistenciaId, posibles_duplicados: posiblesDuplicados }, { status: 201 });
   } catch (error: any) {
     console.error('Asistencia insert error:', error);
     return NextResponse.json({ error: 'Error al guardar', details: error.message }, { status: 500 });

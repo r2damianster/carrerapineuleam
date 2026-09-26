@@ -728,3 +728,13 @@ Se verificó además que `@neondatabase/serverless` 1.x **sí** admite fragmento
 **Títulos automáticos (`lib/ingestaFotos.ts`, `tituloParaFoto`):** evento/podcast → título de la actividad; asistencia → "Espacio — dd/mm/aaaa" (`app/api/espacios/asistencia/route.ts`); repetidos → "(2)", "(3)"…; **sin nombre conocido → "n - dd/mm/aa"** (número correlativo y fecha de creación, p. ej. `1 - 19/09/26`, formato pedido por el usuario). Las 26 fotos que estaban sin título se rellenaron con el script (asistencia y eventos; ninguna quedó sin origen conocido).
 
 **Nota:** `POST /api/actividades-difusion` público ahora usa `no-store` (lectura pública sin cookies, ver Sesión 31).
+
+---
+
+### Sesión 2026-09-26 (Claude, tercera tanda) — revisión de asistencias duplicadas y aviso de posible duplicado
+
+**Diagnóstico (solo datos, sin borrar nada):** las fotos "repetidas" eran registros de asistencia duplicados (mismo espacio, día, horario y beneficiarios, enviados con minutos de diferencia); los supervisores ya habían rechazado las copias con motivo "Duplicado" y **no hay horas dobles** en lo aprobado. Regla a recordar: **los instructores de un registro son los asignados al espacio (preseleccionados por defecto) más los invitados que se agreguen a mano**, así que una lista de instructores igual o distinta **no** prueba por sí sola un duplicado; se usan beneficiarios + horario + fecha. Ningún pasante aparece en dos espacios a la vez (revisado con invitados incluidos).
+
+**Decisiones del usuario aplicadas:** (1) restaurada la foto de UE Manuela 21/09 (2), de la sesión aprobada #13; (2) **aviso de posible duplicado** al registrar asistencia y en `/vinculacion/supervisar` (badge ámbar "Posible duplicado de #N"): otro registro no rechazado del mismo espacio y día, horario cruzado y al menos un beneficiario en común. **Solo avisa, no bloquea** (un mismo día puede haber dos grupos legítimos). El formulario, si hay aviso, no redirige solo. Ver `app/api/espacios/asistencia/route.ts` y `app/api/vinculacion/supervisar-asistencia/route.ts`. Data fix previo (respaldado): Juan Montalvo #3, quitados Evelyn (36) y Britany (37) por estar en la #4 a la misma hora; fila duplicada de `InterClass.jpg` quitada del banco.
+
+**Pendiente de confirmar con pasantes/supervisora (no se tocó):** Juan Montalvo — los beneficiarios 57, 59 y 62 constan en la #3 y en la #4, y Britany (37) está asignada al espacio 17 "Grupo Cintya" pero su registro #4 está en el espacio 7; B1 22/09 — el beneficiario 82 solo consta en registros rechazados (#6/#7), las horas sí están en la #5; A2 23 y 24/09 figuran de 22:00 a 23:30; UE Manuela 24 y 25/09 repiten los 13 beneficiarios del 21/09 (¿lista por defecto?).

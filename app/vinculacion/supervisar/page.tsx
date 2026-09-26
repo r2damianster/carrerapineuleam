@@ -21,6 +21,7 @@ interface Registro {
   observaciones: string | null;
   foto_url: string | null;
   foto_descartada?: boolean;
+  posibles_duplicados?: number[];
   estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado';
   motivo_rechazo: string | null;
   registrado_por: number;
@@ -419,6 +420,11 @@ export default function SupervisarAsistenciaPage() {
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${etiqueta.clases}`}>{etiqueta.texto}</span>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[r.estado_aprobacion]}`}>{r.estado_aprobacion}</span>
+                      {r.estado_aprobacion !== 'rechazado' && (r.posibles_duplicados?.length ?? 0) > 0 && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800" title="Mismo espacio y día, horario cruzado y beneficiarios en común con otro registro no rechazado. Puede ser un grupo distinto: revísalo.">
+                          Posible duplicado de {r.posibles_duplicados!.map((idOtro) => `#${idOtro}`).join(', ')}
+                        </span>
+                      )}
                       <span className="font-bold text-gray-800">{r.espacio_nombre}</span>
                       <span className="text-sm text-gray-500">{formatearFecha(r.fecha)}</span>
                       {r.hora_inicio && r.hora_fin && (

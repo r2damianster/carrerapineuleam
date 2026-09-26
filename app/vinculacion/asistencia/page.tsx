@@ -80,16 +80,21 @@ export default function AsistenciaPage() {
   const [usuarioActualId, setUsuarioActualId] = useState<number | null>(null);
   const [enviadoExitoso, setEnviadoExitoso] = useState(false);
   const [conteo, setConteo] = useState(5);
+  // Posibles duplicados (ids de otras asistencias); si hay, no se redirige solo para que se alcance a leer el aviso.
+  const [posiblesDuplicados, setPosiblesDuplicados] = useState<number[]>([]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
+    if (enviadoExitoso && posiblesDuplicados.length > 0) {
+      return () => clearTimeout(timer);
+    }
     if (enviadoExitoso && conteo > 0) {
       timer = setTimeout(() => setConteo(prev => prev - 1), 1000);
     } else if (enviadoExitoso && conteo === 0) {
       router.push('/portal/dashboard');
     }
     return () => clearTimeout(timer);
-  }, [enviadoExitoso, conteo, router]);
+  }, [enviadoExitoso, conteo, posiblesDuplicados, router]);
 
   const resetFormulario = () => {
     setEnviadoExitoso(false);
@@ -230,6 +235,7 @@ export default function AsistenciaPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      setPosiblesDuplicados(Array.isArray(data.posibles_duplicados) ? data.posibles_duplicados : []);
       setEnviadoExitoso(true);
       setConteo(5);
     } catch (err: any) {
@@ -255,9 +261,19 @@ export default function AsistenciaPage() {
           <p className="text-gray-600 mb-6 text-sm">
             La asistencia fue enviada con éxito y ha quedado pendiente de aprobación del profesor.
           </p>
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-6">
-            Redirigiendo automáticamente al Portal PINE en <span className="font-bold text-sm">{conteo}</span> segundo{conteo !== 1 ? 's' : ''}...
-          </div>
+          {posiblesDuplicados.length > 0 ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 mb-6 text-left">
+              <p className="font-bold mb-1">Aviso: posible registro duplicado</p>
+              <p>
+                Ya existe otro registro de este mismo espacio, día y horario con beneficiarios en común ({posiblesDuplicados.map((idOtro) => `#${idOtro}`).join(', ')}).
+                Si es el mismo grupo, tu compañero/a ya lo registró: avisa a la supervisora para que rechace uno. Si son grupos distintos, no pasa nada.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-6">
+              Redirigiendo automáticamente al Portal PINE en <span className="font-bold text-sm">{conteo}</span> segundo{conteo !== 1 ? 's' : ''}...
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             <button
               type="button"

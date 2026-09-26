@@ -39,6 +39,17 @@ export async function GET(request: Request) {
         u.nombres AS registrado_por_nombres, u.apellidos AS registrado_por_apellidos,
         (SELECT COUNT(*)::int FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = ae.id) AS num_beneficiarios,
         (
+          SELECT COALESCE(json_agg(o.id ORDER BY o.id), '[]')
+          FROM asistencia_espacio o
+          WHERE o.id <> ae.id AND o.espacio_id = ae.espacio_id AND o.fecha = ae.fecha
+            AND o.hora_inicio < ae.hora_fin AND ae.hora_inicio < o.hora_fin
+            AND o.estado_aprobacion <> 'rechazado'
+            AND EXISTS (
+              SELECT 1 FROM asistencia_beneficiarios b1
+              JOIN asistencia_beneficiarios b2 ON b2.beneficiario_id = b1.beneficiario_id
+              WHERE b1.asistencia_id = ae.id AND b2.asistencia_id = o.id)
+        ) AS posibles_duplicados,
+        (
           SELECT COALESCE(json_agg(json_build_object('id', iu.id, 'nombre', iu.nombres || ' ' || iu.apellidos)), '[]')
           FROM espacio_instructores ei JOIN usuarios iu ON iu.id = ei.usuario_id
           WHERE ei.espacio_id = ae.espacio_id
