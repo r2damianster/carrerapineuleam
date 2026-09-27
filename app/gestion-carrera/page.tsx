@@ -28,6 +28,7 @@ export default function GestionCarreraPage() {
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
   const [videoResetKey, setVideoResetKey] = useState(0);
   const [modulosAcceso, setModulosAcceso] = useState<string[]>([]);
+  const [puedeGenerarEnlaceServidor, setPuedeGenerarEnlaceServidor] = useState(false);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
   // Área/proyecto propios del podcast (Sesión 38) — independiente de la
   // categoría de la actividad de difusión en sí (form.categoria más abajo).
@@ -60,6 +61,7 @@ export default function GestionCarreraPage() {
         }
         setCheckingSession(false);
         setModulosAcceso(data.usuario.modulos_acceso || []);
+        setPuedeGenerarEnlaceServidor(!!data.usuario.puede_generar_enlace);
         if (data.usuario.rol === 'profesor') {
           setResponsables([parseInt(data.usuario.id, 10)]);
         }
@@ -88,9 +90,9 @@ export default function GestionCarreraPage() {
       .catch(() => setProyectosInvestigacion([]));
   }, [router]);
 
-  // Acceso temporal para externos (sin cuenta) — solo profesores con módulo
-  // vinculacion/investigacion/contenido_sitio, ver lib/permisos-enlace-difusion.ts
-  const puedeGenerarEnlace = modulosAcceso.some(m => ['vinculacion', 'investigacion', 'contenido_sitio'].includes(m));
+  // Acceso temporal para externos (sin cuenta) — lo calcula el servidor en /api/auth/me
+  // (módulos de siempre, o líder/colíder de cualquier proyecto — Sesión 53), ver lib/permisos-enlace-difusion.ts
+  const puedeGenerarEnlace = puedeGenerarEnlaceServidor;
 
   const toggleResponsable = (id: number) => {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);

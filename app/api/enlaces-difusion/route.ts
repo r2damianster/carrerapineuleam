@@ -12,7 +12,9 @@ import { validarProyectosAsignables } from '@/lib/permisosProyecto';
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !puedeGenerarEnlaceDifusion(usuario)) {
+    if (!usuario) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const sqlPermiso = neon(process.env.DATABASE_URL!);
+    if (!(await puedeGenerarEnlaceDifusion(sqlPermiso, usuario))) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La fecha de expiración debe ser futura' }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = sqlPermiso;
 
     // WP5b: el enlace fija a qué proyectos pertenece lo que se registre con él, y solo puede
     // fijar proyectos que ESTE usuario puede asignar (administración del sitio: cualquiera).
@@ -55,11 +57,11 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !puedeGenerarEnlaceDifusion(usuario)) {
+    if (!usuario) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const sql = neon(process.env.DATABASE_URL!);
+    if (!(await puedeGenerarEnlaceDifusion(sql, usuario))) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const sql = neon(process.env.DATABASE_URL!);
     const verTodos = usuario.modulos_acceso.includes('contenido_sitio');
     const rows = verTodos
       ? await sql`

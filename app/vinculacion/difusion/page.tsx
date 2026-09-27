@@ -16,7 +16,7 @@ export default function DifusionPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
   const [responsables, setResponsables] = useState<number[]>([]);
-  const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[] } | null>(null);
+  const [usuario, setUsuario] = useState<{ rol: string; modulos_acceso: string[]; puede_generar_enlace?: boolean } | null>(null);
   const [video, setVideo] = useState<{ youtubeVideoId: string; categoryId: string } | null>(null);
   const [videoResetKey, setVideoResetKey] = useState(0);
   const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
@@ -44,10 +44,9 @@ export default function DifusionPage() {
     (usuario.rol === 'estudiante' && usuario.modulos_acceso.includes('subir_video'))
   );
 
-  // Acceso temporal para externos (sin cuenta) — solo profesores con módulo
-  // vinculacion/investigacion/contenido_sitio, ver lib/permisos-enlace-difusion.ts
-  const puedeGenerarEnlace = !!usuario && ['profesor', 'admin'].includes(usuario.rol) &&
-    usuario.modulos_acceso.some(m => ['vinculacion', 'investigacion', 'contenido_sitio'].includes(m));
+  // Acceso temporal para externos (sin cuenta) — lo calcula el servidor en /api/auth/me
+  // (módulos de siempre, o líder/colíder de cualquier proyecto — Sesión 53), ver lib/permisos-enlace-difusion.ts
+  const puedeGenerarEnlace = !!usuario?.puede_generar_enlace;
 
   const toggleResponsable = (id: number) => {
     setResponsables(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);

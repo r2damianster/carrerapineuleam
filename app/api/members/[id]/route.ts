@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { sincronizarProyectosDePersona } from '@/lib/equipoProyecto';
+import { recalcularModulos } from '@/lib/permisosPertenencia';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -79,6 +80,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
     if (actualizado.usuario_id && Array.isArray(projects)) {
       await sincronizarProyectosDePersona(sql, Number(actualizado.usuario_id), projects, roles_proyecto, order ?? 0);
+      // Sesión 53 (H1): ver nota en POST /api/members.
+      await recalcularModulos(sql, Number(actualizado.usuario_id));
     }
     return NextResponse.json(actualizado);
   } catch (error: any) {

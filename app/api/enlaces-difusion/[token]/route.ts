@@ -218,11 +218,11 @@ export async function POST(request: Request, { params }: { params: { token: stri
 export async function PATCH(request: Request, { params }: { params: { token: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !puedeGenerarEnlaceDifusion(usuario)) {
+    if (!usuario) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const sql = neon(process.env.DATABASE_URL!);
+    if (!(await puedeGenerarEnlaceDifusion(sql, usuario))) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const sql = neon(process.env.DATABASE_URL!);
     const puedeRevocarCualquiera = usuario.modulos_acceso.includes('contenido_sitio');
     const [actualizado] = puedeRevocarCualquiera
       ? await sql`UPDATE enlaces_difusion SET activo = false WHERE token = ${params.token} RETURNING token`

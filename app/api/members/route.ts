@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { crearPersonaDirectorio, sincronizarProyectosDePersona } from '@/lib/equipoProyecto';
+import { recalcularModulos } from '@/lib/permisosPertenencia';
 
 export async function GET(request: Request) {
   try {
@@ -78,6 +79,9 @@ export async function POST(request: Request) {
       RETURNING *
     `;
     await sincronizarProyectosDePersona(sql, personaId, projects || [], roles_proyecto, order ?? 0);
+    // Sesión 53 (H1): recalcula sus módulos derivados (líder/supervisor de Vinculación, líder de
+    // un proyecto de investigación) — nunca toca a un pasante ni módulos manuales (contenido_sitio, etc.).
+    await recalcularModulos(sql, personaId);
     return NextResponse.json(nuevo, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

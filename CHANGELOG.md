@@ -9,8 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
-- Permitir generar el enlace/QR de acceso temporal a un líder/colíder sin módulos de Vinculación/Investigación (hoy `puedeGenerarEnlaceDifusion` exige uno de esos módulos).
-- Restaurar (o descartar a propósito) el cableado de `lib/permisosPertenencia.ts` revertido por un auto-commit en la Sesión 52 (ver CLAUDE.md → "H1").
+
+## [0.12.10] - 2026-09-27 (Sesión 53, continuación — H1 + QR líder/colíder)
+
+### ✨ Added
+- `puedeGenerarEnlaceDifusion` (`lib/permisos-enlace-difusion.ts`) ahora también deja generar el QR/enlace de acceso temporal a cualquier líder/colíder de un proyecto (`proyectosGestionables`), no solo a quien tenga módulo `vinculacion`/`investigacion`/`contenido_sitio`. `GET /api/auth/me` expone `puede_generar_enlace` calculado en el servidor; `/vinculacion/difusion` y `/gestion-carrera` lo consumen en vez de duplicar la lógica en el cliente.
+
+### 🔧 Changed
+- **Reconectado `lib/permisosPertenencia.ts`** (H1, desconectado sin darse cuenta desde un auto-commit posterior a la Sesión 51): `PATCH /api/admin/roles` (para docentes) y `POST/PATCH /api/members` ahora llaman `recalcularModulos()` tras cualquier cambio de rol en `proyecto_miembros` — asignar/quitar líder, colíder o supervisor de un proyecto recalcula `modulos_acceso` en el mismo paso. `scripts/migrate-reconectar-permisos-pertenencia.js` sembró `modulos_manuales`/`modulos_excluidos` primero, verificando que el efectivo calculado no cambiara nada para ningún docente existente antes de cablear la escritura.
+- Nuevo `scripts/test-permisos-pertenencia.mjs` (9 casos, usuario descartable, autolimpiable).
 
 ## [0.12.9] - 2026-09-27 (Sesión 53)
 
