@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
+- Permitir generar el enlace/QR de acceso temporal a un líder/colíder sin módulos de Vinculación/Investigación (hoy `puedeGenerarEnlaceDifusion` exige uno de esos módulos).
+- Restaurar (o descartar a propósito) el cableado de `lib/permisosPertenencia.ts` revertido por un auto-commit en la Sesión 52 (ver CLAUDE.md → "H1").
+
+## [0.12.9] - 2026-09-27 (Sesión 53)
+
+### ✨ Added
+- **Aprobación de contenido sin depender solo de administración del sitio** (`lib/permisosAprobacionContenido.ts`):
+  - Podcast de un pasante de club: su supervisor lo aprueba y publica (video + actividad) desde `/vinculacion/supervisar` → Podcast (`PATCH /api/videos/[id]/aprobar`).
+  - Cualquier evento/podcast: aprueba cualquiera de sus `profesores_responsables`, incluida la autoaprobación de un docente sobre su propio registro (`PATCH /api/actividades-difusion/[id]` con `{aprobar:true}`, solo aprobar — no editar).
+  - `/portal/aprobaciones` (nueva): cola personal de "profesor responsable" (`GET /api/mis-aprobaciones`), con tarjeta en `/portal/dashboard` y notificación `contenido-por-aprobar-responsable`.
+  - `/portal/subir-video` exige elegir profesor(es) responsable(s) al subir.
+- **Segunda confirmación al aprobar: calidad de la foto**, aparte de menores (`fotos.calidad`) — no bloquea la aprobación de horas del pasante, solo la publicación de la foto.
+- **Cola de propuestas para portada** (`fotos.propuestas`): un líder propone (`accion: 'proponer'`), administración aprueba o rechaza desde `/admin/photos` (filtro Estado → "Propuestas para portada") — la portada sigue siendo la única ubicación curada solo por administración.
+- **Rotación de galerías de proyecto** (`fotos_ubicaciones.rotar`) en vez de un tope curado a mano: recientes siempre presentes + muestra aleatoria del resto.
+
+### 🔧 Changed
+- Migración `scripts/migrate-aprobacion-responsables.js` (`fotos.calidad`/`propuestas`, `videos.profesores_responsables`/`actividad_difusion_id`, `fotos_ubicaciones.rotar`).
+- `scripts/test-fotos-permisos.mjs` ampliado a 80 casos.
+
+---
+
+## [0.12.8] - 2026-09-26 (Sesión 52)
+
+### ✨ Added
+- **Banco de fotos con topes + administración por líderes de proyecto** (`docs/PLAN_IMPLEMENTACION_ANTIGRAVITY_ADMIN_POR_LIDERES.md`):
+  - `fotos` gana `proyectos[]` (multi-proyecto), `menores`/`visibilidad` (solo revisión humana, sin IA), `descartada` (reversible, por imagen, respetado por galerías/noticias/informes vía `foto_descartada(url)`), y títulos automáticos.
+  - Topes por ubicación (`fotos_ubicaciones`, tope suave: el sitio muestra solo las N primeras).
+  - Panel del líder `/portal/proyecto/[proyectoId]/fotos` (mismo componente `BancoFotos` que `/admin/photos`, alcance limitado a su proyecto vía `lib/permisosProyecto.ts`).
+  - Selector de proyectos al registrar eventos/podcasts (`lib/permisosProyecto.ts:proyectosAsignables`), validado en el servidor.
+  - Notificaciones `fotos-menores-por-revisar` y `fotos-sin-ubicar-proyecto`.
+- **Datos:** Jhonny Villafuerte, líder de RED LEA (además de colíder de Internacionalización); backfill de 44 imágenes locales a Cloudinary.
+- `scripts/test-fotos-permisos.mjs` (nuevo, matriz de permisos del banco de fotos).
+
+---
 
 ## [0.12.7] - 2026-09-25 (Sesión 51)
 

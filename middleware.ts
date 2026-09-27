@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
     '/portal/subir-video',
     '/portal/mi-avance',
     '/portal/proyecto',
+    '/portal/aprobaciones',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',
@@ -136,6 +137,12 @@ export async function middleware(request: NextRequest) {
     // Panel de proyecto (líderes/colíderes): solo docentes. Qué proyecto puede administrar cada quien lo
     // decide la API en cada petición (proyecto_miembros), no esta redirección.
     if (pathname.startsWith('/portal/proyecto') && !['profesor', 'admin'].includes(session.rol)) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Mis aprobaciones (Sesión 53, profesor responsable): solo docentes; el detalle de qué puede
+    // aprobar cada uno lo decide la API (profesores_responsables), no esta redirección.
+    if (pathname.startsWith('/portal/aprobaciones') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

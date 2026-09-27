@@ -118,6 +118,8 @@ export async function GET(request: Request) {
     // listado se excluyen. "Descartar" no borra nada: la foto sigue en el banco pero inutilizable.
     const whereEstado = estadoRaw === 'descartada'
       ? sql`AND descartada = true`
+      : estadoRaw === 'propuesta'
+        ? sql`AND descartada = false AND cardinality(propuestas) > 0`
       : estadoRaw === 'publicada'
         ? sql`AND descartada = false AND activo = true AND cardinality(ubicaciones) > 0`
         : estadoRaw === 'sin_ubicar'

@@ -225,6 +225,29 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     },
   },
   {
+    // Sesión 53: eventos/podcasts donde este docente es profesor responsable, sin aprobar todavía.
+    // Misma condición que protege /portal/aprobaciones (cualquier docente).
+    id: 'contenido-por-aprobar-responsable',
+    aplica: (sesion) => esDocente(sesion),
+    consultar: async (sql, sesion) => {
+      const usuarioId = Number(sesion.id);
+      if (Number.isNaN(usuarioId)) return null;
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total FROM actividades_difusion
+        WHERE aprobado_sitio = false AND ${usuarioId} = ANY(profesores_responsables)
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'contenido-por-aprobar-responsable',
+        cantidad: total,
+        mensaje: `Tienes ${plural(total, 'evento/podcast', 'eventos/podcasts')} por aprobar como responsable.`,
+        href: '/portal/aprobaciones',
+        severidad: 'pendiente',
+      };
+    },
+  },
+  {
     // Supervisor de Vinculación: informe mensual del mes anterior sin generar.
     id: 'informe-supervisor-pendiente',
     aplica: (sesion) => puedeSupervisarVinculacion(sesion),

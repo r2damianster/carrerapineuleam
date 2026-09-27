@@ -22,9 +22,13 @@ type Accion =
   | 'descartar'
   | 'restaurar'
   | 'marcar_revisada'
-  | 'marcar_interna';
+  | 'marcar_interna'
+  | 'marcar_calidad_aceptable'
+  | 'marcar_calidad_mala'
+  | 'proponer'
+  | 'rechazar_propuesta';
 
-const ACCIONES_SOLO_ADMIN: Accion[] = ['marcar_revisada', 'marcar_interna'];
+const ACCIONES_SOLO_ADMIN: Accion[] = ['marcar_revisada', 'marcar_interna', 'marcar_calidad_aceptable', 'marcar_calidad_mala', 'rechazar_propuesta'];
 
 const MOTIVOS_DESCARTE = ['menores', 'mala_calidad', 'duplicada', 'otro'] as const;
 
@@ -32,6 +36,7 @@ interface FotoRow {
   id: string;
   url: string;
   descartada: boolean;
+  calidad: string;
   menores: string;
   visibilidad: string;
   ubicaciones: string[];
@@ -39,6 +44,7 @@ interface FotoRow {
   origen: string;
   activo: boolean;
   fuente_id: string | null;
+  propuestas: string[];
 }
 
 interface UbicacionRow {
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
     }
     const idsUnicos: string[] = Array.from(new Set(ids as string[]));
 
-    const ACCIONES_VALIDAS: Accion[] = ['publicar','quitar','ocultar','mostrar','descartar','restaurar','marcar_revisada','marcar_interna'];
+    const ACCIONES_VALIDAS: Accion[] = ['publicar','quitar','ocultar','mostrar','descartar','restaurar','marcar_revisada','marcar_interna','marcar_calidad_aceptable','marcar_calidad_mala','proponer','rechazar_propuesta'];
     if (motivo !== undefined && motivo !== null && motivo !== '' && !(MOTIVOS_DESCARTE as readonly string[]).includes(motivo)) {
       return NextResponse.json({ error: 'motivo de descarte inválido.' }, { status: 400 });
     }
@@ -78,8 +84,8 @@ export async function POST(request: Request) {
 
     const esAdmin = puedeAdministrarSitio(sesion);
 
-    if (['publicar', 'quitar'].includes(accion) && (!Array.isArray(ubicacionesPedidas) || ubicacionesPedidas.length === 0)) {
-      return NextResponse.json({ error: 'Indica al menos una ubicación para publicar o quitar.' }, { status: 400 });
+    if (['publicar', 'quitar', 'proponer', 'rechazar_propuesta'].includes(accion) && (!Array.isArray(ubicacionesPedidas) || ubicacionesPedidas.length === 0)) {
+      return NextResponse.json({ error: 'Indica al menos una ubicación.' }, { status: 400 });
     }
 
     // Solo admin puede hacer acciones exclusivas
@@ -93,7 +99,7 @@ export async function POST(request: Request) {
 
       // ── Cargar fotos ────────────────────────────────────────────────────
       const { rows: fotosRaw } = await client.query<FotoRow>(
-        `SELECT id, url, descartada, menores, visibilidad, ubicaciones, proyectos, origen, activo, fuente_id
+        `SELECT id, url, descartada, calidad, menores, visibilidad, ubicaciones, proyectos, origen, activo, fuente_id, propuestas
          FROM fotos WHERE id = ANY($1)`,
         [idsUnicos]
       );
@@ -112,7 +118,7 @@ export async function POST(request: Request) {
 
       // ── Cargar ubicaciones pedidas ────────────────────────────────────
       let ubicacionesMap = new Map<string, UbicacionRow>();
-      if (['publicar', 'quitar'].includes(accion) && Array.isArray(ubicacionesPedidas) && ubicacionesPedidas.length > 0) {
+      if (['publicar', 'quitar', 'proponer', 'rechazar_propuesta'].includes(accion) && Array.isArray(ubicacionesPedidas) && ubicacionesPedidas.length > 0) {
         const slugsUbic: string[] = ubicacionesPedidas.filter((s: unknown) => typeof s === 'string');
         if (slugsUbic.length > 0) {
           const { rows: ubicRows } = await client.query<UbicacionRow>(
@@ -164,8 +170,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // publicar: no se puede si tiene menores, es interna o está marcada de mala calidad
-        if (accion === 'publicar') {
+        // publicar/proponer: no se puede si tiene menores, es interna o está marcada de mala calidad
+        if (accion === 'publicar' || accion === 'proponer') {
           if (foto.menores !== 'no' || foto.visibilidad !== 'publicable') {
             errores.push({ id, motivo: 'Foto con menores o interna: no se puede publicar.' });
             continue;
@@ -174,8 +180,9 @@ export async function POST(request: Request) {
             errores.push({ id, motivo: 'Foto marcada de mala calidad: no se puede publicar.' });
             continue;
           }
-          // Verificar gate de fuente aprobada (para eventos/podcasts/asistencia sin aprobación)
-          if (['evento', 'podcast'].includes(foto.origen) && foto.fuente_id) {
+          // Verificar gate de fuente aprobada (para eventos/podcasts/asistencia sin aprobación) — no aplica
+          // a "proponer": una propuesta de portada puede adelantarse a que la actividad se apruebe.
+          if (accion === 'publicar' && ['evento', 'podcast'].includes(foto.origen) && foto.fuente_id) {
             const { rows: aprobRows } = await client.query(
               `SELECT 1 FROM actividades_difusion WHERE id::text = $1 AND aprobado_sitio = true`,
               [foto.fuente_id]
@@ -185,7 +192,7 @@ export async function POST(request: Request) {
               continue;
             }
           }
-          if (foto.origen === 'asistencia' && foto.fuente_id) {
+          if (accion === 'publicar' && foto.origen === 'asistencia' && foto.fuente_id) {
             const { rows: aprobRows } = await client.query(
               `SELECT 1 FROM asistencia_espacio WHERE id::text = $1 AND estado_aprobacion = 'aprobado'`,
               [foto.fuente_id]
@@ -228,6 +235,17 @@ export async function POST(request: Request) {
               }
             }
           }
+          // "Proponer" es la única acción donde un líder SÍ puede apuntar a una ubicación solo_admin
+          // (ej. portada): no publica nada, solo entra a la cola de propuestas que revisa admin.
+          if (accion === 'proponer') {
+            const entradas = Array.from(ubicacionesMap.entries());
+            for (const [slugUbic] of entradas) {
+              if (foto.propuestas?.includes(slugUbic)) {
+                errores.push({ id, motivo: `Ya está propuesta para "${slugUbic}".` });
+                break;
+              }
+            }
+          }
         } else {
           // Admin: solo verificar ubicaciones solo_admin permitidas (siempre sí)
           if (['publicar', 'quitar'].includes(accion)) {
@@ -251,14 +269,35 @@ export async function POST(request: Request) {
       const slugsUbic = Array.from(ubicacionesMap.keys());
 
       if (accion === 'publicar') {
-        // Agregar ubicaciones (union sin duplicar) y activar
+        // Agregar ubicaciones (union sin duplicar), activar, y limpiar estas mismas ubicaciones
+        // de "propuestas" (si venían de una cola de propuestas, ya se resolvió).
         await client.query(
           `UPDATE fotos
            SET ubicaciones = (
              SELECT array_agg(DISTINCT ubic) FROM unnest(ubicaciones || $2::text[]) AS ubic
            ),
+           propuestas = (
+             SELECT COALESCE(array_agg(p), '{}') FROM unnest(propuestas) AS p WHERE p <> ALL($2::text[])
+           ),
            activo = true,
            updated = now()
+           WHERE id = ANY($1)`,
+          [idsUnicos, slugsUbic]
+        );
+      } else if (accion === 'proponer') {
+        // No publica nada: solo entra a la cola que revisa administración del sitio.
+        await client.query(
+          `UPDATE fotos
+           SET propuestas = (SELECT array_agg(DISTINCT p) FROM unnest(propuestas || $2::text[]) AS p),
+               updated = now()
+           WHERE id = ANY($1)`,
+          [idsUnicos, slugsUbic]
+        );
+      } else if (accion === 'rechazar_propuesta') {
+        await client.query(
+          `UPDATE fotos
+           SET propuestas = (SELECT COALESCE(array_agg(p), '{}') FROM unnest(propuestas) AS p WHERE p <> ALL($2::text[])),
+               updated = now()
            WHERE id = ANY($1)`,
           [idsUnicos, slugsUbic]
         );
@@ -324,6 +363,13 @@ export async function POST(request: Request) {
       } else if (accion === 'marcar_interna') {
         await client.query(
           `UPDATE fotos SET menores = 'si', visibilidad = 'interna', ubicaciones = '{}', activo = false, updated = now() WHERE id = ANY($1)`,
+          [idsUnicos]
+        );
+      } else if (accion === 'marcar_calidad_aceptable') {
+        await client.query(`UPDATE fotos SET calidad = 'aceptable', updated = now() WHERE id = ANY($1)`, [idsUnicos]);
+      } else if (accion === 'marcar_calidad_mala') {
+        await client.query(
+          `UPDATE fotos SET calidad = 'mala', activo = false, ubicaciones = '{}', updated = now() WHERE id = ANY($1)`,
           [idsUnicos]
         );
       }

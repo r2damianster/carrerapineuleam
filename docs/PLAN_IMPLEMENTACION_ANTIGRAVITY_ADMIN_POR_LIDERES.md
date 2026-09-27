@@ -738,3 +738,18 @@ Se verificó además que `@neondatabase/serverless` 1.x **sí** admite fragmento
 **Decisiones del usuario aplicadas:** (1) restaurada la foto de UE Manuela 21/09 (2), de la sesión aprobada #13; (2) **aviso de posible duplicado** al registrar asistencia y en `/vinculacion/supervisar` (badge ámbar "Posible duplicado de #N"): otro registro no rechazado del mismo espacio y día, horario cruzado y al menos un beneficiario en común. **Solo avisa, no bloquea** (un mismo día puede haber dos grupos legítimos). El formulario, si hay aviso, no redirige solo. Ver `app/api/espacios/asistencia/route.ts` y `app/api/vinculacion/supervisar-asistencia/route.ts`. Data fix previo (respaldado): Juan Montalvo #3, quitados Evelyn (36) y Britany (37) por estar en la #4 a la misma hora; fila duplicada de `InterClass.jpg` quitada del banco.
 
 **Pendiente de confirmar con pasantes/supervisora (no se tocó):** Juan Montalvo — los beneficiarios 57, 59 y 62 constan en la #3 y en la #4, y Britany (37) está asignada al espacio 17 "Grupo Cintya" pero su registro #4 está en el espacio 7; B1 22/09 — el beneficiario 82 solo consta en registros rechazados (#6/#7), las horas sí están en la #5; A2 23 y 24/09 figuran de 22:00 a 23:30; UE Manuela 24 y 25/09 repiten los 13 beneficiarios del 21/09 (¿lista por defecto?).
+
+---
+
+### Sesión 2026-09-27 (Claude) — aprobación de contenido sin depender solo del administrador
+
+Continúa el objetivo de fondo del plan (menos dependencia del administrador), esta vez sobre **quién aprueba**, no solo quién sube/publica fotos. Rama `feat/aprobacion-responsables`. Detalle exhaustivo en `CLAUDE.md` → "Cambios Recientes (Sesión 53)". Resumen:
+
+- Migración `scripts/migrate-aprobacion-responsables.js`: `fotos.calidad`/`propuestas`, `videos.profesores_responsables`/`actividad_difusion_id`, `fotos_ubicaciones.rotar`.
+- `lib/permisosAprobacionContenido.ts`: `puedeAprobarVideo` (admin, o responsable, o supervisor del pasante que subió), `puedeAprobarActividad` (admin, o responsable — autoaprobación permitida por decisión explícita del usuario).
+- `PATCH /api/videos/[id]/aprobar` (nuevo) y vía de aprobación en `PATCH /api/actividades-difusion/[id]` (solo aprobar, nunca editar, para quien no es `contenido_sitio`).
+- `/portal/aprobaciones` (nueva) + `GET /api/mis-aprobaciones` + notificación `contenido-por-aprobar-responsable`.
+- `/vinculacion/supervisar` → Podcast: botón "Publicar en el sitio"; → Asistencia: casillas de menores/calidad al aprobar (no bloquean las horas).
+- `POST /api/photos/accion`: acciones nuevas `proponer`/`rechazar_propuesta` (cola de portada) y `marcar_calidad_aceptable`/`marcar_calidad_mala`; `lib/fotosPublicas.ts`: rotación para `rotar=true`.
+- `scripts/test-fotos-permisos.mjs`: 80 casos, todos en verde. `tsc`/`build` limpios.
+- **Pendiente:** las decisiones abiertas de la Sesión 52 (permitir QR a líderes sin módulos; restaurar o descartar H1) siguen sin resolver — no era el foco de esta sesión.

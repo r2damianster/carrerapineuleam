@@ -229,6 +229,87 @@ async function main() {
   verificar('Docente registra evento sin proyectos → 400', r.estado === 400, `estado ${r.estado}`);
   r = await llamar('/api/enlaces-difusion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { nombre_invitado: 'foto_test', tipo_contenido: 'evento', expira_en: '2099-01-01T00:00:00', proyectos: ['redlea'] } });
   verificar('Generar QR con proyecto ajeno → 401/403 (nunca 2xx)', r.estado >= 400, `estado ${r.estado}`);
+
+  console.log('\n— Aprobación por responsable / supervisor de video (Sesión 53) —');
+  const [{ id: actividadVideoId }] = await sql`
+    INSERT INTO actividades_difusion (titulo, tipo, fecha, registrador_id, audiencia_alcanzada, categoria, profesores_responsables, aprobado_sitio)
+    VALUES ('foto_test evento video', 'podcast', '2026-09-01', ${Number(jhonny.id)}, 5, 'vinculacion', ARRAY[${Number(veronica.id)}]::int[], false)
+    RETURNING id`;
+  await sql`INSERT INTO fotos (id, url, ubicaciones, activo, origen, proyectos, fuente_id) VALUES ('foto_test_video_foto', 'https://example.com/foto_test_video.jpg', '{}', true, 'podcast', ARRAY['docencia_innovadora'], ${String(actividadVideoId)})`;
+  await sql`INSERT INTO videos (id, title, category, aprobado_sitio, propuesto_por, profesores_responsables, actividad_difusion_id) VALUES ('video_test_53', 'foto_test video', 'cat_1', false, ${Number(jhonny.id)}, ARRAY[${Number(veronica.id)}]::int[], ${actividadVideoId})`;
+
+  r = await llamar('/api/videos/video_test_53/aprobar', { cookie: cookieJhonny, metodo: 'PATCH', cuerpo: { hay_menores: false, calidad_mala: false } });
+  verificar('Jhonny (ni responsable ni supervisor) no puede aprobar el video → 403', r.estado === 403, `estado ${r.estado}`);
+  r = await llamar('/api/videos/video_test_53/aprobar', { cookie: cookieVeronica, metodo: 'PATCH', cuerpo: { hay_menores: true, calidad_mala: false } });
+  verificar('Verónica (responsable) marca menores → 200, no publica', r.estado === 200 && r.datos?.publicado === false, JSON.stringify(r.datos));
+  const [fotoVideoMenores] = await sql`SELECT menores, activo FROM fotos WHERE id = 'foto_test_video_foto'`;
+  verificar('  …la foto asociada queda con menores=si e inactiva', fotoVideoMenores.menores === 'si' && fotoVideoMenores.activo === false);
+  const [videoSinPublicar] = await sql`SELECT aprobado_sitio FROM videos WHERE id = 'video_test_53'`;
+  verificar('  …el video NO quedó publicado', videoSinPublicar.aprobado_sitio === false);
+  r = await llamar('/api/videos/video_test_53/aprobar', { cookie: cookieVeronica, metodo: 'PATCH', cuerpo: { hay_menores: false, calidad_mala: false } });
+  verificar('Verónica aprueba sin observaciones → 200, publica video + actividad', r.estado === 200 && r.datos?.publicado === true, JSON.stringify(r.datos));
+  const [videoPublicado] = await sql`SELECT aprobado_sitio FROM videos WHERE id = 'video_test_53'`;
+  const [actividadPublicada] = await sql`SELECT aprobado_sitio FROM actividades_difusion WHERE id = ${actividadVideoId}`;
+  verificar('  …video y actividad quedaron aprobados juntos', videoPublicado.aprobado_sitio === true && actividadPublicada.aprobado_sitio === true);
+
+  const [{ id: actividadEventoId }] = await sql`
+    INSERT INTO actividades_difusion (titulo, tipo, fecha, registrador_id, audiencia_alcanzada, categoria, profesores_responsables, aprobado_sitio)
+    VALUES ('foto_test evento responsable', 'evento_fisico', '2026-09-01', ${Number(veronica.id)}, 5, 'vinculacion', ARRAY[${Number(veronica.id)}]::int[], false)
+    RETURNING id`;
+  r = await llamar(`/api/actividades-difusion/${actividadEventoId}`, { cookie: cookieJhonny, metodo: 'PATCH', cuerpo: { aprobar: true } });
+  verificar('Jhonny (no responsable) no aprueba el evento → 403', r.estado === 403, `estado ${r.estado}`);
+  r = await llamar(`/api/actividades-difusion/${actividadEventoId}`, { cookie: cookieVeronica, metodo: 'PATCH', cuerpo: { editar: true, titulo: 'otro' } });
+  verificar('Responsable no puede editar (solo aprobar) → 403', r.estado === 403, `estado ${r.estado}`);
+  r = await llamar(`/api/actividades-difusion/${actividadEventoId}`, { cookie: cookieVeronica, metodo: 'PATCH', cuerpo: { aprobar: true, hay_menores: false, calidad_mala: false } });
+  verificar('Verónica se autoaprueba su propio evento (única responsable) → 200', r.estado === 200, `estado ${r.estado} ${JSON.stringify(r.datos)}`);
+  const [eventoAprobado] = await sql`SELECT aprobado_sitio FROM actividades_difusion WHERE id = ${actividadEventoId}`;
+  verificar('  …quedó aprobado', eventoAprobado.aprobado_sitio === true);
+
+  console.log('\n— Mis aprobaciones (cola del responsable) —');
+  r = await llamar('/api/mis-aprobaciones', { cookie: cookieVeronica });
+  const pendientesVeronica = (r.datos?.data ?? []).map((fila) => fila.titulo);
+  verificar('Antes de aprobar aparecía en su cola (ya no, quedó aprobado arriba)', r.estado === 200 && !pendientesVeronica.includes('foto_test evento responsable'));
+
+  console.log('\n— Rotación de galerías (Sesión 53) —');
+  await sql`INSERT INTO fotos_ubicaciones (slug, nombre, proyecto_id, max_fotos, solo_admin, rotar, orden) VALUES ('test-rotar', 'Rotación de prueba', 'docencia_innovadora', 4, false, true, 998)`;
+  for (let numero = 1; numero <= 10; numero++) {
+    await sql`INSERT INTO fotos (id, url, ubicaciones, activo, origen, created) VALUES (${'foto_test_rot' + numero}, ${'https://example.com/foto_test_rot' + numero + '.jpg'}, ARRAY['test-rotar'], true, 'admin', now() - (${10 - numero} || ' seconds')::interval)`;
+  }
+  r = await llamar('/api/photos?ubicacion=test-rotar');
+  verificar('rotación: con 10 elegibles y cupo 4, devuelve exactamente 4', Array.isArray(r.datos) && r.datos.length === 4, `devolvió ${Array.isArray(r.datos) ? r.datos.length : r.estado}`);
+  const idsPrimeraLlamada = (r.datos ?? []).map((foto) => foto.id).sort().join(',');
+  let algunaLlamadaDistinta = false;
+  for (let intento = 0; intento < 6; intento++) {
+    const otra = await llamar('/api/photos?ubicacion=test-rotar');
+    const ids = (otra.datos ?? []).map((foto) => foto.id).sort().join(',');
+    if (ids !== idsPrimeraLlamada) { algunaLlamadaDistinta = true; break; }
+  }
+  verificar('rotación: el conjunto varía entre llamadas (no es un tope fijo)', algunaLlamadaDistinta);
+  r = await llamar('/api/photos?ubicacion=test-rotar');
+  const idsUltima = (r.datos ?? []).map((foto) => foto.id);
+  verificar('rotación: las 2 más recientes SIEMPRE están (foto_test_rot9 y foto_test_rot10, insertadas últimas)', idsUltima.includes('foto_test_rot9') && idsUltima.includes('foto_test_rot10'), JSON.stringify(idsUltima));
+
+  console.log('\n— Cola de propuestas para portada (Sesión 53) —');
+  await crearFoto('foto_test_propuesta', { proyectos: ['docencia_innovadora'] });
+  r = await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_propuesta'], accion: 'proponer', ubicaciones: ['portada'] } });
+  verificar('líder propone foto para portada → 200', r.estado === 200, JSON.stringify(r.datos));
+  const [propuesta1] = await sql`SELECT propuestas, ubicaciones FROM fotos WHERE id = 'foto_test_propuesta'`;
+  verificar('  …queda en "propuestas", NO en "ubicaciones" (no se publica sola)', propuesta1.propuestas.includes('portada') && propuesta1.ubicaciones.length === 0, JSON.stringify(propuesta1));
+  r = await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_propuesta'], accion: 'publicar', ubicaciones: ['portada'] } });
+  verificar('líder NO puede publicar directo en portada (solo proponer) → 4xx', r.estado === 409 || r.estado === 403, `estado ${r.estado}`);
+  r = await llamar('/api/photos/banco?pageSize=60&estado=propuesta', { cookie: cookieArturo });
+  verificar('admin ve la propuesta en la cola', (r.datos?.items ?? []).some((foto) => foto.id === 'foto_test_propuesta'));
+  await crearFoto('foto_test_propuesta_rechazada', { proyectos: ['docencia_innovadora'] });
+  await llamar('/api/photos/accion', { cookie: cookieVeronica, metodo: 'POST', cuerpo: { ids: ['foto_test_propuesta_rechazada'], accion: 'proponer', ubicaciones: ['portada'] } });
+  r = await llamar('/api/photos/accion', { cookie: cookieArturo, metodo: 'POST', cuerpo: { ids: ['foto_test_propuesta_rechazada'], accion: 'rechazar_propuesta', ubicaciones: ['portada'] } });
+  verificar('admin rechaza propuesta → 200', r.estado === 200, JSON.stringify(r.datos));
+  const [rechazada] = await sql`SELECT propuestas FROM fotos WHERE id = 'foto_test_propuesta_rechazada'`;
+  verificar('  …sale de "propuestas", sigue existiendo la foto', rechazada.propuestas.length === 0);
+  r = await llamar('/api/photos/accion', { cookie: cookieArturo, metodo: 'POST', cuerpo: { ids: ['foto_test_propuesta'], accion: 'publicar', ubicaciones: ['portada'] } });
+  verificar('admin aprueba la propuesta (publicar) → 200', r.estado === 200, JSON.stringify(r.datos));
+  const [aprobada] = await sql`SELECT ubicaciones, propuestas FROM fotos WHERE id = 'foto_test_propuesta'`;
+  verificar('  …queda publicada en portada y sale de "propuestas"', aprobada.ubicaciones.includes('portada') && aprobada.propuestas.length === 0, JSON.stringify(aprobada));
+
 }
 
 main()
@@ -237,6 +318,9 @@ main()
     await limpiar();
     await sql`DELETE FROM actividades_difusion WHERE titulo = 'foto_test evento'`;
     await sql`DELETE FROM enlaces_difusion WHERE nombre_invitado = 'foto_test'`;
+    await sql`DELETE FROM videos WHERE id = 'video_test_53'`;
+    await sql`DELETE FROM actividades_difusion WHERE titulo IN ('foto_test evento video', 'foto_test evento responsable')`;
+    await sql`DELETE FROM fotos_ubicaciones WHERE slug = 'test-rotar'`;
     console.log(fallos === 0 ? '\nTODO OK' : `\n${fallos} caso(s) FALLARON`);
     process.exit(fallos === 0 ? 0 : 1);
   });

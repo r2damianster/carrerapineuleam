@@ -23,6 +23,8 @@ interface FotoBanco {
   posicion: number;
   origen: string;
   menores: 'no' | 'si' | 'revisar';
+  calidad: 'no_revisada' | 'aceptable' | 'mala';
+  propuestas: string[];
   visibilidad: 'publicable' | 'interna';
   descartada?: boolean;
   fuente_aprobada?: boolean;
@@ -254,6 +256,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
           <option value="sin_ubicar">Sin ubicar</option>
           <option value="oculta">Ocultas</option>
           <option value="descartada">Descartadas</option>
+          <option value="propuesta">Propuestas para portada</option>
         </select>
       </section>
 
@@ -270,7 +273,7 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
       {seleccionadas.length > 0 && (
         <section aria-label="Acciones en lote" className="sticky top-2 z-10 space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow">
           <p className="text-sm font-semibold text-indigo-900">{seleccionadas.length} seleccionada(s)</p>
-          {filtros.estado !== 'descartada' && (
+          {filtros.estado !== 'descartada' && filtros.estado !== 'propuesta' && (
           <div className="flex flex-wrap gap-2">
             {ubicacionesDisponibles.map((ubicacion) => (
               <label key={ubicacion.slug} className="flex cursor-pointer items-center gap-1 rounded border bg-white px-2 py-1 text-xs">
@@ -285,6 +288,18 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
               <button type="button" onClick={() => ejecutarAccion('restaurar')} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white">Restaurar (vuelven a “sin ubicar”)</button>
               <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
             </div>
+          ) : filtros.estado === 'propuesta' ? (
+            <div className="flex flex-wrap gap-2 text-sm">
+              {esAdmin ? (
+                <>
+                  <button type="button" disabled={seleccionConFuenteSinAprobar} onClick={() => ejecutarAccion('publicar', ['portada'])} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Aprobar para portada</button>
+                  <button type="button" onClick={() => ejecutarAccion('rechazar_propuesta', ['portada'])} className="rounded bg-red-50 px-3 py-1.5 font-semibold text-red-700">Rechazar propuesta</button>
+                </>
+              ) : (
+                <p className="text-xs text-gray-600">Solo administración del sitio puede aprobar propuestas de portada.</p>
+              )}
+              <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
+            </div>
           ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             <button type="button" disabled={ubicacionesParaPublicar.length === 0 || seleccionConFuenteSinAprobar} title={seleccionConFuenteSinAprobar ? 'Hay fotos cuya asistencia/evento aún no está aprobado' : undefined} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
@@ -296,10 +311,15 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
               {Object.entries(ETIQUETA_MOTIVO).map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
             </select>
             <button type="button" onClick={() => ejecutarAccion('descartar')} className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white">Descartar</button>
+            {!esAdmin && (
+              <button type="button" onClick={() => ejecutarAccion('proponer', ['portada'])} className="rounded bg-uleam-gold px-3 py-1.5 font-semibold text-uleam-blue">Proponer para portada</button>
+            )}
             {esAdmin && (
               <>
                 <button type="button" onClick={() => ejecutarAccion('marcar_revisada')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">Marcar sin menores (revisada)</button>
                 <button type="button" onClick={() => ejecutarAccion('marcar_interna')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">Marcar con menores (interna)</button>
+                <button type="button" onClick={() => ejecutarAccion('marcar_calidad_aceptable')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">Marcar calidad aceptable</button>
+                <button type="button" onClick={() => ejecutarAccion('marcar_calidad_mala')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">Marcar mala calidad</button>
               </>
             )}
             <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
@@ -337,6 +357,12 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
                 <p className="truncate font-semibold text-gray-800">{foto.titulo || 'Sin título'}</p>
                 <div className="flex flex-wrap gap-1">
                   <span className="rounded bg-gray-100 px-1.5 py-0.5">{ETIQUETA_ORIGEN[foto.origen] ?? foto.origen}</span>
+                  {foto.calidad === 'mala' && (
+                    <span className="rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-800">Mala calidad</span>
+                  )}
+                  {foto.propuestas.length > 0 && (
+                    <span className="rounded bg-uleam-gold/30 px-1.5 py-0.5 font-semibold text-uleam-blue">Propuesta para portada</span>
+                  )}
                   {foto.menores !== 'no' && (
                     <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-800">
                       {foto.menores === 'si' ? 'Con menores' : 'Menores: revisar'}

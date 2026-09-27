@@ -116,10 +116,20 @@ Si eres **líder o colíder** de un proyecto (según el equipo del proyecto), en
 - **Asistencia, eventos y podcasts** piden ahora una casilla **"¿Aparecen menores de edad en la foto?"** (viene en **No**). Si marcas **Sí**, la foto solo la verá el equipo de administración y **no se publicará** en la web.
 - **Docentes:** al registrar un evento o podcast debes elegir **a qué proyecto(s) pertenece**; solo aparecen los proyectos de los que eres miembro. Los **pasantes** no eligen: sus eventos son de Vinculación y sus podcasts de Vinculación e Internacionalización.
 - **Acceso temporal (QR) para externos:** al generar el enlace eliges los proyectos; quien lo use no puede cambiarlos. Las fotos de externos siempre pasan por revisión antes de publicarse.
+- **Al subir un video en `/portal/subir-video`** (sin ser pasante de un club) debes elegir uno o más **profesores responsables** — son quienes podrán aprobar y publicar tu video sin esperar a administración del sitio.
+
+## ✅ Aprobar eventos y podcasts sin ser administrador del sitio (Sesión 53)
+
+Aprobar ya no depende únicamente de administración del sitio. Depende de quién registró y de quién quedó como responsable:
+
+- **Podcast de un pasante de club de Vinculación:** lo aprueba **el supervisor de ese pasante** (el mismo profesor que ya aprueba sus horas) en `/vinculacion/supervisar` → pestaña **Podcast**. Junto al botón "Editar episodio" aparece **"Publicar en el sitio"**: confirma si hay menores y si la calidad de la foto es aceptable, y con un solo clic publica el video **y** la actividad/noticia asociada. Si marcas menores o mala calidad, no se publica nada y la foto queda descartada.
+- **Asistencia:** al aprobar en `/vinculacion/supervisar` → pestaña **Asistencia**, ahora se piden las mismas dos casillas (menores y calidad). **No afecta las horas del pasante** — esas se acreditan igual; solo decide si la foto sirve para la web y los informes.
+- **Cualquier otro evento o podcast** (uno donde te marcaron, o te marcaste tú mismo, como **profesor responsable**): entra a tu cola personal en **`/portal/dashboard` → "Mis aprobaciones"** (`/portal/aprobaciones`). Ahí ves cada pendiente, confirmas menores/calidad y apruebas. **Puedes aprobar tu propio registro** si eres el único responsable — no necesitas que otra persona lo revise.
+- **Administración del sitio** (`contenido_sitio`) sigue pudiendo aprobar cualquier cosa desde `/admin/videos` y `/admin/contenido`, y puede despublicar lo que sea en cualquier momento — esto no le quita ese control, solo deja de ser el único paso obligatorio.
 
 ## 🖼️ Gestión del Sitio — Banco de fotos (administración)
 
-`/admin/photos` es el banco único de fotos: filtros (origen, ubicación, sin ubicar, proyecto, fechas, menores), selección múltiple y **Publicar en…**. Las fotos con **"Menores: revisar"** (externos, asistencia) **no se publican** hasta que las marques como **revisadas** ("Marcar sin menores"). La **portada** solo la administra administración del sitio. Los máximos por galería se ven en las fichas de arriba.
+`/admin/photos` es el banco único de fotos: filtros (origen, ubicación, sin ubicar, proyecto, fechas, menores, estado), selección múltiple y **Publicar en…**. Las fotos con **"Menores: revisar"** (externos, asistencia) **no se publican** hasta que las marques como **revisadas** ("Marcar sin menores"); las de **"Mala calidad"** tampoco, hasta "Marcar calidad aceptable". La **portada** solo la administra administración del sitio, pero un líder puede **proponer** una foto de su proyecto (botón "Proponer para portada"); revísalas con el filtro **Estado → "Propuestas para portada"** y decide con **Aprobar para portada** o **Rechazar propuesta** (no borra la foto, solo la saca de la cola). Las galerías de proyecto (Docencia, RED LEA, Club de Inglés, y las de cada proyecto) ya no muestran siempre las mismas fotos en el mismo orden: rotan, con las más recientes siempre presentes y el resto saliendo por turnos — no hace falta reordenarlas a mano cada vez que publicas una nueva.
 
 ## 🔬 Perfil: Investigación (hoy: Jhonny, German, Cristina, Johana)
 
