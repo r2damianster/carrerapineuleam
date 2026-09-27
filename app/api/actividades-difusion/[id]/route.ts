@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
+import { puedeAprobarActividad } from '@/lib/permisosAprobacionContenido';
 
 // PATCH cubre dos usos, según qué venga en el body:
 // - aprobar/enriquecer un registro de difusión pendiente (origen='difusion') —
@@ -11,14 +12,57 @@ import { getAppSessionFromCookies } from '@/lib/session';
 //   la fila, intactos) ni se mostraba en el formulario de admin — el docente
 //   los registraba pero el admin no podía verlos ni corregirlos ahí.
 // - editar un registro creado directo desde /admin (noticia/actividad)
+//
+// Sesión 53 — vía adicional sin administración del sitio: un profesor responsable de la
+// actividad (`profesores_responsables`) puede aprobarla, con un body mínimo
+// { aprobar: true, hay_menores?, calidad_mala? } — no puede editar título/descripción/etc.,
+// solo aprobar (y confirmar menores/calidad de la foto asociada, si existe).
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || !usuario.modulos_acceso.includes('contenido_sitio')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!usuario) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const esAdminContenido = usuario.modulos_acceso.includes('contenido_sitio');
+    const body = await request.json();
+
+    if (!esAdminContenido) {
+      const sqlResponsable = neon(process.env.DATABASE_URL!);
+      const [actividad] = await sqlResponsable`
+        SELECT registrador_id, profesores_responsables FROM actividades_difusion WHERE id = ${parseInt(params.id)}
+      `;
+      if (!actividad) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+      if (!(await puedeAprobarActividad(sqlResponsable, usuario, actividad))) {
+        return NextResponse.json({ error: 'No tienes permiso sobre esta actividad.' }, { status: 403 });
+      }
+      if (!body.aprobar) {
+        return NextResponse.json({ error: 'Solo puedes aprobar esta actividad, no editarla.' }, { status: 403 });
+      }
+      if (body.hay_menores === true || body.calidad_mala === true) {
+        await sqlResponsable`
+          UPDATE fotos SET
+            menores = CASE WHEN ${body.hay_menores === true} THEN 'si' ELSE menores END,
+            calidad = CASE WHEN ${body.calidad_mala === true} THEN 'mala' ELSE calidad END,
+            visibilidad = CASE WHEN ${body.hay_menores === true} THEN 'interna' ELSE visibilidad END,
+            activo = false, ubicaciones = '{}'::text[],
+            calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
+          WHERE origen IN ('evento', 'podcast') AND fuente_id = ${params.id}
+        `;
+        return NextResponse.json({ success: true, publicado: false, mensaje: 'No se publicó: la foto quedó descartada por el motivo indicado.' });
+      }
+      const [aprobada] = await sqlResponsable`
+        UPDATE actividades_difusion
+        SET aprobado_sitio = true, aprobado_por = COALESCE(aprobado_por, ${Number(usuario.id)}),
+            fecha_aprobacion = COALESCE(fecha_aprobacion, now()), publicar_noticias = COALESCE(publicar_noticias, true)
+        WHERE id = ${parseInt(params.id)}
+        RETURNING *
+      `;
+      await sqlResponsable`
+        UPDATE fotos SET calidad = 'aceptable', calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
+        WHERE origen IN ('evento', 'podcast') AND fuente_id = ${params.id}
+      `;
+      return NextResponse.json(aprobada);
     }
 
-    const body = await request.json();
     const titulo = body.titulo ?? null;
     const descripcion = body.descripcion ?? null;
     const observaciones = body.observaciones ?? null;

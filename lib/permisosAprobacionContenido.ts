@@ -15,14 +15,14 @@ import type { AppSession } from './session';
 import { puedeAdministrarSitio } from './permisosProyecto';
 
 interface FilaAprobableVideo {
-  propuesto_por: number | null;
-  participantes_estudiantes: number[] | null;
-  profesores_responsables: number[] | null;
+  propuesto_por?: number | string | null;
+  participantes_estudiantes?: (number | string)[] | null;
+  profesores_responsables?: (number | string)[] | null;
 }
 
 interface FilaAprobableActividad {
-  registrador_id: number | null;
-  profesores_responsables: number[] | null;
+  registrador_id?: number | string | null;
+  profesores_responsables?: (number | string)[] | null;
 }
 
 /** Supervisor de un pasante = profesor_id de los espacios de Vinculación donde ese pasante es instructor. */
@@ -36,7 +36,7 @@ async function esSupervisorDePasante(sql: any, supervisorId: number, pasanteId: 
   return filas.length > 0;
 }
 
-export async function puedeAprobarVideo(sql: any, usuario: AppSession, video: FilaAprobableVideo): Promise<boolean> {
+export async function puedeAprobarVideo(sql: any, usuario: AppSession, video: Record<string, any> & FilaAprobableVideo): Promise<boolean> {
   if (puedeAdministrarSitio(usuario)) return true;
   const usuarioId = Number(usuario.id);
   if (Number.isNaN(usuarioId)) return false;
@@ -59,7 +59,7 @@ export async function puedeAprobarVideo(sql: any, usuario: AppSession, video: Fi
   return false;
 }
 
-export async function puedeAprobarActividad(sql: any, usuario: AppSession, actividad: FilaAprobableActividad): Promise<boolean> {
+export async function puedeAprobarActividad(sql: any, usuario: AppSession, actividad: Record<string, any> & FilaAprobableActividad): Promise<boolean> {
   if (puedeAdministrarSitio(usuario)) return true;
   const usuarioId = Number(usuario.id);
   if (Number.isNaN(usuarioId)) return false;
