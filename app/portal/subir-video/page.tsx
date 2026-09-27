@@ -39,6 +39,7 @@ export default function SubirVideoPage() {
     setParticipantes([]);
     setInvitadosInternos([]);
     setInvitadosExternos([]);
+    setResponsables([]);
   };
 
   const [form, setForm] = useState({
@@ -50,11 +51,20 @@ export default function SubirVideoPage() {
   const [area, setArea] = useState('vinculacion');
   const [proyectoId, setProyectoId] = useState('');
   const [audienciaAlcanzada, setAudienciaAlcanzada] = useState('');
+  // Sesión 53: uno o más profesores responsables, elegidos por el propio pasante/docente al
+  // subir — son quienes podrán aprobar y publicar el video sin pasar por /admin/videos.
+  const [profesores, setProfesores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [responsables, setResponsables] = useState<number[]>([]);
   const [participantes, setParticipantes] = useState<number[]>([]);
   const [invitadosInternos, setInvitadosInternos] = useState<string[]>([]);
   const [invitadosExternos, setInvitadosExternos] = useState<string[]>([]);
 
   useEffect(() => {
+    fetch('/api/profesores')
+      .then((res) => (res.ok ? res.json() : { profesores: [] }))
+      .then((data) => setProfesores(data.profesores || []))
+      .catch(() => setProfesores([]));
+
     fetch('/api/video-categories?active=true')
       .then((res) => res.json())
       .then((data) => setCategorias(Array.isArray(data) ? data : []))
@@ -100,6 +110,10 @@ export default function SubirVideoPage() {
       setMensaje('Error: selecciona el proyecto del podcast');
       return;
     }
+    if (responsables.length === 0) {
+      setMensaje('Error: selecciona al menos un profesor responsable');
+      return;
+    }
 
     setSubiendo(true);
     setProgreso(0);
@@ -139,6 +153,7 @@ export default function SubirVideoPage() {
           invitados_internos: invitadosInternos,
           invitados_externos: invitadosExternos,
           audiencia_alcanzada: audienciaAlcanzada ? parseInt(audienciaAlcanzada, 10) : 0,
+          profesores_responsables: responsables,
         }),
       });
       const registrarJson = await registrarRes.json();
@@ -278,6 +293,23 @@ export default function SubirVideoPage() {
               onInvitadosInternosChange={setInvitadosInternos}
               onInvitadosExternosChange={setInvitadosExternos}
             />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Profesor(es) responsable(s) *</label>
+              <p className="text-xs text-gray-500 mb-2">Cualquiera de ellos podrá aprobar y publicar este video sin esperar a administración del sitio.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto border rounded-lg p-2">
+                {profesores.map((profesor) => (
+                  <label key={profesor.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={responsables.includes(profesor.id)}
+                      onChange={() => setResponsables((previos) => previos.includes(profesor.id) ? previos.filter((id) => id !== profesor.id) : [...previos, profesor.id])}
+                    />
+                    {profesor.nombres} {profesor.apellidos}
+                  </label>
+                ))}
+              </div>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Archivo de video *</label>

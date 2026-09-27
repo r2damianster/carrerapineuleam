@@ -4,6 +4,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
 import { esSuperAdminOLider } from '@/lib/permisos-supervision';
 import { resolverSupervisorFiltro, listarSupervisores, listarPeriodos } from '@/lib/alcanceSupervision';
+import { puedeAprobarVideo } from '@/lib/permisosAprobacionContenido';
 
 // Supervisión de horas de podcast e investigación de pasantes (Sesión 50).
 // Alcance: un supervisor solo ve pasantes de SUS espacios (espacios_enseñanza.profesor_id);
@@ -30,7 +31,9 @@ export async function GET(request: Request) {
       ? await sql`
           SELECT h.id, h.usuario_id, h.video_id, u.nombres, u.apellidos, v.title AS titulo, v.youtube_url,
                  h.tipo_podcast, h.audiencia_alcanzada, h.horas_total::float AS horas,
-                 h.estado_aprobacion, h.motivo_rechazo, h.creado_en, h.creado_en::date AS fecha
+                 h.estado_aprobacion, h.motivo_rechazo, h.creado_en, h.creado_en::date AS fecha,
+                 v.aprobado_sitio AS video_aprobado_sitio, v.propuesto_por AS video_propuesto_por,
+                 v.participantes_estudiantes AS video_participantes, v.profesores_responsables AS video_responsables
           FROM horas_podcast_pasante h
           JOIN usuarios u ON u.id = h.usuario_id
           JOIN videos v ON v.id = h.video_id
