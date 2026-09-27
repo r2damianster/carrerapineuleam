@@ -164,10 +164,14 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // publicar: no se puede si tiene menores o es interna
+        // publicar: no se puede si tiene menores, es interna o está marcada de mala calidad
         if (accion === 'publicar') {
           if (foto.menores !== 'no' || foto.visibilidad !== 'publicable') {
             errores.push({ id, motivo: 'Foto con menores o interna: no se puede publicar.' });
+            continue;
+          }
+          if (foto.calidad === 'mala') {
+            errores.push({ id, motivo: 'Foto marcada de mala calidad: no se puede publicar.' });
             continue;
           }
           // Verificar gate de fuente aprobada (para eventos/podcasts/asistencia sin aprobación)
