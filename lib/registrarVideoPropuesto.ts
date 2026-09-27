@@ -39,6 +39,8 @@ export async function registrarVideoPropuesto(
     invitadosInternos,
     invitadosExternos,
     audienciaAlcanzada,
+    profesoresResponsables,
+    actividadDifusionId,
   }: {
     usuarioId: number;
     youtubeVideoId: string;
@@ -52,6 +54,10 @@ export async function registrarVideoPropuesto(
     invitadosInternos?: string[];
     invitadosExternos?: string[];
     audienciaAlcanzada?: number;
+    /** Sesión 53: quién puede aprobar este video sin pasar por /admin/videos (ver lib/permisosAprobacionContenido.ts). */
+    profesoresResponsables?: number[];
+    /** Sesión 53: enlaza con la actividad de difusión con la que nació junto (para poder aprobar las dos a la vez). */
+    actividadDifusionId?: number | null;
   }
 ) {
   const id = `video_${Date.now()}`;
@@ -63,10 +69,12 @@ export async function registrarVideoPropuesto(
   const [nuevo] = await sql`
     INSERT INTO videos
       (id, title, youtube_url, embed_id, description, category, "order", is_featured, tags, aprobado_sitio, propuesto_por,
-       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada)
+       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada,
+       profesores_responsables, actividad_difusion_id)
     VALUES
       (${id}, ${title}, ${url_final}, ${youtubeVideoId}, ${description || null}, ${category}, 0, false, ${tags || []}, false, ${usuarioId},
-       ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []}, ${audienciaAlcanzada || 0})
+       ${areaSustantiva || null}, ${proyectoIds}, ${participantesEstudiantes || []}, ${invitadosInternos || []}, ${invitadosExternos || []}, ${audienciaAlcanzada || 0},
+       ${profesoresResponsables || []}, ${actividadDifusionId ?? null})
     RETURNING *
   `;
 

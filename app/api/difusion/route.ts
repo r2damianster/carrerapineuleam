@@ -143,6 +143,10 @@ export async function POST(request: Request) {
         tags: Array.isArray(video_tags) ? video_tags : [],
         areaSustantiva: video_area_sustantiva || null,
         proyectoId: video_proyecto_id || null,
+        // Sesión 53: mismos responsables del registro de difusión — ya aprueban/aprobaron
+        // la actividad; con esto también pueden aprobar el video sin pasar por /admin/videos.
+        profesoresResponsables: responsablesIds,
+        actividadDifusionId: actividad?.id ?? null,
         participantesEstudiantes: participantesIds,
         invitadosInternos: Array.isArray(video_invitados_internos) ? video_invitados_internos : [],
         invitadosExternos: Array.isArray(video_invitados_externos) ? video_invitados_externos : [],

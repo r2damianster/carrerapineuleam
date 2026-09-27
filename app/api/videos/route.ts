@@ -100,9 +100,28 @@ export async function POST(request: Request) {
     const {
       title, youtube_url, description, category, published_date, order, is_featured, tags, youtube_video_id,
       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada,
+      profesores_responsables,
     } = await request.json();
     if (!title || !category) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    // Sesión 53: quien propone un video (no contenido_sitio, que ya nace aprobado) elige uno o
+    // más profesores responsables — son quienes podrán aprobarlo sin pasar por /admin/videos
+    // (ver lib/permisosAprobacionContenido.ts). Un pasante de club (con supervisor asignado) no
+    // pierde nada por elegir uno de todos modos: cualquiera de las dos vías basta para aprobar.
+    const sqlValidacion = neon(process.env.DATABASE_URL!);
+    const responsablesIds = Array.isArray(profesores_responsables)
+      ? Array.from(new Set(profesores_responsables.map((pid: any) => parseInt(pid, 10)).filter((pid: number) => !isNaN(pid))))
+      : [];
+    if (!esAdminContenido) {
+      if (responsablesIds.length === 0) {
+        return NextResponse.json({ error: 'Debes seleccionar al menos un profesor responsable.' }, { status: 400 });
+      }
+      const profesoresValidos = await sqlValidacion`SELECT id FROM usuarios WHERE id = ANY(${responsablesIds}) AND rol = 'profesor'`;
+      if (profesoresValidos.length !== responsablesIds.length) {
+        return NextResponse.json({ error: 'Uno o más profesores responsables no son válidos.' }, { status: 400 });
+      }
     }
     // El link ya no es obligatorio — se puede registrar solo con metadata y
     // completar el link después, editando (pedido del usuario, Sesión 24).
