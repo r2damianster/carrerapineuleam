@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { accion, motivo } = await request.json();
+    const { accion, motivo, hay_menores, calidad_mala } = await request.json();
     if (!['aprobar', 'rechazar'].includes(accion)) {
       return NextResponse.json({ error: 'accion debe ser aprobar o rechazar' }, { status: 400 });
     }
@@ -71,6 +71,25 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         horaInicio: actualizado.hora_inicio,
         horaFin: actualizado.hora_fin,
       });
+    }
+
+    // Sesión 53 — confirmación de menores/calidad al aprobar (no bloquea las horas del pasante,
+    // solo decide si la foto de evidencia se puede usar en la web y en los informes).
+    if (hay_menores === true || calidad_mala === true) {
+      await sql`
+        UPDATE fotos SET
+          menores = CASE WHEN ${hay_menores === true} THEN 'si' ELSE menores END,
+          calidad = CASE WHEN ${calidad_mala === true} THEN 'mala' ELSE calidad END,
+          visibilidad = CASE WHEN ${hay_menores === true} THEN 'interna' ELSE visibilidad END,
+          activo = false, ubicaciones = '{}'::text[],
+          calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
+        WHERE origen = 'asistencia' AND fuente_id = ${String(id)}
+      `;
+    } else {
+      await sql`
+        UPDATE fotos SET calidad = 'aceptable', calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
+        WHERE origen = 'asistencia' AND fuente_id = ${String(id)}
+      `;
     }
 
     return NextResponse.json({ success: true, data: actualizado, advertencias });

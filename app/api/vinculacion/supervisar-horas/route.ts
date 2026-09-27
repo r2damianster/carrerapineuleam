@@ -83,7 +83,24 @@ export async function GET(request: Request) {
     const supervisores = esLider ? await listarSupervisores(sql) : [];
     const periodos = await listarPeriodos(sql);
 
-    return NextResponse.json({ success: true, data: registros, esLider, supervisores, periodos });
+    // Sesión 53: para podcasts, si este usuario puede aprobar/publicar el video (responsable
+    // elegido al subirlo, o supervisor de algún participante) — una consulta por episodio distinto.
+    let datosConPermiso = registros;
+    if (tipo === 'podcast') {
+      const permisoPorVideo = new Map<string, boolean>();
+      for (const fila of registros as any[]) {
+        if (!permisoPorVideo.has(fila.video_id)) {
+          permisoPorVideo.set(fila.video_id, await puedeAprobarVideo(sql, usuario, {
+            propuesto_por: fila.video_propuesto_por,
+            participantes_estudiantes: fila.video_participantes,
+            profesores_responsables: fila.video_responsables,
+          }));
+        }
+      }
+      datosConPermiso = (registros as any[]).map((fila) => ({ ...fila, puede_publicar: permisoPorVideo.get(fila.video_id) ?? false }));
+    }
+
+    return NextResponse.json({ success: true, data: datosConPermiso, esLider, supervisores, periodos });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

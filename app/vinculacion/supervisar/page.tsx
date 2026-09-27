@@ -47,6 +47,8 @@ interface RegistroHoras {
   tipo_podcast?: string;
   descripcion?: string;
   espacio_nombre?: string | null;
+  video_aprobado_sitio?: boolean;
+  puede_publicar?: boolean;
 }
 
 type TipoHoras = 'podcast' | 'investigacion' | 'autonomas';
@@ -104,6 +106,15 @@ export default function SupervisarAsistenciaPage() {
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos');
   // Editor de episodios de podcast: undefined = cerrado, null = elegir un video, string = editar ese video.
   const [episodioEnEdicion, setEpisodioEnEdicion] = useState<string | null | undefined>(undefined);
+  // Sesión 53: publicar un episodio (video + actividad) sin pasar por /admin/videos.
+  // videoId abierto para confirmar, con sus dos casillas de menores/calidad.
+  const [publicandoVideoId, setPublicandoVideoId] = useState<string | null>(null);
+  const [confirmarMenores, setConfirmarMenores] = useState(false);
+  const [confirmarCalidadMala, setConfirmarCalidadMala] = useState(false);
+  const [publicandoEnCurso, setPublicandoEnCurso] = useState(false);
+  // Sesión 53: aprobar asistencia también confirma menores/calidad de la foto (no bloquea las
+  // horas del pasante — solo decide si la foto se puede usar en web e informes).
+  const [confirmandoAsistencia, setConfirmandoAsistencia] = useState<RegistroUnificado | null>(null);
   const [periodoId, setPeriodoId] = useState<string | null>(null); // null = aún sin resolver; '' = todos
   const [supervisor, setSupervisor] = useState('todos');
   const [periodos, setPeriodos] = useState<{ id: number; nombre: string; fecha_inicio: string; fecha_fin: string }[]>([]);
@@ -209,7 +220,11 @@ export default function SupervisarAsistenciaPage() {
     ? registrosUnificados
     : registrosUnificados.filter(registro => registro.tipo === filtroTipo);
 
-  const decidir = async (registro: RegistroUnificado, accion: 'aprobar' | 'rechazar') => {
+  const decidir = async (
+    registro: RegistroUnificado,
+    accion: 'aprobar' | 'rechazar',
+    confirmacionFoto?: { hay_menores: boolean; calidad_mala: boolean }
+  ) => {
     const motivo = accion === 'rechazar' ? (window.prompt('Motivo del rechazo (opcional):') || '') : '';
     setProcesandoClave(registro.clave);
     setMessage('');
@@ -220,7 +235,7 @@ export default function SupervisarAsistenciaPage() {
       const res = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion, motivo }),
+        body: JSON.stringify({ accion, motivo, ...confirmacionFoto }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -229,6 +244,31 @@ export default function SupervisarAsistenciaPage() {
       setMessage(`Error: ${err.message}`);
     } finally {
       setProcesandoClave(null);
+    }
+  };
+
+  // Sesión 53: aprobar y publicar el video (+ actividad asociada) sin pasar por /admin/videos —
+  // aparte de la aprobación de horas, que sigue igual. No bloquea la UI si ya está publicado.
+  const publicarVideo = async (videoId: string) => {
+    setPublicandoEnCurso(true);
+    setMessage('');
+    try {
+      const res = await fetch(`/api/videos/${videoId}/aprobar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hay_menores: confirmarMenores, calidad_mala: confirmarCalidadMala }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMessage(data.publicado ? 'Episodio publicado en el sitio.' : (data.mensaje || 'No se publicó.'));
+      setPublicandoVideoId(null);
+      setConfirmarMenores(false);
+      setConfirmarCalidadMala(false);
+      await cargar();
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setPublicandoEnCurso(false);
     }
   };
 
@@ -354,6 +394,61 @@ export default function SupervisarAsistenciaPage() {
           )}
         </div>
 
+        {confirmandoAsistencia && confirmandoAsistencia.tipo === 'asistencia' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-6">
+              <h2 className="text-lg font-bold text-gray-800">Aprobar asistencia</h2>
+              <p className="text-sm text-gray-600">Las horas del pasante se acreditan igual, sin importar esto. Solo decide si la foto se puede usar en la web y en los informes.</p>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={confirmarMenores} onChange={(e) => setConfirmarMenores(e.target.checked)} />
+                ¿Aparecen menores de edad sin haberlo declarado?
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={confirmarCalidadMala} onChange={(e) => setConfirmarCalidadMala(e.target.checked)} />
+                ¿La foto es de mala calidad para la web?
+              </label>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setConfirmandoAsistencia(null); setConfirmarMenores(false); setConfirmarCalidadMala(false); }} className="rounded border px-4 py-2 text-sm">Cancelar</button>
+                <button
+                  disabled={procesandoClave === confirmandoAsistencia.clave}
+                  onClick={async () => {
+                    await decidir(confirmandoAsistencia, 'aprobar', { hay_menores: confirmarMenores, calidad_mala: confirmarCalidadMala });
+                    setConfirmandoAsistencia(null);
+                    setConfirmarMenores(false);
+                    setConfirmarCalidadMala(false);
+                  }}
+                  className="rounded bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Aprobar asistencia
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {publicandoVideoId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-6">
+              <h2 className="text-lg font-bold text-gray-800">Publicar episodio en el sitio</h2>
+              <p className="text-sm text-gray-600">Confirma antes de publicar. Si marcas cualquiera de las dos, el episodio no se publica y su foto queda descartada.</p>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={confirmarMenores} onChange={(e) => setConfirmarMenores(e.target.checked)} />
+                ¿Aparecen menores de edad sin haberlo declarado?
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={confirmarCalidadMala} onChange={(e) => setConfirmarCalidadMala(e.target.checked)} />
+                ¿La foto/portada es de mala calidad para la web?
+              </label>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setPublicandoVideoId(null); setConfirmarMenores(false); setConfirmarCalidadMala(false); }} className="rounded border px-4 py-2 text-sm">Cancelar</button>
+                <button disabled={publicandoEnCurso} onClick={() => publicarVideo(publicandoVideoId)} className="rounded bg-uleam-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                  {publicandoEnCurso ? 'Guardando…' : (confirmarMenores || confirmarCalidadMala ? 'Descartar foto y no publicar' : 'Publicar')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {registrosConHoras.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-4 text-sm">
             <span className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg font-semibold">Horas aprobadas (podcast, investigación, autónomas): {Math.round(totalHorasAprobadas * 100) / 100} h</span>
@@ -392,8 +487,20 @@ export default function SupervisarAsistenciaPage() {
                 {registro.tipo === 'podcast' && registro.horas.video_id && (
                   <button onClick={() => setEpisodioEnEdicion(registro.horas.video_id!)} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100">Editar episodio</button>
                 )}
+                {registro.tipo === 'podcast' && registro.horas.video_id && registro.horas.puede_publicar && !registro.horas.video_aprobado_sitio && (
+                  <button onClick={() => setPublicandoVideoId(registro.horas.video_id!)} className="px-4 py-2 bg-uleam-gold text-uleam-blue text-sm font-semibold rounded-lg hover:brightness-95">Publicar en el sitio</button>
+                )}
+                {registro.tipo === 'podcast' && registro.horas.video_id && registro.horas.video_aprobado_sitio && (
+                  <span className="px-3 py-2 text-xs font-semibold text-green-700 text-center">Ya publicado</span>
+                )}
                 {registro.estado !== 'aprobado' && (
-                  <button onClick={() => decidir(registro, 'aprobar')} disabled={procesandoClave === registro.clave} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">Aprobar</button>
+                  <button
+                    onClick={() => registro.tipo === 'asistencia' && registro.asistencia.foto_url ? setConfirmandoAsistencia(registro) : decidir(registro, 'aprobar')}
+                    disabled={procesandoClave === registro.clave}
+                    className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Aprobar
+                  </button>
                 )}
                 {registro.estado !== 'rechazado' && (
                   <button onClick={() => decidir(registro, 'rechazar')} disabled={procesandoClave === registro.clave} className="px-4 py-2 bg-red-50 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50">Rechazar</button>
