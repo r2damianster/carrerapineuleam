@@ -20,9 +20,24 @@ export default function VinculacionEspaciosPage() {
 
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [espacios, setEspacios] = useState<any[]>([]);
-  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
+  const [entidades, setEntidades] = useState<any[]>([]);
+  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
+  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '' });
+
+  const crearEntidadRapida = async () => {
+    const nombre = prompt('Nombre de la entidad beneficiaria (ej. Fundación Submarino Amarillo, Unidad Educativa Manuela Cañizares):');
+    if (!nombre?.trim()) return null;
+    const res = await fetch('/api/entidades-beneficiarias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nombre.trim() }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setMessage(`Error: ${data.error}`); return null; }
+    setEntidades(prev => [...prev, data.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    return data.data.id;
+  };
 
   const esProfesor = usuario ? ['profesor', 'admin'].includes(usuario.rol) : false;
   // Solo el líder de Vinculación/superadmin activa y administra subaulas (lib/modulos.ts:puedeGestionarVinculacion).
@@ -89,17 +104,19 @@ export default function VinculacionEspaciosPage() {
   }, [router]);
 
   const fetchData = async () => {
-    const [resCiclos, resEspacios] = await Promise.all([
+    const [resCiclos, resEspacios, resEntidades] = await Promise.all([
       fetch('/api/docencia/ciclos'),
       fetch('/api/espacios?area=vinculacion'),
+      fetch('/api/entidades-beneficiarias'),
     ]);
-    const [dataCiclos, dataEspacios] = await Promise.all([resCiclos.json(), resEspacios.json()]);
+    const [dataCiclos, dataEspacios, dataEntidades] = await Promise.all([resCiclos.json(), resEspacios.json(), resEntidades.json()]);
     if (dataCiclos.success) {
       setCiclos(dataCiclos.data);
       const cicloActual = dataCiclos.data.find((c: any) => c.nombre === '2026-2');
       if (cicloActual) setForm(prev => ({ ...prev, ciclo_id: String(cicloActual.id) }));
     }
     if (dataEspacios.success) setEspacios(dataEspacios.data);
+    if (dataEntidades.success) setEntidades(dataEntidades.data);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -114,7 +131,7 @@ export default function VinculacionEspaciosPage() {
       });
       if (!res.ok) throw new Error('Error creando espacio');
       setMessage('Espacio creado');
-      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
+      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '' });
       fetchData();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -125,7 +142,7 @@ export default function VinculacionEspaciosPage() {
 
   const empezarEdicion = (e: any) => {
     setEditandoId(e.id);
-    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro', usa_aulas: !!e.usa_aulas });
+    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro', usa_aulas: !!e.usa_aulas, entidad_id: e.entidad_id ? String(e.entidad_id) : '' });
   };
 
   const handleGuardarEdicion = async (id: number) => {
@@ -204,6 +221,16 @@ export default function VinculacionEspaciosPage() {
               <option value="">Selecciona Ciclo</option>
               {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Entidad beneficiaria (dónde funciona el espacio)</label>
+              <div className="flex gap-2">
+                <select className="w-full border p-2 rounded" value={form.entidad_id} onChange={e => setForm({ ...form, entidad_id: e.target.value })}>
+                  <option value="">Sin asignar</option>
+                  {entidades.map(ent => <option key={ent.id} value={ent.id}>{ent.nombre}</option>)}
+                </select>
+                <button type="button" onClick={async () => { const id = await crearEntidadRapida(); if (id) setForm(prev => ({ ...prev, entidad_id: String(id) })); }} className="shrink-0 px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm border">+ Nueva</button>
+              </div>
+            </div>
             {puedeGestionarAulas && (
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={form.usa_aulas} onChange={e => setForm({ ...form, usa_aulas: e.target.checked })} />
@@ -235,6 +262,13 @@ export default function VinculacionEspaciosPage() {
                   <select className="w-full px-2 py-1 rounded border border-gray-300" value={editForm.categoria} onChange={ev => setEditForm({ ...editForm, categoria: ev.target.value })}>
                     {OPCIONES_CATEGORIA.map(opcion => <option key={opcion.valor} value={opcion.valor}>Categoría: {opcion.etiqueta}</option>)}
                   </select>
+                  <div className="flex gap-2">
+                    <select className="w-full px-2 py-1 rounded border border-gray-300" value={editForm.entidad_id} onChange={ev => setEditForm({ ...editForm, entidad_id: ev.target.value })}>
+                      <option value="">Entidad beneficiaria: sin asignar</option>
+                      {entidades.map(ent => <option key={ent.id} value={ent.id}>{ent.nombre}</option>)}
+                    </select>
+                    <button type="button" onClick={async () => { const id = await crearEntidadRapida(); if (id) setEditForm(prev => ({ ...prev, entidad_id: String(id) })); }} className="shrink-0 px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm border">+ Nueva</button>
+                  </div>
                   {puedeGestionarAulas && (
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                       <input type="checkbox" checked={editForm.usa_aulas} onChange={ev => setEditForm({ ...editForm, usa_aulas: ev.target.checked })} />
@@ -249,7 +283,8 @@ export default function VinculacionEspaciosPage() {
               ) : (
                 <div className="flex items-start justify-between gap-2 p-3 hover:bg-gray-50">
                   <Link href={`/vinculacion/espacios/${e.id}`} className="flex-1">
-                    <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} · <span className="text-xs font-semibold text-uleam-blue">{OPCIONES_CATEGORIA.find(opcion => opcion.valor === e.categoria)?.etiqueta || 'Otro'}</span> <br />
+                    <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} · <span className="text-xs font-semibold text-uleam-blue">{OPCIONES_CATEGORIA.find(opcion => opcion.valor === e.categoria)?.etiqueta || 'Otro'}</span>
+                    {e.entidad_id ? <span className="text-xs text-gray-500"> · {entidades.find(ent => ent.id === e.entidad_id)?.nombre}</span> : <span className="text-xs text-amber-600"> · sin entidad beneficiaria</span>} <br />
                     <span className="text-sm text-gray-500">
                       {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
                     </span>

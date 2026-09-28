@@ -25,9 +25,9 @@ export async function GET(request: Request) {
         SELECT * FROM proyectos WHERE id = 'vinculacion'
       `;
       const docentes = await sql`
-        SELECT id, nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional 
-        FROM usuarios 
-        WHERE rol IN ('profesor', 'admin') AND activado = true
+        SELECT id, nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional
+        FROM usuarios
+        WHERE (rol IN ('profesor', 'admin') AND activado = true) OR titulo_grado IS NOT NULL
         ORDER BY nombres ASC
       `;
       const ciclos = await sql`

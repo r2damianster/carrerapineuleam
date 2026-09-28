@@ -174,11 +174,18 @@ export async function generarInformeSupervisorDesdePlantilla(
     ['No. de estudiantes supervisados', String(general.total_pasantes ?? 0)],
     ['No. Beneficiarios', String(general.total_beneficiarios ?? 0)],
   ];
-  const nuevaGeneral = tablaGeneral.replace(/<w:tc>[\s\S]*?<\/w:tc>/g, celda => {
+  const nuevaGeneralBase = tablaGeneral.replace(/<w:tc>[\s\S]*?<\/w:tc>/g, celda => {
     const etiqueta = textoDeCelda(celda).replace(/\s+/g, ' ').trim();
     const coincidencia = valoresGenerales.find(([nombre]) => etiqueta.startsWith(nombre));
     return coincidencia && coincidencia[1] ? agregarTexto(celda, ` ${coincidencia[1]}`) : celda;
   });
+  // La plantilla no trae fila para ODS/Línea de Investigación: se agrega al final, mismo ancho
+  // de columnas que el resto de la tabla (4807/4975).
+  const filaOdsLinea = fila([
+    celdaSimple(4807, parrafo(`${corrida('Objetivo de Desarrollo Sostenible (ODS):', { negrita: true })}${general.ods ? corrida(` ${general.ods}`) : ''}`)),
+    celdaSimple(4975, parrafo(`${corrida('Línea de Investigación:', { negrita: true })}${general.linea_investigacion ? corrida(` ${general.linea_investigacion}`) : ''}`)),
+  ]);
+  const nuevaGeneral = nuevaGeneralBase.replace('</w:tbl>', () => `${filaOdsLinea}</w:tbl>`);
   xml = sustituir(xml, tablaGeneral, nuevaGeneral);
 
   // 2.1 Cronograma: tabla anidada con sombreado por mes (planificado / realizado).

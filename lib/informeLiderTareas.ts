@@ -10,6 +10,7 @@ import {
   type ContextoSupervisor,
   type TareaInforme,
 } from './informeSupervisorTareas';
+import { obtenerTopes, obtenerHorasPorTipo, horasContables } from './topesHoras';
 
 type Sql = NeonQueryFunction<false, false>;
 
@@ -80,10 +81,19 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
     : [null];
   const [ciclo] = await sql`SELECT id, nombre FROM ciclos_academicos WHERE nombre = ${periodoProyecto.etiqueta}`;
 
-  const espacios = await sql`SELECT id, nombre, categoria, profesor_id FROM "espacios_enseñanza" WHERE area = 'vinculacion'`;
+  const espacios = await sql`SELECT id, nombre, categoria, profesor_id, entidad_id FROM "espacios_enseñanza" WHERE area = 'vinculacion'`;
   const espaciosIds: number[] = espacios.map((espacio: any) => espacio.id);
   const idsConsulta = espaciosIds.length ? espaciosIds : [0];
   const instructores = await sql`SELECT DISTINCT usuario_id FROM espacio_instructores WHERE espacio_id = ANY(${idsConsulta})`;
+
+  // Entidades beneficiarias reales de TODOS los espacios del proyecto (no solo de un supervisor).
+  const entidadesIdsLider = Array.from(new Set(espacios.map((espacio: any) => espacio.entidad_id).filter(Boolean)));
+  const entidadesFilasLider = entidadesIdsLider.length
+    ? await sql`SELECT nombre FROM entidades_beneficiarias WHERE id = ANY(${entidadesIdsLider}) ORDER BY nombre ASC`
+    : [];
+  const entidadBeneficiaria = entidadesFilasLider.length
+    ? entidadesFilasLider.map((fila: any) => fila.nombre).join('; ')
+    : (proyecto?.entidad_beneficiaria || '');
   const contexto: ContextoSupervisor = {
     supervisorId: 0,
     espaciosClubIds: espacios.filter((espacio: any) => espacio.categoria === 'club').map((espacio: any) => espacio.id),
@@ -141,17 +151,32 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
     })
   );
 
-  // Participación: docentes y estudiantes (planificado vs ejecutado) y beneficiarios.
-  const metas = ciclo
-    ? (await sql`SELECT meta_estudiantes, meta_docentes, meta_beneficiarios_directos, meta_beneficiarios_indirectos FROM proyecto_metas_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${ciclo.id}`)[0] || {}
-    : {};
-  const docentesEjecutados = await sql`
-    SELECT COUNT(DISTINCT e.profesor_id)::int AS total
-    FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
-    WHERE e.area = 'vinculacion' AND a.estado_aprobacion = 'aprobado' AND a.fecha BETWEEN ${desde}::date AND ${hastaCorte}::date
-  `;
-  const estudiantesEjecutados = new Set<number>();
-  tareas.forEach(tarea => ((tarea as any).pasantesIds as number[]).forEach(id => estudiantesEjecutados.add(id)));
+  // Participación: docentes y estudiantes. "Planificados" = quienes están asignados hoy (no una
+  // meta manual que nadie carga); "Ejecutados" = pasantes que ya completaron su meta de horas
+  // (96 h u otra fijada en /vinculacion/topes-horas), no simplemente "hizo algo en el periodo".
+  const docentesPlanificados = contexto.docentesIds || [];
+  const estudiantesPlanificados = contexto.pasantesIds;
+  const horasPorPasante = await Promise.all(
+    estudiantesPlanificados.map(async (usuarioId: number) => {
+      const [topes, horas] = await Promise.all([obtenerTopes(sql, usuarioId), obtenerHorasPorTipo(sql, usuarioId)]);
+      return { usuarioId, completo: horasContables(horas.aprobadas, topes).total >= topes.meta };
+    })
+  );
+  const estudiantesEjecutadosIds = new Set(horasPorPasante.filter(fila => fila.completo).map(fila => fila.usuarioId));
+  const espaciosPorPasante = new Map<number, Set<number>>();
+  const instructoresPorPasante = await sql`SELECT espacio_id, usuario_id FROM espacio_instructores WHERE espacio_id = ANY(${idsConsulta})`;
+  instructoresPorPasante.forEach((fila: any) => {
+    if (!espaciosPorPasante.has(fila.usuario_id)) espaciosPorPasante.set(fila.usuario_id, new Set());
+    espaciosPorPasante.get(fila.usuario_id)!.add(fila.espacio_id);
+  });
+  const profesorPorEspacio = new Map<number, number>(espacios.map((espacio: any) => [espacio.id, espacio.profesor_id]));
+  const docentesEjecutadosIds = new Set<number>();
+  estudiantesEjecutadosIds.forEach(usuarioId => {
+    (espaciosPorPasante.get(usuarioId) || new Set()).forEach(espacioId => {
+      const profesorId = profesorPorEspacio.get(espacioId);
+      if (profesorId) docentesEjecutadosIds.add(profesorId);
+    });
+  });
 
   const [beneficiarios] = await sql`SELECT COUNT(DISTINCT ie.beneficiario_id)::int AS total FROM inscripciones_espacio ie WHERE ie.espacio_id = ANY(${idsConsulta})`;
   const generoFilas = await sql`
@@ -228,7 +253,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
   const docentesFilas = idsDocentes.length
     ? await sql`SELECT id, nombres, apellidos FROM usuarios WHERE id = ANY(${idsDocentes}) ORDER BY apellidos, nombres`
     : [];
-  const idsEstudiantes = estudiantesEjecutados.size ? Array.from(estudiantesEjecutados) : contexto.pasantesIds;
+  const idsEstudiantes = contexto.pasantesIds;
   const estudiantesFilas = idsEstudiantes.length
     ? await sql`SELECT id, nombres, apellidos FROM usuarios WHERE id = ANY(${idsEstudiantes}) ORDER BY apellidos, nombres`
     : [];
@@ -269,7 +294,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
       carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
       lider_nombre: nombrePersona(lider) || proyecto?.lider_nombre || '',
       vigencia: proyecto?.vigencia_inicio && proyecto?.vigencia_fin ? `${proyecto.vigencia_inicio} - ${proyecto.vigencia_fin}` : '',
-      entidad_beneficiaria: proyecto?.entidad_beneficiaria || '',
+      entidad_beneficiaria: entidadBeneficiaria,
       ods: proyecto?.ods || '',
       linea_investigacion: proyecto?.linea_investigacion || '',
       zona: proyecto?.zona || '',
@@ -283,8 +308,8 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
     },
     tareas: tareas.map(tarea => { const { pasantesIds: _omitido, ...resto } = tarea as any; return resto as TareaLider; }),
     participacion: {
-      docentes: { planificados: Number(metas.meta_docentes || 0), ejecutados: docentesEjecutados[0]?.total || 0 },
-      estudiantes: { planificados: Number(metas.meta_estudiantes || 0), ejecutados: estudiantesEjecutados.size },
+      docentes: { planificados: docentesPlanificados.length, ejecutados: docentesEjecutadosIds.size },
+      estudiantes: { planificados: estudiantesPlanificados.length, ejecutados: estudiantesEjecutadosIds.size },
       beneficiarios_directos: beneficiarios?.total || 0,
       beneficiarios_indirectos: beneficiariosIndirectos,
       genero,

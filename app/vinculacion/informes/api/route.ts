@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion, puedeGestionarVinculacion } from '@/lib/modulos';
 import { datosInformeLiderPlantilla } from '@/lib/informeLiderTareas';
-import { periodoPorDefecto } from '@/lib/periodosProyecto';
+import { periodoPorDefecto, construirPeriodo } from '@/lib/periodosProyecto';
 import { generarInformeLiderDesdePlantilla } from '../_lib/plantillaLider';
 import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervisor';
 import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
@@ -49,11 +49,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const accion = searchParams.get('accion') || 'datos';
     const tipo = searchParams.get('tipo') || 'supervisor';
-    const mes = searchParams.get('mes') || new Date().toISOString().slice(0, 7);
-    // Las columnas `mes` de Neon son tipo date: 'YYYY-MM' se normaliza al primer día.
-    const mesFecha = /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : mes;
     const cicloIdParam = searchParams.get('ciclo_id');
     const supervisorIdParam = searchParams.get('supervisor_id');
+    const porDefecto = periodoPorDefecto();
+    const anio = Number(searchParams.get('anio')) || porDefecto.anio;
+    const numero = Number(searchParams.get('numero')) === 1 ? 1 : Number(searchParams.get('numero')) === 2 ? 2 : porDefecto.numero;
 
     const sql = neon(process.env.DATABASE_URL!);
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         if (supervisorIdParam && puedeGestionarVinculacion(usuario)) {
           targetSupervisorId = parseInt(supervisorIdParam);
         }
-        const datos = await datosInformeSupervisor(sql, { supervisorId: targetSupervisorId, mes });
+        const datos = await datosInformeSupervisor(sql, { supervisorId: targetSupervisorId, anio, numero });
         return NextResponse.json({ success: true, datos });
       }
 
@@ -71,9 +71,6 @@ export async function GET(request: Request) {
         if (!puedeGestionarVinculacion(usuario)) {
           return NextResponse.json({ error: 'Solo el Líder de proyecto puede ver el informe semestral' }, { status: 403 });
         }
-        const porDefecto = periodoPorDefecto();
-        const anio = Number(searchParams.get('anio')) || porDefecto.anio;
-        const numero = Number(searchParams.get('numero')) === 1 ? 1 : Number(searchParams.get('numero')) === 2 ? 2 : porDefecto.numero;
         const datos = await datosInformeLiderPlantilla(sql, { anio, numero });
         return NextResponse.json({ success: true, datos });
       }
@@ -99,10 +96,11 @@ export async function GET(request: Request) {
     }
 
     if (accion === 'obstaculos') {
+      const periodo = construirPeriodo(anio, numero);
       const obstaculos = await sql`
         SELECT id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
         FROM supervision_obstaculos
-        WHERE supervisor_id = ${Number(usuario.id)} AND mes = ${mesFecha}
+        WHERE supervisor_id = ${Number(usuario.id)} AND mes BETWEEN ${periodo.desde}::date AND ${periodo.hasta}::date
         ORDER BY id ASC
       `;
       return NextResponse.json({ success: true, obstaculos });
@@ -221,14 +219,15 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'redactar-todo') {
-      const { mes: mesBody, supervisor_id: supervisorIdBody, forzar } = body;
-      const mes = String(mesBody || '').slice(0, 7);
-      if (!/^\d{4}-\d{2}$/.test(mes)) return NextResponse.json({ error: 'Mes inválido' }, { status: 400 });
+      const { anio: anioBody, numero: numeroBody, supervisor_id: supervisorIdBody, forzar } = body;
+      const anio = Number(anioBody);
+      const numero = Number(numeroBody) === 1 ? 1 : 2;
+      if (!anio) return NextResponse.json({ error: 'Periodo inválido' }, { status: 400 });
       const supervisorId = supervisorIdBody && puedeGestionarVinculacion(usuario) ? Number(supervisorIdBody) : Number(usuario.id);
-      const mesFecha = `${mes}-01`;
 
-      const datos = await datosInformeSupervisor(sql, { supervisorId, mes });
-      const senales = await recopilarSenalesObstaculos(sql, supervisorId, mes);
+      const datos = await datosInformeSupervisor(sql, { supervisorId, anio, numero });
+      const mesFecha = `${datos.periodo.hasta.slice(0, 7)}-01`;
+      const senales = await recopilarSenalesObstaculos(sql, supervisorId, anio, numero);
       const existentes = await sql`SELECT id FROM supervision_obstaculos WHERE supervisor_id = ${supervisorId} AND mes = ${mesFecha}::date`;
       const necesitaObstaculos = forzar ? true : existentes.length === 0;
       const tareasConActividad = datos.tareas.filter((tarea: any) => (tarea.realizado ?? 0) > 0 || tarea.observaciones);
@@ -307,17 +306,21 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'generar') {
-      const { tipo, mes: mesBody, ciclo_id, datos } = body;
-      const mes = /^\d{4}-\d{2}$/.test(mesBody || '') ? `${mesBody}-01` : mesBody;
+      const { tipo, ciclo_id, datos } = body;
 
       if (!datos) {
         return NextResponse.json({ error: 'Faltan los datos del informe' }, { status: 400 });
       }
 
       let buffer: Buffer;
-      // El informe del supervisor es mensual y no pertenece a un ciclo; el del líder sí.
-      const targetCicloId = tipo === 'supervisor' ? null : ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || null);
+      // Ambos informes son semestrales y pertenecen a un ciclo (uno por supervisor por semestre,
+      // uno para el proyecto completo por semestre) — `mes` queda NULL a propósito: si se
+      // guardara la fecha de corte, cada regeneración dentro del mismo semestre (corte que avanza
+      // día a día) crearía una fila nueva en vez de actualizar la del semestre. La fecha de corte
+      // real queda dentro de `datos_json.periodo.hasta`.
+      const targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || null);
       const targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
+      const mes: string | null = null;
 
       if (tipo === 'supervisor') {
         buffer = await generarBufferSupervisor(datos);
@@ -337,7 +340,7 @@ export async function POST(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'Content-Disposition': `attachment; filename=Informe_${tipo}_${mes || 'semestral'}.docx`,
+          'Content-Disposition': `attachment; filename=Informe_${tipo}_${datos.periodo?.etiqueta || 'semestral'}.docx`,
           'X-Informe-Id': String(guardado.id),
         },
       });

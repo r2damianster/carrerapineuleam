@@ -2,7 +2,7 @@
 // Las tareas salen de proyecto_actividades_plan (marco lógico) y cada una se calcula desde su `fuente`.
 import type { NeonQueryFunction } from '@neondatabase/serverless';
 import { clasificarRangoEdad } from './informesVinculacion';
-import { periodoDeMes, type PeriodoProyecto } from './periodosProyecto';
+import { construirPeriodo, type PeriodoProyecto } from './periodosProyecto';
 
 type Sql = NeonQueryFunction<false, false>;
 
@@ -218,31 +218,28 @@ export function elegirFotos(candidatas: any[], maximo = MAXIMO_FOTOS): any[] {
   return elegidas;
 }
 
+function hoyEcuadorTexto(): string {
+  return new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export async function datosInformeSupervisor(
   sql: Sql,
-  params: { supervisorId: number; mes: string }
+  params: { supervisorId: number; anio: number; numero: 1 | 2 }
 ) {
-  const mes = params.mes.slice(0, 7);
-  const [anioTexto, mesTexto] = mes.split('-');
-  const anio = Number(anioTexto);
-  const numeroMes = Number(mesTexto);
-  const ultimoDia = new Date(anio, numeroMes, 0).getDate();
-  const desdeMes = `${mes}-01`;
-  const hastaMes = `${mes}-${dosDigitos(ultimoDia)}`;
-
-  // Periodo fijo del proyecto (abr–ago / sep–dic). Enero–marzo no tiene periodo: se usa solo el mes.
-  const periodoProyecto: PeriodoProyecto | null = periodoDeMes(mes);
-  const desdePeriodo = periodoProyecto?.desde ?? desdeMes;
-  const mesesPeriodo = periodoProyecto
-    ? Array.from({ length: periodoProyecto.mesFin - periodoProyecto.mesInicio + 1 }, (_, indice) => periodoProyecto.mesInicio + indice)
-    : [numeroMes];
-  const etiquetaMes = `${NOMBRES_MESES[numeroMes - 1]} ${anio}`;
-  const etiquetaPeriodo = periodoProyecto
-    ? `Periodo ${periodoProyecto.etiqueta} (${NOMBRES_MESES[periodoProyecto.mesInicio - 1]} a ${NOMBRES_MESES[periodoProyecto.mesFin - 1]} ${anio})`
-    : etiquetaMes;
+  // Informe semestral real (periodos fijos abr–ago / sep–dic): un solo documento por periodo,
+  // con corte a hoy si el periodo sigue en curso (mismo criterio que el informe del líder).
+  const periodoProyecto: PeriodoProyecto = construirPeriodo(params.anio, params.numero);
+  const hoy = hoyEcuadorTexto();
+  const hastaCorte = hoy < periodoProyecto.hasta ? hoy : periodoProyecto.hasta;
+  const desdePeriodo = periodoProyecto.desde;
+  const mesesPeriodo = Array.from({ length: periodoProyecto.mesFin - periodoProyecto.mesInicio + 1 }, (_, indice) => periodoProyecto.mesInicio + indice);
+  const mesCorte = Number(hastaCorte.slice(5, 7));
+  const anioCorte = Number(hastaCorte.slice(0, 4));
+  const etiquetaCorte = `${NOMBRES_MESES[mesCorte - 1]} ${anioCorte}`;
+  const etiquetaPeriodo = `Periodo ${periodoProyecto.etiqueta} (${NOMBRES_MESES[periodoProyecto.mesInicio - 1]} a ${NOMBRES_MESES[periodoProyecto.mesFin - 1]} ${params.anio})`;
 
   const [proyecto] = await sql`
-    SELECT id, nombre_oficial, codigo, unidad_academica, carrera, entidad_beneficiaria, zona,
+    SELECT id, nombre_oficial, codigo, unidad_academica, carrera, entidad_beneficiaria, zona, ods, linea_investigacion,
            to_char(vigencia_inicio, 'DD/MM/YYYY') AS vigencia_inicio, to_char(vigencia_fin, 'DD/MM/YYYY') AS vigencia_fin,
            codigo_documento_supervisor, revision_documento_supervisor, lider_id, lider_nombre
     FROM proyectos WHERE id = 'vinculacion'
@@ -251,14 +248,26 @@ export async function datosInformeSupervisor(
   const [lider] = proyecto?.lider_id
     ? await sql`SELECT nombres, apellidos FROM usuarios WHERE id = ${proyecto.lider_id}`
     : [null];
+  const [ciclo] = await sql`SELECT id FROM ciclos_academicos WHERE nombre = ${periodoProyecto.etiqueta}`;
 
   const espacios = await sql`
-    SELECT id, nombre, categoria FROM "espacios_enseñanza"
+    SELECT id, nombre, categoria, entidad_id FROM "espacios_enseñanza"
     WHERE area = 'vinculacion' AND profesor_id = ${params.supervisorId}
     ORDER BY nombre ASC
   `;
   const espaciosIds = espacios.map((espacio: any) => espacio.id);
   const idsConsulta = espaciosIds.length ? espaciosIds : [0];
+
+  // Entidad(es) beneficiaria(s) reales de los espacios de este supervisor (Cross Worlds, Fundación
+  // Submarino Amarillo, ULEAM-FEDU…) — el espacio ocurre DENTRO de una entidad, no es la entidad.
+  // Si ningún espacio tiene entidad asignada todavía, se usa el campo general del proyecto.
+  const entidadesIds = Array.from(new Set(espacios.map((espacio: any) => espacio.entidad_id).filter(Boolean)));
+  const entidadesFilas = entidadesIds.length
+    ? await sql`SELECT nombre FROM entidades_beneficiarias WHERE id = ANY(${entidadesIds}) ORDER BY nombre ASC`
+    : [];
+  const entidadBeneficiaria = entidadesFilas.length
+    ? entidadesFilas.map((fila: any) => fila.nombre).join('; ')
+    : (proyecto?.entidad_beneficiaria || '');
 
   const pasantes = await sql`
     SELECT DISTINCT u.id, u.nombres, u.apellidos
@@ -266,6 +275,7 @@ export async function datosInformeSupervisor(
     WHERE ei.espacio_id = ANY(${idsConsulta})
     ORDER BY u.apellidos, u.nombres
   `;
+  const pasantesAsignadosTotal = pasantes.length;
   const contexto: ContextoSupervisor = {
     supervisorId: params.supervisorId,
     espaciosClubIds: espacios.filter((espacio: any) => espacio.categoria === 'club').map((espacio: any) => espacio.id),
@@ -274,25 +284,23 @@ export async function datosInformeSupervisor(
   };
 
   // Tareas del plan (marco lógico) del ciclo cuyo nombre coincide con el periodo fijo, p. ej. "2026-2".
-  const plan = periodoProyecto
-    ? await sql`
-        SELECT a.id, a.actividad, a.meta_cantidad::float AS meta, a.unidad, a.fuente,
-               to_char(a.mes_inicio, 'MM')::int AS mes_inicio, to_char(a.mes_fin, 'MM')::int AS mes_fin
-        FROM proyecto_actividades_plan a
-        JOIN ciclos_academicos c ON c.id = a.ciclo_id
-        WHERE a.activo = true AND c.nombre = ${periodoProyecto.etiqueta}
-        ORDER BY a.actividad ASC
-      `
-    : [];
+  const plan = await sql`
+    SELECT a.id, a.actividad, a.meta_cantidad::float AS meta, a.unidad, a.fuente,
+           to_char(a.mes_inicio, 'MM')::int AS mes_inicio, to_char(a.mes_fin, 'MM')::int AS mes_fin
+    FROM proyecto_actividades_plan a
+    JOIN ciclos_academicos c ON c.id = a.ciclo_id
+    WHERE a.activo = true AND c.nombre = ${periodoProyecto.etiqueta}
+    ORDER BY a.actividad ASC
+  `;
 
   const tareas: TareaInforme[] = await Promise.all(
     plan.map(async (actividad: any) => {
-      const acumulado = await registrosPorFuente(sql, actividad.fuente, contexto, desdePeriodo, hastaMes);
+      const acumulado = await registrosPorFuente(sql, actividad.fuente, contexto, desdePeriodo, hastaCorte);
       const ejecucionPorMes: Record<number, boolean> = {};
       await Promise.all(
-        mesesPeriodo.filter(mesPeriodo => mesPeriodo <= numeroMes).map(async mesPeriodo => {
-          const desdeMesPeriodo = `${anio}-${dosDigitos(mesPeriodo)}-01`;
-          const hastaMesPeriodo = `${anio}-${dosDigitos(mesPeriodo)}-${dosDigitos(new Date(anio, mesPeriodo, 0).getDate())}`;
+        mesesPeriodo.filter(mesPeriodo => mesPeriodo <= mesCorte).map(async mesPeriodo => {
+          const desdeMesPeriodo = `${params.anio}-${dosDigitos(mesPeriodo)}-01`;
+          const hastaMesPeriodo = `${params.anio}-${dosDigitos(mesPeriodo)}-${dosDigitos(new Date(params.anio, mesPeriodo, 0).getDate())}`;
           const delMes = await registrosPorFuente(sql, actividad.fuente, contexto, desdeMesPeriodo, hastaMesPeriodo);
           ejecucionPorMes[mesPeriodo] = (delMes.cantidad ?? 0) > 0 || delMes.sesiones > 0;
         })
@@ -307,7 +315,10 @@ export async function datosInformeSupervisor(
         fuente: actividad.fuente,
         realizado: acumulado.cantidad,
         avance: calcularAvance(acumulado.cantidad, actividad.meta),
-        alumnos: acumulado.pasantesIds.length,
+        // No.alumnos participantes = estudiantes asignados/inscritos con este supervisor (no
+        // "los que ejecutaron esta tarea específica" — con fuentes como evento/podcast eso daba
+        // 0 aunque el supervisor sí tuviera pasantes activos).
+        alumnos: pasantesAsignadosTotal,
         audiencia: acumulado.audiencia ?? 0,
         productos_sociales: '',
         productos_academicos: '',
@@ -330,13 +341,13 @@ export async function datosInformeSupervisor(
     FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
     WHERE a.espacio_id = ANY(${idsConsulta}) AND (a.espacio_id = ANY(${idsOtro.length ? idsOtro : [0]}) OR a.no_prevista = true)
       AND a.estado_aprobacion = 'aprobado'
-      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
+      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaCorte}::date
     ORDER BY a.fecha ASC
   `;
   const registradasAMano = await sql`
     SELECT id, tarea, avance, alumnos, productos_sociales, productos_academicos, observaciones
     FROM informe_no_previstas
-    WHERE supervisor_id = ${params.supervisorId} AND mes BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
+    WHERE supervisor_id = ${params.supervisorId} AND mes BETWEEN ${desdePeriodo}::date AND ${hastaCorte}::date
     ORDER BY mes ASC, id ASC
   `;
   const noPrevistas = [
@@ -379,7 +390,7 @@ export async function datosInformeSupervisor(
     FROM usuarios u
     LEFT JOIN asistencia_instructores ai ON ai.usuario_id = u.id
     LEFT JOIN asistencia_espacio a ON a.id = ai.asistencia_id AND a.estado_aprobacion = 'aprobado'
-         AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date AND a.espacio_id = ANY(${idsConsulta})
+         AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaCorte}::date AND a.espacio_id = ANY(${idsConsulta})
     WHERE u.id = ANY(${contexto.pasantesIds.length ? contexto.pasantesIds : [0]})
     GROUP BY u.id, u.nombres, u.apellidos ORDER BY u.apellidos, u.nombres
   `;
@@ -398,30 +409,35 @@ export async function datosInformeSupervisor(
     FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
     WHERE a.espacio_id = ANY(${idsConsulta}) AND a.estado_aprobacion = 'aprobado' AND a.foto_url IS NOT NULL
       AND NOT foto_descartada(a.foto_url)
-      AND a.fecha BETWEEN ${desdeMes}::date AND ${hastaMes}::date
+      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaCorte}::date
   `;
 
   const [sesionesTotales] = await sql`
     SELECT COUNT(*)::int AS total FROM asistencia_espacio a
     WHERE a.espacio_id = ANY(${idsConsulta}) AND a.estado_aprobacion = 'aprobado'
-      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaMes}::date
+      AND a.fecha BETWEEN ${desdePeriodo}::date AND ${hastaCorte}::date
   `;
   return {
-    periodo: { desde: desdePeriodo, hasta: hastaMes, etiqueta: etiquetaMes, etiquetaPeriodo, mesesPeriodo, mesElegido: numeroMes, anio },
+    periodo: {
+      desde: desdePeriodo, hasta: hastaCorte, etiqueta: etiquetaCorte, etiquetaPeriodo, mesesPeriodo,
+      mesElegido: mesCorte, anio: params.anio, numero: params.numero, cicloId: ciclo?.id ?? null,
+    },
     general: {
       proyecto_nombre: proyecto?.nombre_oficial || 'Dinámicas Lingüísticas en Contextos Locales',
       proyecto_codigo: proyecto?.codigo || '',
       unidad_academica: proyecto?.unidad_academica || 'Facultad de Educación y Turismo',
       carrera: proyecto?.carrera || 'Pedagogía de los Idiomas Nacionales y Extranjeros',
-      entidad_beneficiaria: proyecto?.entidad_beneficiaria || '',
+      entidad_beneficiaria: entidadBeneficiaria,
+      ods: proyecto?.ods || '',
+      linea_investigacion: proyecto?.linea_investigacion || '',
       vigencia: proyecto?.vigencia_inicio && proyecto?.vigencia_fin ? `${proyecto.vigencia_inicio} - ${proyecto.vigencia_fin}` : '',
       codigo_documento: proyecto?.codigo_documento_supervisor || '',
       revision_documento: proyecto?.revision_documento_supervisor || '',
       supervisor_nombre: supervisor ? `${supervisor.nombres} ${supervisor.apellidos}` : 'Supervisor',
       supervisor_email: supervisor?.email || '',
       lider_nombre: lider ? `${lider.nombres} ${lider.apellidos}` : proyecto?.lider_nombre || '',
-      mes: etiquetaMes,
-      total_pasantes: pasantes.length,
+      mes: etiquetaCorte,
+      total_pasantes: pasantesAsignadosTotal,
       total_beneficiarios: beneficiarios?.total || 0,
       total_sesiones: sesionesTotales?.total || 0,
       zona: proyecto?.zona || '',
@@ -441,11 +457,11 @@ export async function datosInformeSupervisor(
 }
 
 /** Textos existentes del periodo (observaciones, comentarios, rechazos) para deducir obstáculos. */
-export async function recopilarSenalesObstaculos(sql: Sql, supervisorId: number, mes: string) {
-  const mesNormalizado = mes.slice(0, 7);
-  const periodoProyecto = periodoDeMes(mesNormalizado);
-  const desde = periodoProyecto?.desde ?? `${mesNormalizado}-01`;
-  const hasta = `${mesNormalizado}-${dosDigitos(new Date(Number(mesNormalizado.slice(0, 4)), Number(mesNormalizado.slice(5, 7)), 0).getDate())}`;
+export async function recopilarSenalesObstaculos(sql: Sql, supervisorId: number, anio: number, numero: 1 | 2) {
+  const periodoProyecto = construirPeriodo(anio, numero);
+  const hoy = hoyEcuadorTexto();
+  const desde = periodoProyecto.desde;
+  const hasta = hoy < periodoProyecto.hasta ? hoy : periodoProyecto.hasta;
   const sesiones = await sql`
     SELECT e.nombre AS espacio, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.estado_aprobacion AS estado,
            a.observaciones, a.comentario_supervisor, a.motivo_rechazo

@@ -4,7 +4,6 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const ANIO_ACTUAL = new Date().getFullYear();
 const periodoInicial = (() => {
   const ahora = new Date(Date.now() - 5 * 60 * 60 * 1000);
@@ -30,10 +29,10 @@ function InformesVinculacionContenido() {
   const [esSupervisor, setEsSupervisor] = useState(false);
 
   // Filtros
-  const hoyEcuador = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
-  const [mes, setMes] = useState(hoyEcuador);
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [cicloId, setCicloId] = useState<string>('');
+  const [numeroSupervisor, setNumeroSupervisor] = useState<string>(String(periodoInicial.numero));
+  const [anioSupervisor, setAnioSupervisor] = useState<string>(String(periodoInicial.anio));
   const [numeroLider, setNumeroLider] = useState<string>(String(periodoInicial.numero));
   const [anioLider, setAnioLider] = useState<string>(String(periodoInicial.anio));
 
@@ -89,19 +88,19 @@ function InformesVinculacionContenido() {
       .catch(() => {});
   }, []);
 
-  // Cargar datos al cambiar mes/tab/ciclo
+  // Cargar datos al cambiar periodo/tab/ciclo
   useEffect(() => {
     if (!usuario) return;
     if (tab === 'supervisor') {
       setLoading(true);
-      fetch(`/vinculacion/informes/api?accion=datos&tipo=supervisor&mes=${mes}`)
+      fetch(`/vinculacion/informes/api?accion=datos&tipo=supervisor&anio=${anioSupervisor}&numero=${numeroSupervisor}`)
         .then(r => r.json())
         .then(d => {
           if (d.success) setDatosSupervisor(d.datos);
         })
         .finally(() => setLoading(false));
 
-      fetch(`/vinculacion/informes/api?accion=obstaculos&mes=${mes}`)
+      fetch(`/vinculacion/informes/api?accion=obstaculos&anio=${anioSupervisor}&numero=${numeroSupervisor}`)
         .then(r => r.json())
         .then(d => {
           if (d.success) setObstaculos(d.obstaculos || []);
@@ -124,7 +123,13 @@ function InformesVinculacionContenido() {
         })
         .finally(() => setLoading(false));
     }
-  }, [usuario, tab, mes, anioLider, numeroLider, esLider]);
+  }, [usuario, tab, anioSupervisor, numeroSupervisor, anioLider, numeroLider, esLider]);
+
+  // Fecha de corte del periodo del supervisor (para los inputs "mes" de obstáculos/no-previstas
+  // registrados a mano) — hoy si el periodo sigue en curso, o el cierre del periodo si ya pasó.
+  const mesCorteSupervisor = datosSupervisor?.periodo?.hasta
+    ? String(datosSupervisor.periodo.hasta).slice(0, 7)
+    : new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
 
   const agregarObstaculo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +140,7 @@ function InformesVinculacionContenido() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accion: 'guardar-obstaculo',
-          mes,
+          mes: mesCorteSupervisor,
           descripcion: nuevoObsDesc,
           impacto: nuevoObsImpacto,
           recomendacion: nuevoObsRecom,
@@ -176,8 +181,7 @@ function InformesVinculacionContenido() {
         body: JSON.stringify({
           accion: 'generar',
           tipo,
-          mes: tipo === 'supervisor' ? mes : null,
-          ciclo_id: tipo === 'lider' ? datosLider?.periodo?.cicloId ?? null : null,
+          ciclo_id: (tipo === 'supervisor' ? datosSupervisor?.periodo?.cicloId : datosLider?.periodo?.cicloId) ?? null,
           datos: payloadDatos,
         }),
       });
@@ -191,7 +195,8 @@ function InformesVinculacionContenido() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${tipo}_${tipo === 'supervisor' ? mes : datosLider?.periodo?.etiqueta || 'semestral'}.docx`;
+      const etiquetaArchivo = (tipo === 'supervisor' ? datosSupervisor?.periodo?.etiqueta : datosLider?.periodo?.etiqueta) || 'semestral';
+      a.download = `Informe_${tipo}_${etiquetaArchivo}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -205,7 +210,7 @@ function InformesVinculacionContenido() {
   };
 
   const [redactandoTodo, setRedactandoTodo] = useState(false);
-  const mesesConIAIntentada = useRef<Set<string>>(new Set());
+  const periodosSupervisorConIAIntentada = useRef<Set<string>>(new Set());
   const [nuevaNoPrevista, setNuevaNoPrevista] = useState({ tarea: '', avance: '100', alumnos: '0', productos_sociales: '', productos_academicos: '', observaciones: '' });
 
   const actualizarTarea = (indiceTarea: number, cambios: Record<string, string>) => {
@@ -222,7 +227,7 @@ function InformesVinculacionContenido() {
       const respuesta = await fetch('/vinculacion/informes/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'redactar-todo', mes, forzar }),
+        body: JSON.stringify({ accion: 'redactar-todo', anio: Number(anioSupervisor), numero: Number(numeroSupervisor), forzar }),
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) throw new Error(resultado.error);
@@ -246,13 +251,14 @@ function InformesVinculacionContenido() {
     }
   };
 
-  // Al abrir un mes, los borradores se generan solos (una sola vez por mes) para no hacer clic en cada cuadro.
+  // Al abrir un periodo, los borradores se generan solos (una sola vez por periodo) para no hacer clic en cada cuadro.
   useEffect(() => {
-    if (tab !== 'supervisor' || !datosSupervisor?.periodo || mesesConIAIntentada.current.has(mes)) return;
-    mesesConIAIntentada.current.add(mes);
+    const clavePeriodoSupervisor = `${anioSupervisor}-${numeroSupervisor}`;
+    if (tab !== 'supervisor' || !datosSupervisor?.periodo || periodosSupervisorConIAIntentada.current.has(clavePeriodoSupervisor)) return;
+    periodosSupervisorConIAIntentada.current.add(clavePeriodoSupervisor);
     redactarTodoIA(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, mes, datosSupervisor?.periodo?.etiqueta]);
+  }, [tab, anioSupervisor, numeroSupervisor, datosSupervisor?.periodo?.etiqueta]);
 
   const agregarNoPrevista = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,7 +267,7 @@ function InformesVinculacionContenido() {
       const respuesta = await fetch('/vinculacion/informes/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'guardar-no-prevista', mes, ...nuevaNoPrevista }),
+        body: JSON.stringify({ accion: 'guardar-no-prevista', mes: mesCorteSupervisor, ...nuevaNoPrevista }),
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) throw new Error(resultado.error);
@@ -350,7 +356,7 @@ function InformesVinculacionContenido() {
         </div>
 
         <h1 className="text-3xl font-bold text-uleam-blue mb-2">
-          {tab === 'supervisor' ? 'Informe Mensual de Seguimiento (Supervisor)' : tab === 'lider' ? 'Informe Semestral de Avances y Logros (Líder)' : 'Historial de Informes Descargables'}
+          {tab === 'supervisor' ? 'Informe Semestral de Seguimiento (Supervisor)' : tab === 'lider' ? 'Informe Semestral de Avances y Logros (Líder)' : 'Historial de Informes Descargables'}
         </h1>
         <p className="text-gray-600 text-sm mb-6">
           Genera el formato oficial en Word (.docx) con indicadores agregados desde la base de datos Neon.
@@ -369,7 +375,7 @@ function InformesVinculacionContenido() {
               onClick={() => setTab('supervisor')}
               className={`pb-3 px-2 font-semibold text-sm border-b-2 transition-colors ${tab === 'supervisor' ? 'border-uleam-blue text-uleam-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >
-              📋 Informe Mensual Supervisor
+              📋 Informe Semestral Supervisor
             </button>
           )}
           {esLider && (!tipoQuery || tipoQuery === 'lider') && (
@@ -393,20 +399,19 @@ function InformesVinculacionContenido() {
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Seleccionar Mes de Informe</label>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Periodo del informe semestral</label>
                 <div className="flex gap-2">
                   <select
-                    value={mes.slice(5, 7)}
-                    onChange={e => setMes(`${mes.slice(0, 4)}-${e.target.value}`)}
+                    value={numeroSupervisor}
+                    onChange={e => setNumeroSupervisor(e.target.value)}
                     className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
                   >
-                    {NOMBRES_MESES.map((nombreMes, indiceMes) => (
-                      <option key={nombreMes} value={String(indiceMes + 1).padStart(2, '0')}>{nombreMes}</option>
-                    ))}
+                    <option value="1">Periodo 1 (abril – agosto)</option>
+                    <option value="2">Periodo 2 (septiembre – diciembre)</option>
                   </select>
                   <select
-                    value={mes.slice(0, 4)}
-                    onChange={e => setMes(`${e.target.value}-${mes.slice(5, 7)}`)}
+                    value={anioSupervisor}
+                    onChange={e => setAnioSupervisor(e.target.value)}
                     className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue"
                   >
                     {ANIOS_DISPONIBLES.map(anio => (
@@ -420,12 +425,12 @@ function InformesVinculacionContenido() {
                 disabled={generando}
                 className="px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow transition disabled:opacity-50"
               >
-                {generando ? 'Generando Documento...' : 'Descargar Informe Mensual .docx'}
+                {generando ? 'Generando Documento...' : 'Descargar Informe Semestral .docx'}
               </button>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold text-uleam-blue mb-4">1. Resumen General del Mes ({datosSupervisor.general?.mes})</h2>
+              <h2 className="text-lg font-bold text-uleam-blue mb-4">1. Resumen General — {datosSupervisor.periodo?.etiquetaPeriodo} (corte a {datosSupervisor.general?.mes})</h2>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-uleam-blue">{datosSupervisor.general?.total_pasantes || 0}</div>
@@ -523,7 +528,7 @@ function InformesVinculacionContenido() {
                 </form>
               </div>
               <p className="text-xs text-gray-500 mt-4">
-                Adjuntos: {datosSupervisor.fotos?.length || 0} foto(s) de sesiones aprobadas de {datosSupervisor.general?.mes}, elegidas al azar (una por espacio primero) con leyenda de espacio y fecha.
+                Adjuntos: {datosSupervisor.fotos?.length || 0} foto(s) de sesiones aprobadas del periodo, elegidas al azar (una por espacio primero) con leyenda de espacio y fecha.
               </p>
             </div>
 
@@ -571,7 +576,7 @@ function InformesVinculacionContenido() {
               </form>
 
               {obstaculos.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No hay obstáculos registrados para este mes.</p>
+                <p className="text-sm text-gray-500 italic">No hay obstáculos registrados para este periodo.</p>
               ) : (
                 <div className="space-y-2">
                   {obstaculos.map((o: any) => (
