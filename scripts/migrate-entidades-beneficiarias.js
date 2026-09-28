@@ -10,14 +10,15 @@ const sql = neon(process.env.DATABASE_URL);
 // Aplicado ya en producción vía Neon MCP (sesión de informes semestrales, 2026-09-28). Este
 // script queda como referencia idéntica al cambio aplicado — no hace falta volver a correrlo.
 //
-// Solo se asignó `entidad_id` a los espacios internos de la propia carrera (Speaking Club PINE
-// A1/A2/B1/B1+ y Podcast) porque el usuario confirmó explícitamente que esos son "el resto de
-// espacios de la ULEAM - Facultad de Educación y Turismo". Los demás espacios (Cross Worlds for
-// Connections, Fundación Submarino Amarillo, Juan Montalvo Speaking Club x2, UE Manuela
-// Cañizares Speaking Club, Speaking Club - Básica/Inicial Bilingüe) quedaron sin asignar a
-// propósito — sus nombres reales de entidad anfitriona no fueron confirmados por el usuario
-// (regla de oro: nunca adivinar), se asignan desde /vinculacion/espacios cuando el líder los
-// confirme.
+// Entidades externas (mismo día, confirmadas explícitamente por el usuario tras la primera
+// pasada de esta migración): Fundación Cross World -> "Cross Worlds for Connections"; Fundación
+// Submarino Amarillo -> espacio del mismo nombre; Unidad Educativa Fiscomisional Juan Montalvo ->
+// "Juan Montalvo Speaking Club" y su variante "- Grupo Cintya" (misma institución, 2 grupos);
+// Unidad Educativa Manuela Cañizares -> "UE Manuela Cañizares Speaking Club".
+//
+// "Speaking Club - Básica Bilingüe" e "Inicial Bilingüe" siguen sin `entidad_id` — el usuario no
+// confirmó su institución anfitriona (regla de oro: nunca adivinar); se asignan desde
+// /vinculacion/espacios cuando se confirme.
 
 async function main() {
   await sql`
@@ -45,7 +46,25 @@ async function main() {
     WHERE nombre IN ('A1 Speaking Club PINE', 'A2 Speaking Club PINE', 'B1 Speaking Club PINE', 'B1+ Speaking Club PINE', 'Podcast')
   `;
 
-  console.log('Catálogo de entidades beneficiarias creado. ULEAM-FEDU asignada a 5 espacios internos.');
+  const [juanMontalvo, manuelaCanizares, crossWorld, submarino] = await sql`
+    INSERT INTO entidades_beneficiarias (nombre, tipo) VALUES
+      ('Unidad Educativa Fiscomisional Juan Montalvo', 'unidad_educativa'),
+      ('Unidad Educativa Manuela Cañizares', 'unidad_educativa'),
+      ('Fundación Cross World', 'fundacion'),
+      ('Fundación Submarino Amarillo', 'fundacion')
+    RETURNING id
+  `;
+  await sql`
+    UPDATE "espacios_enseñanza" SET entidad_id = CASE
+      WHEN nombre IN ('Juan Montalvo Speaking Club', 'Juan Montalvo Speaking Club - Grupo Cintya') THEN ${juanMontalvo.id}
+      WHEN nombre = 'UE Manuela Cañizares Speaking Club' THEN ${manuelaCanizares.id}
+      WHEN nombre = 'Cross Worlds for Connections' THEN ${crossWorld.id}
+      WHEN nombre = 'Fundación Submarino Amarillo' THEN ${submarino.id}
+    END
+    WHERE nombre IN ('Juan Montalvo Speaking Club', 'Juan Montalvo Speaking Club - Grupo Cintya', 'UE Manuela Cañizares Speaking Club', 'Cross Worlds for Connections', 'Fundación Submarino Amarillo')
+  `;
+
+  console.log('Catálogo de entidades beneficiarias creado. 5 espacios internos con ULEAM-FEDU, 5 espacios externos con su entidad real.');
 }
 
 main().catch((err) => {
