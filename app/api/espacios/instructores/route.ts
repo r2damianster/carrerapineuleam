@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const espacio_id = searchParams.get('espacio_id');
     const profesor_ids_param = searchParams.get('profesor_ids');
+    const aula_id_param = searchParams.get('aula_id');
 
     const sql = neon(process.env.DATABASE_URL!);
 
@@ -44,12 +45,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
     }
 
+    const aulaId = aula_id_param ? parseInt(aula_id_param) : null;
     const [instructores, espacioRows] = await Promise.all([
       sql`
         SELECT u.id, u.nombres, u.apellidos
         FROM espacio_instructores ei
         JOIN usuarios u ON ei.usuario_id = u.id
         WHERE ei.espacio_id = ${parseInt(espacio_id)}
+          AND (${aulaId}::int IS NULL OR ei.aula_id = ${aulaId})
         ORDER BY u.apellidos
       `,
       sql`

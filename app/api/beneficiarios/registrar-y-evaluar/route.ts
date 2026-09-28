@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
+import { buscarMasParecidoBeneficiario, evaluarGateSimilitud } from '@/lib/similitudRegistros';
 
 // Registro de un beneficiario NUEVO + su Pre-Test MCER en una sola
 // transacción — a pedido explícito del usuario: no puede quedar un
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
     respuestas_json, puntaje_obtenido, nivel_asignado, evidencia_url,
+    confirmado_similitud, // el usuario confirmó el aviso de similitud 70-89% en el Resumen de Validación
   } = body;
 
   if (!nombres || !apellidos || !espacio_id) {
@@ -36,6 +39,20 @@ export async function POST(request: Request) {
   }
   if (!(await puedeOperarEspacio(usuario, espacio_id))) {
     return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
+  }
+
+  // Gate de similitud (70% aviso / 90% bloqueo) — detecta a la misma persona registrada dos veces
+  // con nombre parecido, antes de crear el usuario+perfil+inscripción+evaluación.
+  const sqlGate = neon(process.env.DATABASE_URL!);
+  const similitud = await buscarMasParecidoBeneficiario(sqlGate, {
+    nombreCompleto: `${nombres} ${apellidos}`,
+    edad: edad || edad === 0 ? Number(edad) : null,
+    email: email || null,
+    espacioId: Number(espacio_id),
+  });
+  const codigoGate = evaluarGateSimilitud(similitud, confirmado_similitud === true);
+  if (codigoGate !== 'OK') {
+    return NextResponse.json({ error: 'Este beneficiario parece ya estar registrado', codigo: codigoGate, similitud }, { status: 409 });
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });

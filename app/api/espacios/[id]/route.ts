@@ -22,7 +22,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'No tienes acceso a ese módulo' }, { status: 403 });
     }
 
-    const { nombre, tipo, ciclo_id, categoria: categoriaBody } = await request.json();
+    const { nombre, tipo, ciclo_id, categoria: categoriaBody, usa_aulas } = await request.json();
     const categoria = ['club', 'podcast', 'investigacion', 'otro'].includes(categoriaBody) ? categoriaBody : null;
     if (!nombre || !tipo || !ciclo_id) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -30,9 +30,10 @@ export async function PATCH(
 
     const [actualizado] = await sql`
       UPDATE espacios_enseñanza
-      SET nombre = ${nombre}, tipo = ${tipo}, ciclo_id = ${ciclo_id}, categoria = COALESCE(${categoria}, categoria)
+      SET nombre = ${nombre}, tipo = ${tipo}, ciclo_id = ${ciclo_id}, categoria = COALESCE(${categoria}, categoria),
+        usa_aulas = COALESCE(${usa_aulas ?? null}, usa_aulas)
       WHERE id = ${espacioId}
-      RETURNING id, nombre, tipo, ciclo_id, area, categoria
+      RETURNING id, nombre, tipo, ciclo_id, area, categoria, usa_aulas
     `;
 
     return NextResponse.json({ success: true, data: actualizado });

@@ -6,6 +6,7 @@ import { registrarVideoPropuesto } from '@/lib/registrarVideoPropuesto';
 import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
 import { validarProyectosAsignables, proyectosAsignables } from '@/lib/permisosProyecto';
 import { esDocente } from '@/lib/modulos';
+import { buscarMasParecidoDifusion, evaluarGateSimilitud } from '@/lib/similitudRegistros';
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
       hay_menores,    // boolean — declaración de menores en la foto de evidencia
       // WP5b nuevo
       proyectos: proyectosPedidos, // string[] — proyectos a los que pertenece esta actividad
+      confirmado_similitud, // el usuario confirmó el aviso de similitud 70-89% en el Resumen de Validación
     } = data;
     const registrador_id = usuario.id;
 
@@ -101,6 +103,16 @@ export async function POST(request: Request) {
     // así que la copiamos a `photos[]` (lo que leen NewsSection/ActivityGallery
     // como imagen destacada) — si no, quedaba subida a Cloudinary pero invisible.
     const photos = evidencia_url && tipo !== 'podcast' ? [evidencia_url] : [];
+
+    // Gate de similitud (70% aviso / 90% bloqueo) — mismo criterio que /api/vinculacion/verificar-similitud.
+    const similitud = await buscarMasParecidoDifusion(sql, {
+      titulo, tipo, categoria: categoria || 'vinculacion', hora: hora || null,
+      proyectos: proyectosValidados, profesoresResponsables: responsablesIds,
+    }, fecha);
+    const codigoGate = evaluarGateSimilitud(similitud, confirmado_similitud === true);
+    if (codigoGate !== 'OK') {
+      return NextResponse.json({ error: 'Esta actividad parece duplicada', codigo: codigoGate, similitud }, { status: 409 });
+    }
 
     // WP5b: guardar proyectosValidados en actividades_difusion.proyectos (columna nueva WP1)
     // Seguimos escribiendo `proyecto` y `categoria` como antes (los informes los leen).
