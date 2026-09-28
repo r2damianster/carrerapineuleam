@@ -220,6 +220,13 @@ function InformesVinculacionContenido() {
     }));
   };
 
+  const actualizarNoPrevista = (indiceActividad: number, cambios: Record<string, string>) => {
+    setDatosSupervisor((previo: any) => ({
+      ...previo,
+      no_previstas: previo.no_previstas.map((actividad: any, indice: number) => (indice === indiceActividad ? { ...actividad, ...cambios } : actividad)),
+    }));
+  };
+
   // IA en un solo paso: productos de todas las tareas y obstáculos (de las observaciones existentes o inferidos).
   const redactarTodoIA = async (forzar: boolean) => {
     setRedactandoTodo(true);
@@ -240,6 +247,15 @@ function InformesVinculacionContenido() {
             ...tarea,
             productos_sociales: forzar || !tarea.productos_sociales ? redactada.productos_sociales : tarea.productos_sociales,
             productos_academicos: forzar || !tarea.productos_academicos ? redactada.productos_academicos : tarea.productos_academicos,
+          };
+        }),
+        no_previstas: (previo.no_previstas || []).map((actividad: any) => {
+          const redactada = (resultado.noPrevistas || []).find((item: any) => item.tarea === actividad.tarea);
+          if (!redactada) return actividad;
+          return {
+            ...actividad,
+            productos_sociales: forzar || !actividad.productos_sociales ? redactada.productos_sociales : actividad.productos_sociales,
+            productos_academicos: forzar || !actividad.productos_academicos ? redactada.productos_academicos : actividad.productos_academicos,
           };
         }),
       }));

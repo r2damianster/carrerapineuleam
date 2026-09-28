@@ -240,14 +240,21 @@ export async function POST(request: Request) {
         estudiantes: tarea.alumnos,
         registros: tarea.observaciones,
       }));
+      // 2.3 (no previstas): la IA redacta también los productos de estas, usando las observaciones
+      // reales que el pasante escribió al registrar la sesión (o lo que el supervisor tipeó a mano).
+      // No tienen un id estable si son auto-detectadas (no son fila de una tabla), se emparejan por
+      // el texto exacto de `tarea` en vez de un id.
+      const noPrevistasParaRedactar = (forzar ? datos.no_previstas : datos.no_previstas.filter((actividad: any) => !actividad.productos_sociales && !actividad.productos_academicos))
+        .map((actividad: any) => ({ tarea: actividad.tarea, alumnos: actividad.alumnos, observaciones: actividad.observaciones }));
       const indicaciones =
         'Eres un docente supervisor de un proyecto de vinculación con la sociedad de una universidad ecuatoriana. Redactas con tono formal, en español, usando SOLO los datos dados (no inventes cifras, nombres ni lugares, sin placeholders entre corchetes).';
       const pedido =
         `Periodo: ${datos.periodo.etiquetaPeriodo}, corte a ${datos.periodo.etiqueta}.\n` +
         `TAREAS CON ACTIVIDAD: ${JSON.stringify(resumenTareas)}\n` +
+        `ACTIVIDADES NO PREVISTAS (2.3): ${JSON.stringify(noPrevistasParaRedactar)}\n` +
         `SEÑALES DEL PERIODO: ${JSON.stringify(senales)}\n\n` +
-        'Devuelve SOLO un JSON con esta forma: {"tareas":[{"codigo":"1.1","productos_sociales":"...","productos_academicos":"..."}],"obstaculos":[{"descripcion":"...","recomendacion":"..."}]}.\n' +
-        'productos_sociales = beneficio para la comunidad y los beneficiarios; productos_academicos = aprendizajes o evidencias para los estudiantes universitarios; máx. 40 palabras cada uno, una entrada por cada tarea con actividad.\n' +
+        'Devuelve SOLO un JSON con esta forma: {"tareas":[{"codigo":"1.1","productos_sociales":"...","productos_academicos":"..."}],"noPrevistas":[{"tarea":"texto exacto recibido","productos_sociales":"...","productos_academicos":"..."}],"obstaculos":[{"descripcion":"...","recomendacion":"..."}]}.\n' +
+        'productos_sociales = beneficio para la comunidad y los beneficiarios; productos_academicos = aprendizajes o evidencias para los estudiantes universitarios; máx. 40 palabras cada uno, una entrada por cada tarea con actividad y por cada actividad no prevista recibida (usa su campo "observaciones" como base real, sin inventar detalles que no estén ahí).\n' +
         (necesitaObstaculos
           ? 'obstaculos: de 1 a 3 restricciones con su acción correctiva. Primero deduce las restricciones de las observaciones existentes (SEÑALES.observaciones). Si no hay observaciones, infiere restricciones razonables a partir de los datos (sesiones pendientes o rechazadas, tareas sin registros o con bajo avance frente a su meta) y redáctalas como riesgos reales del periodo, sin afirmar hechos que los datos no respalden.'
           : 'obstaculos: devuelve una lista vacía.');
@@ -270,7 +277,7 @@ export async function POST(request: Request) {
             obstaculosNuevos.push(fila);
           }
         }
-        return NextResponse.json({ success: true, tareas: resultado.tareas || [], obstaculos: obstaculosNuevos });
+        return NextResponse.json({ success: true, tareas: resultado.tareas || [], noPrevistas: resultado.noPrevistas || [], obstaculos: obstaculosNuevos });
       } catch (error) {
         return NextResponse.json({ error: formatearErrorIA(error) }, { status: 500 });
       }
