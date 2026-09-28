@@ -8,7 +8,7 @@
 // Se usa <img loading="lazy"> con la miniatura Cloudinary que ya trae la API (400 px), en vez de
 // next/image, para no pasar cada miniatura del admin por el optimizador de imágenes de Next.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface FotoBanco {
   id: string;
@@ -142,21 +142,20 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
   const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
   const [mensaje, setMensaje] = useState('');
 
-  const [filtros, setFiltros] = useState({
-    q: '', origen: '', ubicacion: '', proyecto: '', desde: '', hasta: '', menores: '', estado: '',
-  });
-  const [ubicacionesParaPublicar, setUbicacionesParaPublicar] = useState<string[]>([]);
-  const [motivoDescarte, setMotivoDescarte] = useState('');
-  const [fotoEnEdicion, setFotoEnEdicion] = useState<FotoBanco | null>(null);
-  const [mostrarSubida, setMostrarSubida] = useState(false);
-
-  const esAdmin = modo === 'admin';
-
   // Estado inicial de filtros desde la URL (los avisos del dashboard enlazan con ?menores=revisar, ?estado=sin_ubicar…).
-  useEffect(() => {
+  // Se lee en el inicializador de useState (no en un useEffect aparte) para que el PRIMER fetch ya
+  // salga con los filtros correctos — antes había un useEffect separado que actualizaba `filtros`
+  // después del primer render, lo que disparaba DOS peticiones a /api/photos/banco (una sin filtro,
+  // luego otra ya filtrada) sin ninguna cancelación entre ellas. Si la primera (sin filtro, más
+  // pesada) tardaba más que la segunda (filtrada, con menos filas), llegaba después y pisaba el
+  // resultado correcto con la lista sin filtrar — la foto "aprobada" seguía viéndose en pantalla
+  // aunque el <select> ya mostrara el filtro bien seleccionado.
+  const [filtros, setFiltros] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { q: '', origen: '', ubicacion: '', proyecto: '', desde: '', hasta: '', menores: '', estado: '' };
+    }
     const parametros = new URLSearchParams(window.location.search);
-    setFiltros((previos) => ({
-      ...previos,
+    return {
       q: parametros.get('q') ?? '',
       origen: parametros.get('origen') ?? '',
       ubicacion: parametros.get('ubicacion') ?? '',
@@ -165,8 +164,14 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
       hasta: parametros.get('hasta') ?? '',
       menores: parametros.get('menores') ?? '',
       estado: parametros.get('estado') ?? '',
-    }));
-  }, []);
+    };
+  });
+  const [ubicacionesParaPublicar, setUbicacionesParaPublicar] = useState<string[]>([]);
+  const [motivoDescarte, setMotivoDescarte] = useState('');
+  const [fotoEnEdicion, setFotoEnEdicion] = useState<FotoBanco | null>(null);
+  const [mostrarSubida, setMostrarSubida] = useState(false);
+
+  const esAdmin = modo === 'admin';
 
   const cargarCatalogo = useCallback(async () => {
     const respuesta = await fetch('/api/photos/ubicaciones');
@@ -176,7 +181,14 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
     setProyectos(Array.isArray(datos.proyectos) ? datos.proyectos : []);
   }, []);
 
+  // Ref (no state) para descartar respuestas obsoletas: si dos fetches quedan en vuelo a la vez
+  // (cambios de filtro rápidos, o cualquier otra causa), solo se aplica el resultado del último
+  // que se DISPARÓ, sin importar cuál responda primero — evita el mismo tipo de carrera descrita
+  // arriba en cualquier otro punto donde `filtros`/`pagina` cambien seguido.
+  const peticionIdRef = useRef(0);
+
   const cargarFotos = useCallback(async () => {
+    const idPeticion = ++peticionIdRef.current;
     setCargando(true);
     setErrorCarga('');
     try {
@@ -187,15 +199,17 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
       parametros.set('pageSize', String(TAMANO_PAGINA));
       const respuesta = await fetch(`/api/photos/banco?${parametros.toString()}`);
       const datos = await respuesta.json();
+      if (idPeticion !== peticionIdRef.current) return; // llegó una petición más nueva antes: ignorar esta
       if (!respuesta.ok) throw new Error(datos.error || 'No se pudo cargar el banco de fotos');
       setFotos(datos.items ?? []);
       setTotal(datos.total ?? 0);
     } catch (error: any) {
+      if (idPeticion !== peticionIdRef.current) return;
       setErrorCarga(error.message);
       setFotos([]);
       setTotal(0);
     } finally {
-      setCargando(false);
+      if (idPeticion === peticionIdRef.current) setCargando(false);
     }
   }, [filtros, pagina, esAdmin, proyectoId]);
 
