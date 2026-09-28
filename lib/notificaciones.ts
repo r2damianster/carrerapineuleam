@@ -172,7 +172,9 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     id: 'fotos-menores-por-revisar',
     aplica: (sesion) => sesion.modulos_acceso.includes('contenido_sitio'),
     consultar: async (sql) => {
-      const [fila] = await sql`SELECT COUNT(*)::int AS total FROM fotos WHERE menores = 'revisar'`;
+      // descartada=false: una foto descartada ya salió de la cola de trabajo (aunque su columna
+      // `menores` haya quedado en 'revisar' — la acción "descartar" no la toca, solo apaga la foto).
+      const [fila] = await sql`SELECT COUNT(*)::int AS total FROM fotos WHERE menores = 'revisar' AND descartada = false`;
       const total = Number(fila?.total || 0);
       if (total === 0) return null;
       return {
