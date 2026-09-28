@@ -437,6 +437,7 @@ export default function AsistenciaPage() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-1">Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor.</p>
+            <p className="text-xs text-amber-600 mt-1">Los invitados solo se justifican según el número de beneficiarios que asistieron. El sistema puede rechazar el registro si no corresponde.</p>
           </div>
 
           <div>

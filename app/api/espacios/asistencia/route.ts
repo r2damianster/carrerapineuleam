@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
 import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
+import { calcularTopeInvitados } from '@/lib/topeInvitadosAsistencia';
 
 export async function GET(request: Request) {
   try {
@@ -58,6 +59,14 @@ export async function POST(request: Request) {
     const repetidos = invitados.filter((id) => titulares.includes(id));
     if (repetidos.length > 0) {
       return NextResponse.json({ error: 'Un pasante ya titular del espacio no puede marcarse también como invitado' }, { status: 400 });
+    }
+    // Tope preventivo de invitados según beneficiarios/titulares presentes — ver lib/topeInvitadosAsistencia.ts.
+    // El mensaje no revela el número calculado a propósito.
+    const topeInvitados = calcularTopeInvitados(beneficiarios_presentes.length, titulares.length);
+    if (invitados.length > topeInvitados) {
+      return NextResponse.json({
+        error: 'No se puede registrar este número de invitados para la cantidad de beneficiarios presentes en esta sesión. Revisa la asistencia registrada.'
+      }, { status: 400 });
     }
     if (!hora_inicio || !hora_fin) {
       return NextResponse.json({ error: 'Hora de inicio y de fin son requeridas' }, { status: 400 });

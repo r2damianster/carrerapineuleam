@@ -19,8 +19,8 @@
 **Grupo de Investigación:** Innovaciones pedagógicas para el desarrollo sostenible: inclusión, interculturalidad e interdisciplinaridad (actualización 2026-05-15, doc en `public/admin-assets/2026_GrupoInvestigacion.pdf`)
 **Institución:** Universidad Laica Eloy Alfaro de Manabí (ULEAM)
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
-**Versión actual:** 0.12.9
-**Última sesión:** 2026-09-27 (Sesión 53 — aprobación de contenido sin depender solo del administrador: calidad + menores al aprobar, podcasts de pasante publicados por su supervisor, responsables aprueban sus propios eventos/podcasts, cola de propuestas para portada, rotación de galerías). Anterior: 2026-09-26 (Sesión 52 — banco de fotos con topes, control de menores y administración de fotos por líderes de proyecto; ver §Sesión 52). Anterior: 2026-09-25 (Sesión 51 — Informes automáticos de Vinculación Mensual Supervisor y Semestral Líder en `.docx`, gráficos QuickChart, vínculo sesión-actividad y obstáculos, y notificaciones derivadas en `lib/notificaciones.ts`)
+**Versión actual:** 0.12.11
+**Última sesión:** 2026-09-27 (Sesión 54 — tope preventivo de invitados en asistencia, sin exponer el número calculado). Anterior: 2026-09-27 (Sesión 53 — aprobación de contenido sin depender solo del administrador: calidad + menores al aprobar, podcasts de pasante publicados por su supervisor, responsables aprueban sus propios eventos/podcasts, cola de propuestas para portada, rotación de galerías). Anterior: 2026-09-26 (Sesión 52 — banco de fotos con topes, control de menores y administración de fotos por líderes de proyecto; ver §Sesión 52). Anterior: 2026-09-25 (Sesión 51 — Informes automáticos de Vinculación Mensual Supervisor y Semestral Líder en `.docx`, gráficos QuickChart, vínculo sesión-actividad y obstáculos, y notificaciones derivadas en `lib/notificaciones.ts`)
 **Ruta pública del proyecto:** `/investigacion/proyecto-innovacion` (antes `/pine`)
 **Manual de usuario:** `MANUAL_USUARIO.md` (rutas del Portal PINE — login, espacios, dashboard)
 
@@ -210,6 +210,18 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - ✅ **CORREGIDO 2026-09-24** (orden 48→47→46→44→45→43→42, entradas 44/46/47, `package.json` 0.12.2). Original: documentación desordenada: secciones "Cambios Recientes" fuera de orden (48, 43, 45, 42…), no existen secciones propias de Sesiones 44, 46 (solo en CHANGELOG/Superadmin), 47; pie de CLAUDE.md decía Sesión 43/v0.10.16 (corregido); `package.json` sigue en `0.1.0`; README decía 0.12.1 (corregido).
 - ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
+
+## Cambios Recientes (Sesión 54 — 2026-09-27): tope preventivo de invitados en asistencia
+
+Origen: revisión de datos reales de `asistencia_espacio`/`asistencia_instructores` (no un reporte de incidente) mostró un patrón de 2 pasantes invitándose mutuamente entre espacios ajenos, siempre con los titulares asignados completos y presentes y con muy pocos beneficiarios (1-2) — 5 de 6 invitaciones registradas hasta la fecha. **Decisión explícita del usuario: no es una regla punitiva ni reactiva a ese caso puntual, es un techo estructural para prevenir a futuro**, sin bloquear el caso legítimo de cubrir una ausencia real ni el de un pasante que apoya con frecuencia a un espacio con demanda genuina.
+
+- **Fórmula (`lib/topeInvitadosAsistencia.ts:calcularTopeInvitados`):** `tope = max(0, ceil(beneficiarios_presentes / 2) - titulares_presentes)`, con piso de seguridad `tope = max(tope, 1)` si `titulares_presentes = 0` (siempre debe poder haber alguien supervisando). Es un **techo máximo**, no una meta ni una regla de "cuántos pasantes necesitás" — nunca sugiere ni promueve invitar, solo bloquea el exceso. Aplica igual sin importar la composición del grupo (2 titulares + N invitados, o 0 titulares + N invitados): lo que cuenta es el total de personas de apoyo contra el número de beneficiarios presentes esa sesión, no cómo se reparte entre titular e invitado.
+- **Gate server-side en `POST /api/espacios/asistencia`** (`app/api/espacios/asistencia/route.ts`), antes de la transacción de inserción — si `invitados.length > tope`, rechaza con 400 y mensaje genérico. **A propósito no revela el número calculado** (ni al pasante ni en el badge de supervisión) para no convertir la fórmula en un objetivo a alcanzar por ensayo y error.
+- **Sin tabla de ratios ni tope de frecuencia mensual** — se descartaron ambos enfoques por falta de datos históricos suficientes (solo ~1 semana de uso real al momento de diseñar la regla) y porque los ratios reales observados sin incidente (13 beneficiarios / 2 titulares, 11 beneficiarios / 1 titular) son más altos que cualquier tabla fija razonable — fijar un ratio bajo habría creado una "excusa" formal para pedir invitados donde hoy no hace falta.
+- **Sin excepción/override en esta versión** — ni el pasante ni el supervisor del espacio pueden pasar el tope al registrar. Si aparece un caso real que lo justifique, se revisa con datos, no se diseña una puerta de escape preventiva sin evidencia.
+- **Sin retroactividad** — aplica solo a registros nuevos desde el deploy; los 6 registros de invitados ya existentes no se tocan ni se re-etiquetan.
+- **Convive con el aviso de posible duplicado** (mismo endpoint, agregado antes en esta sesión — ver más abajo): el gate de invitados corre primero, antes del `INSERT`; el aviso de duplicados corre después, sobre el registro ya guardado — no hay conflicto entre ambos.
+- Documentado también en `GUIA_ESTUDIANTES_VINCULACION.md` (sección "Pasante invitado") con lenguaje genérico, sin la fórmula ni el número.
 
 ## Cambios Recientes (Sesión 53 — 2026-09-27): aprobación de contenido sin depender solo del administrador
 
@@ -1318,6 +1330,6 @@ git push
 
 ---
 
-**Última actualización:** 2026-09-27 (Sesión 53 + H1/QR: aprobación de contenido sin depender solo del administrador, permisos por pertenencia reconectados)
-**Versión:** 0.12.10
+**Última actualización:** 2026-09-27 (Sesión 54: tope preventivo de invitados en asistencia)
+**Versión:** 0.12.11
 **Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — i18n ES/EN completo en todo el sitio público ✅ — Admin de contenido con ocultar-sin-borrar + buscador/paginación en las 5 tablas ✅ — Banco de Fotos administrable ✅ — Nav de proyectos/redes controlable desde admin (ocultar/reordenar todos, crear nuevos "plantilla_simple" sin código) ✅ — Superadmin, Informes Mensuales de Investigación y Contribuciones (90%) documentados por primera vez ✅ — Acceso temporal para externos sin cuenta (eventos/podcast, siempre pendiente de aprobación) ✅ — Área/proyecto + participantes + horas acreditables en podcasts de Vinculación (Sesión 38) ✅ — Archivos sin uso limpiados (Sesión 33) ✅ — Repo sincronizado con origin ✅

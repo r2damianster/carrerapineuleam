@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
 
+## [0.12.11] - 2026-09-27 (Sesión 54 — tope preventivo de invitados en asistencia)
+
+### ✨ Added
+- `lib/topeInvitadosAsistencia.ts:calcularTopeInvitados()` — techo preventivo al número de pasantes invitados por sesión de asistencia, según beneficiarios y titulares presentes (`ceil(beneficiarios/2) - titulares`, piso de 1 si no hay titulares presentes). No es una regla reactiva a un caso de abuso puntual: previene a futuro sin bloquear cobertura real de ausencias ni apoyo frecuente a un espacio con demanda genuina. `POST /api/espacios/asistencia` rechaza con 400 si se excede, sin revelar el número calculado. Ver CLAUDE.md → Sesión 54.
+
 ## [0.12.10] - 2026-09-27 (Sesión 53, continuación — H1 + QR líder/colíder)
 
 ### ✨ Added

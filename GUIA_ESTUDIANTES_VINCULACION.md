@@ -99,7 +99,7 @@ Botón **"📄 Descargar Pre-Test en Word"** (arriba de la página) — el docum
 4. 🆕 **Foto de evidencia** (**obligatoria**) → sube una foto de la sesión. El sistema la comprime automáticamente antes de subirla (no necesitas reducirla tú ni preocuparte por el tamaño del archivo de tu celular).
 5. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 3).
 6. 🆕 **Pasantes de este espacio** (Sesión 43) → todos los instructores asignados a tu espacio salen preseleccionados como presentes; desmarca al que no vino ese día. Solo quien queda marcado como presente acredita horas al aprobarse.
-7. 🆕 **Pasante invitado** (Sesión 43, opcional) → si un compañero de **otro** espacio te apoyó puntualmente esa sesión, búscalo en el desplegable y dale "+ Agregar". Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor.
+7. 🆕 **Pasante invitado** (Sesión 43, opcional) → si un compañero de **otro** espacio te apoyó puntualmente esa sesión, búscalo en el desplegable y dale "+ Agregar". Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor. 🆕 (Sesión 54) Los invitados solo se justifican según el número de beneficiarios que asistieron ese día — el sistema puede rechazar el registro si el número de invitados no corresponde.
 8. **Observaciones** (opcional) → texto libre.
 9. Clic en **"Guardar Asistencia"**.
 
