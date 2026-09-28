@@ -78,6 +78,9 @@ type RegistroUnificado =
   | { clave: string; tipo: 'asistencia'; marcaTiempo: number; estado: string; asistencia: Registro }
   | { clave: string; tipo: TipoHoras; marcaTiempo: number; estado: string; horas: RegistroHoras };
 
+// Vista agrupada: varias filas de horas_podcast_pasante (una por pasante) que comparten el mismo episodio.
+type RegistroPodcast = { clave: string; tipo: 'podcast'; marcaTiempo: number; estado: string; horas: RegistroHoras };
+
 const aMarcaTiempo = (fecha: string | null | undefined) => {
   if (!fecha) return 0;
   const fechaObjeto = new Date(fecha.includes('T') ? fecha : `${fecha}T00:00:00`);
@@ -248,6 +251,36 @@ export default function SupervisarAsistenciaPage() {
     } finally {
       setProcesandoClave(null);
     }
+  };
+
+  // Aprueba/rechaza en un solo clic todas las filas de horas de un mismo episodio de podcast
+  // (una fila por pasante participante) — un episodio con 2 pasantes se decide junto, no por separado.
+  const decidirGrupoPodcast = async (
+    grupo: RegistroPodcast[],
+    accion: 'aprobar' | 'rechazar'
+  ) => {
+    const pendientes = grupo.filter(r => (accion === 'aprobar' ? r.estado !== 'aprobado' : r.estado !== 'rechazado'));
+    if (pendientes.length === 0) return;
+    const motivo = accion === 'rechazar' ? (window.prompt('Motivo del rechazo (opcional):') || '') : '';
+    setProcesandoClave(grupo[0].clave);
+    setMessage('');
+    const errores: string[] = [];
+    for (const reg of pendientes) {
+      try {
+        const res = await fetch(`/api/vinculacion/supervisar-horas/podcast/${reg.horas.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accion, motivo }),
+        });
+        const data = await res.json();
+        if (!res.ok) errores.push(`${reg.horas.nombres} ${reg.horas.apellidos}: ${data.error}`);
+      } catch (err: any) {
+        errores.push(`${reg.horas.nombres} ${reg.horas.apellidos}: ${err.message}`);
+      }
+    }
+    if (errores.length > 0) setMessage(`Algunas horas no se pudieron procesar — ${errores.join(' · ')}`);
+    await cargar();
+    setProcesandoClave(null);
   };
 
   // Sesión 53: aprobar y publicar el video (+ actividad asociada) sin pasar por /admin/videos —
@@ -476,6 +509,91 @@ export default function SupervisarAsistenciaPage() {
         {TIPOS_REGISTRO.map(tipoGrupo => {
           const registrosDelGrupo = registrosVisibles.filter(registro => registro.tipo === tipoGrupo);
           if (registrosDelGrupo.length === 0) return null;
+
+          if (tipoGrupo === 'podcast') {
+            // Un episodio puede tener varios pasantes (titulares + invitados) — una fila de horas
+            // por cada uno, pero se agrupan en UNA sola tarjeta con un solo Aprobar/Rechazar.
+            const gruposPorVideo = new Map<string, RegistroPodcast[]>();
+            (registrosDelGrupo as unknown as RegistroPodcast[]).forEach(reg => {
+              const clave = reg.horas.video_id || reg.clave;
+              if (!gruposPorVideo.has(clave)) gruposPorVideo.set(clave, []);
+              gruposPorVideo.get(clave)!.push(reg);
+            });
+            const grupos = Array.from(gruposPorVideo.values());
+
+            return (
+              <section key="podcast" className="mb-8">
+                <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ETIQUETA_TIPO.podcast.clases}`}>{ETIQUETA_TIPO.podcast.texto}</span>
+                  <span className="text-sm font-medium text-gray-500">{grupos.length} {grupos.length === 1 ? 'episodio' : 'episodios'}</span>
+                </h2>
+                <div className="space-y-4">
+                  {grupos.map(grupo => {
+                    const primero = grupo[0].horas;
+                    const todosAprobados = grupo.every(g => g.estado === 'aprobado');
+                    const algunoPendiente = grupo.some(g => g.estado === 'pendiente');
+                    const algunoNoRechazado = grupo.some(g => g.estado !== 'rechazado');
+                    const procesandoGrupo = grupo.some(g => g.clave === procesandoClave);
+                    return (
+                      <div key={primero.video_id || grupo[0].clave} className="bg-white p-5 rounded-xl shadow-md flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            {grupo.map(g => (
+                              <span key={g.clave} className={`text-xs font-semibold px-2 py-1 rounded-full ${ESTADO_BADGE[g.estado]}`}>
+                                {g.horas.nombres} {g.horas.apellidos}: {g.estado}
+                              </span>
+                            ))}
+                            <span className="text-sm text-gray-500">{formatearFecha(primero.fecha)}</span>
+                            <span className="text-sm font-semibold text-uleam-blue">{primero.horas} h c/u</span>
+                          </div>
+                          <p className="text-sm text-gray-700">
+                            {primero.titulo} {primero.tipo_podcast && <span className="text-xs text-gray-500">({primero.tipo_podcast})</span>}
+                            {primero.youtube_url && <a href={primero.youtube_url} target="_blank" rel="noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">Ver episodio</a>}
+                          </p>
+                          {grupo.filter(g => g.estado === 'rechazado' && g.horas.motivo_rechazo).map(g => (
+                            <p key={g.clave} className="text-sm text-red-600 mt-1">Motivo de rechazo ({g.horas.nombres}): {g.horas.motivo_rechazo}</p>
+                          ))}
+                        </div>
+                        <div className="flex sm:flex-col gap-2 shrink-0">
+                          {primero.video_id && (
+                            <button onClick={() => setEpisodioEnEdicion(primero.video_id!)} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100">Editar episodio</button>
+                          )}
+                          {primero.video_id && primero.video_aprobado_sitio && (
+                            <span className="px-3 py-2 text-xs font-semibold text-green-700 text-center">Ya publicado</span>
+                          )}
+                          {primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && todosAprobados && (
+                            <button onClick={() => setPublicandoVideoId(primero.video_id!)} className="px-4 py-2 bg-uleam-gold text-uleam-blue text-sm font-semibold rounded-lg hover:brightness-95">Publicar en el sitio</button>
+                          )}
+                          {primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && !todosAprobados && (
+                            <span className="px-3 py-2 text-xs text-gray-500 text-center max-w-[10rem]">Aprueba las horas de todos para poder publicar</span>
+                          )}
+                          {algunoPendiente && (
+                            <button
+                              onClick={() => decidirGrupoPodcast(grupo, 'aprobar')}
+                              disabled={procesandoGrupo}
+                              className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            >
+                              Aprobar{grupo.length > 1 ? ` (${grupo.length})` : ''}
+                            </button>
+                          )}
+                          {algunoNoRechazado && (
+                            <button
+                              onClick={() => decidirGrupoPodcast(grupo, 'rechazar')}
+                              disabled={procesandoGrupo}
+                              className="px-4 py-2 bg-red-50 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50"
+                            >
+                              Rechazar{grupo.length > 1 ? ` (${grupo.length})` : ''}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          }
+
           return (
         <section key={tipoGrupo} className="mb-8">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
