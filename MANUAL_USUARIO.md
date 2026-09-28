@@ -45,7 +45,7 @@ Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y lídere
 
 **» Informes Oficiales .docx (Supervisor / Líder)** (`/vinculacion/informes`) — módulo unificado para la generación de informes mensuales de supervisores e informes semestrales del líder de proyecto, además de consultar e imprimir el historial de informes previamente generados.
 
-**» Administrar Espacios** (`/vinculacion/espacios`) — crea/lista espacios (clubes, aulas, cohortes). Un espacio es, por ejemplo, "Club de Inglés A", asociado a un ciclo/semestre. Al entrar a un espacio (clic en su nombre) puedes asignar qué pasantes son instructores de ese espacio — la única función que queda ahí; asistencia/beneficiarios/MCER/encuesta se manejan aparte, ver abajo.
+**» Administrar Espacios** (`/vinculacion/espacios`) — crea/lista espacios (clubes, aulas, cohortes). Un espacio es, por ejemplo, "Club de Inglés A", asociado a un ciclo/semestre. Al entrar a un espacio (clic en su nombre) puedes asignar qué pasantes son instructores de ese espacio — la única función que queda ahí; asistencia/beneficiarios/MCER/encuesta se manejan aparte, ver abajo. Si el espacio es grande y quieres dividirlo en subgrupos (ej. "Aula A"/"Aula B"), solo el **líder de Vinculación** puede activar "Este espacio se divide en aulas/subgrupos" y administrar esas aulas desde el botón "Aulas" — al activarlo, el pasante que registre asistencia primero elige su aula y solo ve a los beneficiarios/instructores de esa aula.
 
 **» Administrar Pasantes** (`/vinculacion/pasantes`) — CRUD completo de estudiantes-instructores:
 - **Uno por uno:** formulario con nombres, apellidos y email — nada de contraseña, la define el pasante en su primer ingreso (ver tabla de arriba).
@@ -60,16 +60,20 @@ Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y lídere
 
 ### » Registrar y evaluar beneficiario (`/vinculacion/registrar-evaluar`)
 Un beneficiario nuevo **siempre** se registra junto con su Pre-Test MCER — no queda registrado sin evaluación, es un solo envío obligatorio en la misma pantalla:
-- **Registrar nuevo + Pre-Test:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional (Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia — si trabaja, qué rol; si estudia, nivel educativo y, si es universidad, carrera y curso), seguido de las preguntas del Pre-Test MCER. El beneficiario no inicia sesión — es solo su ficha de datos. Al completar, se muestra el puntaje y nivel asignado antes de redirigir al portal.
+- **Registrar nuevo + Pre-Test:** nombres, apellidos, contacto, email (opcional), edad, si tiene discapacidad (y cuál), y situación ocupacional (Solo estudia / Estudia y trabaja / Solo trabaja / Desempleado y no estudia — si trabaja, qué rol; si estudia, nivel educativo y, si es universidad, carrera y curso), seguido de las preguntas del Pre-Test MCER. El beneficiario no inicia sesión — es solo su ficha de datos. Al completar, se muestra el puntaje y nivel asignado antes de redirigir al portal. Si el nombre se parece mucho a alguien ya registrado (posible misma persona con dos fichas), aparece un aviso de confirmación antes de guardar — así se evita duplicar a un beneficiario que ya existe.
 - **Asignar beneficiario existente:** para alguien que ya es beneficiario en otro espacio/ciclo — ya tiene su Pre-Test de antes, solo se le suma a este espacio, sin repetir la evaluación.
 - **QR Auto-registro + Pre-Test:** botón que genera un link/QR para el espacio — cada beneficiario se registra él mismo desde su celular y responde el Pre-Test en la misma pantalla, sin login.
 - **📄 Descargar Pre-Test en Word:** para aplicarlo en papel — trae también los campos de datos del beneficiario en blanco, ya que el registro y el Pre-Test van siempre juntos.
 
 ### » Asistencia (`/vinculacion/asistencia`)
-Elige el espacio y la fecha — la lista de beneficiarios inscritos aparece con su check de presencia. Requiere hora de inicio/fin y foto obligatoria. Al guardar, se desmonta el formulario, muestra el estado *"Pendiente de aprobación"* y redirige en 5s al portal PINE.
+Elige el espacio y la fecha — la lista de beneficiarios, pasantes titulares e invitados aparece **sin ningún check marcado** (Sesión 55: hay que marcar conscientemente a cada presente, ya no viene "todos presentes" por defecto; hay botones "Marcar todos"/"Desmarcar todos" si hace falta). Si el espacio se divide en aulas, primero eliges tu aula y las listas se acotan a ella. Requiere hora de inicio/fin y foto obligatoria.
+
+Antes de guardar aparece un **Resumen de Validación**: revisa espacio, fecha, horario y cuántos marcaste, y confirma con una casilla. Si el sistema detecta que el registro se parece mucho a otro ya guardado (mismo espacio/día/horario/beneficiarios), muestra una advertencia — puedes confirmar igual si es un grupo distinto, o revisar si es un duplicado real. Si la coincidencia es casi total, el sistema **no deja guardar** (evita un duplicado exacto). También puede desmarcar automáticamente a un beneficiario si ya está registrado en otro espacio con un horario muy cercano — no es un error, es para que no quede una asistencia duplicada de la misma persona.
+
+Al guardar, se desmonta el formulario, muestra el estado *"Pendiente de aprobación"* y redirige en 5s al portal PINE. La foto pasa por una revisión automática de apoyo (cuenta cuántas personas aparecen) — es solo informativa para tu supervisor, nunca bloquea tu registro.
 
 ### » Registrar Evento o Podcast (`/vinculacion/difusion`)
-Visible para todo pasante (y para quienes ven la tarjeta). Ahí se registran eventos y podcasts; los podcasts suben su video y acreditan horas cuando el supervisor las aprueba.
+Visible para todo pasante (y para quienes ven la tarjeta). Ahí se registran eventos y podcasts; los podcasts suben su video y acreditan horas cuando el supervisor las aprueba. Si el título/fecha/tipo se parece mucho a un evento ya registrado ese mismo día, pide confirmar antes de guardar.
 
 ### » Registrar Actividades de Investigación (`/vinculacion/investigacion-actividades`)
 Solo aparece si te asignaron el módulo Investigación (se asigna en `/admin/roles`). Registras fecha, horas y descripción; tu supervisor las aprueba o rechaza.

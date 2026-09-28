@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
 
+## [0.12.12] - 2026-09-27 (Sesión 55 — dedupe en tiempo real, checklists conscientes, subaulas, auditoría IA)
+
+### ✨ Added
+- `lib/similitudRegistros.ts` — motor de similitud (Levenshtein + Jaccard, sin dependencias externas) para Asistencia/Difusión/Beneficiario, y `POST /api/vinculacion/verificar-similitud` (verificación previa, solo lectura). Umbrales fijos: ≥90% bloqueo total, 70-89% aviso con confirmación explícita (`confirmado_similitud`), <70% sin fricción. Mismo gate cableado como verificación final en `POST /api/espacios/asistencia`, `POST /api/difusion` y `POST /api/beneficiarios/registrar-y-evaluar`.
+- Bloqueo duro de concurrencia: un beneficiario no puede quedar presente en dos espacios con horario dentro de un margen de 2h — se desmarca automático en el frontend y se rechaza (409) si se fuerza en el POST real.
+- `components/ResumenValidacionModal.tsx` — resumen + confirmación explícita antes de guardar, reusado en los 3 flujos.
+- Subaulas opcionales por espacio de Vinculación: tabla `aulas`, `espacios_enseñanza.usa_aulas`, `aula_id` en `espacio_instructores`/`inscripciones_espacio` (`scripts/migrate-aulas.js`). API `app/api/espacios/[id]/aulas[/[aulaId]]`, gestionable solo por el líder de Vinculación/superadmin (`lib/modulos.ts:puedeGestionarVinculacion`).
+- Auditoría IA (Groq vision, `lib/groqVision.ts`) de la foto de asistencia — solo informativa, nunca bloquea; degrada con elegancia si se agota la cuota (`auditoria_ia_estado='no_disponible'`). Columnas nuevas en `asistencia_espacio` (`scripts/migrate-auditoria-ia-asistencia.js`), badge en `/vinculacion/supervisar`.
+
+### 🔧 Changed
+- `/vinculacion/asistencia`: los checklists de beneficiarios/titulares/invitados nacen desmarcados (antes preseleccionaba todo); el formulario se reestructuró en verificar → confirmar (resumen) → guardar.
+- `GET /api/beneficiarios` y `GET /api/espacios/instructores` aceptan `aula_id` opcional para acotar por subaula.
+
 ## [0.12.11] - 2026-09-27 (Sesión 54 — tope preventivo de invitados en asistencia)
 
 ### ✨ Added

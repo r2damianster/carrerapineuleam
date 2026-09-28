@@ -2,8 +2,8 @@
 
 Sitio público del proyecto de Innovaciones Pedagógicas e Internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM), junto con el **Portal PINE** — el sistema operativo interno para docencia, vinculación e investigación de la carrera.
 
-**Versión:** 0.12.11
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅
+**Versión:** 0.12.12
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅ — Dedupe en tiempo real, subaulas y auditoría IA de asistencia ✅
 **Tech Stack:** Next.js 14 (App Router) + TypeScript + TailwindCSS + Neon (Postgres Serverless) + Cloudinary
 **Sitio en producción:** https://carrerapineuleam.vercel.app
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
@@ -19,7 +19,7 @@ Landing institucional bilingüe (ES/EN) con contenido contextual por proyecto: e
 
 ### Portal PINE (`/portal/*`)
 Sistema operativo real para el trabajo de campo de la carrera:
-- **Vinculación:** gestión de espacios (clubes/aulas), asignación de estudiantes-instructores, registro de beneficiarios, asistencia, Test MCER (pre/post, exportable a Word), encuestas de satisfacción, difusión de eventos — incluye enlaces/QR públicos sin login para que un beneficiario tome su test o encuesta desde el celular. Los pasantes además reportan horas de podcast, de investigación y **horas/actividades autónomas** (tope de 16 h), todas aprobadas por su supervisor.
+- **Vinculación:** gestión de espacios (clubes/aulas), con **subaulas opcionales** activables solo por el líder; asignación de estudiantes-instructores, registro de beneficiarios, asistencia (checklists desmarcados por defecto + resumen de validación antes de guardar), Test MCER (pre/post, exportable a Word), encuestas de satisfacción, difusión de eventos — incluye enlaces/QR públicos sin login para que un beneficiario tome su test o encuesta desde el celular. **Detección de duplicados en tiempo real** (70% aviso / 90% bloqueo) en asistencia, difusión y registro de beneficiario, bloqueo duro de solapamiento de horario entre espacios, y **auditoría IA no bloqueante** de la foto de asistencia (Groq vision). Los pasantes además reportan horas de podcast, de investigación y **horas/actividades autónomas** (tope de 16 h), todas aprobadas por su supervisor.
 - **Notificaciones del Portal:** bloque "Pendientes" en el dashboard (aprobaciones por hacer para supervisores y administradores; rechazos para pasantes). Ver `NOTIFICACIONES.md`.
 - **Dashboard Pedagógico del Pasante** (`/portal/mi-avance`): avance de horas reglamentarias frente a la meta de **96h**, resultados MCER iniciales vs finales de sus alumnos comunitarios, semáforo de asistencia de aula (< 70% alerta en rojo) y reseñas cualitativas de satisfacción.
 - **Indicadores & Supervisión Docente** (`/vinculacion/supervisar/indicadores`): panel analítico para profesores con desgloses por pasante, matriz de ganancia pedagógica MCER (Pre vs Post), alertas de asistencias pendientes >72h e informes ejecutivos.
@@ -69,6 +69,8 @@ El esquema de Neon ya existe en producción — los scripts en `scripts/migrate-
 npx tsc --noEmit   # chequeo de tipos
 npm run build      # build de producción
 ```
+
+> ⚠️ En algunos checkouts Windows `npx tsc`/`npm run build` fallan porque `node_modules/.bin` queda vacío tras la instalación — si pasa, usar `node node_modules/typescript/bin/tsc --noEmit` y `node node_modules/next/dist/bin/next build` directo (mismos comandos, sin `npx`/`npm run`).
 
 ---
 

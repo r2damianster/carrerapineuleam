@@ -94,14 +94,17 @@ Botón **"📄 Descargar Pre-Test en Word"** (arriba de la página) — el docum
 
 **Pasos:**
 1. **Espacio** → selecciona tu club/aula del desplegable.
-2. **Fecha** → elige la fecha de la sesión.
-3. 🆕 **Hora de inicio** / **Hora de fin** (obligatorias) → la duración real de la sesión es la que se te acredita como horas al aprobarse.
-4. 🆕 **Foto de evidencia** (**obligatoria**) → sube una foto de la sesión. El sistema la comprime automáticamente antes de subirla (no necesitas reducirla tú ni preocuparte por el tamaño del archivo de tu celular).
-5. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 3).
-6. 🆕 **Pasantes de este espacio** (Sesión 43) → todos los instructores asignados a tu espacio salen preseleccionados como presentes; desmarca al que no vino ese día. Solo quien queda marcado como presente acredita horas al aprobarse.
-7. 🆕 **Pasante invitado** (Sesión 43, opcional) → si un compañero de **otro** espacio te apoyó puntualmente esa sesión, búscalo en el desplegable y dale "+ Agregar". Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor. 🆕 (Sesión 54) Los invitados solo se justifican según el número de beneficiarios que asistieron ese día — el sistema puede rechazar el registro si el número de invitados no corresponde.
-8. **Observaciones** (opcional) → texto libre.
-9. Clic en **"Guardar Asistencia"**.
+2. 🆕 **Aula** (Sesión 55, solo si tu espacio se divide en subgrupos) → elige tu aula antes de continuar; las listas de beneficiarios/pasantes se acotan a esa aula.
+3. **Fecha** → elige la fecha de la sesión.
+4. 🆕 **Hora de inicio** / **Hora de fin** (obligatorias) → la duración real de la sesión es la que se te acredita como horas al aprobarse.
+5. 🆕 **Foto de evidencia** (**obligatoria**) → sube una foto de la sesión. El sistema la comprime automáticamente antes de subirla (no necesitas reducirla tú ni preocuparte por el tamaño del archivo de tu celular).
+6. **Beneficiarios presentes** → marca con ✅ (checkbox) a cada beneficiario que asistió ese día. ⚠️ **(Sesión 55) La lista ya NO viene marcada por defecto** — antes salía "todos presentes" y solo desmarcabas al ausente; ahora nace vacía y debes marcar tú a cada uno (hay botones "Marcar todos"/"Desmarcar todos" si te sirve). Si no ves a nadie en la lista, primero debes inscribirlo (ver sección 3).
+7. **Pasantes de este espacio** → ⚠️ **(Sesión 55) tampoco vienen preseleccionados** (antes tu propio usuario salía marcado si eras instructor del espacio) — marca a cada titular que sí asistió.
+8. **Pasante invitado** (opcional) → si un compañero de **otro** espacio te apoyó puntualmente esa sesión, búscalo en el desplegable y dale "+ Agregar". Sus horas se acreditan igual que a un instructor titular, tras la aprobación del profesor. Los invitados solo se justifican según el número de beneficiarios que asistieron ese día — el sistema puede rechazar el registro si el número de invitados no corresponde.
+9. **Observaciones** (opcional) → texto libre.
+10. Clic en **"Revisar y Guardar"**.
+
+> 🆕 **Resumen de Validación (Sesión 55):** antes de guardar aparece una ventana con espacio, fecha, horario y cuántos marcaste — revisa y marca "Confirmo que revisé estos datos" para continuar. Si el sistema detecta que se parece mucho a otro registro ya guardado (mismo espacio/día/horario/beneficiarios), te avisa y puedes confirmar igual si es un grupo distinto, o cancelar si es un error tuyo. Si la coincidencia es casi total, **no te deja guardar** — evita un duplicado exacto. También puede desmarcarte automáticamente a un beneficiario si ya está en otro espacio con un horario muy cercano al tuyo.
 
 > 📌 Guarda tú también tus propias fotos de evidencia (celular o correo) — a futuro estas fotos servirán para armar tus informes de vinculación, y tu profesor también las usará para el suyo.
 
@@ -252,4 +255,4 @@ Portal PINE (login con correo institucional)
 ---
 
 **Documento generado:** 2026-09-16, a partir del código real de `carrerapineuleam` (rutas, campos y textos exactos de la interfaz vigente en producción).
-**Última actualización:** 2026-09-16 (Sesión 43 — fusión de registro+Pre-Test y de Post-Test+Encuesta en el panel autenticado, a paridad con lo que ya hacían los QR públicos: `/vinculacion/beneficiarios` + la rama pretest de `/vinculacion/test-mcer` se reemplazaron por `/vinculacion/registrar-evaluar` (un beneficiario nuevo no puede quedar sin Pre-Test, ahora también a nivel de API, no solo de UI); la rama postest de `/vinculacion/test-mcer` se movió a `/vinculacion/evaluacion-final` (Post-Test + Encuesta en un solo envío); `/vinculacion/encuesta` sigue viva solo para el caso suelto de reenviar la encuesta sin MCER. Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor).
+**Última actualización:** 2026-09-27 (Sesión 55 — asistencia: checklists de beneficiarios/pasantes ya NO vienen preseleccionados, hay que marcar cada presente conscientemente; Resumen de Validación con aviso/bloqueo de posible duplicado antes de guardar; selector de aula obligatorio si el espacio se divide en subaulas. Sesión 54 — tope preventivo de invitados según beneficiarios/titulares presentes. Anterior: Sesión 43 — fusión de registro+Pre-Test y de Post-Test+Encuesta en el panel autenticado, a paridad con lo que ya hacían los QR públicos: `/vinculacion/beneficiarios` + la rama pretest de `/vinculacion/test-mcer` se reemplazaron por `/vinculacion/registrar-evaluar` (un beneficiario nuevo no puede quedar sin Pre-Test, ahora también a nivel de API, no solo de UI); la rama postest de `/vinculacion/test-mcer` se movió a `/vinculacion/evaluacion-final` (Post-Test + Encuesta en un solo envío); `/vinculacion/encuesta` sigue viva solo para el caso suelto de reenviar la encuesta sin MCER. Sesión 42 — reordenadas las secciones 3-5: ahora Beneficiarios → Test MCER → Asistencia, refleja el orden real en que un pasante trabaja. Sesión 41 — asistencia con hora inicio/fin, foto **obligatoria** (comprimida automáticamente) y aprobación del profesor).

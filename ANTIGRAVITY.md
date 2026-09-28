@@ -53,7 +53,7 @@ Este repositorio utiliza un enfoque de inteligencia artificial colaborativa.
 - **Tu misión actual:** Mantener esta interoperabilidad entre IA y ayudar al usuario a establecer el proceso de desarrollo conjunto.
 
 ## ⚠️ Reglas de despliegue (auditoría 2026-09-24)
-- El deploy `012d646` falló en Vercel por un error de sintaxis (claves duplicadas en el estado de `app/vinculacion/difusion/page.tsx`) pusheado **sin build**. **Antes de cualquier push con `.ts/.tsx`: `npx tsc --noEmit` y `npm run build` deben pasar.** Después del push, verifica que el deploy quede `READY`.
+- El deploy `012d646` falló en Vercel por un error de sintaxis (claves duplicadas en el estado de `app/vinculacion/difusion/page.tsx`) pusheado **sin build**. **Antes de cualquier push con `.ts/.tsx`: `npx tsc --noEmit` y `npm run build` deben pasar.** Después del push, verifica que el deploy quede `READY`. ⚠️ Si en tu checkout `npx tsc`/`npm run build` no reconocen el comando (`node_modules/.bin` vacío), usa `node node_modules/typescript/bin/tsc --noEmit` y `node node_modules/next/dist/bin/next build` directo — confirmado necesario en Sesión 55 (`npx tsc` corría un binario placeholder y daba "0 errores" falsos sin compilar nada).
 - No versionar `scratch/` (está en `.gitignore`). No poner emails reales ni claves fijas en skills/scripts.
 - Bajo "Ver como" los permisos se evalúan con la identidad suplantada. No ampliar `LIDERES_PROYECTO_EMAILS` ni `modulos_acceso` sin confirmación del usuario.
 - Detalle completo en `CLAUDE.md` → "Auditoría 2026-09-24 y guardrails de despliegue".
@@ -68,3 +68,14 @@ Leer `docs/PLAN_IMPLEMENTACION_ANTIGRAVITY_ADMIN_POR_LIDERES.md` (§15 = registr
 
 ## Sesión 53 (2026-09-27) — aprobación de contenido sin depender solo del administrador
 Leer la sección Sesión 53 de `CLAUDE.md`. Toda vía de aprobación fuera de `contenido_sitio` (supervisor de un pasante, profesor responsable, autoaprobación de un docente sobre su propio registro) pasa por `lib/permisosAprobacionContenido.ts` — no repetir la lógica a mano en cada endpoint. Nuevo: `fotos.calidad` (segunda confirmación aparte de `menores`, nunca bloquea la aprobación de horas del pasante, solo la publicación de la foto), `videos.profesores_responsables`/`actividad_difusion_id`, cola de propuestas para portada (`fotos.propuestas`, distinta de `ubicaciones`), rotación de galerías (`fotos_ubicaciones.rotar`) en vez de tope curado a mano. Pruebas: `scripts/test-fotos-permisos.mjs` (80 casos).
+
+## Sesión 54 (2026-09-27) — tope preventivo de invitados en asistencia
+Leer la sección Sesión 54 de `CLAUDE.md`. `lib/topeInvitadosAsistencia.ts:calcularTopeInvitados()` — techo estructural (no reactivo a un caso puntual) al número de invitados según beneficiarios/titulares presentes, gate en `POST /api/espacios/asistencia` antes del insert. A propósito no se expone el número calculado en ninguna UI.
+
+## Sesión 55 (2026-09-27) — dedupe en tiempo real, checklists conscientes, subaulas, auditoría IA
+Leer la sección Sesión 55 de `CLAUDE.md` (detalle completo de fórmulas y archivos). Puntos clave para no repetir lógica a mano:
+- **Similitud/duplicados:** toda la fórmula vive en `lib/similitudRegistros.ts` (`buscarMasParecido*` + `evaluarGateSimilitud`, umbrales 70%/90% fijos) — un endpoint nuevo (`POST /api/vinculacion/verificar-similitud`) la expone para el frontend, pero el gate real está también dentro de los 3 POST de guardado (asistencia/difusión/beneficiario), como verificación final no bypasseable. Si agregas un 4º flujo de registro con riesgo de duplicado, reusa esas funciones — no reimplementes Levenshtein/Jaccard.
+- **Concurrencia de beneficiario** (`buscarConflictosConcurrenciaAsistencia`, mismo archivo): bloqueo duro sin excepción, distinto del aviso de similitud — no confundir ambos mecanismos.
+- **Subaulas:** tabla `aulas`, gate de permiso es `lib/modulos.ts:puedeGestionarVinculacion` (ya existía, no se creó una función nueva) — si tocas la gestión de espacios/aulas, reusa esa función.
+- **Auditoría IA** (`lib/groqVision.ts`) es puramente informativa — nunca la conviertas en bloqueante ni la uses para negar aprobación de horas.
+- El tope de invitados (Sesión 54) y el gate de similitud/concurrencia (Sesión 55) conviven en el mismo `POST /api/espacios/asistencia`: el tope corre primero (es una regla de negocio dura), el gate de similitud/concurrencia después.
