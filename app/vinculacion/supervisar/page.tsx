@@ -118,6 +118,9 @@ export default function SupervisarAsistenciaPage() {
   const [confirmarMenores, setConfirmarMenores] = useState(false);
   const [confirmarCalidadMala, setConfirmarCalidadMala] = useState(false);
   const [publicandoEnCurso, setPublicandoEnCurso] = useState(false);
+  // Si viene de "Aprobar" del episodio (no de "Publicar en el sitio" suelto): el mismo diálogo
+  // de menores/calidad aprueba las horas pendientes del grupo Y decide la publicación, en un solo paso.
+  const [aprobandoGrupoPodcast, setAprobandoGrupoPodcast] = useState<RegistroPodcast[] | null>(null);
   // Sesión 53: aprobar asistencia también confirma menores/calidad de la foto (no bloquea las
   // horas del pasante — solo decide si la foto se puede usar en web e informes).
   const [confirmandoAsistencia, setConfirmandoAsistencia] = useState<RegistroUnificado | null>(null);
@@ -284,11 +287,31 @@ export default function SupervisarAsistenciaPage() {
   };
 
   // Sesión 53: aprobar y publicar el video (+ actividad asociada) sin pasar por /admin/videos —
-  // aparte de la aprobación de horas, que sigue igual. No bloquea la UI si ya está publicado.
+  // si viene del botón "Aprobar" del episodio (aprobandoGrupoPodcast no nulo), primero aprueba las
+  // horas pendientes de todos los pasantes del grupo y recién después decide la publicación —
+  // un solo diálogo, un solo clic, en vez de aprobar horas y publicar como 2 pasos separados.
   const publicarVideo = async (videoId: string) => {
     setPublicandoEnCurso(true);
     setMessage('');
+    const mensajes: string[] = [];
     try {
+      if (aprobandoGrupoPodcast) {
+        const pendientes = aprobandoGrupoPodcast.filter(r => r.estado !== 'aprobado');
+        for (const reg of pendientes) {
+          try {
+            const resHoras = await fetch(`/api/vinculacion/supervisar-horas/podcast/${reg.horas.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accion: 'aprobar', motivo: '' }),
+            });
+            const dataHoras = await resHoras.json();
+            if (!resHoras.ok) mensajes.push(`Horas de ${reg.horas.nombres} ${reg.horas.apellidos}: ${dataHoras.error}`);
+          } catch (err: any) {
+            mensajes.push(`Horas de ${reg.horas.nombres} ${reg.horas.apellidos}: ${err.message}`);
+          }
+        }
+      }
+
       const res = await fetch(`/api/videos/${videoId}/aprobar`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -296,13 +319,16 @@ export default function SupervisarAsistenciaPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage(data.publicado ? 'Episodio publicado en el sitio.' : (data.mensaje || 'No se publicó.'));
+      mensajes.push(data.publicado ? 'Episodio publicado en el sitio.' : (data.mensaje || 'No se publicó.'));
+      setMessage(mensajes.join(' · '));
       setPublicandoVideoId(null);
+      setAprobandoGrupoPodcast(null);
       setConfirmarMenores(false);
       setConfirmarCalidadMala(false);
       await cargar();
     } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+      mensajes.push(`Error: ${err.message}`);
+      setMessage(mensajes.join(' · '));
     } finally {
       setPublicandoEnCurso(false);
     }
@@ -465,7 +491,14 @@ export default function SupervisarAsistenciaPage() {
         {publicandoVideoId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
             <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-6">
-              <h2 className="text-lg font-bold text-gray-800">Publicar episodio en el sitio</h2>
+              <h2 className="text-lg font-bold text-gray-800">
+                {aprobandoGrupoPodcast ? 'Aprobar horas y publicar episodio' : 'Publicar episodio en el sitio'}
+              </h2>
+              {aprobandoGrupoPodcast && (
+                <p className="text-sm text-gray-600">
+                  Se aprueban las horas de {aprobandoGrupoPodcast.map(g => `${g.horas.nombres} ${g.horas.apellidos}`).join(' y ')} — eso no depende de lo que marques abajo.
+                </p>
+              )}
               <p className="text-sm text-gray-600">Confirma antes de publicar. Si marcas cualquiera de las dos, el episodio no se publica y su foto queda descartada.</p>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-1" checked={confirmarMenores} onChange={(e) => setConfirmarMenores(e.target.checked)} />
@@ -476,9 +509,9 @@ export default function SupervisarAsistenciaPage() {
                 ¿La foto/portada es de mala calidad para la web?
               </label>
               <div className="flex justify-end gap-2">
-                <button onClick={() => { setPublicandoVideoId(null); setConfirmarMenores(false); setConfirmarCalidadMala(false); }} className="rounded border px-4 py-2 text-sm">Cancelar</button>
+                <button onClick={() => { setPublicandoVideoId(null); setAprobandoGrupoPodcast(null); setConfirmarMenores(false); setConfirmarCalidadMala(false); }} className="rounded border px-4 py-2 text-sm">Cancelar</button>
                 <button disabled={publicandoEnCurso} onClick={() => publicarVideo(publicandoVideoId)} className="rounded bg-uleam-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                  {publicandoEnCurso ? 'Guardando…' : (confirmarMenores || confirmarCalidadMala ? 'Descartar foto y no publicar' : 'Publicar')}
+                  {publicandoEnCurso ? 'Guardando…' : (confirmarMenores || confirmarCalidadMala ? 'Aprobar horas y descartar foto' : (aprobandoGrupoPodcast ? 'Aprobar y publicar' : 'Publicar'))}
                 </button>
               </div>
             </div>
@@ -561,13 +594,20 @@ export default function SupervisarAsistenciaPage() {
                           {primero.video_id && primero.video_aprobado_sitio && (
                             <span className="px-3 py-2 text-xs font-semibold text-green-700 text-center">Ya publicado</span>
                           )}
-                          {primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && todosAprobados && (
+                          {/* Sin pendientes: fallback para publicar un episodio cuyas horas ya se aprobaron por otra vía. */}
+                          {primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && !algunoPendiente && todosAprobados && (
                             <button onClick={() => setPublicandoVideoId(primero.video_id!)} className="px-4 py-2 bg-uleam-gold text-uleam-blue text-sm font-semibold rounded-lg hover:brightness-95">Publicar en el sitio</button>
                           )}
-                          {primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && !todosAprobados && (
-                            <span className="px-3 py-2 text-xs text-gray-500 text-center max-w-[10rem]">Aprueba las horas de todos para poder publicar</span>
+                          {algunoPendiente && primero.video_id && !primero.video_aprobado_sitio && primero.puede_publicar && (
+                            <button
+                              onClick={() => { setAprobandoGrupoPodcast(grupo); setPublicandoVideoId(primero.video_id!); }}
+                              disabled={procesandoGrupo}
+                              className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            >
+                              Aprobar{grupo.length > 1 ? ` (${grupo.length})` : ''}
+                            </button>
                           )}
-                          {algunoPendiente && (
+                          {algunoPendiente && (!primero.video_id || primero.video_aprobado_sitio || !primero.puede_publicar) && (
                             <button
                               onClick={() => decidirGrupoPodcast(grupo, 'aprobar')}
                               disabled={procesandoGrupo}
