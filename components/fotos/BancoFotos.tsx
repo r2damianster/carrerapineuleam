@@ -71,6 +71,66 @@ const ETIQUETA_MOTIVO: Record<string, string> = {
 
 const TAMANO_PAGINA = 24;
 
+// Refleja en el cliente lo que cada acción cambia en el servidor (app/api/photos/accion/route.ts),
+// para poder quitar del listado al instante las fotos que dejan de cumplir el filtro activo — sin
+// esperar a que el refetch en segundo plano confirme el mismo resultado.
+function aplicarAccionLocal(foto: FotoBanco, accion: string, ubicaciones: string[]): FotoBanco {
+  switch (accion) {
+    case 'publicar':
+      return { ...foto, ubicaciones: Array.from(new Set([...foto.ubicaciones, ...ubicaciones])), activo: true, propuestas: foto.propuestas.filter((p) => !ubicaciones.includes(p)) };
+    case 'proponer':
+      return { ...foto, propuestas: Array.from(new Set([...foto.propuestas, ...ubicaciones])) };
+    case 'rechazar_propuesta':
+      return { ...foto, propuestas: foto.propuestas.filter((p) => !ubicaciones.includes(p)) };
+    case 'quitar':
+      return { ...foto, ubicaciones: foto.ubicaciones.filter((u) => !ubicaciones.includes(u)) };
+    case 'ocultar':
+      return { ...foto, activo: false };
+    case 'mostrar':
+      return { ...foto, activo: true };
+    case 'descartar':
+      return { ...foto, descartada: true, activo: false, ubicaciones: [] };
+    case 'restaurar':
+      return { ...foto, descartada: false, activo: true };
+    case 'marcar_revisada':
+      return { ...foto, menores: 'no', visibilidad: 'publicable' };
+    case 'marcar_interna':
+      return { ...foto, menores: 'si', visibilidad: 'interna', ubicaciones: [], activo: false };
+    case 'marcar_calidad_aceptable':
+      return { ...foto, calidad: 'aceptable' };
+    case 'marcar_calidad_mala':
+      return { ...foto, calidad: 'mala', activo: false, ubicaciones: [] };
+    default:
+      return foto;
+  }
+}
+
+// Mismo criterio que el WHERE del servidor (app/api/photos/banco/route.ts), aplicado en memoria
+// para decidir si una foto recién modificada sigue perteneciendo al filtro que se está viendo.
+function coincideConFiltros(foto: FotoBanco, filtros: { q: string; origen: string; ubicacion: string; proyecto: string; desde: string; hasta: string; menores: string; estado: string }): boolean {
+  if (filtros.q) {
+    const texto = `${foto.titulo ?? ''} ${foto.descripcion ?? ''}`.toLowerCase();
+    if (!texto.includes(filtros.q.toLowerCase())) return false;
+  }
+  if (filtros.origen && foto.origen !== filtros.origen) return false;
+  if (filtros.ubicacion === 'sin_ubicar') { if (foto.ubicaciones.length > 0) return false; }
+  else if (filtros.ubicacion && !foto.ubicaciones.includes(filtros.ubicacion)) return false;
+  if (filtros.proyecto === 'sin_proyecto') { if (foto.proyectos.length > 0) return false; }
+  else if (filtros.proyecto && !foto.proyectos.includes(filtros.proyecto)) return false;
+  const fecha = (foto.fecha_evento || foto.created || '').slice(0, 10);
+  if (filtros.desde && fecha && fecha < filtros.desde) return false;
+  if (filtros.hasta && fecha && fecha > filtros.hasta) return false;
+  if (filtros.menores && foto.menores !== filtros.menores) return false;
+  switch (filtros.estado) {
+    case 'descartada': return foto.descartada === true;
+    case 'propuesta': return foto.descartada !== true && foto.propuestas.length > 0;
+    case 'publicada': return foto.descartada !== true && foto.activo && foto.ubicaciones.length > 0;
+    case 'sin_ubicar': return foto.descartada !== true && foto.ubicaciones.length === 0;
+    case 'oculta': return foto.descartada !== true && !foto.activo;
+    default: return foto.descartada !== true;
+  }
+}
+
 export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
   const [fotos, setFotos] = useState<FotoBanco[]>([]);
   const [total, setTotal] = useState(0);
@@ -179,11 +239,28 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
         const detalle = Array.isArray(datos.detalle) ? datos.detalle.map((item: any) => item.motivo).join(' · ') : '';
         throw new Error(`${datos.error || 'No se pudo ejecutar la acción'} ${detalle}`.trim());
       }
+      // Actualiza el listado al instante (sin esperar el refetch): aplica el mismo cambio que
+      // acaba de hacer el servidor y quita de la vista lo que ya no cumple el filtro activo.
+      const idsAfectados = seleccionadas;
+      let desaparecidas = 0;
+      setFotos((previas) => previas
+        .map((foto) => idsAfectados.includes(foto.id) ? aplicarAccionLocal(foto, accion, ubicaciones ?? []) : foto)
+        .filter((foto) => {
+          if (!idsAfectados.includes(foto.id)) return true;
+          const sigueCoincidiendo = coincideConFiltros(foto, filtros);
+          if (!sigueCoincidiendo) desaparecidas++;
+          return sigueCoincidiendo;
+        })
+      );
+      setTotal((previo) => Math.max(0, previo - desaparecidas));
+
       const excedidos = (datos.avisos ?? []).filter((aviso: any) => aviso.publicadas > aviso.max_fotos);
       setMensaje(
         excedidos.length > 0
-          ? `Listo. Ojo: ${excedidos.map((aviso: any) => `${nombreUbicacion(aviso.slug)} tiene ${aviso.publicadas} fotos y el sitio mostrará solo las primeras ${aviso.max_fotos}`).join('; ')}.`
-          : 'Listo.'
+          ? `Listo, ${idsAfectados.length} foto(s) actualizada(s). Ojo: ${excedidos.map((aviso: any) => `${nombreUbicacion(aviso.slug)} tiene ${aviso.publicadas} fotos y el sitio mostrará solo las primeras ${aviso.max_fotos}`).join('; ')}.`
+          : desaparecidas > 0
+            ? `Listo, ${idsAfectados.length} foto(s) actualizada(s) — ${desaparecidas} ya no aparece(n) en este filtro.`
+            : `Listo, ${idsAfectados.length} foto(s) actualizada(s).`
       );
       setSeleccionadas([]);
       setUbicacionesParaPublicar([]);
@@ -301,27 +378,40 @@ export default function BancoFotos({ modo, proyectoId }: BancoFotosProps) {
               <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
             </div>
           ) : (
-          <div className="flex flex-wrap gap-2 text-sm">
-            <button type="button" disabled={ubicacionesParaPublicar.length === 0 || seleccionConFuenteSinAprobar} title={seleccionConFuenteSinAprobar ? 'Hay fotos cuya asistencia/evento aún no está aprobado' : undefined} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
-            <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('quitar', ubicacionesParaPublicar)} className="rounded bg-amber-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Quitar de…</button>
-            <button type="button" onClick={() => ejecutarAccion('ocultar')} className="rounded bg-gray-600 px-3 py-1.5 font-semibold text-white">Ocultar</button>
-            <button type="button" onClick={() => ejecutarAccion('mostrar')} className="rounded bg-gray-500 px-3 py-1.5 font-semibold text-white">Mostrar</button>
-            <select aria-label="Motivo del descarte" value={motivoDescarte} onChange={(evento) => setMotivoDescarte(evento.target.value)} className="rounded border bg-white px-2 py-1.5">
-              <option value="">Motivo (opcional)</option>
-              {Object.entries(ETIQUETA_MOTIVO).map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
-            </select>
-            <button type="button" onClick={() => ejecutarAccion('descartar')} className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white">Descartar</button>
-            {!esAdmin && (
-              <button type="button" onClick={() => ejecutarAccion('proponer', ['portada'])} className="rounded bg-uleam-gold px-3 py-1.5 font-semibold text-uleam-blue">Proponer para portada</button>
-            )}
+          <div className="space-y-3 text-sm">
             {esAdmin && (
-              <>
-                <button type="button" onClick={() => ejecutarAccion('marcar_revisada')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">Marcar sin menores (revisada)</button>
-                <button type="button" onClick={() => ejecutarAccion('marcar_interna')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">Marcar con menores (interna)</button>
-                <button type="button" onClick={() => ejecutarAccion('marcar_calidad_aceptable')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">Marcar calidad aceptable</button>
-                <button type="button" onClick={() => ejecutarAccion('marcar_calidad_mala')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">Marcar mala calidad</button>
-              </>
+              <div className="rounded border border-teal-200 bg-white p-2">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-teal-800">Paso 1 · Revisar (menores y calidad) — hazlo antes de publicar</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => ejecutarAccion('marcar_revisada')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">✓ Confirmar sin menores</button>
+                  <button type="button" onClick={() => ejecutarAccion('marcar_interna')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">⚠ Marcar con menores (interna)</button>
+                  <button type="button" onClick={() => ejecutarAccion('marcar_calidad_aceptable')} className="rounded bg-teal-600 px-3 py-1.5 font-semibold text-white">✓ Confirmar calidad aceptable</button>
+                  <button type="button" onClick={() => ejecutarAccion('marcar_calidad_mala')} className="rounded bg-rose-700 px-3 py-1.5 font-semibold text-white">⚠ Marcar mala calidad</button>
+                </div>
+              </div>
             )}
+            <div className="rounded border border-gray-200 bg-white p-2">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700">Paso 2 · Publicación y visibilidad</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" disabled={ubicacionesParaPublicar.length === 0 || seleccionConFuenteSinAprobar} title={seleccionConFuenteSinAprobar ? 'Hay fotos cuya asistencia/evento aún no está aprobado' : undefined} onClick={() => ejecutarAccion('publicar', ubicacionesParaPublicar)} className="rounded bg-green-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Publicar en…</button>
+                <button type="button" disabled={ubicacionesParaPublicar.length === 0} onClick={() => ejecutarAccion('quitar', ubicacionesParaPublicar)} className="rounded bg-amber-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Quitar de…</button>
+                <button type="button" onClick={() => ejecutarAccion('ocultar')} className="rounded bg-gray-600 px-3 py-1.5 font-semibold text-white">Ocultar</button>
+                <button type="button" onClick={() => ejecutarAccion('mostrar')} className="rounded bg-gray-500 px-3 py-1.5 font-semibold text-white">Mostrar</button>
+                {!esAdmin && (
+                  <button type="button" onClick={() => ejecutarAccion('proponer', ['portada'])} className="rounded bg-uleam-gold px-3 py-1.5 font-semibold text-uleam-blue">Proponer para portada</button>
+                )}
+              </div>
+            </div>
+            <div className="rounded border border-red-200 bg-red-50/40 p-2">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-red-800">Descartar (deja de usarse en todo el sitio; se puede restaurar después)</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <select aria-label="Motivo del descarte" value={motivoDescarte} onChange={(evento) => setMotivoDescarte(evento.target.value)} className="rounded border bg-white px-2 py-1.5">
+                  <option value="">Motivo (opcional)</option>
+                  {Object.entries(ETIQUETA_MOTIVO).map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
+                </select>
+                <button type="button" onClick={() => ejecutarAccion('descartar')} className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white">Descartar</button>
+              </div>
+            </div>
             <button type="button" onClick={() => setSeleccionadas([])} className="rounded border px-3 py-1.5">Limpiar selección</button>
           </div>
           )}
