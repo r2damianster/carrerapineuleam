@@ -22,6 +22,9 @@ interface Registro {
   foto_url: string | null;
   foto_descartada?: boolean;
   posibles_duplicados?: number[];
+  auditoria_ia_estado?: 'ok' | 'discrepancia' | 'no_disponible' | 'pendiente' | null;
+  auditoria_ia_conteo_detectado?: number | null;
+  auditoria_ia_conteo_esperado?: number | null;
   estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado';
   motivo_rechazo: string | null;
   registrado_por: number;
@@ -530,6 +533,16 @@ export default function SupervisarAsistenciaPage() {
                       {r.estado_aprobacion !== 'rechazado' && (r.posibles_duplicados?.length ?? 0) > 0 && (
                         <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800" title="Mismo espacio y día, horario cruzado y beneficiarios en común con otro registro no rechazado. Puede ser un grupo distinto: revísalo.">
                           Posible duplicado de {r.posibles_duplicados!.map((idOtro) => `#${idOtro}`).join(', ')}
+                        </span>
+                      )}
+                      {r.auditoria_ia_estado === 'discrepancia' && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-800" title="La IA es solo de apoyo — no invalida el registro por sí sola, revísalo.">
+                          IA: conteo no coincide (detectó {r.auditoria_ia_conteo_detectado}, esperaba {r.auditoria_ia_conteo_esperado})
+                        </span>
+                      )}
+                      {r.auditoria_ia_estado === 'no_disponible' && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                          Auditoría IA no disponible (cuota agotada)
                         </span>
                       )}
                       <span className="font-bold text-gray-800">{r.espacio_nombre}</span>

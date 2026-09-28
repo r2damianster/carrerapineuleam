@@ -14,17 +14,64 @@ const OPCIONES_CATEGORIA = [
 export default function VinculacionEspaciosPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
-  const [usuario, setUsuario] = useState<{ nombres: string; rol: string } | null>(null);
+  const [usuario, setUsuario] = useState<{ nombres: string; rol: string; modulos_acceso?: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [espacios, setEspacios] = useState<any[]>([]);
-  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
+  const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
+  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
 
   const esProfesor = usuario ? ['profesor', 'admin'].includes(usuario.rol) : false;
+  // Solo el líder de Vinculación/superadmin activa y administra subaulas (lib/modulos.ts:puedeGestionarVinculacion).
+  const puedeGestionarAulas = !!usuario?.modulos_acceso?.includes('vinculacion_gestion') || !!usuario?.modulos_acceso?.includes('superadmin');
+
+  const [aulasEspacioId, setAulasEspacioId] = useState<number | null>(null);
+  const [aulas, setAulas] = useState<any[]>([]);
+  const [nombreAulaNueva, setNombreAulaNueva] = useState('');
+
+  const abrirAulas = async (espacioId: number) => {
+    if (aulasEspacioId === espacioId) { setAulasEspacioId(null); return; }
+    setAulasEspacioId(espacioId);
+    const res = await fetch(`/api/espacios/${espacioId}/aulas`);
+    const data = await res.json();
+    if (data.success) setAulas(data.data);
+  };
+
+  const crearAula = async () => {
+    if (!nombreAulaNueva.trim() || !aulasEspacioId) return;
+    const res = await fetch(`/api/espacios/${aulasEspacioId}/aulas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nombreAulaNueva.trim() }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setAulas([...aulas, data.data]);
+      setNombreAulaNueva('');
+    } else {
+      setMessage(`Error: ${data.error}`);
+    }
+  };
+
+  const toggleAulaActiva = async (aulaId: number, activa: boolean) => {
+    if (!aulasEspacioId) return;
+    const res = await fetch(`/api/espacios/${aulasEspacioId}/aulas/${aulaId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activa: !activa }),
+    });
+    const data = await res.json();
+    if (res.ok) setAulas(aulas.map(a => a.id === aulaId ? data.data : a));
+  };
+
+  const eliminarAula = async (aulaId: number) => {
+    if (!aulasEspacioId || !confirm('¿Eliminar esta aula? Las asignaciones que tenga quedan sin aula.')) return;
+    const res = await fetch(`/api/espacios/${aulasEspacioId}/aulas/${aulaId}`, { method: 'DELETE' });
+    if (res.ok) setAulas(aulas.filter(a => a.id !== aulaId));
+  };
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -67,7 +114,7 @@ export default function VinculacionEspaciosPage() {
       });
       if (!res.ok) throw new Error('Error creando espacio');
       setMessage('Espacio creado');
-      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club' });
+      setForm({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false });
       fetchData();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -78,7 +125,7 @@ export default function VinculacionEspaciosPage() {
 
   const empezarEdicion = (e: any) => {
     setEditandoId(e.id);
-    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro' });
+    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro', usa_aulas: !!e.usa_aulas });
   };
 
   const handleGuardarEdicion = async (id: number) => {
@@ -157,6 +204,12 @@ export default function VinculacionEspaciosPage() {
               <option value="">Selecciona Ciclo</option>
               {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
+            {puedeGestionarAulas && (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.usa_aulas} onChange={e => setForm({ ...form, usa_aulas: e.target.checked })} />
+                Este espacio se divide en aulas/subgrupos
+              </label>
+            )}
             <button disabled={loading} className="w-full bg-blue-600 text-white p-2 rounded">Crear Espacio</button>
           </form>
         )}
@@ -182,6 +235,12 @@ export default function VinculacionEspaciosPage() {
                   <select className="w-full px-2 py-1 rounded border border-gray-300" value={editForm.categoria} onChange={ev => setEditForm({ ...editForm, categoria: ev.target.value })}>
                     {OPCIONES_CATEGORIA.map(opcion => <option key={opcion.valor} value={opcion.valor}>Categoría: {opcion.etiqueta}</option>)}
                   </select>
+                  {puedeGestionarAulas && (
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" checked={editForm.usa_aulas} onChange={ev => setEditForm({ ...editForm, usa_aulas: ev.target.checked })} />
+                      Este espacio se divide en aulas/subgrupos
+                    </label>
+                  )}
                   <div className="flex gap-2">
                     <button onClick={() => handleGuardarEdicion(e.id)} disabled={loading} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Guardar</button>
                     <button onClick={() => setEditandoId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm">Cancelar</button>
@@ -197,10 +256,39 @@ export default function VinculacionEspaciosPage() {
                   </Link>
                   {esProfesor && (
                     <div className="flex gap-2 shrink-0 text-sm">
+                      {puedeGestionarAulas && e.usa_aulas && (
+                        <button onClick={() => abrirAulas(e.id)} className="text-uleam-blue hover:underline">Aulas</button>
+                      )}
                       <button onClick={() => empezarEdicion(e)} className="text-blue-600 hover:underline">Editar</button>
                       <button onClick={() => handleEliminar(e.id, e.nombre)} className="text-red-600 hover:underline">Eliminar</button>
                     </div>
                   )}
+                </div>
+              )}
+              {aulasEspacioId === e.id && (
+                <div className="border-t bg-gray-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-600">Aulas de este espacio</p>
+                  {aulas.length === 0 && <p className="text-xs text-gray-400">Todavía no hay aulas.</p>}
+                  {aulas.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between text-sm bg-white border rounded px-2 py-1">
+                      <span className={a.activa ? '' : 'line-through text-gray-400'}>{a.nombre}</span>
+                      <div className="flex gap-2 text-xs">
+                        <button onClick={() => toggleAulaActiva(a.id, a.activa)} className="text-blue-600 hover:underline">
+                          {a.activa ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button onClick={() => eliminarAula(a.id)} className="text-red-600 hover:underline">Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <input
+                      value={nombreAulaNueva}
+                      onChange={(ev) => setNombreAulaNueva(ev.target.value)}
+                      placeholder="Nombre del aula (ej. Aula A)"
+                      className="flex-1 text-sm border rounded px-2 py-1"
+                    />
+                    <button onClick={crearAula} className="text-sm bg-uleam-blue text-white px-3 py-1 rounded">+ Agregar</button>
+                  </div>
                 </div>
               )}
             </li>

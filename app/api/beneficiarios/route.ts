@@ -12,15 +12,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const espacioIdParam = searchParams.get('espacio_id');
+    const aulaIdParam = searchParams.get('aula_id');
 
     const sql = neon(process.env.DATABASE_URL!);
 
     // Con espacio_id: solo los beneficiarios inscritos en ese espacio (requiere
     // ser profesor de vinculación o instructor de ese espacio). Sin espacio_id:
-    // lista global (uso del profesor).
+    // lista global (uso del profesor). Con aula_id además: solo los asignados a esa aula
+    // (espacios con usa_aulas=true) — sin aula_id, todos los del espacio sin filtrar.
     const beneficiarios = espacioIdParam
       ? await (async () => {
           const espacio_id = parseInt(espacioIdParam);
+          const aula_id = aulaIdParam ? parseInt(aulaIdParam) : null;
           if (!(await puedeOperarEspacio(usuario, espacio_id))) {
             return null;
           }
@@ -29,6 +32,7 @@ export async function GET(request: Request) {
             FROM inscripciones_espacio ie
             JOIN usuarios u ON ie.beneficiario_id = u.id
             WHERE ie.espacio_id = ${espacio_id}
+              AND (${aula_id}::int IS NULL OR ie.aula_id = ${aula_id})
             ORDER BY u.nombres ASC
           `;
         })()

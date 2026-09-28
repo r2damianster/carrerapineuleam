@@ -5,6 +5,8 @@ import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
 import { registrarFotoEnBanco } from '@/lib/ingestaFotos';
 import { calcularTopeInvitados } from '@/lib/topeInvitadosAsistencia';
+import { buscarMasParecidoAsistencia, buscarConflictosConcurrenciaAsistencia, evaluarGateSimilitud } from '@/lib/similitudRegistros';
+import { auditarFotoAsistencia } from '@/lib/groqVision';
 
 export async function GET(request: Request) {
   try {
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
       espacio_id, fecha, beneficiarios_presentes, observaciones, hora_inicio, hora_fin, foto_url, foto_public_id,
       instructores_presentes, invitados_presentes,
       hay_menores, // WP5.1 — declaración de menores al subir la foto de evidencia
+      confirmado_similitud, // el pasante confirmó el aviso de similitud 70-89% en el Resumen de Validación
     } = await request.json();
 
     if (!espacio_id || !fecha) {
@@ -79,6 +82,31 @@ export async function POST(request: Request) {
     }
     if (!(await puedeOperarEspacio(usuario, espacio_id))) {
       return NextResponse.json({ error: 'No autorizado en este espacio' }, { status: 403 });
+    }
+
+    // Gate de concurrencia (bloqueo duro, sin excepción) y de similitud (70% aviso / 90% bloqueo) —
+    // mismo criterio que /api/vinculacion/verificar-similitud, para que este POST directo nunca
+    // pueda saltarse el chequeo aunque el frontend no haya llamado a esa verificación previa.
+    const sqlGate = neon(process.env.DATABASE_URL!);
+    const conflictosConcurrencia = await buscarConflictosConcurrenciaAsistencia(sqlGate, {
+      espacioId: Number(espacio_id), fecha, horaInicio: hora_inicio, horaFin: hora_fin,
+      beneficiarios: (beneficiarios_presentes as number[]).map(Number),
+    });
+    if (conflictosConcurrencia.length > 0) {
+      return NextResponse.json({
+        error: 'Uno o más beneficiarios ya están registrados en otro espacio con un horario muy cercano',
+        codigo: 'CONFLICTO_CONCURRENCIA',
+        conflictos_concurrencia: conflictosConcurrencia,
+      }, { status: 409 });
+    }
+    const personalApoyo = [...titulares, ...invitados];
+    const similitud = await buscarMasParecidoAsistencia(sqlGate, {
+      espacioId: Number(espacio_id), fecha, horaInicio: hora_inicio, horaFin: hora_fin,
+      beneficiarios: (beneficiarios_presentes as number[]).map(Number), personalApoyo,
+    });
+    const codigoGate = evaluarGateSimilitud(similitud, confirmado_similitud === true);
+    if (codigoGate !== 'OK') {
+      return NextResponse.json({ error: 'Este registro parece duplicado', codigo: codigoGate, similitud }, { status: 409 });
     }
 
     // Ventana de 48h: no se puede registrar asistencia de un día futuro ni de más de 2 días atrás
@@ -179,6 +207,22 @@ export async function POST(request: Request) {
         hayMenores: hay_menores === true,
         esExterno: false,
       });
+    }
+
+    // Auditoría IA de la foto (punto 5) — SIEMPRE post-commit, nunca bloquea ni revierte
+    // el registro ya guardado. auditarFotoAsistencia() nunca lanza (ver lib/groqVision.ts).
+    if (foto_url && asistenciaId !== null) {
+      const conteoEsperado = (beneficiarios_presentes as number[]).length + titulares.length + invitados.length;
+      const resultado = await auditarFotoAsistencia(foto_url, conteoEsperado);
+      try {
+        const sqlAuditoria = neon(process.env.DATABASE_URL!);
+        await sqlAuditoria`
+          UPDATE asistencia_espacio SET
+            auditoria_ia_estado = ${resultado.estado},
+            auditoria_ia_conteo_detectado = ${resultado.conteoDetectado},
+            auditoria_ia_conteo_esperado = ${conteoEsperado}
+          WHERE id = ${asistenciaId}`;
+      } catch { /* la auditoría es best-effort: nunca debe romper la respuesta */ }
     }
 
     // Aviso (NO bloquea): otras asistencias no rechazadas del mismo espacio y día, con horario que se cruza y

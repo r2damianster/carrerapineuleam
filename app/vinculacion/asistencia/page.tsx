@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ResumenValidacionModal from '@/components/ResumenValidacionModal';
 
 const FOTO_MAX_DIMENSION = 1600;
 const FOTO_CALIDAD = 0.7;
@@ -60,6 +61,11 @@ export default function AsistenciaPage() {
   const [espacioId, setEspacioId] = useState('');
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [presentes, setPresentes] = useState<number[]>([]);
+  // Subaulas (punto 3, opt-in por espacio): solo aparece el selector si el espacio elegido las usa.
+  const [aulas, setAulas] = useState<any[]>([]);
+  const [aulaId, setAulaId] = useState('');
+  const espacioSeleccionado = espacios.find((e) => String(e.id) === espacioId);
+  const usaAulas = !!espacioSeleccionado?.usa_aulas;
   const [instructoresTitulares, setInstructoresTitulares] = useState<any[]>([]);
   const [presentesInstructores, setPresentesInstructores] = useState<number[]>([]);
   const [pasantesTodos, setPasantesTodos] = useState<any[]>([]);
@@ -83,6 +89,11 @@ export default function AsistenciaPage() {
   // Posibles duplicados (ids de otras asistencias); si hay, no se redirige solo para que se alcance a leer el aviso.
   const [posiblesDuplicados, setPosiblesDuplicados] = useState<number[]>([]);
 
+  // Resumen de Validación (punto 2) — se abre tras verificar similitud/concurrencia, antes de guardar.
+  const [mostrarResumen, setMostrarResumen] = useState(false);
+  const [similitud, setSimilitud] = useState<{ porcentaje: number; candidatoId: number } | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (enviadoExitoso && posiblesDuplicados.length > 0) {
@@ -101,7 +112,7 @@ export default function AsistenciaPage() {
     setConteo(5);
     setMessage('');
     setPresentes([]);
-    setPresentesInstructores(instructoresTitulares.map((i: any) => i.id));
+    setPresentesInstructores([]);
     setInvitados([]);
     setObservaciones('');
     setHoraInicio('');
@@ -137,6 +148,18 @@ export default function AsistenciaPage() {
       .catch(() => router.push('/portal/login?redirect=/vinculacion/asistencia'));
   }, [router]);
 
+  // Al cambiar de espacio: resetea el aula elegida y trae la lista de aulas (si el espacio las usa).
+  useEffect(() => {
+    setAulaId('');
+    if (!espacioId || !usaAulas) {
+      setAulas([]);
+      return;
+    }
+    fetch(`/api/espacios/${espacioId}/aulas`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setAulas(d.data.filter((a: any) => a.activa)); });
+  }, [espacioId, usaAulas]);
+
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
@@ -144,31 +167,30 @@ export default function AsistenciaPage() {
       setInvitados([]);
       return;
     }
-    fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
+    // Si el espacio usa aulas, se espera a que se elija una antes de traer los checklists.
+    if (usaAulas && !aulaId) {
+      setBeneficiarios([]);
+      setInstructoresTitulares([]);
+      return;
+    }
+    // Checklists nacen desmarcadas a propósito (punto 2: selección consciente, no "todos
+    // presentes por defecto") — quien registra debe marcar explícitamente a cada presente.
+    setPresentes([]);
+    const filtroAula = aulaId ? `&aula_id=${aulaId}` : '';
+    fetch(`/api/beneficiarios?espacio_id=${espacioId}${filtroAula}`)
       .then(r => r.json())
       .then(d => {
-        if (d.success) {
-          setBeneficiarios(d.data);
-          setPresentes(d.data.map((b: any) => b.id));
-        }
+        if (d.success) setBeneficiarios(d.data);
       });
-    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+    setPresentesInstructores([]);
+    fetch(`/api/espacios/instructores?espacio_id=${espacioId}${filtroAula}`)
       .then(r => r.json())
       .then(d => {
-        if (d.success) {
-          setInstructoresTitulares(d.data);
-          // Pre-seleccionar ÚNICAMENTE al usuario actualmente logueado si es instructor de este espacio
-          const miIdEnInstructores = usuarioActualId && d.data.some((i: any) => i.id === usuarioActualId);
-          if (miIdEnInstructores) {
-            setPresentesInstructores([usuarioActualId]);
-          } else {
-            setPresentesInstructores([]);
-          }
-        }
+        if (d.success) setInstructoresTitulares(d.data);
       });
     setInvitados([]);
     setInvitadoSeleccion('');
-  }, [espacioId, usuarioActualId]);
+  }, [espacioId, usaAulas, aulaId]);
 
   const pasantesInvitables = pasantesTodos.filter(
     (p) => !instructoresTitulares.some((i) => i.id === p.id) && !invitados.includes(p.id)
@@ -180,10 +202,16 @@ export default function AsistenciaPage() {
     setInvitadoSeleccion('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Fase 1: valida localmente y verifica similitud/concurrencia contra el servidor.
+  // No sube la foto todavía — eso solo pasa si el usuario confirma en el modal (fase 2).
+  const handleVerificar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!espacioId) {
       setMessage('Error: Selecciona un espacio');
+      return;
+    }
+    if (usaAulas && !aulaId) {
+      setMessage('Error: Selecciona tu aula');
       return;
     }
     if (presentes.length === 0) {
@@ -205,8 +233,52 @@ export default function AsistenciaPage() {
     setLoading(true);
     setMessage('');
     try {
+      const res = await fetch('/api/vinculacion/verificar-similitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'asistencia',
+          datos: {
+            espacio_id: parseInt(espacioId),
+            fecha,
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            beneficiarios_presentes: presentes,
+            instructores_presentes: presentesInstructores,
+            invitados_presentes: invitados,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Bloqueo duro de concurrencia (punto 3): se desmarca automáticamente, sin opción de forzar.
+      if (Array.isArray(data.conflictos_concurrencia) && data.conflictos_concurrencia.length > 0) {
+        const idsConflicto = data.conflictos_concurrencia.map((c: any) => c.beneficiarioId);
+        setPresentes((prev) => prev.filter((id) => !idsConflicto.includes(id)));
+        const detalle = data.conflictos_concurrencia
+          .map((c: any) => `${c.nombre} (ya en "${c.espacioNombre}" ${c.horaInicio}-${c.horaFin})`)
+          .join('; ');
+        setMessage(`Se desmarcó automáticamente a: ${detalle}. Ya están registrados en otro espacio con un horario muy cercano.`);
+        return;
+      }
+
+      setSimilitud(data.similitud ?? null);
+      setMostrarResumen(true);
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fase 2: el usuario confirmó en el Resumen de Validación — recién ahí se sube la foto y se guarda.
+  const guardarDefinitivo = async () => {
+    setGuardando(true);
+    setMessage('');
+    try {
       setSubiendoFoto(true);
-      const fotoComprimida = await comprimirImagen(foto);
+      const fotoComprimida = await comprimirImagen(foto!);
       const formData = new FormData();
       formData.append('file', fotoComprimida);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
@@ -231,20 +303,33 @@ export default function AsistenciaPage() {
           foto_url: fotoUrl,
           foto_public_id: fotoPublicId,
           hay_menores: hayMenores,
+          confirmado_similitud: true,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setPosiblesDuplicados(Array.isArray(data.posibles_duplicados) ? data.posibles_duplicados : []);
+      setMostrarResumen(false);
       setEnviadoExitoso(true);
       setConteo(5);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
+      setMostrarResumen(false);
     } finally {
-      setLoading(false);
+      setGuardando(false);
       setSubiendoFoto(false);
     }
   };
+
+  const espacioNombre = espacios.find((e) => String(e.id) === espacioId)?.nombre ?? '';
+  const filasResumen = [
+    { label: 'Espacio', value: espacioNombre },
+    { label: 'Fecha', value: fecha },
+    { label: 'Horario', value: `${horaInicio} - ${horaFin}` },
+    { label: 'Beneficiarios presentes', value: String(presentes.length) },
+    { label: 'Pasantes titulares presentes', value: String(presentesInstructores.length) },
+    { label: 'Pasantes invitados', value: String(invitados.length) },
+  ];
 
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
@@ -311,7 +396,7 @@ export default function AsistenciaPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleVerificar} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Espacio</label>
             <select required value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue">
@@ -319,6 +404,16 @@ export default function AsistenciaPage() {
               {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select>
           </div>
+
+          {usaAulas && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Aula</label>
+              <select required value={aulaId} onChange={e => setAulaId(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue">
+                <option value="">Selecciona tu aula...</option>
+                {aulas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
@@ -446,10 +541,22 @@ export default function AsistenciaPage() {
           </div>
 
           <button type="submit" disabled={loading} className="w-full px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 transition disabled:opacity-50">
-            {subiendoFoto ? 'Subiendo foto...' : loading ? 'Guardando...' : 'Guardar Asistencia'}
+            {loading ? 'Verificando...' : 'Revisar y Guardar'}
           </button>
         </form>
       </div>
+
+      {mostrarResumen && (
+        <ResumenValidacionModal
+          titulo="Resumen de la asistencia"
+          filas={filasResumen}
+          similitud={similitud}
+          bloqueado={similitud !== null && similitud.porcentaje >= 90}
+          confirmando={guardando || subiendoFoto}
+          onConfirmar={guardarDefinitivo}
+          onCancelar={() => setMostrarResumen(false)}
+        />
+      )}
     </div>
   );
 }

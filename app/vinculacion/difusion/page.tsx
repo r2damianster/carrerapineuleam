@@ -8,6 +8,7 @@ import SelectorParticipantesPodcast from '@/components/SelectorParticipantesPodc
 import EnlaceDifusionModal from '@/components/EnlaceDifusionModal';
 import EnlacesDifusionList from '@/components/EnlacesDifusionList';
 import SelectorProyectosEvento from '@/components/SelectorProyectosEvento';
+import ResumenValidacionModal from '@/components/ResumenValidacionModal';
 
 export default function DifusionPage() {
   const router = useRouter();
@@ -72,6 +73,11 @@ export default function DifusionPage() {
   const [sinProyectosAsignables, setSinProyectosAsignables] = useState(false);
   const [hayMenores, setHayMenores] = useState(false);
 
+  // Resumen de Validación (punto 1/2) — solo se abre si hay similitud >= 70%; por debajo, se guarda directo.
+  const [mostrarResumen, setMostrarResumen] = useState(false);
+  const [similitud, setSimilitud] = useState<{ porcentaje: number; candidatoId: number } | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -118,7 +124,7 @@ export default function DifusionPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleVerificar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
       setMessage('Error: Es obligatorio subir una evidencia gráfica');
@@ -139,7 +145,43 @@ export default function DifusionPage() {
 
     setLoading(true);
     setMessage('');
+    try {
+      const res = await fetch('/api/vinculacion/verificar-similitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'difusion',
+          datos: {
+            titulo: formData.titulo,
+            tipo_actividad: formData.tipo,
+            categoria: formData.categoria,
+            fecha: formData.fecha,
+            hora: formData.hora,
+            proyectos: proyectosEvento,
+            profesores_responsables: responsables,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (data.similitud && data.similitud.porcentaje >= 70) {
+        setSimilitud(data.similitud);
+        setMostrarResumen(true);
+        setLoading(false);
+        return;
+      }
+      await guardarDefinitivo(false);
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+      setLoading(false);
+    }
+  };
 
+  // confirmado: viene true cuando se llama desde el modal (similitud 70-89% ya revisada).
+  const guardarDefinitivo = async (confirmado: boolean) => {
+    if (!file) return;
+    setGuardando(true);
+    setMessage('');
     try {
       // 1. Subir evidencia a Cloudinary
       const uploadData = new FormData();
@@ -166,6 +208,7 @@ export default function DifusionPage() {
         profesores_responsables: responsables,
         proyectos: proyectosEvento,
         hay_menores: hayMenores,
+        confirmado_similitud: confirmado,
         ...(video ? {
           youtube_video_id: video.youtubeVideoId,
           video_category: video.categoryId,
@@ -202,11 +245,15 @@ export default function DifusionPage() {
       setParticipantes([]);
       setInvitadosInternos([]);
       setInvitadosExternos([]);
+      setMostrarResumen(false);
+      setSimilitud(null);
 
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
+      setMostrarResumen(false);
     } finally {
       setLoading(false);
+      setGuardando(false);
     }
   };
 
@@ -241,7 +288,7 @@ export default function DifusionPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleVerificar} className="space-y-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
@@ -391,17 +438,34 @@ export default function DifusionPage() {
           </div>
 
           <div className="pt-6">
-            <button 
-              type="submit" 
-              disabled={loading || sinProyectosAsignables}
+            <button
+              type="submit"
+              disabled={loading || guardando || sinProyectosAsignables}
               className="w-full flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {loading ? 'Subiendo Evidencia y Registrando...' : 'Registrar Actividad de Difusión'}
+              {guardando ? 'Subiendo Evidencia y Registrando...' : loading ? 'Verificando...' : 'Registrar Actividad de Difusión'}
             </button>
           </div>
         </form>
       </div>
       {mostrarModalEnlace && <EnlaceDifusionModal onClose={() => setMostrarModalEnlace(false)} />}
+
+      {mostrarResumen && (
+        <ResumenValidacionModal
+          titulo="Resumen de la actividad"
+          filas={[
+            { label: 'Título', value: formData.titulo },
+            { label: 'Tipo', value: formData.tipo },
+            { label: 'Categoría', value: formData.categoria },
+            { label: 'Fecha', value: formData.fecha },
+          ]}
+          similitud={similitud}
+          bloqueado={similitud !== null && similitud.porcentaje >= 90}
+          confirmando={guardando}
+          onConfirmar={() => guardarDefinitivo(true)}
+          onCancelar={() => setMostrarResumen(false)}
+        />
+      )}
     </div>
   );
 }

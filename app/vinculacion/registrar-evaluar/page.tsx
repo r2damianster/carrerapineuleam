@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
+import ResumenValidacionModal from '@/components/ResumenValidacionModal';
 
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
@@ -35,6 +36,11 @@ export default function RegistrarEvaluarPage() {
   const [enviadoExitoso, setEnviadoExitoso] = useState(false);
   const [conteo, setConteo] = useState(6);
   const [resultadoResumen, setResultadoResumen] = useState<{ nombre: string; score: number; level: string } | null>(null);
+
+  // Resumen de Validación (punto 1/2) — solo se abre si hay similitud >= 70%; por debajo, se guarda directo.
+  const [mostrarResumen, setMostrarResumen] = useState(false);
+  const [similitud, setSimilitud] = useState<{ porcentaje: number; candidatoId: number } | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -123,7 +129,7 @@ export default function RegistrarEvaluarPage() {
     }
   };
 
-  const handleNuevo = async (e: React.FormEvent) => {
+  const handleVerificar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!espacioId) {
       setMessage('Error: Selecciona un espacio');
@@ -138,6 +144,41 @@ export default function RegistrarEvaluarPage() {
       return;
     }
     setLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/vinculacion/verificar-similitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'beneficiario',
+          datos: {
+            espacio_id: parseInt(espacioId),
+            nombres: nuevoForm.nombres,
+            apellidos: nuevoForm.apellidos,
+            edad: nuevoForm.edad ? Number(nuevoForm.edad) : null,
+            email: nuevoForm.email,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (data.similitud && data.similitud.porcentaje >= 70) {
+        setSimilitud(data.similitud);
+        setMostrarResumen(true);
+        setLoading(false);
+        return;
+      }
+      await guardarDefinitivo(false);
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+      window.scrollTo(0, 0);
+      setLoading(false);
+    }
+  };
+
+  // confirmado: true cuando se llama desde el modal (similitud 70-89% ya revisada).
+  const guardarDefinitivo = async (confirmado: boolean) => {
+    setGuardando(true);
     setMessage('');
     try {
       let evidencia_url = '';
@@ -162,6 +203,7 @@ export default function RegistrarEvaluarPage() {
           puntaje_obtenido: resultado.score,
           nivel_asignado: resultado.level,
           evidencia_url,
+          confirmado_similitud: confirmado,
         }),
       });
       const data = await res.json();
@@ -172,15 +214,18 @@ export default function RegistrarEvaluarPage() {
         score: resultado.score,
         level: resultado.level,
       });
+      setMostrarResumen(false);
       setEnviadoExitoso(true);
       setConteo(6);
       fetch(`/api/beneficiarios?espacio_id=${espacioId}`).then(r => r.json()).then(d => { if (d.success) setInscritos(d.data); });
       window.scrollTo(0, 0);
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
+      setMostrarResumen(false);
       window.scrollTo(0, 0);
     } finally {
       setLoading(false);
+      setGuardando(false);
     }
   };
 
@@ -313,7 +358,7 @@ export default function RegistrarEvaluarPage() {
         )}
 
         {modo === 'nuevo' && (
-          <form onSubmit={handleNuevo} className="space-y-8">
+          <form onSubmit={handleVerificar} className="space-y-8">
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-uleam-blue">1. Datos del Beneficiario</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -414,13 +459,29 @@ export default function RegistrarEvaluarPage() {
             </div>
 
             <div className="pt-4 border-t">
-              <button type="submit" disabled={loading} className="w-full md:w-auto md:px-12 mx-auto flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
-                {loading ? 'Registrando y calculando...' : 'Registrar y Evaluar Beneficiario'}
+              <button type="submit" disabled={loading || guardando} className="w-full md:w-auto md:px-12 mx-auto flex justify-center py-3 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
+                {guardando ? 'Registrando y calculando...' : loading ? 'Verificando...' : 'Registrar y Evaluar Beneficiario'}
               </button>
             </div>
           </form>
         )}
       </div>
+
+      {mostrarResumen && (
+        <ResumenValidacionModal
+          titulo="Resumen del beneficiario"
+          filas={[
+            { label: 'Nombre', value: `${nuevoForm.nombres} ${nuevoForm.apellidos}` },
+            { label: 'Espacio', value: espacios.find((e) => String(e.id) === espacioId)?.nombre ?? '' },
+            { label: 'Edad', value: nuevoForm.edad || '—' },
+          ]}
+          similitud={similitud}
+          bloqueado={similitud !== null && similitud.porcentaje >= 90}
+          confirmando={guardando}
+          onConfirmar={() => guardarDefinitivo(true)}
+          onCancelar={() => setMostrarResumen(false)}
+        />
+      )}
     </div>
   );
 }
