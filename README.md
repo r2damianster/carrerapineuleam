@@ -2,8 +2,8 @@
 
 Sitio público del proyecto de Innovaciones Pedagógicas e Internacionalización de la Universidad Laica Eloy Alfaro de Manabí (ULEAM), junto con el **Portal PINE** — el sistema operativo interno para docencia, vinculación e investigación de la carrera.
 
-**Versión:** 0.12.12
-**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅ — Dedupe en tiempo real, subaulas y auditoría IA de asistencia ✅
+**Versión:** 0.12.13
+**Estado:** Sitio público funcional ✅ — Portal PINE (Neon) construido y desplegado ✅ — Confirmación visual & Redirección en Formularios ✅ — Módulo Superadmin con 'Ver como' (Impersonar) ✅ — Panel de Indicadores & Supervisión ✅ — i18n ES/EN completo ✅ — Dedupe en tiempo real, subaulas y auditoría IA de asistencia ✅ — Informe Semestral del Supervisor (antes "mensual"), entidad beneficiaria por espacio y redacción con IA de actividades no previstas ✅
 **Tech Stack:** Next.js 14 (App Router) + TypeScript + TailwindCSS + Neon (Postgres Serverless) + Cloudinary
 **Sitio en producción:** https://carrerapineuleam.vercel.app
 **Repositorio:** https://github.com/r2damianster/carrerapineuleam.git
