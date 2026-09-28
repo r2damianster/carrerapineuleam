@@ -357,9 +357,11 @@ export async function datosInformeSupervisor(
       tarea: `Sesión en ${sesion.espacio_nombre} (${sesion.fecha})`,
       avance: 100,
       alumnos: sesion.pasantes ?? 0,
-      productos_sociales: `${sesion.beneficiarios_atendidos ?? 0} beneficiarios atendidos`,
+      // Vacíos a propósito (igual que las tareas de 2.2): la IA los redacta a partir de
+      // `observaciones`, que incluye lo que el pasante escribió al registrar la sesión.
+      productos_sociales: '',
       productos_academicos: '',
-      observaciones: [`${sesion.horas_acreditadas ?? 0} h`, sesion.observaciones].filter(Boolean).join('. '),
+      observaciones: [`${sesion.horas_acreditadas ?? 0} h`, `${sesion.beneficiarios_atendidos ?? 0} beneficiarios atendidos`, sesion.observaciones].filter(Boolean).join('. '),
     })),
     ...registradasAMano.map((actividad: any) => ({ ...actividad, manual: true })),
   ];

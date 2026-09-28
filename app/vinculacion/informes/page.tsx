@@ -520,14 +520,26 @@ function InformesVinculacionContenido() {
                   Se incluyen solas las sesiones aprobadas en espacios de categoría «otro». Aquí puedes agregar las que se incorporaron durante la ejecución del proyecto.
                 </p>
                 {datosSupervisor.no_previstas?.length > 0 && (
-                  <ul className="text-xs text-gray-700 space-y-1 mb-3">
+                  <div className="space-y-2 mb-3">
                     {datosSupervisor.no_previstas.map((actividad: any, indiceActividad: number) => (
-                      <li key={actividad.id ?? `auto-${indiceActividad}`} className="flex items-start justify-between gap-2 bg-gray-50 border rounded p-2">
-                        <span><strong>{actividad.tarea}</strong> · {actividad.avance}% · {actividad.alumnos} estudiante(s){actividad.observaciones ? ` · ${actividad.observaciones}` : ''}</span>
-                        {actividad.manual && <button type="button" onClick={() => eliminarNoPrevista(actividad.id)} className="text-red-600 hover:underline shrink-0">Eliminar</button>}
-                      </li>
+                      <div key={actividad.id ?? `auto-${indiceActividad}`} className="bg-gray-50 border rounded p-2 space-y-2">
+                        <div className="flex items-start justify-between gap-2 text-xs text-gray-700">
+                          <span><strong>{actividad.tarea}</strong> · {actividad.avance}% · {actividad.alumnos} estudiante(s){actividad.observaciones ? ` · ${actividad.observaciones}` : ''}</span>
+                          {actividad.manual && <button type="button" onClick={() => eliminarNoPrevista(actividad.id)} className="text-red-600 hover:underline shrink-0">Eliminar</button>}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-0.5">Productos (fines sociales)</label>
+                            <textarea rows={2} value={actividad.productos_sociales || ''} onChange={e => actualizarNoPrevista(indiceActividad, { productos_sociales: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-0.5">Productos (fines académicos)</label>
+                            <textarea rows={2} value={actividad.productos_academicos || ''} onChange={e => actualizarNoPrevista(indiceActividad, { productos_academicos: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
                 <form onSubmit={agregarNoPrevista} className="bg-gray-50 p-3 rounded-lg border space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
