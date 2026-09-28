@@ -44,6 +44,7 @@ interface Avance {
   beneficiariosDetalle?: BeneficiarioDetalle[];
   resenas?: Resena[];
   metaHoras?: number;
+  topesHoras?: { asistencia: number | null; autonomas: number | null; investigacion: number | null; podcast: number | null; meta: number };
 }
 
 function Tile({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
@@ -73,6 +74,12 @@ export default function MiAvancePage() {
   const metaHoras = avance?.metaHoras || 96;
   const porcentajeMeta = Math.min(100, Math.round((totalHorasAprobadas / metaHoras) * 100));
 
+  // Un pasante con tope 0 en un tipo (ej. perfil "Solo Podcast": asistencia=0) no opera ese tipo —
+  // mostrarle asistencia/beneficiarios en 0 confunde, no informa. Sin dato de topes (aún cargando o
+  // API vieja) se asume habilitado, para no ocultar nada por error.
+  const asistenciaHabilitada = avance?.topesHoras ? avance.topesHoras.asistencia !== 0 : true;
+  const podcastHabilitado = avance?.topesHoras ? avance.topesHoras.podcast !== 0 : true;
+
   return (
     <>
       <Header />
@@ -93,14 +100,23 @@ export default function MiAvancePage() {
               </p>
             </div>
 
-            {/* Quick Action Buttons */}
+            {/* Quick Action Buttons — solo las acciones del tipo de horas habilitado para este pasante */}
             <div className="flex flex-wrap gap-2">
-              <Link href="/vinculacion/asistencia" className="bg-uleam-blue hover:bg-blue-900 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
-                <span>📋 Tomar Asistencia Hoy</span>
-              </Link>
-              <Link href="/vinculacion/registrar-evaluar" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
-                <span>+ Evaluar Beneficiario</span>
-              </Link>
+              {asistenciaHabilitada && (
+                <>
+                  <Link href="/vinculacion/asistencia" className="bg-uleam-blue hover:bg-blue-900 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                    <span>📋 Tomar Asistencia Hoy</span>
+                  </Link>
+                  <Link href="/vinculacion/registrar-evaluar" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                    <span>+ Evaluar Beneficiario</span>
+                  </Link>
+                </>
+              )}
+              {podcastHabilitado && (
+                <Link href="/vinculacion/difusion" className="bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                  <span>🎙 Registrar Podcast</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -157,8 +173,8 @@ export default function MiAvancePage() {
                       <div className="bg-emerald-400 h-3 rounded-full transition-all duration-500" style={{ width: `${porcentajeMeta}%` }}></div>
                     </div>
                     <div className="flex justify-between text-[11px] text-slate-300 mt-2">
-                      <span>🎓 Asistencia: {avance.horasAsistencia.total}h</span>
-                      <span>🎙 Podcasts: {avance.horasPodcast.total}h</span>
+                      {asistenciaHabilitada && <span>🎓 Asistencia: {avance.horasAsistencia.total}h</span>}
+                      {podcastHabilitado && <span>🎙 Podcasts: {avance.horasPodcast.total}h</span>}
                     </div>
                   </div>
                 </div>
@@ -166,18 +182,30 @@ export default function MiAvancePage() {
 
               {/* High level KPIs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Tile
-                  label="👥 Beneficiarios en tu Espacio"
-                  value={avance.beneficiarios}
-                  sub={avance.espacios.map((e) => e.nombre).join(', ') || 'Sin espacio asignado'}
-                  color="border-blue-500"
-                />
-                <Tile
-                  label="🎓 Asistencias Dictadas"
-                  value={`${avance.horasAsistencia.total} h`}
-                  sub={`${avance.horasAsistencia.sesiones} sesiones aprobadas (${avance.horasAsistencia.sesionesPendientes} pend.)`}
-                  color="border-teal-500"
-                />
+                {asistenciaHabilitada && (
+                  <Tile
+                    label="👥 Beneficiarios en tu Espacio"
+                    value={avance.beneficiarios}
+                    sub={avance.espacios.map((e) => e.nombre).join(', ') || 'Sin espacio asignado'}
+                    color="border-blue-500"
+                  />
+                )}
+                {asistenciaHabilitada && (
+                  <Tile
+                    label="🎓 Asistencias Dictadas"
+                    value={`${avance.horasAsistencia.total} h`}
+                    sub={`${avance.horasAsistencia.sesiones} sesiones aprobadas (${avance.horasAsistencia.sesionesPendientes} pend.)`}
+                    color="border-teal-500"
+                  />
+                )}
+                {podcastHabilitado && (
+                  <Tile
+                    label="🎙 Horas de Podcast"
+                    value={`${avance.horasPodcast.total} h`}
+                    sub={`${avance.horasPodcast.episodios} episodios aprobados (${avance.horasPodcast.episodiosPendientes} pend.)`}
+                    color="border-purple-500"
+                  />
+                )}
                 {avance.horasAutonomas && avance.horasAutonomas.maximo > 0 && (
                   <Tile
                     label="🛠 Horas Autónomas"
@@ -200,7 +228,12 @@ export default function MiAvancePage() {
                 />
               </div>
 
-              {/* Beneficiary Roster & Pedagogical Progress in Pasante's Space */}
+              {/* Beneficiary Roster & Pedagogical Progress in Pasante's Space — no aplica a un pasante de Podcast (no tiene beneficiarios propios). */}
+              {!asistenciaHabilitada ? (
+                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6 text-sm text-purple-900">
+                  Tu actividad de Vinculación es <strong>Podcast</strong> — no tienes beneficiarios ni Tests MCER a cargo. Tus horas acreditables salen de los episodios que registres en "🎙 Registrar Podcast" y que apruebe tu supervisor.
+                </div>
+              ) : (
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
                   <div>
@@ -279,6 +312,7 @@ export default function MiAvancePage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Beneficiary Feedback / Survey Comments */}
               {avance.resenas && avance.resenas.length > 0 && (
@@ -304,15 +338,19 @@ export default function MiAvancePage() {
 
               {/* Quick Links Footer */}
               <div className="flex flex-wrap gap-3 pt-2">
-                <Link href="/vinculacion/registrar-evaluar" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
-                  » Registrar y evaluar beneficiario
-                </Link>
-                <Link href="/vinculacion/asistencia" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
-                  » Asistencia diaria
-                </Link>
-                <Link href="/vinculacion/evaluacion-final" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
-                  » Evaluación final y encuestas
-                </Link>
+                {asistenciaHabilitada && (
+                  <>
+                    <Link href="/vinculacion/registrar-evaluar" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
+                      » Registrar y evaluar beneficiario
+                    </Link>
+                    <Link href="/vinculacion/asistencia" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
+                      » Asistencia diaria
+                    </Link>
+                    <Link href="/vinculacion/evaluacion-final" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
+                      » Evaluación final y encuestas
+                    </Link>
+                  </>
+                )}
                 <Link href="/vinculacion/difusion" className="text-xs text-blue-600 font-semibold hover:underline bg-white px-3 py-2 rounded-lg border border-slate-200">
                   » Registrar podcast o difusión
                 </Link>
