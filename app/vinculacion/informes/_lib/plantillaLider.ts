@@ -25,7 +25,7 @@ import {
   descargarFoto,
 } from './plantillaSupervisor';
 
-const RUTA_PLANTILLA = path.join(process.cwd(), 'app', 'vinculacion', 'informes', '_templates', 'informe-lider.docx');
+const RUTA_PLANTILLA = path.join(process.cwd(), 'templates', 'informe-vinculacion-lider-semestral.docx');
 const NS =
   'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
   'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +

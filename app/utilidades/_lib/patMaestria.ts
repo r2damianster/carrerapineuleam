@@ -59,7 +59,7 @@ function generarPat03(datos: DatosPats): Buffer {
     TutorFirma: datos.tutor,
   };
   datos.temas.forEach((t, i) => { ctx[`t${i + 1}`] = t; });
-  return renderizarPlantilla("PAT-03-G-001-F-003.docx", ctx);
+  return renderizarPlantilla("utilidades-pat-maestria-f003-designacion.docx", ctx);
 }
 
 function generarPat04(datos: DatosPats): Buffer {
@@ -69,7 +69,7 @@ function generarPat04(datos: DatosPats): Buffer {
   const buffers: Buffer[] = [];
   for (let i = 0; i < 9; i++) {
     const proxima = i < 8 ? datos.temas[i + 1] : "Revisión integral para entrega final";
-    buffers.push(renderizarPlantilla("PAT-03-G-001-F-004.docx", {
+    buffers.push(renderizarPlantilla("utilidades-pat-maestria-f004-sesion-tutoria.docx", {
       No: i + 1,
       Articulo: datos.articulo,
       NOMBRE: datos.nombre,
@@ -104,14 +104,14 @@ function generarPat05(datos: DatosPats): Buffer {
     ctx[`f${i + 1}`] = fechas[i];
     ctx[`t${i + 1}`] = t;
   });
-  return renderizarPlantilla("PAT-03-G-001-F-005.docx", ctx);
+  return renderizarPlantilla("utilidades-pat-maestria-f005-cronograma.docx", ctx);
 }
 
 function generarPat06(datos: DatosPats): Buffer {
   const fechaCarta = new Date(datos.fechaFinal.getTime());
   fechaCarta.setDate(fechaCarta.getDate() + 1);
 
-  return renderizarPlantilla("PAT-03-G-001-F-006.docx", {
+  return renderizarPlantilla("utilidades-pat-maestria-f006-oficio.docx", {
     FechaCarta: formatearFechaLargaDel(fechaCarta),
     Oficio: datos.oficio,
     NOMBRE: datos.nombre,

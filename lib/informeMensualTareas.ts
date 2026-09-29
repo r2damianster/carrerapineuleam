@@ -25,6 +25,8 @@ export interface BeneficiariosEspacio {
   mujeres: number;
   hombres: number;
   otros: number;
+  /** true si `total` es audiencia de podcast (no hay desglose por sexo, ni inscripción real). */
+  esAudiencia: boolean;
   zona: { canton: string; parroquia: string; barrio: string; ubicacion: string };
 }
 
@@ -104,6 +106,7 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     id: espacio.id,
     nombre: espacio.nombre,
     ...(conteoPorEspacio.get(espacio.id) || { total: 0, mujeres: 0, hombres: 0, otros: 0 }),
+    esAudiencia: false,
     zona: {
       canton: espacio.zona_canton || '',
       parroquia: espacio.zona_parroquia || '',
@@ -125,12 +128,12 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
   // investigación), queda NULL en los de vinculación aunque sí sean de este proyecto.
   const difusionDelMes = params.supervisorId
     ? await sql`
-        SELECT titulo, descripcion, tipo FROM actividades_difusion
+        SELECT titulo, descripcion, tipo, audiencia_alcanzada, id FROM actividades_difusion
         WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND ${params.supervisorId} = ANY(profesores_responsables)
           AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `
     : await sql`
-        SELECT titulo, descripcion, tipo FROM actividades_difusion
+        SELECT titulo, descripcion, tipo, audiencia_alcanzada, id FROM actividades_difusion
         WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `;
   const actividades = [
@@ -140,8 +143,28 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     ...difusionDelMes.map((actividad: any) => `${actividad.tipo === 'podcast' ? 'Podcast' : 'Evento'}: ${actividad.titulo}${actividad.descripcion ? ` — ${actividad.descripcion}` : ''}`),
   ];
 
-  // Evidencias: fotos de sesiones aprobadas del mes (mismo criterio que el informe semestral).
-  const fotosCandidatas = await sql`
+  // Espacios de categoría "podcast": no tienen inscripciones_espacio (no se "inscriben"
+  // beneficiarios a un podcast) — su "beneficiario" real es la audiencia alcanzada por los
+  // episodios del mes, sin desglose por sexo (ese dato no se registra al publicar un episodio).
+  const audienciaPodcastDelMes = difusionDelMes
+    .filter((actividad: any) => actividad.tipo === 'podcast')
+    .reduce((suma: number, actividad: any) => suma + (actividad.audiencia_alcanzada || 0), 0);
+  espaciosSalida.forEach(espacio => {
+    const espacioOriginal = espacios.find((e: any) => e.id === espacio.id);
+    if (espacioOriginal?.categoria === 'podcast') {
+      espacio.total = audienciaPodcastDelMes;
+      espacio.mujeres = 0;
+      espacio.hombres = 0;
+      espacio.otros = 0;
+      espacio.esAudiencia = true;
+    }
+  });
+
+  // Evidencias: fotos de sesiones de club aprobadas del mes (mismo criterio que el informe
+  // semestral) + fotos de eventos/podcasts de Vinculación del mes (banco `fotos`, origen
+  // evento/podcast) — estas últimas SIN filtrar por `descartada`/`activo`: esos flags deciden
+  // si salen en el sitio público, no si sirven de evidencia en un informe interno.
+  const fotosAsistencia = await sql`
     SELECT a.foto_url AS url, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, e.nombre AS espacio_nombre, a.usar_en_informe,
            (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS num_beneficiarios,
            (SELECT COUNT(*) FROM asistencia_instructores ai WHERE ai.asistencia_id = a.id)::int AS num_pasantes
@@ -150,6 +173,18 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
       AND NOT foto_descartada(a.foto_url)
       AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
   `;
+  const idsDifusionDelMes = difusionDelMes.map((actividad: any) => String(actividad.id));
+  const fotosDifusion = idsDifusionDelMes.length
+    ? await sql`
+        SELECT url, to_char(fecha_evento, 'DD/MM/YYYY') AS fecha
+        FROM fotos
+        WHERE origen IN ('evento', 'podcast') AND fuente_id = ANY(${idsDifusionDelMes})
+      `
+    : [];
+  const fotosCandidatas = [
+    ...fotosAsistencia,
+    ...fotosDifusion.map((foto: any) => ({ url: foto.url, fecha: foto.fecha, espacio_nombre: 'Podcast/Evento', usar_en_informe: false, num_beneficiarios: 0, num_pasantes: 0 })),
+  ];
 
   const totalBeneficiarios = espaciosSalida.reduce((suma, espacio) => suma + espacio.total, 0);
 

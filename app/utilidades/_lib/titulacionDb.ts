@@ -81,9 +81,9 @@ export async function getRubrica(rubricaId: number): Promise<RubricaConSchema | 
   return { ...row, schema: row.schema_json as RubricaSchema };
 }
 
-/** Nombre de la plantilla .docx (en _templates/) para cada rúbrica, por slug. */
+/** Nombre de la plantilla .docx (en /templates) para cada rúbrica, por slug. */
 export const PLANTILLA_POR_RUBRICA: Record<string, string> = {
-  tefl_completa: "Rubrica_TEFL.docx",
-  articulo_no_publicado: "Rubrica_Articulo_NoPublicado.docx",
-  articulo_publicado: "Rubrica_Articulo_Publicado.docx",
+  tefl_completa: "utilidades-rubrica-tefl.docx",
+  articulo_no_publicado: "utilidades-rubrica-articulo-no-publicado.docx",
+  articulo_publicado: "utilidades-rubrica-articulo-publicado.docx",
 };

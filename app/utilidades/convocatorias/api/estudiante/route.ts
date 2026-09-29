@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const archivosExcel = form.getAll("excel_files").filter((f): f is File => f instanceof File && f.size > 0);
     const estudiantes = archivosExcel.length > 0 ? await procesarExcelEstudiantes(archivosExcel) : [];
 
-    const buffer = renderizarPlantilla("Convocatoria_Estudiantes.docx", {
+    const buffer = renderizarPlantilla("utilidades-convocatoria-estudiantes.docx", {
       ...contexto,
       estudiantes: estudiantes.map((nombre) => ({ nombre })),
     });

@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     `${publicaciones.length} publicaciones científicas, ${podcasts.length} episodios de podcast y ` +
     `${actividades.length} actividades registradas durante el período ${body.periodo.etiqueta}.`;
 
-  const buffer = renderizarPlantilla("INFORME_MENSUAL_INVESTIGACION.docx", {
+  const buffer = renderizarPlantilla("informe-investigacion-mensual.docx", {
     CARRERA,
     LIDER: usuario.nombres,
     PERIODO: body.periodo.etiqueta,

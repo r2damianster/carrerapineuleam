@@ -1,7 +1,7 @@
 // Rellena las plantillas institucionales reales "INFORME MENSUAL DEL LÍDER/SUPERVISOR DEL
 // PROYECTO DE VINCULACIÓN" (Sesión 57) — a diferencia del semestral (marco lógico), este es
 // el formato simple que el proyecto ya llenaba a mano en Word. Las plantillas en blanco
-// (_templates/informe-lider-mensual.docx, informe-supervisor-mensual.docx) se derivaron de
+// (/templates/informe-vinculacion-lider-mensual.docx, informe-vinculacion-supervisor-mensual.docx) se derivaron de
 // los documentos reales de mayo/julio 2026 que subió el usuario, reemplazando cada valor por
 // un marcador {{CAMPO}} — el encabezado, logo, fuentes y etiquetas de sección son los originales,
 // sin tocar. Reutiliza los helpers de plantillaSupervisor.ts (mismo patrón que el semestral).
@@ -11,8 +11,8 @@ import PizZip from 'pizzip';
 import { escaparXml, corrida, parrafo, celdaSimple, tabla, fila, dimensionesImagen, dibujoEnLinea, descargarFoto } from './plantillaSupervisor';
 import type { DatosInformeMensual } from '@/lib/informeMensualTareas';
 
-const RUTA_LIDER = path.join(process.cwd(), 'app', 'vinculacion', 'informes', '_templates', 'informe-lider-mensual.docx');
-const RUTA_SUPERVISOR = path.join(process.cwd(), 'app', 'vinculacion', 'informes', '_templates', 'informe-supervisor-mensual.docx');
+const RUTA_LIDER = path.join(process.cwd(), 'templates', 'informe-vinculacion-lider-mensual.docx');
+const RUTA_SUPERVISOR = path.join(process.cwd(), 'templates', 'informe-vinculacion-supervisor-mensual.docx');
 
 interface ImagenIncrustada {
   relacion: string;
@@ -23,6 +23,9 @@ interface ImagenIncrustada {
 const sustituirTodo = (xml: string, marcador: string, nuevo: string) => xml.split(marcador).join(nuevo);
 
 function narrativaEspacio(espacio: DatosInformeMensual['espacios'][number]): string {
+  if (espacio.esAudiencia) {
+    return `${espacio.nombre}\nAudiencia observada: ${espacio.total} personas (no se registra desglose por sexo)`;
+  }
   return `${espacio.nombre}\nBeneficiarios directos: ${espacio.total}\nMujeres ${espacio.mujeres} y varones ${espacio.hombres}`;
 }
 function narrativaZona(zona: DatosInformeMensual['espacios'][number]['zona']): string {

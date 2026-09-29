@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import PizZip from 'pizzip';
 
-const RUTA_PLANTILLA = path.join(process.cwd(), 'app', 'vinculacion', 'informes', '_templates', 'informe-supervisor.docx');
+const RUTA_PLANTILLA = path.join(process.cwd(), 'templates', 'informe-vinculacion-supervisor-semestral.docx');
 const EMU_POR_PIXEL = 9525;
 export const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 export const COLOR_EJECUTADO = '70AD47';

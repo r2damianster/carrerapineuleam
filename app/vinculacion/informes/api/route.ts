@@ -17,6 +17,22 @@ import {
   generarGraficoEdad,
 } from '../_lib/graficos';
 
+/**
+ * El mensual recalcula `actividades`/`observaciones` frescos en cada GET (datos reales del
+ * momento) — pero si el usuario ya editó y generó un informe de ese mismo mes, sus ediciones de
+ * texto libre (redacción pulida, observaciones escritas a mano) no deben perderse la próxima vez
+ * que abra el mismo mes. Se reutilizan solo esos 2 campos del último borrador guardado; el resto
+ * (beneficiarios, zona, evidencias, horas) siempre se recalcula desde la base real.
+ */
+async function fusionarBorradorMensual(sql: any, datos: any, tipo: string, supervisorId: number | null, mes: string) {
+  const [previo] = supervisorId
+    ? await sql`SELECT datos_json FROM informes_vinculacion WHERE tipo = ${tipo} AND supervisor_id = ${supervisorId} AND mes = (${mes} || '-01')::date`
+    : await sql`SELECT datos_json FROM informes_vinculacion WHERE tipo = ${tipo} AND supervisor_id IS NULL AND mes = (${mes} || '-01')::date`;
+  if (!previo?.datos_json) return;
+  if (previo.datos_json.actividades) datos.actividades = previo.datos_json.actividades;
+  if (previo.datos_json.observaciones) datos.observaciones = previo.datos_json.observaciones;
+}
+
 /** Informe del supervisor: plantilla institucional + gráficos de participación. */
 async function generarBufferSupervisor(datos: any): Promise<Buffer> {
   const pasantesParaGrafico = (datos.participacion?.pasantes || []).map((pasante: any) => ({
@@ -83,6 +99,7 @@ export async function GET(request: Request) {
         if (supervisorIdParam && puedeGestionarVinculacion(usuario)) targetSupervisorId = parseInt(supervisorIdParam);
         const mes = searchParams.get('mes') || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
         const datos = await datosInformeMensual(sql, { supervisorId: targetSupervisorId, mes });
+        await fusionarBorradorMensual(sql, datos, tipo, targetSupervisorId, mes);
         return NextResponse.json({ success: true, datos });
       }
 
@@ -92,6 +109,7 @@ export async function GET(request: Request) {
         }
         const mes = searchParams.get('mes') || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
         const datos = await datosInformeMensual(sql, { supervisorId: null, mes });
+        await fusionarBorradorMensual(sql, datos, tipo, null, mes);
         return NextResponse.json({ success: true, datos });
       }
     }
@@ -334,6 +352,29 @@ export async function POST(request: Request) {
         RETURNING id, supervisor_id, mes, restriccion AS descripcion, accion_correctiva AS recomendacion, impacto
       `;
       return NextResponse.json({ success: true, obstaculo: nuevo });
+    }
+
+    if (accion === 'redactar-mensual') {
+      const { actividades } = body;
+      if (!Array.isArray(actividades)) return NextResponse.json({ error: 'Faltan las actividades a redactar' }, { status: 400 });
+      const indicaciones =
+        'Eres un docente de un proyecto de vinculación con la sociedad de una universidad ecuatoriana, redactando el informe mensual. Tono formal, en español, usando SOLO los datos recibidos (no inventes cifras, nombres, lugares ni logros que no estén en el texto original).';
+      const pedido =
+        `ACTIVIDADES DETECTADAS AUTOMÁTICAMENTE ESTE MES (una por línea):\n${JSON.stringify(actividades)}\n\n` +
+        'Devuelve SOLO un JSON: {"actividades": ["..."], "observaciones": "..."}.\n' +
+        `"actividades" debe tener EXACTAMENTE ${actividades.length} elementos, en el mismo orden — reescribe cada línea con redacción formal e institucional (sin viñetas ni el signo "•", sin inventar datos nuevos, conservando fechas/nombres/cifras tal cual aparecen). ` +
+        '"observaciones" es un párrafo breve (máx. 40 palabras) señalando algo relevante del mes (una dificultad, un logro destacado, algo pendiente) SOLO si se deduce claramente de las actividades recibidas; si no hay nada que señalar, escribe exactamente "Ninguna."';
+      try {
+        const respuesta = await pedirCompletionIA([{ role: 'system', content: indicaciones }, { role: 'user', content: pedido }], { temperature: 0.3, responseFormatJson: true });
+        const resultado = JSON.parse(respuesta);
+        return NextResponse.json({
+          success: true,
+          actividades: Array.isArray(resultado.actividades) ? resultado.actividades.map(String) : actividades,
+          observaciones: String(resultado.observaciones || 'Ninguna.'),
+        });
+      } catch (error) {
+        return NextResponse.json({ error: formatearErrorIA(error) }, { status: 500 });
+      }
     }
 
     if (accion === 'generar') {

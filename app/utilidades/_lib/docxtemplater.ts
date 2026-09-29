@@ -3,12 +3,12 @@ import path from "node:path";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 
-const TEMPLATES_DIR = path.join(process.cwd(), "app", "utilidades", "_templates");
+const TEMPLATES_DIR = path.join(process.cwd(), "templates");
 
 export type PlantillaDatos = Record<string, unknown>;
 
 /**
- * Renderiza una plantilla .docx de `_templates/` reemplazando sus tags {{ }}.
+ * Renderiza una plantilla .docx de `/templates` reemplazando sus tags {{ }}.
  * Soporta loops ({#tag}...{/tag}) si la plantilla los trae.
  */
 /**

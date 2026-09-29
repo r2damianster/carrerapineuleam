@@ -237,6 +237,28 @@ function InformesVinculacionContenido() {
     }
   };
 
+  const [redactandoMensual, setRedactandoMensual] = useState(false);
+  const redactarMensualIA = async (cual: 'supervisor' | 'lider') => {
+    const datos = cual === 'supervisor' ? datosMensualSupervisor : datosMensualLider;
+    const setDatos = cual === 'supervisor' ? setDatosMensualSupervisor : setDatosMensualLider;
+    if (!datos?.actividades?.length) return;
+    setRedactandoMensual(true);
+    try {
+      const respuesta = await fetch('/vinculacion/informes/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'redactar-mensual', actividades: datos.actividades }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) throw new Error(resultado.error);
+      setDatos((previo: any) => ({ ...previo, actividades: resultado.actividades, observaciones: resultado.observaciones }));
+    } catch (error: any) {
+      setMensaje(`No se pudo redactar con IA: ${error.message}`);
+    } finally {
+      setRedactandoMensual(false);
+    }
+  };
+
   const generarInformeMensual = async (tipo: 'supervisor-mensual' | 'lider-mensual') => {
     setGenerando(true);
     setMensaje('');
@@ -510,9 +532,9 @@ function InformesVinculacionContenido() {
                             {datosMensualSupervisor.espacios.map((espacio: any) => (
                               <tr key={espacio.id} className="border-b">
                                 <td className="p-2 font-semibold">{espacio.nombre}</td>
-                                <td className="p-2">{espacio.total}</td>
-                                <td className="p-2">{espacio.mujeres}</td>
-                                <td className="p-2">{espacio.hombres}</td>
+                                <td className="p-2">{espacio.total}{espacio.esAudiencia && <span className="text-xs text-gray-500"> (audiencia)</span>}</td>
+                                <td className="p-2">{espacio.esAudiencia ? '—' : espacio.mujeres}</td>
+                                <td className="p-2">{espacio.esAudiencia ? '—' : espacio.hombres}</td>
                                 <td className="p-2 text-xs text-gray-500">{espacio.zona.canton ? `${espacio.zona.canton} · ${espacio.zona.barrio}` : <span className="text-amber-600">Sin zona (completar en Espacios)</span>}</td>
                               </tr>
                             ))}
@@ -522,8 +544,18 @@ function InformesVinculacionContenido() {
                       <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualSupervisor.general.total_beneficiarios}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
-                      <h2 className="text-lg font-bold text-uleam-blue mb-2">2.1 Desarrollo de Actividades</h2>
-                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes. Edita o completa el texto final.</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h2 className="text-lg font-bold text-uleam-blue">2.1 Desarrollo de Actividades</h2>
+                        <button
+                          type="button"
+                          onClick={() => redactarMensualIA('supervisor')}
+                          disabled={redactandoMensual || !datosMensualSupervisor.actividades?.length}
+                          className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
+                        >
+                          {redactandoMensual ? 'Redactando con IA...' : '✨ Redactar con IA'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes. Edita, completa o pide a la IA que pula la redacción.</p>
                       <textarea
                         rows={6}
                         value={(datosMensualSupervisor.actividades || []).join('\n')}
@@ -801,9 +833,9 @@ function InformesVinculacionContenido() {
                             {datosMensualLider.espacios.map((espacio: any) => (
                               <tr key={espacio.id} className="border-b">
                                 <td className="p-2 font-semibold">{espacio.nombre}</td>
-                                <td className="p-2">{espacio.total}</td>
-                                <td className="p-2">{espacio.mujeres}</td>
-                                <td className="p-2">{espacio.hombres}</td>
+                                <td className="p-2">{espacio.total}{espacio.esAudiencia && <span className="text-xs text-gray-500"> (audiencia)</span>}</td>
+                                <td className="p-2">{espacio.esAudiencia ? '—' : espacio.mujeres}</td>
+                                <td className="p-2">{espacio.esAudiencia ? '—' : espacio.hombres}</td>
                                 <td className="p-2 text-xs text-gray-500">{espacio.zona.canton ? `${espacio.zona.canton} · ${espacio.zona.barrio}` : <span className="text-amber-600">Sin zona (completar en Espacios)</span>}</td>
                               </tr>
                             ))}
@@ -813,8 +845,18 @@ function InformesVinculacionContenido() {
                       <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualLider.general.total_beneficiarios}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
-                      <h2 className="text-lg font-bold text-uleam-blue mb-2">2.1 Desarrollo de Actividades</h2>
-                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes en todo el proyecto. Edita o completa el texto final.</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h2 className="text-lg font-bold text-uleam-blue">2.1 Desarrollo de Actividades</h2>
+                        <button
+                          type="button"
+                          onClick={() => redactarMensualIA('lider')}
+                          disabled={redactandoMensual || !datosMensualLider.actividades?.length}
+                          className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-xs font-bold hover:bg-purple-100 disabled:opacity-50"
+                        >
+                          {redactandoMensual ? 'Redactando con IA...' : '✨ Redactar con IA'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes en todo el proyecto. Edita, completa o pide a la IA que pula la redacción.</p>
                       <textarea
                         rows={6}
                         value={(datosMensualLider.actividades || []).join('\n')}

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       COPIA_A: campo("copia_a"),
     };
 
-    const buffer = renderizarPlantilla("HOJA_CARRERA_PINE.docx", contexto);
+    const buffer = renderizarPlantilla("utilidades-oficio-hoja-carrera.docx", contexto);
     return respuestaDocx(buffer, `Oficio_${numOficio || "borrador"}.docx`);
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : String(error);

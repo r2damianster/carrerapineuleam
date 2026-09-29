@@ -135,7 +135,7 @@ export async function crearDocxActa(datos: DatosActa, fotos: Array<{ buffer: Buf
     contexto[`firmante_${i + 1}_cargo`] = f.cargo;
   });
 
-  const actaBuffer = renderizarPlantilla("Acta_Tecnica.docx", contexto);
+  const actaBuffer = renderizarPlantilla("utilidades-acta-tecnica.docx", contexto);
   if (fotos.length === 0) return actaBuffer;
 
   const evidenciasBuffer = await crearDocxEvidencias(fotos);
