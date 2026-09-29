@@ -197,7 +197,7 @@ export default async function PortalDashboard() {
                 <div className="flex flex-col gap-2">
                   <Link href="/vinculacion/supervisar" className="text-indigo-600 hover:underline">» Supervisar actividades y horas</Link>
                   <Link href="/vinculacion/supervisar/indicadores" className="text-indigo-600 hover:underline">» Panel de Supervisión (Indicadores)</Link>
-                  <Link href="/vinculacion/informes?tipo=supervisor" className="text-indigo-600 hover:underline">» Informe Semestral del Supervisor (.docx)</Link>
+                  <Link href="/vinculacion/informes?tipo=supervisor" className="text-indigo-600 hover:underline">» Generar Informes del Supervisor (Mensual / Semestral)</Link>
                 </div>
               </div>
             )}
