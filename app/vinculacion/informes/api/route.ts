@@ -9,7 +9,7 @@ import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervi
 import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
 import { datosInformeSupervisor, recopilarSenalesObstaculos } from '@/lib/informeSupervisorTareas';
 import { datosInformeMensual } from '@/lib/informeMensualTareas';
-import { generarDocxMensual } from '../_lib/docxMensual';
+import { generarInformeLiderMensualDesdePlantilla, generarInformeSupervisorMensualDesdePlantilla } from '../_lib/plantillaMensual';
 import {
   generarGraficoPasantesHoras,
   generarGraficoGenero,
@@ -141,9 +141,9 @@ export async function GET(request: Request) {
       } else if (informe.tipo === 'lider') {
         buffer = await generarBufferLider(datos);
       } else if (informe.tipo === 'supervisor-mensual') {
-        buffer = await generarDocxMensual(datos, 'supervisor');
+        buffer = await generarInformeSupervisorMensualDesdePlantilla(datos);
       } else {
-        buffer = await generarDocxMensual(datos, 'lider');
+        buffer = await generarInformeLiderMensualDesdePlantilla(datos);
       }
 
       return new Response(new Uint8Array(buffer), {
@@ -362,7 +362,9 @@ export async function POST(request: Request) {
         if (!datos.mes) return NextResponse.json({ error: 'Falta el mes del informe' }, { status: 400 });
         targetSupervisorId = tipo === 'supervisor-mensual' ? Number(usuario.id) : null;
         mes = `${datos.mes}-01`;
-        buffer = await generarDocxMensual(datos, tipo === 'supervisor-mensual' ? 'supervisor' : 'lider');
+        buffer = tipo === 'supervisor-mensual'
+          ? await generarInformeSupervisorMensualDesdePlantilla(datos)
+          : await generarInformeLiderMensualDesdePlantilla(datos);
       } else {
         return NextResponse.json({ error: 'Tipo de informe no válido' }, { status: 400 });
       }

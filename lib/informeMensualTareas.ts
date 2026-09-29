@@ -44,6 +44,10 @@ export interface DatosInformeMensual {
   actividades: string[];
   evidencias: { url: string; fecha: string; espacio_nombre: string; num_beneficiarios: number; num_pasantes: number }[];
   observaciones: string;
+  /** Horas acreditadas por pasante en el mes, agrupadas por espacio — para la tabla "Horas de los pasantes". */
+  pasantes: { espacio_nombre: string; supervisor_nombre: string; estudiante_nombre: string; horas_mes: number }[];
+  /** Solo informe del líder: qué docente supervisa a qué pasantes, por espacio ("Distribución de estudiantes y docentes supervisores"). */
+  distribucion: { espacio_nombre: string; supervisor_nombre: string; pasantes: string[] }[];
 }
 
 /** `datosSupervisorId = null` → informe del líder (todos los espacios del proyecto). */
@@ -69,11 +73,11 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
 
   const espacios = params.supervisorId
     ? await sql`
-        SELECT id, nombre, categoria, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion
+        SELECT id, nombre, categoria, profesor_id, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion
         FROM "espacios_enseñanza" WHERE area = 'vinculacion' AND profesor_id = ${params.supervisorId} ORDER BY nombre ASC
       `
     : await sql`
-        SELECT id, nombre, categoria, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion
+        SELECT id, nombre, categoria, profesor_id, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion
         FROM "espacios_enseñanza" WHERE area = 'vinculacion' ORDER BY nombre ASC
       `;
   const idsConsulta = espacios.length ? espacios.map((espacio: any) => espacio.id) : [0];
@@ -149,6 +153,47 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
 
   const totalBeneficiarios = espaciosSalida.reduce((suma, espacio) => suma + espacio.total, 0);
 
+  // Docentes supervisores por espacio (uno por espacio, vía profesor_id) — para la tabla de
+  // horas y, en el informe del líder, para "Distribución de estudiantes y docentes supervisores".
+  const idsSupervisoresEspacio = Array.from(new Set(espacios.map((espacio: any) => espacio.profesor_id).filter(Boolean)));
+  const supervisoresEspacioFilas = idsSupervisoresEspacio.length
+    ? await sql`SELECT id, nombres, apellidos FROM usuarios WHERE id = ANY(${idsSupervisoresEspacio})`
+    : [];
+  const nombreSupervisorPorId = new Map<number, string>(supervisoresEspacioFilas.map((fila: any) => [fila.id, `${fila.nombres} ${fila.apellidos}`]));
+
+  // Pasantes por espacio, con horas acreditadas por asistencia en el mes.
+  const pasantesPorEspacio = await sql`
+    SELECT ei.espacio_id, u.id AS usuario_id, u.nombres, u.apellidos,
+           COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1), 0)::float AS horas_mes
+    FROM espacio_instructores ei
+    JOIN usuarios u ON u.id = ei.usuario_id
+    LEFT JOIN asistencia_instructores ai ON ai.usuario_id = u.id
+    LEFT JOIN asistencia_espacio a ON a.id = ai.asistencia_id AND a.estado_aprobacion = 'aprobado'
+         AND a.espacio_id = ei.espacio_id AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
+    WHERE ei.espacio_id = ANY(${idsConsulta})
+    GROUP BY ei.espacio_id, u.id, u.nombres, u.apellidos
+    ORDER BY u.apellidos, u.nombres
+  `;
+  const nombreEspacioPorId = new Map<number, string>(espacios.map((espacio: any) => [espacio.id, espacio.nombre]));
+  const profesorIdPorEspacio = new Map<number, number>(espacios.map((espacio: any) => [espacio.id, espacio.profesor_id]));
+  const pasantes = pasantesPorEspacio.map((fila: any) => ({
+    espacio_nombre: nombreEspacioPorId.get(fila.espacio_id) || '',
+    supervisor_nombre: nombreSupervisorPorId.get(profesorIdPorEspacio.get(fila.espacio_id) || 0) || '',
+    estudiante_nombre: `${fila.nombres} ${fila.apellidos}`,
+    horas_mes: fila.horas_mes,
+  }));
+
+  // Distribución de estudiantes y docentes supervisores (solo informe del líder): un bloque por espacio.
+  const distribucion = params.supervisorId
+    ? []
+    : espacios.map((espacio: any) => ({
+        espacio_nombre: espacio.nombre,
+        supervisor_nombre: nombreSupervisorPorId.get(espacio.profesor_id) || 'Sin asignar',
+        pasantes: pasantesPorEspacio
+          .filter((fila: any) => fila.espacio_id === espacio.id)
+          .map((fila: any) => `${fila.nombres} ${fila.apellidos}`),
+      })).filter((bloque: { pasantes: string[] }) => bloque.pasantes.length > 0);
+
   return {
     mes: params.mes,
     etiquetaMes,
@@ -165,5 +210,7 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     actividades,
     evidencias: elegirFotos(fotosCandidatas, 6),
     observaciones: '',
+    pasantes,
+    distribucion,
   };
 }
