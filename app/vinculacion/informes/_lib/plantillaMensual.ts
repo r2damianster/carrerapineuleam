@@ -131,14 +131,12 @@ export async function generarInformeLiderMensualDesdePlantilla(datos: DatosInfor
   xml = rellenarCamposComunes(xml, datos);
 
   // 2.2 Beneficiarios: una narrativa por espacio.
-  const marcadorBenef = '<w:p><w:r><w:t xml:space="preserve">{{BENEFICIARIOS}}</w:t></w:r></w:p>';
   const bloqueBenef = datos.espacios.length
     ? datos.espacios.map(espacio => parrafosDeTexto(narrativaEspacio(espacio), { tamano: 16 })).join(parrafo(''))
     : parrafo(corrida('No hay espacios de vinculación registrados.', { tamano: 18 }));
-  xml = sustituirTodo(xml, marcadorBenef, bloqueBenef);
+  xml = reemplazarParrafoMarcador(xml, '{{BENEFICIARIOS}}', bloqueBenef);
 
   // Zona: combinada (cantón/parroquia siempre igual — Manta/Urbanas —, barrios distintos por espacio).
-  const marcadorZona = '<w:p><w:r><w:t xml:space="preserve">{{ZONA}}</w:t></w:r></w:p>';
   const cantones = Array.from(new Set(datos.espacios.map(e => e.zona.canton).filter(Boolean)));
   const parroquias = Array.from(new Set(datos.espacios.map(e => e.zona.parroquia).filter(Boolean)));
   const barrios = Array.from(new Set(datos.espacios.map(e => e.zona.barrio).filter(Boolean)));
@@ -146,19 +144,17 @@ export async function generarInformeLiderMensualDesdePlantilla(datos: DatosInfor
     `Cantón: ${cantones.join(', ') || '—'}\nParroquias: ${parroquias.join(', ') || '—'}\nBarrios/Sectores: ${barrios.join(', ') || '—'}`,
     { tamano: 16 }
   );
-  xml = sustituirTodo(xml, marcadorZona, bloqueZona);
+  xml = reemplazarParrafoMarcador(xml, '{{ZONA}}', bloqueZona);
 
   // Gráfica de avance del proyecto: métrica simple en texto (sin gráfico, ver nota de alcance).
-  const marcadorGrafico = '<w:p><w:r><w:t xml:space="preserve">{{GRAFICO}}</w:t></w:r></w:p>';
-  xml = sustituirTodo(xml, marcadorGrafico, parrafo(corrida(`Total de beneficiarios atendidos este mes: ${datos.general.total_beneficiarios}.`, { tamano: 16 })));
+  xml = reemplazarParrafoMarcador(xml, '{{GRAFICO}}', parrafo(corrida(`Total de beneficiarios atendidos este mes: ${datos.general.total_beneficiarios}.`, { tamano: 16 })));
 
-  // Distribución de estudiantes y docentes supervisores + Evidencias (marcador combinado).
-  const marcadorDistribEvid = '<w:p><w:r><w:t xml:space="preserve">{{DISTRIBUCION_DOCENTES}}{{EVIDENCIAS}}</w:t></w:r></w:p>';
+  // Distribución de estudiantes y docentes supervisores + Evidencias (marcador combinado, un solo párrafo).
   const bloqueDistribucion = datos.distribucion.length
     ? datos.distribucion.map(bloque => parrafo(corrida(`${bloque.espacio_nombre} — Supervisor: ${bloque.supervisor_nombre}. Estudiantes: ${bloque.pasantes.join(', ')}.`, { tamano: 16 }))).join('')
     : parrafo(corrida('Sin pasantes asignados este mes.', { tamano: 16 }));
   const bloqueEvidencias = await construirBloqueEvidencias(datos.evidencias, registrarImagen);
-  xml = sustituirTodo(xml, marcadorDistribEvid, bloqueDistribucion + parrafo('') + bloqueEvidencias);
+  xml = reemplazarParrafoMarcador(xml, '{{DISTRIBUCION_DOCENTES}}', bloqueDistribucion + parrafo('') + bloqueEvidencias);
 
   zip.file('word/document.xml', xml);
   incrustarImagenes(zip, imagenes);
@@ -179,9 +175,22 @@ export async function generarInformeSupervisorMensualDesdePlantilla(datos: Datos
 
   xml = rellenarCamposComunes(xml, datos);
 
-  // Fila-plantilla de Beneficiarios+Zona: clonar una fila por espacio.
-  const filaPlantilla = (xml.match(/<w:tr(?=[ >])[\s\S]*?\{\{ESPACIO_NARRATIVA\}\}[\s\S]*?<\/w:tr>/) || [])[0];
-  if (!filaPlantilla) throw new Error('No se encontró la fila plantilla de beneficiarios/zona en informe-supervisor-mensual.docx');
+  // Fila-plantilla de Beneficiarios+Zona: clonar una fila por espacio. Se ubica por la posición
+  // exacta del marcador (buscando el <w:tr> más cercano hacia atrás/adelante), NO con un regex
+  // global desde el inicio del documento — ese regex capturaba desde el primer <w:tr> de TODO
+  // el documento (la tabla de Información General) hasta el marcador, duplicando el documento
+  // entero por cada espacio al clonar (bug real encontrado en producción, Sesión 58).
+  const idxMarcadorFila = xml.indexOf('{{ESPACIO_NARRATIVA}}');
+  if (idxMarcadorFila === -1) throw new Error('No se encontró {{ESPACIO_NARRATIVA}} en informe-supervisor-mensual.docx');
+  const inicioFilaPlantilla = (() => {
+    const re = /<w:tr(?=[ >])/g;
+    let m, ultimo = -1;
+    while ((m = re.exec(xml)) && m.index < idxMarcadorFila) ultimo = m.index;
+    if (ultimo === -1) throw new Error('No se encontró <w:tr> antes de {{ESPACIO_NARRATIVA}}');
+    return ultimo;
+  })();
+  const finFilaPlantilla = xml.indexOf('</w:tr>', idxMarcadorFila) + '</w:tr>'.length;
+  const filaPlantilla = xml.slice(inicioFilaPlantilla, finFilaPlantilla);
   const filasGeneradas = datos.espacios.length
     ? datos.espacios.map(espacio =>
         filaPlantilla
@@ -194,10 +203,9 @@ export async function generarInformeSupervisorMensualDesdePlantilla(datos: Datos
   xml = xml.replace(filaPlantilla, filasGeneradas);
 
   // Evidencias + tabla de horas por pasante (marcador combinado).
-  const marcadorEvidHoras = '<w:p><w:r><w:t xml:space="preserve">{{EVIDENCIAS_Y_HORAS}}</w:t></w:r></w:p>';
   const bloqueEvidencias = parrafo(corrida('Evidencias', { negrita: true, tamano: 20 })) + await construirBloqueEvidencias(datos.evidencias, registrarImagen);
   const bloqueHoras = parrafo(corrida('Horas de los pasantes en el mes', { negrita: true, tamano: 20 })) + construirTablaHoras(datos.pasantes);
-  xml = sustituirTodo(xml, marcadorEvidHoras, bloqueEvidencias + parrafo('') + bloqueHoras);
+  xml = reemplazarParrafoMarcador(xml, '{{EVIDENCIAS_Y_HORAS}}', bloqueEvidencias + parrafo('') + bloqueHoras);
 
   zip.file('word/document.xml', xml);
   incrustarImagenes(zip, imagenes);
