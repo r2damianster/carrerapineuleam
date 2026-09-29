@@ -116,15 +116,18 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
       AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
     ORDER BY a.fecha ASC
   `;
+  // `categoria` (no `proyecto`) es lo que marca un registro como de Vinculación — `proyecto`
+  // (texto libre) solo se llena cuando categoria='investigacion' (selector de proyecto de
+  // investigación), queda NULL en los de vinculación aunque sí sean de este proyecto.
   const difusionDelMes = params.supervisorId
     ? await sql`
         SELECT titulo, descripcion, tipo FROM actividades_difusion
-        WHERE aprobado_sitio = true AND proyecto = 'vinculacion' AND ${params.supervisorId} = ANY(profesores_responsables)
+        WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND ${params.supervisorId} = ANY(profesores_responsables)
           AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `
     : await sql`
         SELECT titulo, descripcion, tipo FROM actividades_difusion
-        WHERE aprobado_sitio = true AND proyecto = 'vinculacion' AND fecha BETWEEN ${desde}::date AND ${hasta}::date
+        WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `;
   const actividades = [
     ...sesionesDelMes
