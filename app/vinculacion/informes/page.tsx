@@ -247,7 +247,7 @@ function InformesVinculacionContenido() {
       const respuesta = await fetch('/vinculacion/informes/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'redactar-mensual', actividades: datos.actividades }),
+        body: JSON.stringify({ accion: 'redactar-mensual', actividades: datos.actividades, observacionesActuales: datos.observaciones }),
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) throw new Error(resultado.error);

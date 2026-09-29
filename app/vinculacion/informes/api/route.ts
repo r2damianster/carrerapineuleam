@@ -355,15 +355,18 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'redactar-mensual') {
-      const { actividades } = body;
+      const { actividades, observacionesActuales } = body;
       if (!Array.isArray(actividades)) return NextResponse.json({ error: 'Faltan las actividades a redactar' }, { status: 400 });
       const indicaciones =
-        'Eres un docente de un proyecto de vinculación con la sociedad de una universidad ecuatoriana, redactando el informe mensual. Tono formal, en español, usando SOLO los datos recibidos (no inventes cifras, nombres, lugares ni logros que no estén en el texto original).';
+        'Eres un docente de un proyecto de vinculación con la sociedad de una universidad ecuatoriana, redactando la sección "Desarrollo de Actividades" del informe mensual. ' +
+        'Tono formal, institucional, en tercera persona o forma impersonal ("se realizó", "se llevó a cabo"), como un reporte retrospectivo de lo YA EJECUTADO — nunca como invitación, publicidad o texto promocional dirigido al público. ' +
+        'Usa SOLO los datos recibidos (fechas, nombres, cifras, espacios) tal cual aparecen; no inventes cifras, nombres, lugares ni logros que no estén en el texto original.';
       const pedido =
-        `ACTIVIDADES DETECTADAS AUTOMÁTICAMENTE ESTE MES (una por línea):\n${JSON.stringify(actividades)}\n\n` +
+        `ACTIVIDADES DETECTADAS AUTOMÁTICAMENTE ESTE MES (una por línea; algunas ya son cifras agregadas de sesiones —conservarlas tal cual—, otras son texto libre del pasante o copy promocional de difusión de un evento/podcast —estas últimas hay que CONVERTIRLAS a lenguaje de informe, no copiarlas literal):\n${JSON.stringify(actividades)}\n\n` +
+        `OBSERVACIONES DETECTADAS AUTOMÁTICAMENTE (sesiones pendientes/rechazadas del mes, si las hay): ${JSON.stringify(observacionesActuales || '')}\n\n` +
         'Devuelve SOLO un JSON: {"actividades": ["..."], "observaciones": "..."}.\n' +
-        `"actividades" debe tener EXACTAMENTE ${actividades.length} elementos, en el mismo orden — reescribe cada línea con redacción formal e institucional (sin viñetas ni el signo "•", sin inventar datos nuevos, conservando fechas/nombres/cifras tal cual aparecen). ` +
-        '"observaciones" es un párrafo breve (máx. 40 palabras) señalando algo relevante del mes (una dificultad, un logro destacado, algo pendiente) SOLO si se deduce claramente de las actividades recibidas; si no hay nada que señalar, escribe exactamente "Ninguna."';
+        `"actividades" debe tener EXACTAMENTE ${actividades.length} elementos, en el mismo orden — reescribe cada línea en tono de informe institucional (sin viñetas ni el signo "•"). Si la línea original es una invitación/promoción de un evento o podcast (ej. "¡Los esperamos!", emojis, signos de exclamación, dirigida a una audiencia), reescríbela describiendo QUÉ SE HIZO (se produjo/publicó/realizó tal actividad, sobre tal tema, con tal objetivo o resultado) — no la copies casi literal. Si la línea ya es un resumen agregado de sesiones (formato "Espacio: N sesión(es)..."), consérvala con el mismo contenido, solo pule la redacción. ` +
+        '"observaciones" = un párrafo breve (máx. 40 palabras): si hay señales automáticas de pendientes/rechazadas, redáctalas con más contexto (sin inventar el motivo si no se conoce); si no hay ninguna señal y tampoco se deduce nada relevante de las actividades, escribe exactamente "Ninguna."';
       try {
         const respuesta = await pedirCompletionIA([{ role: 'system', content: indicaciones }, { role: 'user', content: pedido }], { temperature: 0.3, responseFormatJson: true });
         const resultado = JSON.parse(respuesta);

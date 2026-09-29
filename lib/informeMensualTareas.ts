@@ -115,14 +115,30 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     },
   }));
 
-  // Actividades narrativas del mes: una línea por sesión de club con observaciones + eventos/podcasts de difusión aprobados.
+  // Actividades narrativas del mes: una línea por sesión de club CON observaciones reales +
+  // un resumen agregado por espacio cuando hay sesiones aprobadas SIN texto (caso frecuente —
+  // el pasante rara vez llena observaciones) + eventos/podcasts de difusión aprobados.
   const sesionesDelMes = await sql`
-    SELECT e.nombre AS espacio_nombre, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.observaciones
+    SELECT a.espacio_id, e.nombre AS espacio_nombre, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.observaciones,
+           (SELECT COUNT(*) FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = a.id)::int AS num_beneficiarios
     FROM asistencia_espacio a JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
     WHERE a.espacio_id = ANY(${idsConsulta}) AND a.estado_aprobacion = 'aprobado'
       AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
     ORDER BY a.fecha ASC
   `;
+  const sesionesConTexto = sesionesDelMes.filter((sesion: any) => sesion.observaciones);
+  const espaciosConTexto = new Set(sesionesConTexto.map((sesion: any) => sesion.espacio_id));
+  const resumenSesionesPorEspacioSinTexto = new Map<number, { nombre: string; sesiones: number; beneficiarios: number; fechas: string[] }>();
+  sesionesDelMes
+    .filter((sesion: any) => !espaciosConTexto.has(sesion.espacio_id))
+    .forEach((sesion: any) => {
+      const previo = resumenSesionesPorEspacioSinTexto.get(sesion.espacio_id) || { nombre: sesion.espacio_nombre, sesiones: 0, beneficiarios: 0, fechas: [] as string[] };
+      previo.sesiones += 1;
+      previo.beneficiarios += sesion.num_beneficiarios || 0;
+      previo.fechas.push(sesion.fecha);
+      resumenSesionesPorEspacioSinTexto.set(sesion.espacio_id, previo);
+    });
+
   // `categoria` (no `proyecto`) es lo que marca un registro como de Vinculación — `proyecto`
   // (texto libre) solo se llena cuando categoria='investigacion' (selector de proyecto de
   // investigación), queda NULL en los de vinculación aunque sí sean de este proyecto.
@@ -137,11 +153,25 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
         WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `;
   const actividades = [
-    ...sesionesDelMes
-      .filter((sesion: any) => sesion.observaciones)
-      .map((sesion: any) => `${sesion.espacio_nombre} (${sesion.fecha}): ${sesion.observaciones}`),
+    ...sesionesConTexto.map((sesion: any) => `${sesion.espacio_nombre} (${sesion.fecha}): ${sesion.observaciones}`),
+    ...Array.from(resumenSesionesPorEspacioSinTexto.values()).map(resumen =>
+      `${resumen.nombre}: ${resumen.sesiones} sesión(es) aprobada(s) en el mes (${resumen.fechas.join(', ')}), ${resumen.beneficiarios} asistencia(s) de beneficiarios registradas.`
+    ),
     ...difusionDelMes.map((actividad: any) => `${actividad.tipo === 'podcast' ? 'Podcast' : 'Evento'}: ${actividad.titulo}${actividad.descripcion ? ` — ${actividad.descripcion}` : ''}`),
   ];
+
+  // Señal por defecto para Observaciones: sesiones pendientes/rechazadas del mes (algo real que
+  // señalar sin depender de que el supervisor escriba algo desde cero).
+  const [estadosDelMes] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE estado_aprobacion = 'pendiente')::int AS pendientes,
+      COUNT(*) FILTER (WHERE estado_aprobacion = 'rechazado')::int AS rechazadas
+    FROM asistencia_espacio WHERE espacio_id = ANY(${idsConsulta}) AND fecha BETWEEN ${desde}::date AND ${hasta}::date
+  `;
+  const observacionesPorDefecto = [
+    estadosDelMes?.pendientes > 0 ? `${estadosDelMes.pendientes} sesión(es) pendiente(s) de aprobación.` : '',
+    estadosDelMes?.rechazadas > 0 ? `${estadosDelMes.rechazadas} sesión(es) rechazada(s) este mes.` : '',
+  ].filter(Boolean).join(' ');
 
   // Espacios de categoría "podcast": no tienen inscripciones_espacio (no se "inscriben"
   // beneficiarios a un podcast) — su "beneficiario" real es la audiencia alcanzada por los
@@ -244,7 +274,7 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     espacios: espaciosSalida,
     actividades,
     evidencias: elegirFotos(fotosCandidatas, 6),
-    observaciones: '',
+    observaciones: observacionesPorDefecto,
     pasantes,
     distribucion,
   };
