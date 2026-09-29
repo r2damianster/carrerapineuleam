@@ -47,7 +47,7 @@ export interface DatosInformeMensual {
   evidencias: { url: string; fecha: string; espacio_nombre: string; num_beneficiarios: number; num_pasantes: number }[];
   observaciones: string;
   /** Horas acreditadas por pasante en el mes, agrupadas por espacio — para la tabla "Horas de los pasantes". */
-  pasantes: { espacio_nombre: string; supervisor_nombre: string; estudiante_nombre: string; horas_mes: number }[];
+  pasantes: { espacio_nombre: string; supervisor_nombre: string; estudiante_nombre: string; horas_mes: number; pendientes: number }[];
   /** Solo informe del líder: qué docente supervisa a qué pasantes, por espacio ("Distribución de estudiantes y docentes supervisores"). */
   distribucion: { espacio_nombre: string; supervisor_nombre: string; pasantes: string[] }[];
 }
@@ -226,14 +226,17 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     : [];
   const nombreSupervisorPorId = new Map<number, string>(supervisoresEspacioFilas.map((fila: any) => [fila.id, `${fila.nombres} ${fila.apellidos}`]));
 
-  // Pasantes por espacio, con horas acreditadas por asistencia en el mes.
+  // Pasantes por espacio, con horas acreditadas por asistencia en el mes y sesiones aún
+  // pendientes de aprobar (para poder avisar al supervisor sin que tenga que ir a buscarlo).
   const pasantesPorEspacio = await sql`
     SELECT ei.espacio_id, u.id AS usuario_id, u.nombres, u.apellidos,
-           COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)::numeric, 1), 0)::float AS horas_mes
+           COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (a.hora_fin::time - a.hora_inicio::time))/3600.0)
+             FILTER (WHERE a.estado_aprobacion = 'aprobado')::numeric, 1), 0)::float AS horas_mes,
+           COUNT(DISTINCT a.id) FILTER (WHERE a.estado_aprobacion = 'pendiente')::int AS sesiones_pendientes
     FROM espacio_instructores ei
     JOIN usuarios u ON u.id = ei.usuario_id
     LEFT JOIN asistencia_instructores ai ON ai.usuario_id = u.id
-    LEFT JOIN asistencia_espacio a ON a.id = ai.asistencia_id AND a.estado_aprobacion = 'aprobado'
+    LEFT JOIN asistencia_espacio a ON a.id = ai.asistencia_id
          AND a.espacio_id = ei.espacio_id AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
     WHERE ei.espacio_id = ANY(${idsConsulta})
     GROUP BY ei.espacio_id, u.id, u.nombres, u.apellidos
@@ -247,29 +250,36 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
   const categoriaPorEspacio = new Map<number, string>(espacios.map((espacio: any) => [espacio.id, espacio.categoria]));
   const idsEspaciosPodcast = espacios.filter((espacio: any) => espacio.categoria === 'podcast').map((espacio: any) => espacio.id);
   const horasPodcastPorUsuario = new Map<number, number>();
+  const pendientesPodcastPorUsuario = new Map<number, number>();
   if (idsEspaciosPodcast.length) {
     const filasPodcast = await sql`
-      SELECT h.usuario_id, COALESCE(ROUND(SUM(h.horas_total)::numeric, 1), 0)::float AS horas
+      SELECT h.usuario_id,
+             COALESCE(ROUND(SUM(h.horas_total) FILTER (WHERE h.estado_aprobacion = 'aprobado'
+               AND COALESCE(ad.fecha, v.published_date::date, h.fecha_aprobacion::date) BETWEEN ${desde}::date AND ${hasta}::date)::numeric, 1), 0)::float AS horas,
+             COUNT(*) FILTER (WHERE h.estado_aprobacion = 'pendiente')::int AS episodios_pendientes
       FROM horas_podcast_pasante h
       JOIN videos v ON v.id = h.video_id
       LEFT JOIN actividades_difusion ad ON ad.id = v.actividad_difusion_id
-      WHERE h.estado_aprobacion = 'aprobado'
-        AND COALESCE(ad.fecha, v.published_date::date, h.fecha_aprobacion::date) BETWEEN ${desde}::date AND ${hasta}::date
       GROUP BY h.usuario_id
     `;
-    filasPodcast.forEach((fila: any) => horasPodcastPorUsuario.set(fila.usuario_id, fila.horas));
+    filasPodcast.forEach((fila: any) => {
+      horasPodcastPorUsuario.set(fila.usuario_id, fila.horas);
+      pendientesPodcastPorUsuario.set(fila.usuario_id, fila.episodios_pendientes);
+    });
   }
 
   const nombreEspacioPorId = new Map<number, string>(espacios.map((espacio: any) => [espacio.id, espacio.nombre]));
   const profesorIdPorEspacio = new Map<number, number>(espacios.map((espacio: any) => [espacio.id, espacio.profesor_id]));
-  const pasantes = pasantesPorEspacio.map((fila: any) => ({
-    espacio_nombre: nombreEspacioPorId.get(fila.espacio_id) || '',
-    supervisor_nombre: nombreSupervisorPorId.get(profesorIdPorEspacio.get(fila.espacio_id) || 0) || '',
-    estudiante_nombre: `${fila.nombres} ${fila.apellidos}`,
-    horas_mes: categoriaPorEspacio.get(fila.espacio_id) === 'podcast'
-      ? (horasPodcastPorUsuario.get(fila.usuario_id) || 0)
-      : fila.horas_mes,
-  }));
+  const pasantes = pasantesPorEspacio.map((fila: any) => {
+    const esPodcast = categoriaPorEspacio.get(fila.espacio_id) === 'podcast';
+    return {
+      espacio_nombre: nombreEspacioPorId.get(fila.espacio_id) || '',
+      supervisor_nombre: nombreSupervisorPorId.get(profesorIdPorEspacio.get(fila.espacio_id) || 0) || '',
+      estudiante_nombre: `${fila.nombres} ${fila.apellidos}`,
+      horas_mes: esPodcast ? (horasPodcastPorUsuario.get(fila.usuario_id) || 0) : fila.horas_mes,
+      pendientes: esPodcast ? (pendientesPodcastPorUsuario.get(fila.usuario_id) || 0) : (fila.sesiones_pendientes || 0),
+    };
+  });
 
   // Distribución de estudiantes y docentes supervisores (solo informe del líder): un bloque por espacio.
   const distribucion = params.supervisorId

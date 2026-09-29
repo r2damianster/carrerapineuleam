@@ -544,6 +544,34 @@ function InformesVinculacionContenido() {
                       <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualSupervisor.general.total_beneficiarios}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-4">Horas de los Pasantes — {datosMensualSupervisor.etiquetaMes}</h2>
+                      {(!datosMensualSupervisor.pasantes || datosMensualSupervisor.pasantes.length === 0) ? (
+                        <p className="text-sm text-gray-500 italic">No hay pasantes asignados a tus espacios.</p>
+                      ) : (
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead><tr className="bg-gray-100 text-gray-700 font-bold border-b"><th className="p-2">Espacio</th><th className="p-2">Estudiante</th><th className="p-2">Horas del mes</th><th className="p-2">Pendiente</th></tr></thead>
+                          <tbody>
+                            {datosMensualSupervisor.pasantes.map((pasante: any, indice: number) => (
+                              <tr key={indice} className="border-b">
+                                <td className="p-2">{pasante.espacio_nombre}</td>
+                                <td className="p-2 font-semibold">{pasante.estudiante_nombre}</td>
+                                <td className="p-2">{pasante.horas_mes} h</td>
+                                <td className="p-2">
+                                  {pasante.pendientes > 0 ? (
+                                    <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                                      ⚠ {pasante.pendientes} por aprobar
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                         <h2 className="text-lg font-bold text-uleam-blue">2.1 Desarrollo de Actividades</h2>
                         <button
@@ -843,6 +871,35 @@ function InformesVinculacionContenido() {
                         </table>
                       )}
                       <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualLider.general.total_beneficiarios}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-4">Horas de los Pasantes — {datosMensualLider.etiquetaMes}</h2>
+                      {(!datosMensualLider.pasantes || datosMensualLider.pasantes.length === 0) ? (
+                        <p className="text-sm text-gray-500 italic">No hay pasantes asignados.</p>
+                      ) : (
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead><tr className="bg-gray-100 text-gray-700 font-bold border-b"><th className="p-2">Espacio</th><th className="p-2">Supervisor</th><th className="p-2">Estudiante</th><th className="p-2">Horas del mes</th><th className="p-2">Pendiente</th></tr></thead>
+                          <tbody>
+                            {datosMensualLider.pasantes.map((pasante: any, indice: number) => (
+                              <tr key={indice} className="border-b">
+                                <td className="p-2">{pasante.espacio_nombre}</td>
+                                <td className="p-2 text-xs text-gray-500">{pasante.supervisor_nombre}</td>
+                                <td className="p-2 font-semibold">{pasante.estudiante_nombre}</td>
+                                <td className="p-2">{pasante.horas_mes} h</td>
+                                <td className="p-2">
+                                  {pasante.pendientes > 0 ? (
+                                    <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                                      ⚠ {pasante.pendientes} por aprobar
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
