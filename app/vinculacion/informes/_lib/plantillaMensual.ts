@@ -22,6 +22,27 @@ interface ImagenIncrustada {
 
 const sustituirTodo = (xml: string, marcador: string, nuevo: string) => xml.split(marcador).join(nuevo);
 
+/**
+ * Reemplaza el PÁRRAFO ENTERO que contiene `marcador` (ubicado por su texto, no por el XML
+ * exacto que lo rodea) por `nuevoContenido`. Más robusto que buscar el string completo del
+ * párrafo-marcador tal cual se escribió al construir la plantilla en blanco: si el .docx se
+ * volvió a abrir/guardar (Word puede reformatear atributos, dividir runs, etc.) ese string
+ * exacto deja de existir y el marcador queda pegado literal en el documento final — buscar
+ * solo el texto `{{...}}` y ubicar el párrafo dinámicamente sobrevive a esos cambios.
+ */
+function reemplazarParrafoMarcador(xml: string, marcador: string, nuevoContenido: string): string {
+  const idx = xml.indexOf(marcador);
+  if (idx === -1) return xml; // el marcador ya no está (plantilla cambiada) — no romper el resto del documento
+  const inicioParrafo = (() => {
+    const re = /<w:p(?=[ >])/g;
+    let m, ultimo = -1;
+    while ((m = re.exec(xml)) && m.index < idx) ultimo = m.index;
+    return ultimo === -1 ? idx : ultimo;
+  })();
+  const finParrafo = xml.indexOf('</w:p>', idx) + '</w:p>'.length;
+  return xml.slice(0, inicioParrafo) + nuevoContenido + xml.slice(finParrafo);
+}
+
 function narrativaEspacio(espacio: DatosInformeMensual['espacios'][number]): string {
   if (espacio.esAudiencia) {
     return `${espacio.nombre}\nAudiencia observada: ${espacio.total} personas (no se registra desglose por sexo)`;
@@ -86,14 +107,12 @@ function rellenarCamposComunes(xml: string, datos: DatosInformeMensual): string 
   xml = sustituirTodo(xml, '{{SUPERVISOR_NOMBRE}}', escaparXml(datos.general.supervisor_nombre));
   xml = sustituirTodo(xml, '{{FECHA_EMISION}}', escaparXml(datos.general.fecha_emision));
   // Observaciones: párrafo completo (una o más líneas).
-  const marcadorObs = '<w:p><w:r><w:t xml:space="preserve">{{OBSERVACIONES}}</w:t></w:r></w:p>';
-  xml = sustituirTodo(xml, marcadorObs, parrafosDeTexto(datos.observaciones || 'Ninguna.', { tamano: 18 }));
+  xml = reemplazarParrafoMarcador(xml, '{{OBSERVACIONES}}', parrafosDeTexto(datos.observaciones || 'Ninguna.', { tamano: 18 }));
   // Actividades: párrafo completo → una línea por actividad.
-  const marcadorAct = '<w:p><w:r><w:t xml:space="preserve">{{ACTIVIDADES}}</w:t></w:r></w:p>';
   const bloqueActividades = datos.actividades.length
     ? datos.actividades.map(linea => parrafo(corrida(`• ${linea}`, { tamano: 16 }))).join('')
     : parrafo(corrida('No se registraron actividades este mes.', { tamano: 18 }));
-  xml = sustituirTodo(xml, marcadorAct, bloqueActividades);
+  xml = reemplazarParrafoMarcador(xml, '{{ACTIVIDADES}}', bloqueActividades);
   return xml;
 }
 
