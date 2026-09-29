@@ -244,17 +244,6 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Mis aprobaciones (Sesión 53) — cualquier docente, aprueba lo que le marcaron como responsable */}
-            {esDocente && (
-              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-uleam-gold hover:shadow-lg transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Mis aprobaciones</h3>
-                <p className="text-gray-600 mb-4 text-sm">Eventos y podcasts donde eres profesor responsable, pendientes de aprobar.</p>
-                <div className="flex flex-col gap-2">
-                  <Link href="/portal/aprobaciones" className="text-uleam-blue hover:underline">» Ver pendientes</Link>
-                </div>
-              </div>
-            )}
-
             {/* Utilidades — cualquier docente y la secretaria */}
             {(esDocente || esSecretaria) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500 hover:shadow-lg transition">
