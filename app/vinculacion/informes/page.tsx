@@ -24,6 +24,16 @@ function InformesVinculacionContenido() {
   const [mensaje, setMensaje] = useState('');
   const [tab, setTab] = useState<'supervisor' | 'lider' | 'historial'>('supervisor');
 
+  // Informe MENSUAL (adicional al semestral, Sesión 57) — sub-selector dentro de cada pestaña.
+  const mesActualIso = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
+  const [modoSupervisor, setModoSupervisor] = useState<'semestral' | 'mensual'>('semestral');
+  const [modoLider, setModoLider] = useState<'semestral' | 'mensual'>('semestral');
+  const [mesSupervisor, setMesSupervisor] = useState(mesActualIso);
+  const [mesLider, setMesLider] = useState(mesActualIso);
+  const [datosMensualSupervisor, setDatosMensualSupervisor] = useState<any>(null);
+  const [datosMensualLider, setDatosMensualLider] = useState<any>(null);
+  const [cargandoMensual, setCargandoMensual] = useState(false);
+
   const [usuario, setUsuario] = useState<any>(null);
   const [esLider, setEsLider] = useState(false);
   const [esSupervisor, setEsSupervisor] = useState(false);
@@ -125,6 +135,24 @@ function InformesVinculacionContenido() {
     }
   }, [usuario, tab, anioSupervisor, numeroSupervisor, anioLider, numeroLider, esLider]);
 
+  // Carga del informe MENSUAL (adicional al semestral) al elegir el sub-modo o cambiar de mes.
+  useEffect(() => {
+    if (!usuario) return;
+    if (tab === 'supervisor' && modoSupervisor === 'mensual') {
+      setCargandoMensual(true);
+      fetch(`/vinculacion/informes/api?accion=datos&tipo=supervisor-mensual&mes=${mesSupervisor}`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setDatosMensualSupervisor(d.datos); })
+        .finally(() => setCargandoMensual(false));
+    } else if (tab === 'lider' && modoLider === 'mensual' && esLider) {
+      setCargandoMensual(true);
+      fetch(`/vinculacion/informes/api?accion=datos&tipo=lider-mensual&mes=${mesLider}`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setDatosMensualLider(d.datos); })
+        .finally(() => setCargandoMensual(false));
+    }
+  }, [usuario, tab, modoSupervisor, modoLider, mesSupervisor, mesLider, esLider]);
+
   // Fecha de corte del periodo del supervisor (para los inputs "mes" de obstáculos/no-previstas
   // registrados a mano) — hoy si el periodo sigue en curso, o el cierre del periodo si ya pasó.
   const mesCorteSupervisor = datosSupervisor?.periodo?.hasta
@@ -197,6 +225,37 @@ function InformesVinculacionContenido() {
       a.href = url;
       const etiquetaArchivo = (tipo === 'supervisor' ? datosSupervisor?.periodo?.etiqueta : datosLider?.periodo?.etiqueta) || 'semestral';
       a.download = `Informe_${tipo}_${etiquetaArchivo}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setMensaje('¡Informe .docx generado y descargado exitosamente!');
+    } catch (err: any) {
+      setMensaje(`Error: ${err.message}`);
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  const generarInformeMensual = async (tipo: 'supervisor-mensual' | 'lider-mensual') => {
+    setGenerando(true);
+    setMensaje('');
+    try {
+      const datos = tipo === 'supervisor-mensual' ? datosMensualSupervisor : datosMensualLider;
+      const res = await fetch('/vinculacion/informes/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'generar', tipo, datos }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Error al generar informe');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Informe_${tipo}_${datos?.mes || 'mes'}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -372,7 +431,11 @@ function InformesVinculacionContenido() {
         </div>
 
         <h1 className="text-3xl font-bold text-uleam-blue mb-2">
-          {tab === 'supervisor' ? 'Informe Semestral de Seguimiento (Supervisor)' : tab === 'lider' ? 'Informe Semestral de Avances y Logros (Líder)' : 'Historial de Informes Descargables'}
+          {tab === 'supervisor'
+            ? (modoSupervisor === 'mensual' ? 'Informe Mensual del Supervisor' : 'Informe Semestral de Seguimiento (Supervisor)')
+            : tab === 'lider'
+            ? (modoLider === 'mensual' ? 'Informe Mensual del Líder' : 'Informe Semestral de Avances y Logros (Líder)')
+            : 'Historial de Informes Descargables'}
         </h1>
         <p className="text-gray-600 text-sm mb-6">
           Genera el formato oficial en Word (.docx) con indicadores agregados desde la base de datos Neon.
@@ -411,8 +474,80 @@ function InformesVinculacionContenido() {
         </div>
 
         {/* CONTENIDO TAB SUPERVISOR */}
-        {tab === 'supervisor' && datosSupervisor && (
+        {tab === 'supervisor' && (modoSupervisor === 'mensual' || datosSupervisor) && (
           <div className="space-y-6">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setModoSupervisor('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoSupervisor === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
+              <button type="button" onClick={() => setModoSupervisor('mensual')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoSupervisor === 'mensual' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Mensual</button>
+            </div>
+
+            {modoSupervisor === 'mensual' ? (
+              <div className="space-y-6">
+                <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Mes del informe</label>
+                    <input type="month" value={mesSupervisor} onChange={e => setMesSupervisor(e.target.value)} className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue" />
+                  </div>
+                  <button
+                    onClick={() => generarInformeMensual('supervisor-mensual')}
+                    disabled={generando || !datosMensualSupervisor}
+                    className="px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow transition disabled:opacity-50"
+                  >
+                    {generando ? 'Generando Documento...' : 'Descargar Informe Mensual .docx'}
+                  </button>
+                </div>
+                {cargandoMensual && <p className="text-sm text-gray-500">Cargando datos del mes…</p>}
+                {datosMensualSupervisor && (
+                  <>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-4">2.2 Beneficiarios por Espacio — {datosMensualSupervisor.etiquetaMes}</h2>
+                      {datosMensualSupervisor.espacios.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">No tienes espacios asignados.</p>
+                      ) : (
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead><tr className="bg-gray-100 text-gray-700 font-bold border-b"><th className="p-2">Espacio</th><th className="p-2">Total</th><th className="p-2">Mujeres</th><th className="p-2">Hombres</th><th className="p-2">Zona</th></tr></thead>
+                          <tbody>
+                            {datosMensualSupervisor.espacios.map((espacio: any) => (
+                              <tr key={espacio.id} className="border-b">
+                                <td className="p-2 font-semibold">{espacio.nombre}</td>
+                                <td className="p-2">{espacio.total}</td>
+                                <td className="p-2">{espacio.mujeres}</td>
+                                <td className="p-2">{espacio.hombres}</td>
+                                <td className="p-2 text-xs text-gray-500">{espacio.zona.canton ? `${espacio.zona.canton} · ${espacio.zona.barrio}` : <span className="text-amber-600">Sin zona (completar en Espacios)</span>}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                      <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualSupervisor.general.total_beneficiarios}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-2">2.1 Desarrollo de Actividades</h2>
+                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes. Edita o completa el texto final.</p>
+                      <textarea
+                        rows={6}
+                        value={(datosMensualSupervisor.actividades || []).join('\n')}
+                        onChange={e => setDatosMensualSupervisor((previo: any) => ({ ...previo, actividades: e.target.value.split('\n').filter(Boolean) }))}
+                        className="w-full p-3 border rounded-lg text-sm"
+                        placeholder="Una actividad por línea…"
+                      />
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-2">Observaciones</h2>
+                      <textarea
+                        rows={3}
+                        value={datosMensualSupervisor.observaciones || ''}
+                        onChange={e => setDatosMensualSupervisor((previo: any) => ({ ...previo, observaciones: e.target.value }))}
+                        className="w-full p-3 border rounded-lg text-sm"
+                        placeholder="Ninguna."
+                      />
+                      <p className="text-xs text-gray-500 mt-3">Evidencias: {datosMensualSupervisor.evidencias?.length || 0} foto(s) de sesiones aprobadas del mes.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : datosSupervisor ? (
+            <>
             <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Periodo del informe semestral</label>
@@ -624,12 +759,86 @@ function InformesVinculacionContenido() {
                 </div>
               )}
             </div>
+            </>
+            ) : null}
           </div>
         )}
 
         {/* CONTENIDO TAB LÍDER */}
-        {tab === 'lider' && esLider && datosLider && (
+        {tab === 'lider' && esLider && (modoLider === 'mensual' || datosLider) && (
           <div className="space-y-6">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setModoLider('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoLider === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
+              <button type="button" onClick={() => setModoLider('mensual')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoLider === 'mensual' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Mensual</button>
+            </div>
+
+            {modoLider === 'mensual' ? (
+              <div className="space-y-6">
+                <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Mes del informe</label>
+                    <input type="month" value={mesLider} onChange={e => setMesLider(e.target.value)} className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-uleam-blue" />
+                  </div>
+                  <button
+                    onClick={() => generarInformeMensual('lider-mensual')}
+                    disabled={generando || !datosMensualLider}
+                    className="px-6 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow transition disabled:opacity-50"
+                  >
+                    {generando ? 'Generando Documento...' : 'Descargar Informe Mensual .docx'}
+                  </button>
+                </div>
+                {cargandoMensual && <p className="text-sm text-gray-500">Cargando datos del mes…</p>}
+                {datosMensualLider && (
+                  <>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-4">2.2 Beneficiarios por Espacio — {datosMensualLider.etiquetaMes}</h2>
+                      {datosMensualLider.espacios.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">No hay espacios de Vinculación registrados.</p>
+                      ) : (
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead><tr className="bg-gray-100 text-gray-700 font-bold border-b"><th className="p-2">Espacio</th><th className="p-2">Total</th><th className="p-2">Mujeres</th><th className="p-2">Hombres</th><th className="p-2">Zona</th></tr></thead>
+                          <tbody>
+                            {datosMensualLider.espacios.map((espacio: any) => (
+                              <tr key={espacio.id} className="border-b">
+                                <td className="p-2 font-semibold">{espacio.nombre}</td>
+                                <td className="p-2">{espacio.total}</td>
+                                <td className="p-2">{espacio.mujeres}</td>
+                                <td className="p-2">{espacio.hombres}</td>
+                                <td className="p-2 text-xs text-gray-500">{espacio.zona.canton ? `${espacio.zona.canton} · ${espacio.zona.barrio}` : <span className="text-amber-600">Sin zona (completar en Espacios)</span>}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                      <p className="text-sm font-semibold text-gray-700 mt-3">Total de beneficiarios: {datosMensualLider.general.total_beneficiarios}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-2">2.1 Desarrollo de Actividades</h2>
+                      <p className="text-xs text-gray-500 mb-3">Detectadas automáticamente de sesiones y eventos aprobados del mes en todo el proyecto. Edita o completa el texto final.</p>
+                      <textarea
+                        rows={6}
+                        value={(datosMensualLider.actividades || []).join('\n')}
+                        onChange={e => setDatosMensualLider((previo: any) => ({ ...previo, actividades: e.target.value.split('\n').filter(Boolean) }))}
+                        className="w-full p-3 border rounded-lg text-sm"
+                        placeholder="Una actividad por línea…"
+                      />
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                      <h2 className="text-lg font-bold text-uleam-blue mb-2">Observaciones</h2>
+                      <textarea
+                        rows={3}
+                        value={datosMensualLider.observaciones || ''}
+                        onChange={e => setDatosMensualLider((previo: any) => ({ ...previo, observaciones: e.target.value }))}
+                        className="w-full p-3 border rounded-lg text-sm"
+                        placeholder="Ninguna."
+                      />
+                      <p className="text-xs text-gray-500 mt-3">Evidencias: {datosMensualLider.evidencias?.length || 0} foto(s) de sesiones aprobadas del mes.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : datosLider ? (
+            <>
             <div className="bg-white p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Periodo del informe semestral</label>
@@ -752,6 +961,8 @@ function InformesVinculacionContenido() {
                 </div>
               ))}
             </div>
+            </>
+            ) : null}
           </div>
         )}
 
@@ -777,7 +988,7 @@ function InformesVinculacionContenido() {
                     {historial.map((h: any) => (
                       <tr key={h.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${h.tipo === 'supervisor' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${h.tipo.startsWith('supervisor') ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
                             {h.tipo.toUpperCase()}
                           </span>
                         </td>

@@ -37,7 +37,9 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y líderes ven todo.
 
-**» Generar Informe Semestral (.docx)** (`/vinculacion/informes`) — permite seleccionar el periodo semestral fijo (Periodo 1: abril–agosto, Periodo 2: septiembre–diciembre) y el año, visualizar las estadísticas acumuladas de asistencias y beneficiarios (con corte a hoy si el periodo sigue abierto), registrar dificultades u obstáculos con su impacto y recomendación, y descargar el documento de Word `.docx` oficial con gráficos generados automáticamente.
+**» Generar Informe Semestral (.docx)** (`/vinculacion/informes`, sub-selector "Semestral") — permite seleccionar el periodo semestral fijo (Periodo 1: abril–agosto, Periodo 2: septiembre–diciembre) y el año, visualizar las estadísticas acumuladas de asistencias y beneficiarios (con corte a hoy si el periodo sigue abierto), registrar dificultades u obstáculos con su impacto y recomendación, y descargar el documento de Word `.docx` oficial con gráficos generados automáticamente.
+
+**» Generar Informe Mensual (.docx)** (`/vinculacion/informes`, sub-selector "Mensual", Sesión 57) — formato adicional y más simple, por mes calendario: elige el mes, revisa beneficiarios y zona (Cantón/Parroquia/Barrio/Ubicación) por espacio, edita el texto de actividades del mes (precargado automáticamente) y las observaciones, y descarga el `.docx`. El líder ve el mismo formato para todo el proyecto. La zona de cada espacio se completa una sola vez en "Administrar Espacios".
 
 ### Gestión de Vinculación (solo profesor/admin)
 

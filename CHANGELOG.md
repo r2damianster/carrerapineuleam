@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sumar las horas autónomas aprobadas a `GET /api/admin/stats` (Dashboard PINE), indicadores de supervisión, tarjeta "Mi Avance" del dashboard y `/api/estudiantes` (hoy solo suman en `/portal/mi-avance`).
 - Aviso opcional al pasante cuando el supervisor rechaza una actividad autónoma o de investigación (hoy solo avisa por asistencia rechazada).
+- Completar la zona (Cantón/Parroquia/Barrio/Ubicación) de los espacios "Cross Worlds for Connections", "Fundación Submarino Amarillo" y "UE Manuela Cañizares Speaking Club" en `/vinculacion/espacios` (no confirmados, quedaron sin dato a propósito).
+
+## [0.12.14] - 2026-09-29 (Sesión 57 — Informe Mensual de Vinculación, adicional al semestral)
+
+### ✨ Added
+- `lib/informeMensualTareas.ts` + `app/vinculacion/informes/_lib/docxMensual.ts` — informe MENSUAL (líder y supervisor) por mes calendario: beneficiarios y sexo por espacio, zona por espacio, actividades narrativas del mes, evidencias fotográficas. Adicional al informe semestral (marco lógico), no lo reemplaza — sub-selector "Semestral | Mensual" en cada pestaña de `/vinculacion/informes`.
+- `espacios_enseñanza.zona_canton/zona_parroquia/zona_barrio/zona_ubicacion` (`scripts/migrate-zona-espacios.js`) — editable en `/vinculacion/espacios`.
+- `informes_vinculacion.tipo` acepta `lider-mensual`/`supervisor-mensual` (`scripts/migrate-informes-mensuales-vinculacion.js`).
+
+### 🐛 Fixed
+- Notificación `informe-supervisor-pendiente` (`lib/notificaciones.ts`) comparaba contra `informes_vinculacion.mes`, columna que el informe semestral deja `NULL` a propósito desde la Sesión 56 — el aviso disparaba siempre, sin importar si el informe ya se había generado. Ahora compara por `ciclo_id` del periodo fijo anterior.
+- Dashboard (`/portal/dashboard`) decía "Informe Mensual del Supervisor" para un informe que ya era semestral desde la Sesión 56 — corregido el texto del enlace.
 
 ## [0.12.12] - 2026-09-27 (Sesión 55 — dedupe en tiempo real, checklists conscientes, subaulas, auditoría IA)
 

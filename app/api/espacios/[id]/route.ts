@@ -22,7 +22,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'No tienes acceso a ese módulo' }, { status: 403 });
     }
 
-    const { nombre, tipo, ciclo_id, categoria: categoriaBody, usa_aulas, entidad_id } = await request.json();
+    const { nombre, tipo, ciclo_id, categoria: categoriaBody, usa_aulas, entidad_id, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion } = await request.json();
     const categoria = ['club', 'podcast', 'investigacion', 'otro'].includes(categoriaBody) ? categoriaBody : null;
     if (!nombre || !tipo || !ciclo_id) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -32,9 +32,13 @@ export async function PATCH(
       UPDATE espacios_enseñanza
       SET nombre = ${nombre}, tipo = ${tipo}, ciclo_id = ${ciclo_id}, categoria = COALESCE(${categoria}, categoria),
         usa_aulas = COALESCE(${usa_aulas ?? null}, usa_aulas),
-        entidad_id = ${entidad_id === undefined ? null : entidad_id || null}
+        entidad_id = ${entidad_id === undefined ? null : entidad_id || null},
+        zona_canton = COALESCE(${zona_canton ?? null}, zona_canton),
+        zona_parroquia = COALESCE(${zona_parroquia ?? null}, zona_parroquia),
+        zona_barrio = COALESCE(${zona_barrio ?? null}, zona_barrio),
+        zona_ubicacion = COALESCE(${zona_ubicacion ?? null}, zona_ubicacion)
       WHERE id = ${espacioId}
-      RETURNING id, nombre, tipo, ciclo_id, area, categoria, usa_aulas, entidad_id
+      RETURNING id, nombre, tipo, ciclo_id, area, categoria, usa_aulas, entidad_id, zona_canton, zona_parroquia, zona_barrio, zona_ubicacion
     `;
 
     return NextResponse.json({ success: true, data: actualizado });

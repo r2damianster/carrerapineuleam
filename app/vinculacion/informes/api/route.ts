@@ -8,6 +8,8 @@ import { generarInformeLiderDesdePlantilla } from '../_lib/plantillaLider';
 import { generarInformeSupervisorDesdePlantilla } from '../_lib/plantillaSupervisor';
 import { pedirCompletionIA, formatearErrorIA } from '@/app/utilidades/_lib/groq';
 import { datosInformeSupervisor, recopilarSenalesObstaculos } from '@/lib/informeSupervisorTareas';
+import { datosInformeMensual } from '@/lib/informeMensualTareas';
+import { generarDocxMensual } from '../_lib/docxMensual';
 import {
   generarGraficoPasantesHoras,
   generarGraficoGenero,
@@ -74,6 +76,24 @@ export async function GET(request: Request) {
         const datos = await datosInformeLiderPlantilla(sql, { anio, numero });
         return NextResponse.json({ success: true, datos });
       }
+
+      // Informe MENSUAL (adicional al semestral) — formato simple por mes calendario.
+      if (tipo === 'supervisor-mensual') {
+        let targetSupervisorId = Number(usuario.id);
+        if (supervisorIdParam && puedeGestionarVinculacion(usuario)) targetSupervisorId = parseInt(supervisorIdParam);
+        const mes = searchParams.get('mes') || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
+        const datos = await datosInformeMensual(sql, { supervisorId: targetSupervisorId, mes });
+        return NextResponse.json({ success: true, datos });
+      }
+
+      if (tipo === 'lider-mensual') {
+        if (!puedeGestionarVinculacion(usuario)) {
+          return NextResponse.json({ error: 'Solo el Líder de proyecto puede ver el informe mensual del proyecto' }, { status: 403 });
+        }
+        const mes = searchParams.get('mes') || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
+        const datos = await datosInformeMensual(sql, { supervisorId: null, mes });
+        return NextResponse.json({ success: true, datos });
+      }
     }
 
     if (accion === 'historial') {
@@ -118,8 +138,12 @@ export async function GET(request: Request) {
 
       if (informe.tipo === 'supervisor') {
         buffer = await generarBufferSupervisor(datos);
-      } else {
+      } else if (informe.tipo === 'lider') {
         buffer = await generarBufferLider(datos);
+      } else if (informe.tipo === 'supervisor-mensual') {
+        buffer = await generarDocxMensual(datos, 'supervisor');
+      } else {
+        buffer = await generarDocxMensual(datos, 'lider');
       }
 
       return new Response(new Uint8Array(buffer), {
@@ -320,34 +344,43 @@ export async function POST(request: Request) {
       }
 
       let buffer: Buffer;
-      // Ambos informes son semestrales y pertenecen a un ciclo (uno por supervisor por semestre,
-      // uno para el proyecto completo por semestre) — `mes` queda NULL a propósito: si se
-      // guardara la fecha de corte, cada regeneración dentro del mismo semestre (corte que avanza
-      // día a día) crearía una fila nueva en vez de actualizar la del semestre. La fecha de corte
-      // real queda dentro de `datos_json.periodo.hasta`.
-      const targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || null);
-      const targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
-      const mes: string | null = null;
+      let targetCicloId: number | null = null;
+      let targetSupervisorId: number | null = null;
+      let mes: string | null = null;
 
-      if (tipo === 'supervisor') {
-        buffer = await generarBufferSupervisor(datos);
+      if (tipo === 'supervisor' || tipo === 'lider') {
+        // Ambos son semestrales y pertenecen a un ciclo (uno por supervisor por semestre, uno
+        // para el proyecto completo por semestre) — `mes` queda NULL a propósito: si se guardara
+        // la fecha de corte, cada regeneración dentro del mismo semestre (corte que avanza día a
+        // día) crearía una fila nueva en vez de actualizar la del semestre. La fecha de corte real
+        // queda dentro de `datos_json.periodo.hasta`.
+        targetCicloId = ciclo_id ? parseInt(ciclo_id) : (datos.periodo?.cicloId || null);
+        targetSupervisorId = tipo === 'supervisor' ? Number(usuario.id) : null;
+        buffer = tipo === 'supervisor' ? await generarBufferSupervisor(datos) : await generarBufferLider(datos);
+      } else if (tipo === 'supervisor-mensual' || tipo === 'lider-mensual') {
+        // Mensuales: identidad natural por mes calendario, sin colisión — `mes` sí se guarda.
+        if (!datos.mes) return NextResponse.json({ error: 'Falta el mes del informe' }, { status: 400 });
+        targetSupervisorId = tipo === 'supervisor-mensual' ? Number(usuario.id) : null;
+        mes = `${datos.mes}-01`;
+        buffer = await generarDocxMensual(datos, tipo === 'supervisor-mensual' ? 'supervisor' : 'lider');
       } else {
-        buffer = await generarBufferLider(datos);
+        return NextResponse.json({ error: 'Tipo de informe no válido' }, { status: 400 });
       }
 
       const [guardado] = await sql`
         INSERT INTO informes_vinculacion (tipo, ciclo_id, supervisor_id, mes, datos_json, generado_por)
-        VALUES (${tipo}, ${targetCicloId}, ${targetSupervisorId}, ${mes || null}, ${JSON.stringify(datos)}, ${Number(usuario.id)})
+        VALUES (${tipo}, ${targetCicloId}, ${targetSupervisorId}, ${mes}, ${JSON.stringify(datos)}, ${Number(usuario.id)})
         ON CONFLICT (tipo, COALESCE(supervisor_id, 0), COALESCE(ciclo_id, 0), COALESCE(mes, '1970-01-01'::date))
         DO UPDATE SET datos_json = EXCLUDED.datos_json, generado_por = EXCLUDED.generado_por, creado_en = now()
         RETURNING id
       `;
 
+      const etiquetaArchivo = datos.periodo?.etiqueta || datos.mes || 'informe';
       return new Response(new Uint8Array(buffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'Content-Disposition': `attachment; filename=Informe_${tipo}_${datos.periodo?.etiqueta || 'semestral'}.docx`,
+          'Content-Disposition': `attachment; filename=Informe_${tipo}_${etiquetaArchivo}.docx`,
           'X-Informe-Id': String(guardado.id),
         },
       });

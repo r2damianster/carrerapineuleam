@@ -23,7 +23,7 @@ export default function VinculacionEspaciosPage() {
   const [entidades, setEntidades] = useState<any[]>([]);
   const [form, setForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '' });
+  const [editForm, setEditForm] = useState({ nombre: '', tipo: 'comunidad', ciclo_id: '', categoria: 'club', usa_aulas: false, entidad_id: '', zona_canton: '', zona_parroquia: '', zona_barrio: '', zona_ubicacion: '' });
 
   const crearEntidadRapida = async () => {
     const nombre = prompt('Nombre de la entidad beneficiaria (ej. Fundación Submarino Amarillo, Unidad Educativa Manuela Cañizares):');
@@ -142,7 +142,10 @@ export default function VinculacionEspaciosPage() {
 
   const empezarEdicion = (e: any) => {
     setEditandoId(e.id);
-    setEditForm({ nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro', usa_aulas: !!e.usa_aulas, entidad_id: e.entidad_id ? String(e.entidad_id) : '' });
+    setEditForm({
+      nombre: e.nombre, tipo: e.tipo, ciclo_id: String(e.ciclo_id), categoria: e.categoria || 'otro', usa_aulas: !!e.usa_aulas, entidad_id: e.entidad_id ? String(e.entidad_id) : '',
+      zona_canton: e.zona_canton || '', zona_parroquia: e.zona_parroquia || '', zona_barrio: e.zona_barrio || '', zona_ubicacion: e.zona_ubicacion || '',
+    });
   };
 
   const handleGuardarEdicion = async (id: number) => {
@@ -275,6 +278,15 @@ export default function VinculacionEspaciosPage() {
                       Este espacio se divide en aulas/subgrupos
                     </label>
                   )}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Zona donde se realiza la Vinculación (informe mensual)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input placeholder="Cantón" className="px-2 py-1 rounded border border-gray-300 text-sm" value={editForm.zona_canton} onChange={ev => setEditForm({ ...editForm, zona_canton: ev.target.value })} />
+                      <input placeholder="Parroquia" className="px-2 py-1 rounded border border-gray-300 text-sm" value={editForm.zona_parroquia} onChange={ev => setEditForm({ ...editForm, zona_parroquia: ev.target.value })} />
+                      <input placeholder="Barrio/Sector" className="px-2 py-1 rounded border border-gray-300 text-sm" value={editForm.zona_barrio} onChange={ev => setEditForm({ ...editForm, zona_barrio: ev.target.value })} />
+                      <input placeholder="Ubicación" className="px-2 py-1 rounded border border-gray-300 text-sm" value={editForm.zona_ubicacion} onChange={ev => setEditForm({ ...editForm, zona_ubicacion: ev.target.value })} />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => handleGuardarEdicion(e.id)} disabled={loading} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Guardar</button>
                     <button onClick={() => setEditandoId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm">Cancelar</button>
@@ -284,7 +296,8 @@ export default function VinculacionEspaciosPage() {
                 <div className="flex items-start justify-between gap-2 p-3 hover:bg-gray-50">
                   <Link href={`/vinculacion/espacios/${e.id}`} className="flex-1">
                     <strong>{e.nombre}</strong> ({e.tipo === 'comunidad' ? 'club' : e.tipo === 'podcast' ? 'podcast' : 'aula'}) - Ciclo: {e.ciclo_nombre} · <span className="text-xs font-semibold text-uleam-blue">{OPCIONES_CATEGORIA.find(opcion => opcion.valor === e.categoria)?.etiqueta || 'Otro'}</span>
-                    {e.entidad_id ? <span className="text-xs text-gray-500"> · {entidades.find(ent => ent.id === e.entidad_id)?.nombre}</span> : <span className="text-xs text-amber-600"> · sin entidad beneficiaria</span>} <br />
+                    {e.entidad_id ? <span className="text-xs text-gray-500"> · {entidades.find(ent => ent.id === e.entidad_id)?.nombre}</span> : <span className="text-xs text-amber-600"> · sin entidad beneficiaria</span>}
+                    {!e.zona_canton && <span className="text-xs text-amber-600"> · sin zona (informe mensual)</span>} <br />
                     <span className="text-sm text-gray-500">
                       {e.instructores} estudiante{e.instructores === 1 ? '' : 's'} instructor{e.instructores === 1 ? '' : 'es'} · {e.inscritos} beneficiarios inscritos
                     </span>
