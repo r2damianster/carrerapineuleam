@@ -5,49 +5,63 @@ import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 import { puedeEditarContribucion, puedeEliminarContribucion } from '@/lib/permisosContribucion';
 import { contribucionSchema as baseSchema } from '@/lib/contribucionSchema';
 
-export async function GET() {
+// GET: detalle de una contribución (para precargar el formulario de edición).
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   const usuario = await getAppSessionFromCookies();
   if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const contributions = await prisma.contribution.findMany({
+  const contribution = await prisma.contribution.findUnique({
+    where: { id: params.id },
     include: { authors: true },
-    orderBy: { fechaSubida: 'desc' },
   });
-  // Flags calculados en el servidor — el frontend nunca decide permisos por su cuenta.
-  const conPermisos = contributions.map(c => ({
-    ...c,
-    _puedeEditar: puedeEditarContribucion(usuario, c),
+  if (!contribution) {
+    return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
+  }
+  if (!puedeEditarContribucion(usuario, contribution)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
+  return NextResponse.json({
+    ...contribution,
+    _puedeEditar: true,
     _puedeEliminar: puedeEliminarContribucion(usuario),
-  }));
-  return NextResponse.json(conPermisos);
+  });
 }
 
-export async function POST(request: Request) {
+// PATCH: solo el autor/coautor de carrera, quien la registró, o admin/superadmin.
+// Nunca permite tocar creadoPorId (se ignora si viene en el body).
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const usuario = await getAppSessionFromCookies();
   if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
+
+  const existente = await prisma.contribution.findUnique({
+    where: { id: params.id },
+    include: { authors: true },
+  });
+  if (!existente) {
+    return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
+  }
+  if (!puedeEditarContribucion(usuario, existente)) {
+    return NextResponse.json({ error: 'No autorizado para editar esta contribución' }, { status: 403 });
+  }
+
   const body = await request.json();
   const parseResult = baseSchema.safeParse(body);
   if (!parseResult.success) {
     return NextResponse.json({ error: parseResult.error.errors }, { status: 400 });
   }
   const data = parseResult.data;
-  // Forzar CODIGO_IES a ULEAM y defaults de facultad/carrera
-  data.codigo_ies = 'ULEAM';
-  const creadoPorId = Number(usuario.id);
-  if (!data.facultad) data.facultad = 'Facultad de Educación y Turismo';
-  if (!data.carrera) data.carrera = 'Pedagogía de los Idiomas Nacionales y Extranjeros';
   const fechaPub = new Date(data.fechaPublicacion);
   const periodoAcademico = calcularPeriodoAcademico(fechaPub);
-  const contribution = await prisma.contribution.create({
+
+  const actualizada = await prisma.contribution.update({
+    where: { id: params.id },
     data: {
-      codigo_ies: data.codigo_ies,
-      creadoPorId,
       periodoAcademico,
-      facultad: data.facultad,
-      carrera: data.carrera,
+      facultad: data.facultad || existente.facultad,
+      carrera: data.carrera || existente.carrera,
       tipoPublicacion: data.tipoPublicacion as any,
       tipoArticulo: data.tipoArticulo,
       codigoPublicacion: data.codigoPublicacion,
@@ -87,7 +101,9 @@ export async function POST(request: Request) {
       claseDeObra: data.claseDeObra,
       tituloObra: data.tituloObra,
       lugar: data.lugar,
+      // creadoPorId nunca se toca acá — la propiedad no cambia por editar.
       authors: {
+        deleteMany: {},
         create: data.authors.map(a => ({
           authorName: a.authorName,
           order: a.order,
@@ -98,23 +114,5 @@ export async function POST(request: Request) {
     },
     include: { authors: true },
   });
-  return NextResponse.json(contribution, { status: 201 });
-}
-
-export async function DELETE(request: Request) {
-  const usuario = await getAppSessionFromCookies();
-  if (!usuario || !puedeEliminarContribucion(usuario)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-  if (!id) {
-    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
-  }
-  try {
-    await prisma.contribution.delete({ where: { id } });
-    return NextResponse.json({ success: true });
-  } catch (e) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
+  return NextResponse.json(actualizada);
 }

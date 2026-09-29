@@ -154,12 +154,10 @@ export async function middleware(request: NextRequest) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
-    // Listado y wizard de contribuciones: cualquier docente autenticado.
-    // Borrar sigue siendo solo admin (DELETE en app/api/contribuciones).
-    if (pathname === '/contribuciones' && !['profesor', 'admin'].includes(session.rol)) {
-       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
-    }
-    if (pathname.startsWith('/contribuciones/new') && !['profesor', 'admin'].includes(session.rol)) {
+    // Listado, wizard y edición de contribuciones: cualquier docente autenticado.
+    // Editar (autor/coautor/creador) se valida además en la API — ver
+    // lib/permisosContribucion.ts. Borrar sigue siendo solo admin/superadmin.
+    if (pathname.startsWith('/contribuciones') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

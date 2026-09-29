@@ -16,6 +16,8 @@ interface Contribution {
   lineaInvestigacion: string;
   fechaSubida: string;
   authors: Author[];
+  _puedeEditar: boolean;
+  _puedeEliminar: boolean;
   [key: string]: any; // resto de campos específicos por tipo
 }
 
@@ -158,11 +160,19 @@ export default function ContributionsPage() {
                         </div>
                       ))}
                     </td>
-                    <td className="p-2 border">
-                      <button
-                        className="px-3 py-1 bg-red-600 text-white rounded"
-                        onClick={() => handleDelete(c.id)}
-                      >Eliminar</button>
+                    <td className="p-2 border space-x-2 whitespace-nowrap">
+                      {c._puedeEditar && (
+                        <Link
+                          href={`/contribuciones/${c.id}/editar`}
+                          className="px-3 py-1 bg-blue-600 text-white rounded inline-block"
+                        >Editar</Link>
+                      )}
+                      {c._puedeEliminar && (
+                        <button
+                          className="px-3 py-1 bg-red-600 text-white rounded"
+                          onClick={() => handleDelete(c.id)}
+                        >Eliminar</button>
+                      )}
                     </td>
                   </tr>
                   {abierto && (

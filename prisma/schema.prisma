@@ -80,6 +80,7 @@ model Contribution {
   fechaSubida            DateTime @default(now())
   validadoPor            String?   // id del admin que valida
   fechaValidacion        DateTime?
+  creadoPorId            Int?      // usuarios.id de quien la registró — permite editar solo lo propio
   authors                ContributionAuthor[]
 }
 

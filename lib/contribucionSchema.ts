@@ -1,0 +1,72 @@
+import { z } from 'zod';
+
+// Esquema de validación usando Zod – los campos dependen del tipo de publicación.
+// Compartido entre POST /api/contribuciones (crear) y PATCH /api/contribuciones/[id]
+// (editar) — un route.ts de Next no puede exportar nada fuera de los métodos HTTP.
+export const contribucionSchema = z.object({
+  codigo_ies: z.string().optional(), // será fijado a 'ULEAM'
+  facultad: z.string().optional(),
+  carrera: z.string().optional(),
+  tipoPublicacion: z.enum([
+    'ARTICULO_REGIONAL',
+    'ARTICULO_ALTO_IMPACTO',
+    'LIBRO',
+    'CAPITULO_LIBRO',
+    'MEMORIA_EVENTO',
+    'PROPIEDAD_INTELECTUAL',
+  ]),
+  tipoArticulo: z.string().optional(),
+  codigoPublicacion: z.string().optional(),
+  proyecto: z.string().optional(),
+  titulo: z.string(),
+  tituloLibro: z.string().optional(),
+  nombreRevista: z.string().optional(),
+  issn: z.string().optional(),
+  isbn: z.string().optional(),
+  fechaPublicacion: z.string().refine(v => !isNaN(Date.parse(v)), { message: 'Invalid date' }),
+  campoDetallado: z.string(),
+  estado: z.enum(['PUBLICADO', 'ACEPTADO', 'OTRO']),
+  linkPublicacion: z.string().optional(),
+  linkRevista: z.string().optional(),
+  filiacion: z.string().optional(),
+  identificacionParticipante: z.string().optional(),
+  categoria: z.enum([
+    'AUXILIAR_I',
+    'AUXILIAR_II',
+    'AGREGADO_I',
+    'AGREGADO_II',
+    'AGREGADO_III',
+    'PRINCIPAL_I',
+    'PRINCIPAL_II',
+  ]).optional(),
+  participacion: z.string().optional(),
+  cuartil: z.string().optional(),
+  lineaInvestigacion: z.string(),
+  intercultural: z.string().optional(),
+  baseDatosIndexada: z.string().optional(),
+  revisadoPares: z.boolean().optional().default(true),
+  tituloCapitulo: z.string().optional(),
+  editorCompilador: z.string().optional(),
+  paginas: z.string().optional(),
+  totalCapituloLibro: z.number().int().optional(),
+  nombrePonencia: z.string().optional(),
+  nombreEvento: z.string().optional(),
+  edicionEvento: z.string().optional(),
+  organizadorEvento: z.string().optional(),
+  comiteOrganizador: z.string().optional(),
+  pais: z.string().optional(),
+  ciudad: z.string().optional(),
+  certificadoN: z.string().optional(),
+  solicitudN: z.string().optional(),
+  claseDeObra: z.string().optional(),
+  tituloObra: z.string().optional(),
+  lugar: z.string().optional(),
+  authors: z.array(
+    z.object({
+      authorName: z.string(),
+      order: z.number().int().min(1).max(5),
+      isCarreraAuthor: z.boolean(),
+      esEstudiante: z.boolean().optional().default(false),
+    })
+  ),
+});
