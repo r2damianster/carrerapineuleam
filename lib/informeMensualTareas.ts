@@ -239,13 +239,36 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
     GROUP BY ei.espacio_id, u.id, u.nombres, u.apellidos
     ORDER BY u.apellidos, u.nombres
   `;
+
+  // Un espacio categoria='podcast' no tiene sesiones de asistencia — sus pasantes (ej. Keyla,
+  // Alisson) siempre salían en 0h arriba aunque tuvieran horas de podcast aprobadas ese mes.
+  // Las horas reales de podcast viven en horas_podcast_pasante (por video, no por espacio),
+  // así que se calculan aparte y reemplazan el 0h para las filas de espacios de esa categoría.
+  const categoriaPorEspacio = new Map<number, string>(espacios.map((espacio: any) => [espacio.id, espacio.categoria]));
+  const idsEspaciosPodcast = espacios.filter((espacio: any) => espacio.categoria === 'podcast').map((espacio: any) => espacio.id);
+  const horasPodcastPorUsuario = new Map<number, number>();
+  if (idsEspaciosPodcast.length) {
+    const filasPodcast = await sql`
+      SELECT h.usuario_id, COALESCE(ROUND(SUM(h.horas_total)::numeric, 1), 0)::float AS horas
+      FROM horas_podcast_pasante h
+      JOIN videos v ON v.id = h.video_id
+      LEFT JOIN actividades_difusion ad ON ad.id = v.actividad_difusion_id
+      WHERE h.estado_aprobacion = 'aprobado'
+        AND COALESCE(ad.fecha, v.published_date::date, h.fecha_aprobacion::date) BETWEEN ${desde}::date AND ${hasta}::date
+      GROUP BY h.usuario_id
+    `;
+    filasPodcast.forEach((fila: any) => horasPodcastPorUsuario.set(fila.usuario_id, fila.horas));
+  }
+
   const nombreEspacioPorId = new Map<number, string>(espacios.map((espacio: any) => [espacio.id, espacio.nombre]));
   const profesorIdPorEspacio = new Map<number, number>(espacios.map((espacio: any) => [espacio.id, espacio.profesor_id]));
   const pasantes = pasantesPorEspacio.map((fila: any) => ({
     espacio_nombre: nombreEspacioPorId.get(fila.espacio_id) || '',
     supervisor_nombre: nombreSupervisorPorId.get(profesorIdPorEspacio.get(fila.espacio_id) || 0) || '',
     estudiante_nombre: `${fila.nombres} ${fila.apellidos}`,
-    horas_mes: fila.horas_mes,
+    horas_mes: categoriaPorEspacio.get(fila.espacio_id) === 'podcast'
+      ? (horasPodcastPorUsuario.get(fila.usuario_id) || 0)
+      : fila.horas_mes,
   }));
 
   // Distribución de estudiantes y docentes supervisores (solo informe del líder): un bloque por espacio.
