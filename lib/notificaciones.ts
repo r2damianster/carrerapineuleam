@@ -3,6 +3,7 @@ import type { AppSession } from './session';
 import { esSuperAdminOLider } from './permisos-supervision';
 import { esDocente, puedeSupervisarVinculacion } from './modulos';
 import { puedeAdministrarSitio } from './permisosProyecto';
+import { periodoPorDefecto, construirPeriodo } from './periodosProyecto';
 
 /**
  * Módulo de notificaciones del Portal PINE.
@@ -250,13 +251,21 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     },
   },
   {
-    // Supervisor de Vinculación: informe mensual del mes anterior sin generar.
+    // Supervisor de Vinculación: informe SEMESTRAL del periodo fijo anterior sin generar
+    // (Sesión 56: periodos fijos abr-ago/sep-dic, un informe por semestre — ver
+    // lib/periodosProyecto.ts). Se identifica por (tipo, supervisor_id, ciclo_id), no por
+    // `mes` (esa columna queda NULL a propósito desde Sesión 56, ver app/vinculacion/informes/api/route.ts).
     id: 'informe-supervisor-pendiente',
     aplica: (sesion) => puedeSupervisarVinculacion(sesion),
     consultar: async (sql, sesion) => {
-      const hoy = new Date(Date.now() - 5 * 60 * 60 * 1000);
-      const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1).toISOString().slice(0, 7);
+      const actual = periodoPorDefecto();
+      const anterior = actual.numero === 1
+        ? construirPeriodo(actual.anio - 1, 2)
+        : construirPeriodo(actual.anio, 1);
       const supervisorId = Number(sesion.id);
+
+      const [ciclo] = await sql`SELECT id FROM ciclos_academicos WHERE nombre = ${anterior.etiqueta} LIMIT 1`;
+      if (!ciclo) return null;
 
       const [fila] = await sql`
         SELECT COUNT(*)::int AS total
@@ -264,12 +273,12 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
         JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
         WHERE e.area = 'vinculacion'
           AND ae.estado_aprobacion = 'aprobado'
-          AND TO_CHAR(ae.fecha, 'YYYY-MM') = ${mesAnterior}
+          AND ae.fecha BETWEEN ${anterior.desde}::date AND ${anterior.hasta}::date
           AND (${esSuperAdminOLider(sesion)}::boolean IS TRUE OR e.profesor_id = ${supervisorId})
           AND NOT EXISTS (
             SELECT 1 FROM informes_vinculacion i
             WHERE i.tipo = 'supervisor'
-              AND i.mes = (${mesAnterior} || '-01')::date
+              AND i.ciclo_id = ${ciclo.id}
               AND i.supervisor_id = ${supervisorId}
           )
       `;
@@ -278,7 +287,7 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       return {
         id: 'informe-supervisor-pendiente',
         cantidad: 1,
-        mensaje: `Tienes pendiente generar el informe mensual de Vinculación correspondiente a ${mesAnterior}.`,
+        mensaje: `Tienes pendiente generar el informe semestral de Vinculación correspondiente al periodo ${anterior.etiqueta}.`,
         href: '/vinculacion/informes',
         severidad: 'pendiente',
       };

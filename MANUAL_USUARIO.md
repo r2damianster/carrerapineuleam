@@ -37,7 +37,7 @@ El profesor puede hacer todo lo que hace un estudiante-instructor (ver más abaj
 
 Cada supervisor ve solo los espacios y pasantes a su cargo; superadmin y líderes ven todo.
 
-**» Generar Informe Mensual (.docx)** (`/vinculacion/informes`) — permite seleccionar el mes de supervisión, visualizar las estadísticas acumuladas de asistencias y beneficiarios, registrar dificultades u obstáculos con su impacto y recomendación, y descargar el documento de Word `.docx` oficial con gráficos generados automáticamente.
+**» Generar Informe Semestral (.docx)** (`/vinculacion/informes`) — permite seleccionar el periodo semestral fijo (Periodo 1: abril–agosto, Periodo 2: septiembre–diciembre) y el año, visualizar las estadísticas acumuladas de asistencias y beneficiarios (con corte a hoy si el periodo sigue abierto), registrar dificultades u obstáculos con su impacto y recomendación, y descargar el documento de Word `.docx` oficial con gráficos generados automáticamente.
 
 ### Gestión de Vinculación (solo profesor/admin)
 
