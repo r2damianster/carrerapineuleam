@@ -12,6 +12,17 @@ interface Docente {
   carrera: string;
 }
 
+interface Firmante {
+  docenteId: string;
+  titulo: string;
+  nombre: string;
+  cargo: string;
+}
+
+function firmanteVacio(): Firmante {
+  return { docenteId: "", titulo: "", nombre: "", cargo: "" };
+}
+
 const TONOS = [
   { value: "formal", label: "🎩 Formal" },
   { value: "cordial", label: "🤝 Cordial" },
@@ -50,10 +61,8 @@ export default function OficiosPage() {
   const [cuerpo, setCuerpo] = useState("");
   const [iaStatus, setIaStatus] = useState<{ texto: string; color: string } | null>(null);
 
-  const [firmanteId, setFirmanteId] = useState("");
-  const [firmanteTitulo, setFirmanteTitulo] = useState("");
-  const [firmanteNombre, setFirmanteNombre] = useState("");
-  const [firmanteCargo, setFirmanteCargo] = useState("");
+  const [firmantes, setFirmantes] = useState<Firmante[]>([firmanteVacio()]);
+  const [autoseleccionRealizada, setAutoseleccionRealizada] = useState(false);
   const [iniciales, setIniciales] = useState("");
 
   const [miId, setMiId] = useState<string | null>(null);
@@ -86,8 +95,11 @@ export default function OficiosPage() {
 
   // Autoselecciona al usuario logueado como firmante (sigue pudiendo cambiarse).
   useEffect(() => {
-    if (!miId || firmanteId) return;
-    if (docentes.some((d) => String(d.id) === miId)) seleccionarFirmante(miId);
+    if (!miId || autoseleccionRealizada) return;
+    if (docentes.some((d) => String(d.id) === miId)) {
+      seleccionarFirmante(0, miId);
+      setAutoseleccionRealizada(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miId, docentes]);
 
@@ -107,13 +119,29 @@ export default function OficiosPage() {
     setCopiaA((prev) => (prev ? `${prev}\n${linea}` : linea));
   }
 
-  function seleccionarFirmante(id: string) {
-    setFirmanteId(id);
-    const d = docentes.find((x) => String(x.id) === id);
-    if (!d) return;
-    setFirmanteTitulo(d.titulo_grado);
-    setFirmanteNombre(d.nombre);
-    setFirmanteCargo(d.cargo);
+  function actualizarFirmante(firmanteIndex: number, cambios: Partial<Firmante>) {
+    setFirmantes((previos) =>
+      previos.map((firmante, index) => (index === firmanteIndex ? { ...firmante, ...cambios } : firmante))
+    );
+  }
+
+  function seleccionarFirmante(firmanteIndex: number, docenteId: string) {
+    const docente = docentes.find((x) => String(x.id) === docenteId);
+    if (!docente) return;
+    actualizarFirmante(firmanteIndex, {
+      docenteId,
+      titulo: docente.titulo_grado,
+      nombre: docente.nombre,
+      cargo: docente.cargo,
+    });
+  }
+
+  function agregarFirmante() {
+    setFirmantes((previos) => [...previos, firmanteVacio()]);
+  }
+
+  function quitarFirmante(firmanteIndex: number) {
+    setFirmantes((previos) => previos.filter((_, index) => index !== firmanteIndex));
   }
 
   async function mejorarConIA() {
@@ -151,9 +179,10 @@ export default function OficiosPage() {
       fd.set("copia_a", copiaA);
       fd.set("asunto", asunto);
       fd.set("cuerpo", cuerpo);
-      fd.set("firmante_titulo", firmanteTitulo);
-      fd.set("firmante_nombre", firmanteNombre);
-      fd.set("firmante_cargo", firmanteCargo);
+      fd.set(
+        "firmantes",
+        JSON.stringify(firmantes.map(({ titulo, nombre, cargo }) => ({ titulo, nombre, cargo })))
+      );
       fd.set("iniciales", iniciales);
 
       const r = await fetch("/utilidades/oficios/api", { method: "POST", body: fd });
@@ -287,22 +316,41 @@ export default function OficiosPage() {
         </fieldset>
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
-          <legend className="px-2 font-semibold text-[#003366]">Firmante</legend>
-          <label className="mb-3 block text-sm">
-            Seleccione el firmante
-            <select value={firmanteId} onChange={(e) => seleccionarFirmante(e.target.value)} className="ht-input">
-              <option value="" disabled>-- Seleccione un firmante --</option>
-              {docentes.map((d) => (
-                <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
-              ))}
-            </select>
-          </label>
-          <p className="mb-3 text-xs text-slate-500">* Seleccione de la lista para autocompletar, o escriba directamente si el firmante no está en la lista.</p>
-          <div className="grid grid-cols-3 gap-3">
-            <label className="block text-sm">Título<input required value={firmanteTitulo} onChange={(e) => setFirmanteTitulo(e.target.value)} className="ht-input" /></label>
-            <label className="block text-sm">Nombre completo<input required value={firmanteNombre} onChange={(e) => setFirmanteNombre(e.target.value)} className="ht-input" /></label>
-            <label className="block text-sm">Cargo<input required value={firmanteCargo} onChange={(e) => setFirmanteCargo(e.target.value)} className="ht-input" /></label>
-          </div>
+          <legend className="px-2 font-semibold text-[#003366]">Firmantes</legend>
+          <p className="mb-3 text-xs text-slate-500">* Elija de la lista para autocompletar, o escriba directamente si la persona no está en la lista. Use «Agregar otro firmante» si el oficio lo firman varias personas.</p>
+          {firmantes.map((firmante, firmanteIndex) => (
+            <div key={firmanteIndex} className="mb-4 rounded-lg border border-slate-200 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-600">Firmante {firmanteIndex + 1}</span>
+                {firmantes.length > 1 && (
+                  <button type="button" onClick={() => quitarFirmante(firmanteIndex)} className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700">
+                    Quitar
+                  </button>
+                )}
+              </div>
+              <label className="mb-3 block text-sm">
+                Seleccione de la lista
+                <select
+                  value={firmante.docenteId}
+                  onChange={(e) => seleccionarFirmante(firmanteIndex, e.target.value)}
+                  className="ht-input"
+                >
+                  <option value="">-- Seleccione un firmante (o escriba abajo) --</option>
+                  {docentes.map((d) => (
+                    <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                <label className="block text-sm">Título<input required value={firmante.titulo} onChange={(e) => actualizarFirmante(firmanteIndex, { titulo: e.target.value, docenteId: "" })} className="ht-input" /></label>
+                <label className="block text-sm">Nombre completo<input required value={firmante.nombre} onChange={(e) => actualizarFirmante(firmanteIndex, { nombre: e.target.value, docenteId: "" })} className="ht-input" /></label>
+                <label className="block text-sm">Cargo<input required value={firmante.cargo} onChange={(e) => actualizarFirmante(firmanteIndex, { cargo: e.target.value, docenteId: "" })} className="ht-input" /></label>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={agregarFirmante} className="rounded bg-slate-200 px-3 py-1 text-sm">
+            + Agregar otro firmante
+          </button>
           <label className="mt-3 block text-sm">
             Iniciales elaborador
             <input required value={iniciales} onChange={(e) => setIniciales(e.target.value)} placeholder="Ej: ARZ/ddm" className="ht-input" />
