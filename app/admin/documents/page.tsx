@@ -111,6 +111,15 @@ const documents = {
       date: '2025-09-24',
       period: '2025-2',
     },
+    {
+      id: 'proyecto-ajuste-curricular-sustantivo',
+      title: 'Proyecto de Ajuste Curricular Sustantivo (PAA-06-F-008)',
+      filename: '2024-01-05_ProyectoAjusteCurricularSustantivoPINE-signed.pdf',
+      description: 'Documento oficial firmado (CES) de reducción a 8 niveles y ajuste del perfil de egreso de la carrera Pedagogía de los Idiomas Nacionales y Extranjeros.',
+      icon: '📐',
+      date: '2024-01-05',
+      period: '2024-1',
+    },
   ],
   actividades: [
     {
