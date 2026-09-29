@@ -54,8 +54,8 @@ export async function POST(request: Request) {
     if (!espacio_id || !fecha) {
       return NextResponse.json({ error: 'espacio_id y fecha son requeridos' }, { status: 400 });
     }
-    if (!Array.isArray(beneficiarios_presentes) || beneficiarios_presentes.length === 0) {
-      return NextResponse.json({ error: 'Selecciona al menos un beneficiario presente' }, { status: 400 });
+    if (!Array.isArray(beneficiarios_presentes)) {
+      return NextResponse.json({ error: 'beneficiarios_presentes debe ser un arreglo' }, { status: 400 });
     }
     const titulares: number[] = Array.isArray(instructores_presentes) ? instructores_presentes : [];
     const invitados: number[] = Array.isArray(invitados_presentes) ? invitados_presentes : [];

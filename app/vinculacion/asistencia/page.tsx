@@ -214,10 +214,6 @@ export default function AsistenciaPage() {
       setMessage('Error: Selecciona tu aula');
       return;
     }
-    if (presentes.length === 0) {
-      setMessage('Error: Selecciona al menos un beneficiario presente');
-      return;
-    }
     if (!horaInicio || !horaFin) {
       setMessage('Error: Ingresa hora de inicio y de fin');
       return;

@@ -26,8 +26,8 @@ function InformesVinculacionContenido() {
 
   // Informe MENSUAL (adicional al semestral, Sesión 57) — sub-selector dentro de cada pestaña.
   const mesActualIso = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 7);
-  const [modoSupervisor, setModoSupervisor] = useState<'semestral' | 'mensual'>('semestral');
-  const [modoLider, setModoLider] = useState<'semestral' | 'mensual'>('semestral');
+  const [modoSupervisor, setModoSupervisor] = useState<'semestral' | 'mensual'>('mensual');
+  const [modoLider, setModoLider] = useState<'semestral' | 'mensual'>('mensual');
   const [mesSupervisor, setMesSupervisor] = useState(mesActualIso);
   const [mesLider, setMesLider] = useState(mesActualIso);
   const [datosMensualSupervisor, setDatosMensualSupervisor] = useState<any>(null);
@@ -477,8 +477,8 @@ function InformesVinculacionContenido() {
         {tab === 'supervisor' && (modoSupervisor === 'mensual' || datosSupervisor) && (
           <div className="space-y-6">
             <div className="flex gap-2">
-              <button type="button" onClick={() => setModoSupervisor('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoSupervisor === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
               <button type="button" onClick={() => setModoSupervisor('mensual')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoSupervisor === 'mensual' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Mensual</button>
+              <button type="button" onClick={() => setModoSupervisor('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoSupervisor === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
             </div>
 
             {modoSupervisor === 'mensual' ? (
@@ -768,8 +768,8 @@ function InformesVinculacionContenido() {
         {tab === 'lider' && esLider && (modoLider === 'mensual' || datosLider) && (
           <div className="space-y-6">
             <div className="flex gap-2">
-              <button type="button" onClick={() => setModoLider('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoLider === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
               <button type="button" onClick={() => setModoLider('mensual')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoLider === 'mensual' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Mensual</button>
+              <button type="button" onClick={() => setModoLider('semestral')} className={`px-4 py-1.5 rounded-full text-xs font-bold border ${modoLider === 'semestral' ? 'bg-uleam-blue text-white border-uleam-blue' : 'bg-white text-gray-600 border-gray-300'}`}>Semestral</button>
             </div>
 
             {modoLider === 'mensual' ? (

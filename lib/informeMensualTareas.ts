@@ -119,7 +119,7 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
   const difusionDelMes = params.supervisorId
     ? await sql`
         SELECT titulo, descripcion, tipo FROM actividades_difusion
-        WHERE aprobado_sitio = true AND ${params.supervisorId} = ANY(profesores_responsables)
+        WHERE aprobado_sitio = true AND proyecto = 'vinculacion' AND ${params.supervisorId} = ANY(profesores_responsables)
           AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `
     : await sql`
