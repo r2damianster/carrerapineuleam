@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderizarPlantilla } from "../../../_lib/docxtemplater";
 import { formatearFechaLarga } from "../../../_lib/fechas";
-import { procesarExcelEstudiantes } from "../../../_lib/convocatorias";
+import { construirDestinatarios, consolidarEstudiantes, type GrupoConvocado } from "../../../_lib/convocatorias";
 import { respuestaDocx } from "../../../_lib/respuestaArchivo";
 import { requireDocenteApi } from "../../../_lib/auth";
 
@@ -14,7 +14,13 @@ export async function POST(request: NextRequest) {
   try {
     const form = await request.formData();
     const campo = (nombre: string) => (form.get(nombre)?.toString() ?? "").trim();
-    const cursos = form.getAll("cursos").map((c) => c.toString());
+    const grupos = JSON.parse(campo("grupos_json") || "[]") as GrupoConvocado[];
+    if (!Array.isArray(grupos) || grupos.length === 0) {
+      return NextResponse.json({ error: "Agregue al menos una lista de estudiantes." }, { status: 400 });
+    }
+    if (grupos.some((g) => !g.carrera?.trim())) {
+      return NextResponse.json({ error: "Cada lista debe tener carrera asignada." }, { status: 400 });
+    }
 
     const contexto: Record<string, string> = {
       NUM_CONVOCATORIA: campo("num_convocatoria"),
@@ -23,7 +29,7 @@ export async function POST(request: NextRequest) {
       CIUDAD: campo("ciudad"),
       FECHA_LARGA: formatearFechaLarga(campo("fecha_larga")),
       ASUNTO: campo("asunto"),
-      CURSO: cursos.join(", "),
+      DESTINATARIOS: construirDestinatarios(grupos),
       DESCRIPCION_CONVOCATORIA: campo("descripcion_convocatoria"),
       FECHA_REUNION: formatearFechaLarga(campo("fecha_reunion")),
       HORA_REUNION: campo("hora_reunion"),
@@ -34,12 +40,11 @@ export async function POST(request: NextRequest) {
       INICIALES_ELABORADOR: campo("iniciales_elaborador"),
     };
 
-    const archivosExcel = form.getAll("excel_files").filter((f): f is File => f instanceof File && f.size > 0);
-    const estudiantes = archivosExcel.length > 0 ? await procesarExcelEstudiantes(archivosExcel) : [];
+    const { nombres } = consolidarEstudiantes(grupos);
 
     const buffer = renderizarPlantilla("utilidades-convocatoria-estudiantes.docx", {
       ...contexto,
-      estudiantes: estudiantes.map((nombre) => ({ nombre })),
+      estudiantes: nombres.map((nombre) => ({ nombre })),
     });
 
     return respuestaDocx(buffer, "Convocatoria_Estudiantes.docx");

@@ -20,10 +20,33 @@ interface DocenteManual {
 }
 
 const PERIODOS = ["2026-1", "2026-2"];
-const CURSOS_DISPONIBLES = [
-  "Primer Semestre 'A'", "Segundo Semestre 'A'", "Tercer Semestre 'A'",
-  "Cuarto Semestre 'A'", "Cuarto Semestre 'B'", "Quinto Semestre 'A'", "Sexto Semestre 'A'",
+const CARRERAS = [
+  "Pedagogía de los Idiomas Nacionales y Extranjeros",
+  "Psicología Educativa",
+  "Educación Básica",
+  "Educación Inicial",
 ];
+const CARRERA_OTRA = "__otra__";
+
+interface EstudianteEditable { nombre: string; correo: string }
+interface GrupoLista {
+  clave: string;
+  archivo: string;
+  carrera: string;
+  carreraOtra: string;
+  asignatura: string;
+  paralelo: string;
+  advertencias: string[];
+  estudiantes: EstudianteEditable[];
+}
+interface ListaAnalizada {
+  archivo: string;
+  asignatura: string;
+  paralelo: string;
+  periodo: string;
+  advertencias: string[];
+  estudiantes: EstudianteEditable[];
+}
 
 async function enriquecer(contexto: string, texto: string): Promise<string> {
   const r = await fetch("/utilidades/api/ia-enriquecer", {
@@ -321,7 +344,6 @@ function FormEstudiantes() {
   const [fecha, setFecha] = useState("");
 
   const [asunto, setAsunto] = useState("");
-  const [cursos, setCursos] = useState<string[]>([]);
   const [descripcion, setDescripcion] = useState("");
   const [iaStatus, setIaStatus] = useState<{ texto: string; color: string } | null>(null);
 
@@ -329,7 +351,9 @@ function FormEstudiantes() {
   const [horaReunion, setHoraReunion] = useState("");
   const [lugarReunion, setLugarReunion] = useState("");
 
-  const [archivos, setArchivos] = useState<File[]>([]);
+  const [grupos, setGrupos] = useState<GrupoLista[]>([]);
+  const [analizando, setAnalizando] = useState(false);
+  const [errorArchivos, setErrorArchivos] = useState("");
 
   const [convocanteTitulo, setConvocanteTitulo] = useState("");
   const [convocanteNombre, setConvocanteNombre] = useState("");
@@ -356,10 +380,72 @@ function FormEstudiantes() {
     }
   }
 
+  async function analizarArchivos(seleccionados: File[]) {
+    if (seleccionados.length === 0) return;
+    setAnalizando(true);
+    setErrorArchivos("");
+    try {
+      const fd = new FormData();
+      seleccionados.forEach((a) => fd.append("archivos", a));
+      const r = await fetch("/utilidades/convocatorias/api/analizar", { method: "POST", body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "No se pudieron leer los archivos");
+      const listas = d.listas as ListaAnalizada[];
+      const nuevos: GrupoLista[] = listas.map((l, i) => ({
+        clave: `${Date.now()}_${i}_${l.archivo}`,
+        archivo: l.archivo,
+        carrera: CARRERAS[0],
+        carreraOtra: "",
+        asignatura: l.asignatura,
+        paralelo: "",
+        advertencias: l.advertencias,
+        estudiantes: l.estudiantes,
+      }));
+      setGrupos((prev) => [...prev, ...nuevos]);
+      const periodoDetectado = listas.map((l) => l.periodo).find((p) => PERIODOS.includes(p));
+      if (periodoDetectado && !periodo) setPeriodo(periodoDetectado);
+    } catch (e) {
+      setErrorArchivos((e as Error).message);
+    } finally {
+      setAnalizando(false);
+    }
+  }
+
+  function actualizarGrupo(clave: string, cambios: Partial<GrupoLista>) {
+    setGrupos((prev) => prev.map((g) => (g.clave === clave ? { ...g, ...cambios } : g)));
+  }
+
+  function actualizarNombre(clave: string, indice: number, nombre: string) {
+    setGrupos((prev) => prev.map((g) => g.clave === clave
+      ? { ...g, estudiantes: g.estudiantes.map((est, i) => (i === indice ? { ...est, nombre } : est)) }
+      : g));
+  }
+
+  function quitarEstudiante(clave: string, indice: number) {
+    setGrupos((prev) => prev.map((g) => g.clave === clave
+      ? { ...g, estudiantes: g.estudiantes.filter((_, i) => i !== indice) }
+      : g));
+  }
+
+  const totalSinNombre = grupos.reduce((suma, g) => suma + g.estudiantes.filter((est) => !est.nombre.trim()).length, 0);
+
   async function generar(e: React.FormEvent) {
     e.preventDefault();
-    if (archivos.length === 0) {
-      alert("Suba al menos un archivo Excel con la lista de estudiantes.");
+    if (grupos.length === 0) {
+      alert("Suba al menos una lista de estudiantes.");
+      return;
+    }
+    const gruposEnvio = grupos.map((g) => ({
+      carrera: g.carrera === CARRERA_OTRA ? g.carreraOtra.trim() : g.carrera,
+      asignatura: g.asignatura.trim(),
+      paralelo: g.paralelo.trim(),
+      estudiantes: g.estudiantes,
+    }));
+    if (gruposEnvio.some((g) => !g.carrera || !g.asignatura)) {
+      alert("Cada lista necesita carrera y asignatura.");
+      return;
+    }
+    if (totalSinNombre > 0 && !confirm(`${totalSinNombre} estudiantes no tienen nombre; se usará su correo en el documento. ¿Generar de todos modos?`)) {
       return;
     }
     setGenerando(true);
@@ -370,7 +456,7 @@ function FormEstudiantes() {
       fd.set("ciudad", ciudad);
       fd.set("fecha_larga", fecha);
       fd.set("asunto", asunto);
-      cursos.forEach((c) => fd.append("cursos", c));
+      fd.set("grupos_json", JSON.stringify(gruposEnvio));
       fd.set("descripcion_convocatoria", descripcion);
       fd.set("fecha_reunion", fechaReunion);
       fd.set("hora_reunion", horaReunion);
@@ -379,7 +465,6 @@ function FormEstudiantes() {
       fd.set("convocante_nombre", convocanteNombre);
       fd.set("convocante_cargo", convocanteCargo);
       fd.set("iniciales_elaborador", inicialesElaborador);
-      archivos.forEach((a) => fd.append("excel_files", a));
 
       const r = await fetch("/utilidades/convocatorias/api/estudiante", { method: "POST", body: fd });
       if (!r.ok) throw new Error((await r.json().catch(() => ({ error: "Error desconocido" }))).error);
@@ -411,13 +496,6 @@ function FormEstudiantes() {
       <fieldset className="rounded-lg border border-slate-300 p-4">
         <legend className="px-2 font-semibold text-[#003366]">Datos del evento</legend>
         <label className="mb-3 block text-sm">Asunto<input required value={asunto} onChange={(e) => setAsunto(e.target.value)} className="ht-input" /></label>
-        <label className="mb-3 block text-sm">Cursos/Niveles (Ctrl+Clic para varios)
-          <select multiple required value={cursos}
-            onChange={(e) => setCursos(Array.from(e.target.selectedOptions, (o) => o.value))}
-            className="ht-input h-32">
-            {CURSOS_DISPONIBLES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
         <label className="block text-sm">Descripción del motivo<textarea required rows={3} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="ht-input" /></label>
         <div className="mt-3 flex items-center gap-3 rounded-lg border border-green-300 bg-green-50 p-3">
           <button type="button" onClick={mejorarConIA} className="rounded bg-green-600 px-4 py-1.5 text-sm font-semibold text-white">✨ Mejorar con IA</button>
@@ -431,11 +509,65 @@ function FormEstudiantes() {
       </fieldset>
 
       <fieldset className="rounded-lg border border-slate-300 p-4">
-        <legend className="px-2 font-semibold text-[#003366]">Archivos Excel (uno por curso)</legend>
-        <input type="file" accept=".xls,.xlsx,.ods" multiple required
-          onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} className="ht-input" />
-        <div className="mt-3 rounded-md border border-dashed border-slate-300 p-3 text-sm">
-          {archivos.length === 0 ? <em>Ningún archivo seleccionado.</em> : archivos.map((f) => <div key={f.name}>{f.name}</div>)}
+        <legend className="px-2 font-semibold text-[#003366]">Listas de estudiantes (una por asignatura)</legend>
+        <input type="file" accept=".xls,.xlsx,.ods,.csv,.txt,.xml,.html,.htm" multiple
+          onChange={(e) => { analizarArchivos(Array.from(e.target.files ?? [])); e.target.value = ""; }}
+          className="ht-input" />
+        <p className="mt-2 text-xs text-slate-500">
+          Formatos: Excel, CSV, XML, HTML. La asignatura se toma del nombre del archivo. Puede subir más archivos en cualquier momento.
+        </p>
+        {analizando && <p className="mt-2 text-sm text-slate-500">⏳ Leyendo archivos...</p>}
+        {errorArchivos && <p className="mt-2 text-sm text-red-600">❌ {errorArchivos}</p>}
+
+        <div className="mt-4 space-y-4">
+          {grupos.map((g) => {
+            const sinNombre = g.estudiantes.filter((est) => !est.nombre.trim()).length;
+            return (
+              <div key={g.clave} className="rounded-lg border border-slate-300 bg-slate-50 p-3">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <span className="break-all text-xs text-slate-500">📄 {g.archivo}</span>
+                  <button type="button" onClick={() => setGrupos((prev) => prev.filter((x) => x.clave !== g.clave))}
+                    className="rounded bg-red-500 px-2 text-white">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-sm">Carrera
+                    <select value={g.carrera} onChange={(e) => actualizarGrupo(g.clave, { carrera: e.target.value })} className="ht-input">
+                      {CARRERAS.map((c) => <option key={c} value={c}>{c}</option>)}
+                      <option value={CARRERA_OTRA}>Otra...</option>
+                    </select>
+                  </label>
+                  {g.carrera === CARRERA_OTRA ? (
+                    <label className="text-sm">Nombre de la carrera
+                      <input required value={g.carreraOtra} onChange={(e) => actualizarGrupo(g.clave, { carreraOtra: e.target.value })} className="ht-input" />
+                    </label>
+                  ) : <div />}
+                  <label className="text-sm">Asignatura
+                    <input required value={g.asignatura} onChange={(e) => actualizarGrupo(g.clave, { asignatura: e.target.value })} className="ht-input" />
+                  </label>
+                  <label className="text-sm">Paralelo (opcional)
+                    <input value={g.paralelo} onChange={(e) => actualizarGrupo(g.clave, { paralelo: e.target.value })} className="ht-input" />
+                  </label>
+                </div>
+                {g.advertencias.map((aviso) => <p key={aviso} className="mt-2 text-sm text-amber-700">⚠️ {aviso}</p>)}
+                <details className="mt-2" open={sinNombre > 0 && sinNombre < 15}>
+                  <summary className="cursor-pointer text-sm font-semibold text-[#003366]">
+                    {g.estudiantes.length} estudiantes{sinNombre > 0 ? ` — ${sinNombre} sin nombre` : ""}
+                  </summary>
+                  <div className="mt-2 max-h-72 overflow-y-auto">
+                    {g.estudiantes.map((est, i) => (
+                      <div key={`${est.correo}_${i}`} className="mb-1 grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+                        <input value={est.nombre} onChange={(ev) => actualizarNombre(g.clave, i, ev.target.value)}
+                          placeholder="Apellidos y nombres"
+                          className={`ht-input ${est.nombre.trim() ? "" : "border-red-400 bg-red-50"}`} />
+                        <span className="truncate text-xs text-slate-500">{est.correo}</span>
+                        <button type="button" onClick={() => quitarEstudiante(g.clave, i)} className="rounded bg-red-500 px-2 text-white">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            );
+          })}
         </div>
       </fieldset>
 
