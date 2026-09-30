@@ -611,7 +611,7 @@ export default function AdminContenidoPage() {
                 onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
                 className="w-5 h-5"
               />
-              <label className="text-sm font-medium text-gray-700">Destacado</label>
+              <label className="text-sm font-medium text-gray-700">Destacado (dura máximo 7 días)</label>
             </div>
 
             <div className="border-t pt-4">

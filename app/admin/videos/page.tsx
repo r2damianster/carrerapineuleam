@@ -27,7 +27,6 @@ function AdminVideosPage() {
     description: '',
     category: '',
     published_date: new Date().toISOString().split('T')[0],
-    order: 0,
     is_featured: false,
   });
 
@@ -113,7 +112,6 @@ function AdminVideosPage() {
       description: '',
       category: categories[0]?.id || '',
       published_date: new Date().toISOString().split('T')[0],
-      order: 0,
       is_featured: false,
     });
     setEditingVideo(null);
@@ -128,7 +126,6 @@ function AdminVideosPage() {
       description: video.description || '',
       category: video.category,
       published_date: video.published_date || '',
-      order: video.order,
       is_featured: video.is_featured,
     });
     setShowForm(true);
@@ -385,15 +382,6 @@ function AdminVideosPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Orden</label>
-                <input
-                  type="number"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uleam-blue outline-none"
-                />
-              </div>
             </div>
 
             <div>
@@ -404,7 +392,7 @@ function AdminVideosPage() {
                   onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
                   className="w-5 h-5"
                 />
-                <span className="text-sm font-medium text-gray-700">Marcar como destacado</span>
+                <span className="text-sm font-medium text-gray-700">Marcar como destacado (dura máximo 7 días)</span>
               </label>
             </div>
           </div>

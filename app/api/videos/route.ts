@@ -49,30 +49,30 @@ export async function GET(request: Request) {
     let rows;
     if (categoryId) {
       rows = await sql`
-        SELECT v.*, row_to_json(c.*) AS category_expand
+        SELECT v.*, row_to_json(c.*) AS category_expand, (v.is_featured AND v.destacado_desde > now() - interval '7 days') AS destacado_vigente
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
         WHERE v.category = ${categoryId} AND (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC
+        ORDER BY destacado_vigente DESC, COALESCE(v.published_date, v.created::date) DESC, v.created DESC
       `;
     } else if (featuredOnly) {
       rows = await sql`
-        SELECT v.*, row_to_json(c.*) AS category_expand
+        SELECT v.*, row_to_json(c.*) AS category_expand, (v.is_featured AND v.destacado_desde > now() - interval '7 days') AS destacado_vigente
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
-        WHERE v.is_featured = true AND (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC LIMIT 6
+        WHERE (v.is_featured AND v.destacado_desde > now() - interval '7 days') AND (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
+        ORDER BY destacado_vigente DESC, COALESCE(v.published_date, v.created::date) DESC, v.created DESC LIMIT 6
       `;
     } else {
       rows = await sql`
-        SELECT v.*, row_to_json(c.*) AS category_expand
+        SELECT v.*, row_to_json(c.*) AS category_expand, (v.is_featured AND v.destacado_desde > now() - interval '7 days') AS destacado_vigente
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
         WHERE (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC
+        ORDER BY destacado_vigente DESC, COALESCE(v.published_date, v.created::date) DESC, v.created DESC
       `;
     }
 
     const videos = rows.map((r: any) => {
-      const { category_expand, ...video } = r;
-      return { ...video, expand: { category: category_expand } };
+      const { category_expand, destacado_vigente, ...video } = r;
+      return { ...video, is_featured: !!destacado_vigente, expand: { category: category_expand } };
     });
     return NextResponse.json(videos);
   } catch (error: any) {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     }
 
     const {
-      title, youtube_url, description, category, published_date, order, is_featured, tags, youtube_video_id,
+      title, youtube_url, description, category, published_date, is_featured, tags, youtube_video_id,
       area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada,
       profesores_responsables,
     } = await request.json();
@@ -156,10 +156,10 @@ export async function POST(request: Request) {
     }
     const [nuevo] = await sql`
       INSERT INTO videos
-        (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por,
+        (id, title, youtube_url, embed_id, description, category, published_date, is_featured, destacado_desde, tags, aprobado_sitio, propuesto_por,
          area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada, profesores_responsables)
       VALUES
-        (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || new Date().toISOString().slice(0, 10)}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
+        (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || new Date().toISOString().slice(0, 10)}, ${!!is_featured}, ${is_featured ? new Date().toISOString() : null}, ${tags || null},
          ${esAdminContenido}, ${esAdminContenido ? null : Number(usuario.id)},
          ${area_sustantiva || null}, ${proyectoIds}, ${participantesIds}, ${invitados_internos || []}, ${invitados_externos || []}, ${audiencia_alcanzada || 0}, ${responsablesIds})
       RETURNING *

@@ -60,6 +60,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       const [actualizado] = await sql`
         UPDATE videos
         SET activo = COALESCE(${typeof body.activo === 'boolean' ? body.activo : null}, activo),
+            destacado_desde = CASE
+              WHEN ${typeof body.is_featured === 'boolean' ? body.is_featured : null}::boolean IS NULL THEN destacado_desde
+              WHEN ${typeof body.is_featured === 'boolean' ? body.is_featured : null}::boolean THEN (CASE WHEN is_featured AND destacado_desde > now() - interval '7 days' THEN destacado_desde ELSE now() END)
+              ELSE NULL END,
             is_featured = COALESCE(${typeof body.is_featured === 'boolean' ? body.is_featured : null}, is_featured),
             updated = now()
         WHERE id = ${params.id}
@@ -69,7 +73,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json(actualizado);
     }
 
-    const { title, youtube_url, description, category, published_date, order, is_featured, tags, activo } = body;
+    const { title, youtube_url, description, category, published_date, is_featured, tags, activo } = body;
     if (!title || !category) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -79,7 +83,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       UPDATE videos
       SET title = ${title}, youtube_url = ${youtube_url || null}, embed_id = ${embed_id},
           description = ${description || null}, category = ${category},
-          published_date = ${published_date || null}, "order" = ${order ?? 0},
+          published_date = ${published_date || null},
+          destacado_desde = CASE WHEN ${!!is_featured} THEN (CASE WHEN is_featured AND destacado_desde > now() - interval '7 days' THEN destacado_desde ELSE now() END) ELSE NULL END,
           is_featured = ${!!is_featured}, tags = ${tags || null},
           activo = COALESCE(${typeof activo === 'boolean' ? activo : null}, activo), updated = now()
       WHERE id = ${params.id}

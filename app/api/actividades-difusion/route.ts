@@ -15,6 +15,12 @@ import { getAppSessionFromCookies } from '@/lib/session';
 // aprobadas (origen='difusion' no lo leía ninguna sección pública). `origen`
 // se mantiene por compatibilidad con quien todavía lo use (ej. getNewsletters).
 
+// El destacado dura máximo 7 días desde que se marcó (destacado_desde); pasado ese plazo deja de
+// contar sin tocar la fila: is_featured se responde ya como vigente/no vigente.
+function conDestacadoVigente(filas: any[]) {
+  return filas.map(({ destacado_vigente, ...fila }) => ({ ...fila, is_featured: !!destacado_vigente }));
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -54,9 +60,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
       }
       const rows = await sql`
-        SELECT * FROM actividades_difusion ORDER BY fecha DESC NULLS LAST
+        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion ORDER BY fecha DESC NULLS LAST
       `;
-      return NextResponse.json(rows);
+      return NextResponse.json(conDestacadoVigente(rows));
     }
 
     if (pendientes) {
@@ -65,9 +71,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
       }
       const rows = await sql`
-        SELECT * FROM actividades_difusion WHERE aprobado_sitio = false ORDER BY fecha DESC NULLS LAST
+        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion WHERE aprobado_sitio = false ORDER BY fecha DESC NULLS LAST
       `;
-      return NextResponse.json(rows);
+      return NextResponse.json(conDestacadoVigente(rows));
     }
 
     // Últimos eventos/podcasts registrados vía difusión (portada). `limite` acota cuántos salen.
@@ -75,43 +81,43 @@ export async function GET(request: Request) {
       const limiteSolicitado = Number(searchParams.get('limite')) || 6;
       const limite = Math.min(Math.max(limiteSolicitado, 1), 24);
       const rows = await sql`
-        SELECT * FROM actividades_difusion
+        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
         WHERE aprobado_sitio = true AND origen IN ('difusion', 'externo_temporal')
-        ORDER BY fecha DESC NULLS LAST, id DESC
+        ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
         LIMIT ${limite}
       `;
-      return NextResponse.json(await quitarFotosDescartadas(rows));
+      return NextResponse.json(await quitarFotosDescartadas(conDestacadoVigente(rows)));
     }
 
     if (seccion === 'noticias') {
       const rows = await sql`
-        SELECT * FROM actividades_difusion
+        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
         WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_noticias = true)
-        ORDER BY "order" ASC, fecha DESC NULLS LAST
+        ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
       `;
-      return NextResponse.json(await quitarFotosDescartadas(rows));
+      return NextResponse.json(await quitarFotosDescartadas(conDestacadoVigente(rows)));
     }
     if (seccion === 'actividades') {
       const rows = await sql`
-        SELECT * FROM actividades_difusion
+        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
         WHERE aprobado_sitio = true AND (${incluirOcultas} OR publicar_actividades = true)
-        ORDER BY "order" ASC, fecha DESC NULLS LAST
+        ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
       `;
-      return NextResponse.json(await quitarFotosDescartadas(rows));
+      return NextResponse.json(await quitarFotosDescartadas(conDestacadoVigente(rows)));
     }
 
     const rows = origen
       ? await sql`
-          SELECT * FROM actividades_difusion
+          SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
           WHERE aprobado_sitio = true AND origen = ${origen}
-          ORDER BY "order" ASC, fecha DESC NULLS LAST
+          ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
         `
       : await sql`
-          SELECT * FROM actividades_difusion
+          SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
           WHERE aprobado_sitio = true
-          ORDER BY "order" ASC, fecha DESC NULLS LAST
+          ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
         `;
-    return NextResponse.json(await quitarFotosDescartadas(rows));
+    return NextResponse.json(await quitarFotosDescartadas(conDestacadoVigente(rows)));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -127,7 +133,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, order, publicar_noticias, publicar_actividades } = await request.json();
+    const { origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, publicar_noticias, publicar_actividades } = await request.json();
     if (!titulo || !fecha || !origen) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -135,9 +141,9 @@ export async function POST(request: Request) {
     const sql = neon(process.env.DATABASE_URL!);
     const [nueva] = await sql`
       INSERT INTO actividades_difusion
-        (origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, "order", aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables, publicar_noticias, publicar_actividades)
+        (origen, titulo, descripcion, observaciones, fecha, categoria, photos, slug, external_link, project_id, is_featured, destacado_desde, aprobado_sitio, aprobado_por, fecha_aprobacion, profesores_responsables, publicar_noticias, publicar_actividades)
       VALUES
-        (${origen}, ${titulo}, ${descripcion || null}, ${observaciones || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${order ?? 0}, true, ${Number(usuario.id)}, now(), '{}', ${!!publicar_noticias}, ${!!publicar_actividades})
+        (${origen}, ${titulo}, ${descripcion || null}, ${observaciones || null}, ${fecha}, ${categoria || null}, ${photos || []}, ${slug || null}, ${external_link || null}, ${project_id || null}, ${!!is_featured}, ${is_featured ? new Date().toISOString() : null}, true, ${Number(usuario.id)}, now(), '{}', ${!!publicar_noticias}, ${!!publicar_actividades})
       RETURNING *
     `;
     return NextResponse.json(nueva, { status: 201 });

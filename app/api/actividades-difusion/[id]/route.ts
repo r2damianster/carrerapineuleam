@@ -83,7 +83,6 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const external_link = body.external_link ?? null;
     const project_id = body.project_id ?? null;
     const is_featured = typeof body.is_featured === 'boolean' ? body.is_featured : null;
-    const order = typeof body.order === 'number' ? body.order : null;
     const aprobar = !!body.aprobar;
     // Al aprobar una difusión pendiente (origen='difusion'), por defecto se
     // publica como noticia — si no se manda publicar_noticias explícito,
@@ -117,8 +116,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           slug = COALESCE(${slug}, slug),
           external_link = COALESCE(${external_link}, external_link),
           project_id = COALESCE(${project_id}, project_id),
+          destacado_desde = CASE
+            WHEN ${is_featured}::boolean IS NULL THEN destacado_desde
+            WHEN ${is_featured}::boolean THEN (CASE WHEN is_featured AND destacado_desde > now() - interval '7 days' THEN destacado_desde ELSE now() END)
+            ELSE NULL END,
           is_featured = COALESCE(${is_featured}, is_featured),
-          "order" = COALESCE(${order}, "order"),
           publicar_noticias = COALESCE(${publicarNoticias}, publicar_noticias),
           publicar_actividades = COALESCE(${publicarActividades}, publicar_actividades),
           aprobado_sitio = CASE WHEN ${!!aprobar} THEN true ELSE aprobado_sitio END,
