@@ -13,6 +13,7 @@ interface Pendiente {
   categoria: string | null;
   video_id: string | null;
   youtube_url: string | null;
+  proyectos: string[] | null;
 }
 
 // Sesión 53 — "profesor responsable": aprueba eventos/podcasts sin depender de administración
@@ -31,6 +32,10 @@ export default function MisAprobacionesPage() {
       .catch(() => setPendientes([]));
   };
   useEffect(cargar, []);
+
+  // Filtro opcional por proyecto (?proyecto=id), usado por el enlace del aviso del portal.
+  const proyectoFiltrado = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('proyecto') : null;
+  const visibles = (pendientes ?? []).filter((pendiente) => !proyectoFiltrado || (pendiente.proyectos ?? []).includes(proyectoFiltrado));
 
   const confirmacionDe = (id: number) => confirmaciones[id] ?? { menores: false, calidad: false };
   const actualizarConfirmacion = (id: number, campo: 'menores' | 'calidad', valor: boolean) => {
@@ -63,23 +68,26 @@ export default function MisAprobacionesPage() {
       <main className="mx-auto mt-16 max-w-3xl px-4 py-10">
         <Link href="/portal/dashboard" className="text-xs font-semibold text-blue-600 hover:underline">&larr; Volver al Portal</Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-800">Mis aprobaciones</h1>
-        <p className="mt-1 text-sm text-gray-600">Eventos y podcasts donde te marcaron (o te marcaste) como profesor responsable. Apruébalos aquí sin esperar a administración del sitio.</p>
+        <p className="mt-1 text-sm text-gray-600">Eventos y podcasts donde eres profesor responsable o líder/colíder del proyecto. Apruébalos aquí sin esperar a administración del sitio.</p>
 
         {mensaje && <div className="mt-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{mensaje}</div>}
 
         {pendientes === null && <p className="mt-6 text-sm text-gray-500">Cargando…</p>}
-        {pendientes !== null && pendientes.length === 0 && (
+        {pendientes !== null && visibles.length === 0 && (
           <p className="mt-6 rounded border border-dashed p-8 text-center text-sm text-gray-500">No tienes nada pendiente de aprobar.</p>
         )}
 
         <div className="mt-6 space-y-4">
-          {(pendientes ?? []).map((pendiente) => {
+          {visibles.map((pendiente) => {
             const confirmacion = confirmacionDe(pendiente.id);
             return (
               <div key={pendiente.id} className="rounded-xl border bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">{pendiente.tipo}</span>
                   <span className="font-bold text-gray-800">{pendiente.titulo}</span>
+                  {(pendiente.proyectos ?? []).map((proyectoId) => (
+                    <span key={proyectoId} className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">{proyectoId}</span>
+                  ))}
                   <span className="text-sm text-gray-500">{new Date(pendiente.fecha).toLocaleDateString('es-EC')}</span>
                   {pendiente.youtube_url && <a href={pendiente.youtube_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Ver video</a>}
                 </div>

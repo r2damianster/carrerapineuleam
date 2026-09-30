@@ -25,7 +25,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const sql = neon(process.env.DATABASE_URL!);
     const [video] = await sql`
-      SELECT id, title, propuesto_por, participantes_estudiantes, profesores_responsables, proyecto_id, actividad_difusion_id, aprobado_sitio
+      SELECT id, title, propuesto_por, participantes_estudiantes, profesores_responsables, proyecto_id, actividad_difusion_id, aprobado_sitio,
+        (SELECT proyectos FROM actividades_difusion WHERE id = videos.actividad_difusion_id) AS proyectos_actividad
       FROM videos WHERE id = ${params.id}
     `;
     if (!video) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });

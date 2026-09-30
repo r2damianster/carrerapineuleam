@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeAprobarActividad } from '@/lib/permisosAprobacionContenido';
+import { publicarFotosDeFuente } from '@/lib/publicarFotoEnProyecto';
 
 // PATCH cubre dos usos, según qué venga en el body:
 // - aprobar/enriquecer un registro de difusión pendiente (origen='difusion') —
@@ -28,7 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (!esAdminContenido) {
       const sqlResponsable = neon(process.env.DATABASE_URL!);
       const [actividad] = await sqlResponsable`
-        SELECT registrador_id, profesores_responsables FROM actividades_difusion WHERE id = ${parseInt(params.id)}
+        SELECT registrador_id, profesores_responsables, proyectos FROM actividades_difusion WHERE id = ${parseInt(params.id)}
       `;
       if (!actividad) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
       if (!(await puedeAprobarActividad(sqlResponsable, usuario, actividad))) {
@@ -60,6 +61,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         UPDATE fotos SET calidad = 'aceptable', calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
         WHERE origen IN ('evento', 'podcast') AND fuente_id = ${params.id}
       `;
+      await publicarFotosDeFuente(sqlResponsable, ['evento', 'podcast'], params.id);
       return NextResponse.json(aprobada);
     }
 
@@ -126,6 +128,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       RETURNING *
     `;
     if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+    if (aprobar) await publicarFotosDeFuente(sql, ['evento', 'podcast'], params.id);
     return NextResponse.json(actualizado);
   } catch (error: any) {
     if (error.message?.includes('actividades_difusion_slug_key')) {

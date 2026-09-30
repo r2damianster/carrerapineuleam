@@ -12,7 +12,7 @@
 // Sin imports de Node/Neon a nivel de módulo — recibe `sql` desde el handler.
 
 import type { AppSession } from './session';
-import { puedeAdministrarSitio } from './permisosProyecto';
+import { puedeAdministrarSitio, puedeGestionarProyecto } from './permisosProyecto';
 
 interface FilaAprobableVideo {
   propuesto_por?: number | string | null;
@@ -36,6 +36,26 @@ async function esSupervisorDePasante(sql: any, supervisorId: number, pasanteId: 
   return filas.length > 0;
 }
 
+/** Ids de proyectos donde esta persona es líder/colíder activo (solo pertenencia real, sin el
+ *  "todos" de administración del sitio: admin ya recibe sus propios avisos de pendientes). */
+export async function proyectosQueLidera(sql: any, usuarioId: number): Promise<string[]> {
+  if (Number.isNaN(usuarioId)) return [];
+  const filas = await sql`
+    SELECT DISTINCT proyecto_id FROM proyecto_miembros
+    WHERE usuario_id = ${usuarioId} AND activo = true AND rol_en_proyecto IN ('lider', 'colider')
+  `;
+  return filas.map((fila: any) => String(fila.proyecto_id));
+}
+
+/** Líder/colíder activo de al menos uno de los proyectos del registro (Sesión 60). */
+async function esLiderDeAlgunProyecto(sql: any, usuario: AppSession, proyectos: unknown): Promise<boolean> {
+  if (!Array.isArray(proyectos)) return false;
+  for (const proyectoId of proyectos) {
+    if (typeof proyectoId === 'string' && (await puedeGestionarProyecto(sql, usuario, proyectoId))) return true;
+  }
+  return false;
+}
+
 export async function puedeAprobarVideo(sql: any, usuario: AppSession, video: Record<string, any> & FilaAprobableVideo): Promise<boolean> {
   if (puedeAdministrarSitio(usuario)) return true;
   const usuarioId = Number(usuario.id);
@@ -43,6 +63,7 @@ export async function puedeAprobarVideo(sql: any, usuario: AppSession, video: Re
 
   const responsables = video.profesores_responsables ?? [];
   if (responsables.map(Number).includes(usuarioId)) return true;
+  if (await esLiderDeAlgunProyecto(sql, usuario, [...(video.proyecto_id ?? []), ...(video.proyectos_actividad ?? [])])) return true;
 
   // Vía del supervisor: solo si quien propuso el video es un pasante (rol='estudiante').
   if (video.propuesto_por != null) {
@@ -64,5 +85,6 @@ export async function puedeAprobarActividad(sql: any, usuario: AppSession, activ
   const usuarioId = Number(usuario.id);
   if (Number.isNaN(usuarioId)) return false;
   const responsables = actividad.profesores_responsables ?? [];
-  return responsables.map(Number).includes(usuarioId);
+  if (responsables.map(Number).includes(usuarioId)) return true;
+  return esLiderDeAlgunProyecto(sql, usuario, actividad.proyectos);
 }

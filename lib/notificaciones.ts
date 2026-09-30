@@ -3,6 +3,7 @@ import type { AppSession } from './session';
 import { esSuperAdminOLider } from './permisos-supervision';
 import { esDocente, puedeSupervisarVinculacion } from './modulos';
 import { puedeAdministrarSitio } from './permisosProyecto';
+import { proyectosQueLidera } from './permisosAprobacionContenido';
 import { periodoPorDefecto, construirPeriodo } from './periodosProyecto';
 
 /**
@@ -235,16 +236,20 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     consultar: async (sql, sesion) => {
       const usuarioId = Number(sesion.id);
       if (Number.isNaN(usuarioId)) return null;
+      // Sesión 60: también los de proyectos que esta persona lidera/colidera. Sin umbral de
+      // antigüedad: el aviso sigue hasta que se apruebe.
+      const proyectosLiderados = await proyectosQueLidera(sql, usuarioId);
       const [fila] = await sql`
         SELECT COUNT(*)::int AS total FROM actividades_difusion
-        WHERE aprobado_sitio = false AND ${usuarioId} = ANY(profesores_responsables)
+        WHERE aprobado_sitio = false
+          AND (${usuarioId} = ANY(profesores_responsables) OR proyectos && ${proyectosLiderados}::text[])
       `;
       const total = Number(fila?.total || 0);
       if (total === 0) return null;
       return {
         id: 'contenido-por-aprobar-responsable',
         cantidad: total,
-        mensaje: `Tienes ${plural(total, 'evento/podcast', 'eventos/podcasts')} por aprobar como responsable.`,
+        mensaje: `Tienes ${plural(total, 'evento/podcast', 'eventos/podcasts')} por aprobar (como responsable o líder de proyecto).`,
         href: '/portal/aprobaciones',
         severidad: 'pendiente',
       };

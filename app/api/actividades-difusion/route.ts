@@ -34,7 +34,10 @@ export async function GET(request: Request) {
     // Fotos descartadas en el banco: no deben salir en noticias/actividades/boletines aunque sigan
     // guardadas en photos[] (el descarte es por imagen y no borra nada).
     const quitarFotosDescartadas = async (filas: any[]) => {
-      const descartadas = await sql`SELECT url FROM fotos WHERE descartada = true`;
+      // Sesión 60: además de descartadas, no salen fotos con menores ni marcadas de mala calidad.
+      const descartadas = await sql`
+        SELECT url FROM fotos WHERE descartada = true OR menores = 'si' OR calidad = 'mala'
+      `;
       if (descartadas.length === 0) return filas;
       const urlsDescartadas = new Set(descartadas.map((fila: any) => fila.url));
       return filas.map((fila) => ({ ...fila, photos: (fila.photos ?? []).filter((url: string) => !urlsDescartadas.has(url)) }));

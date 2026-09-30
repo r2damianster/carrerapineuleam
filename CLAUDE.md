@@ -213,6 +213,18 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
 
+## Cambios Recientes (Sesión 60 — 2026-09-30): fotos aprobadas se publican solas en la galería de cada proyecto + avisos a líderes
+
+Origen: las fotos de asistencia aprobadas no salían en la web de Vinculación. Causa: la ingesta deja `fotos.ubicaciones = '{}'` y ninguna aprobación asignaba ubicación (10 fotos elegibles quedaron invisibles).
+
+- **`lib/publicarFotoEnProyecto.ts` (nuevo):** `publicarFotosDeFuente(sql, origenes, fuenteId)` agrega a la foto la ubicación de **cada** proyecto de `fotos.proyectos` (`fotos_ubicaciones.proyecto_id`, nunca las `solo_admin` = portada); solo fotos activas, no descartadas, `menores='no'`, publicables y `calidad<>'mala'`. Un registro con varios proyectos entra en todas sus galerías (decisión del usuario). `retirarFotosDeFuente` quita solo galerías de proyecto y respeta portada.
+- **Conectado a:** aprobar asistencia (`PATCH /api/vinculacion/supervisar-asistencia/[id]`, y rechazar retira), `PATCH /api/videos/[id]/aprobar` (podcast), `PATCH /api/actividades-difusion/[id]` (vía responsable/líder y vía admin `aprobar`). Backfill aplicado: 5 asistencias + 1 evento.
+- **Permisos:** `puedeAprobarVideo`/`puedeAprobarActividad` ahora aceptan también a líder/colíder activo (`proyecto_miembros`) de cualquiera de los proyectos del registro (`puedeGestionarProyecto`, consultado en Neon). Confirmado por el usuario.
+- **Aviso:** `contenido-por-aprobar-responsable` (`lib/notificaciones.ts`) y `GET /api/mis-aprobaciones` cubren responsables **y** líderes de los proyectos del registro (`proyectosQueLidera`). **Sin umbral de antigüedad:** el aviso dura mientras haya pendiente. `/portal/aprobaciones` acepta `?proyecto=id` y muestra badges de proyecto. Admin/superadmin siguen con `videos-por-aprobar`/`difusion-por-aprobar` (sin duplicar). Solo cubre actividades de difusión; un video sin actividad asociada no aparece en esa cola.
+- **Noticias:** siguen leyendo `actividades_difusion.photos[]` (circuito aparte del banco); ahora también ocultan fotos con menores o `calidad='mala'`, además de descartadas. El aprobado sin canal ya se ve en `/admin/contenido` como "Oculta — mostrar".
+- **Decisión:** no se agrega carrusel por proyecto en la portada; `PhotoCarousel ubicacion="portada"` queda curado a mano.
+- Verificado: `tsc` y `next build` limpios; helper probado contra Neon con filas temporales (multi-proyecto, portada intacta, menores excluidas, retirar). No se probó clic-a-clic en navegador.
+
 ## Cambios Recientes (Sesión 59 — 2026-09-29): auditoría de organización del repo + fix de bug real de producción
 
 A pedido explícito del usuario: revisión archivo por archivo de todo el proyecto para reorganizar documentación vs. código, eliminar lo que ya no tiene función, y encontrar cabos sueltos. 3 auditorías en paralelo (estáticos huérfanos, templates/scripts duplicados, código muerto + búsqueda de una función "repositorio para profesores" que el usuario recordaba).
