@@ -76,19 +76,6 @@ export async function GET(request: Request) {
       return NextResponse.json(conDestacadoVigente(rows));
     }
 
-    // Últimos eventos/podcasts registrados vía difusión (portada). `limite` acota cuántos salen.
-    if (seccion === 'eventos') {
-      const limiteSolicitado = Number(searchParams.get('limite')) || 6;
-      const limite = Math.min(Math.max(limiteSolicitado, 1), 24);
-      const rows = await sql`
-        SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
-        WHERE aprobado_sitio = true AND origen IN ('difusion', 'externo_temporal')
-        ORDER BY destacado_vigente DESC, fecha DESC NULLS LAST, id DESC
-        LIMIT ${limite}
-      `;
-      return NextResponse.json(await quitarFotosDescartadas(conDestacadoVigente(rows)));
-    }
-
     if (seccion === 'noticias') {
       const rows = await sql`
         SELECT *, (is_featured AND destacado_desde > now() - interval '7 days') AS destacado_vigente FROM actividades_difusion
