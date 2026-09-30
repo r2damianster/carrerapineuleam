@@ -1,7 +1,7 @@
 // foto_descartada(url) ahora también es true si la foto quedó marcada de mala calidad o con menores.
 // Antes solo miraba `descartada`, y aprobar una asistencia con "mala calidad" dejaba calidad='mala'
 // sin descartada=true → la foto seguía saliendo en los informes de Vinculación.
-// Uso: node --env-file=.env.local scripts/migrate-foto-descartada-calidad.js
+// Uso: node --env-file=.env.local scripts/migrate-foto-descartada-calidad.cjs
 // ROLLBACK: reejecutar scripts/migrate-fotos-descartada.js paso [2] (definición original).
 const { neon } = require('@neondatabase/serverless');
 
