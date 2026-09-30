@@ -209,6 +209,7 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
         SELECT url, to_char(fecha_evento, 'DD/MM/YYYY') AS fecha
         FROM fotos
         WHERE origen IN ('evento', 'podcast') AND fuente_id = ANY(${idsDifusionDelMes})
+          AND calidad <> 'mala' AND menores <> 'si'
       `
     : [];
   const fotosCandidatas = [
