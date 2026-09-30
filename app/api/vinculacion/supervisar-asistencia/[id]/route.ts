@@ -4,6 +4,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 import { registrarHorasAsistencia } from '@/lib/horasAsistencia';
 import { esSuperAdminOLider } from '@/lib/permisos-supervision';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
+import { publicarFotosDeFuente, retirarFotosDeFuente } from '@/lib/publicarFotoEnProyecto';
 
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -50,6 +51,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       if (!actualizado) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
       // Si venía de un aprobado previo, retira las horas ya acreditadas.
       await sql`DELETE FROM horas_asistencia_instructor WHERE asistencia_id = ${id}`;
+      await retirarFotosDeFuente(sql, ['asistencia'], id);
       return NextResponse.json({ success: true, data: actualizado });
     }
 
@@ -86,22 +88,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         WHERE origen = 'asistencia' AND fuente_id = ${String(id)}
       `;
     } else {
-      // Aprobada sin menores ni mala calidad → se publica sola en la galería del proyecto
-      // (Vinculación = 'club-ingles'). Solo si la foto sigue activa/publicable y no fue descartada;
-      // nunca quita ubicaciones que un admin ya haya puesto.
       await sql`
-        UPDATE fotos SET
-          calidad = 'aceptable',
-          ubicaciones = CASE
-            WHEN activo = true AND descartada = false AND menores = 'no' AND visibilidad = 'publicable'
-                 AND EXISTS (SELECT 1 FROM espacios_enseñanza e WHERE e.id = ${actualizado.espacio_id} AND e.area = 'vinculacion')
-                 AND NOT ('club-ingles' = ANY(ubicaciones))
-              THEN array_append(ubicaciones, 'club-ingles')
-            ELSE ubicaciones
-          END,
-          calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
+        UPDATE fotos SET calidad = 'aceptable', calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
         WHERE origen = 'asistencia' AND fuente_id = ${String(id)}
       `;
+      // Aprobada sin menores ni mala calidad → se publica sola en la galería de cada proyecto de la foto.
+      await publicarFotosDeFuente(sql, ['asistencia'], id);
     }
 
     return NextResponse.json({ success: true, data: actualizado, advertencias });

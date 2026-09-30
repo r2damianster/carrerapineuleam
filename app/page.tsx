@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import HubProjectsSection from '@/components/HubProjectsSection';
 import CareerInfoSection from '@/components/CareerInfoSection';
 import NewsSection from '@/components/NewsSection';
+import LatestEventsSection from '@/components/LatestEventsSection';
 import ConnectionsSection from '@/components/ConnectionsSection';
 import PhotoCarousel from '@/components/PhotoCarousel';
 import QRPromoModal from '@/components/QRPromoModal';
@@ -18,6 +19,7 @@ export default function HubPage() {
         <PhotoCarousel ubicacion="portada" />
         <HubProjectsSection />
         <CareerInfoSection />
+        <LatestEventsSection />
         <NewsSection />
         <ConnectionsSection compact />
       </main>

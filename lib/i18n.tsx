@@ -210,6 +210,14 @@ const translations = {
       viewBulletins: 'Ver boletines →',
       readMore: 'Leer más',
     },
+    latestEvents: {
+      sectionTitle: 'Últimos Eventos',
+      sectionSubtitle: 'Podcasts y eventos más recientes de la carrera',
+      loading: 'Cargando eventos...',
+      empty: 'No hay eventos publicados aún',
+      podcastBadge: 'Podcast',
+      eventBadge: 'Evento',
+    },
     photoCarousel: {
       prev: 'Foto anterior',
       next: 'Foto siguiente',
@@ -813,6 +821,14 @@ const translations = {
       viewAll: 'View All News →',
       viewBulletins: 'View newsletters →',
       readMore: 'Read more',
+    },
+    latestEvents: {
+      sectionTitle: 'Latest Events',
+      sectionSubtitle: 'Most recent podcasts and events of the program',
+      loading: 'Loading events...',
+      empty: 'No events published yet',
+      podcastBadge: 'Podcast',
+      eventBadge: 'Event',
     },
     photoCarousel: {
       prev: 'Previous photo',

@@ -67,6 +67,19 @@ export async function GET(request: Request) {
       return NextResponse.json(rows);
     }
 
+    // Últimos eventos/podcasts registrados vía difusión (portada). `limite` acota cuántos salen.
+    if (seccion === 'eventos') {
+      const limiteSolicitado = Number(searchParams.get('limite')) || 6;
+      const limite = Math.min(Math.max(limiteSolicitado, 1), 24);
+      const rows = await sql`
+        SELECT * FROM actividades_difusion
+        WHERE aprobado_sitio = true AND origen IN ('difusion', 'externo_temporal')
+        ORDER BY fecha DESC NULLS LAST, id DESC
+        LIMIT ${limite}
+      `;
+      return NextResponse.json(await quitarFotosDescartadas(rows));
+    }
+
     if (seccion === 'noticias') {
       const rows = await sql`
         SELECT * FROM actividades_difusion

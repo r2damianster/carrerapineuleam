@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeAprobarVideo } from '@/lib/permisosAprobacionContenido';
+import { publicarFotosDeFuente } from '@/lib/publicarFotoEnProyecto';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     const sql = neon(process.env.DATABASE_URL!);
     const [video] = await sql`
-      SELECT id, title, propuesto_por, participantes_estudiantes, profesores_responsables, actividad_difusion_id, aprobado_sitio
+      SELECT id, title, propuesto_por, participantes_estudiantes, profesores_responsables, proyecto_id, actividad_difusion_id, aprobado_sitio
       FROM videos WHERE id = ${params.id}
     `;
     if (!video) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
@@ -77,6 +78,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         UPDATE fotos SET calidad = 'aceptable', calidad_revisada_por = ${Number(usuario.id)}, calidad_revisada_en = now(), updated = now()
         WHERE id = ${foto.id}
       `;
+      await publicarFotosDeFuente(sql, ['podcast'], video.actividad_difusion_id);
     }
 
     return NextResponse.json({ success: true, publicado: true });
