@@ -105,9 +105,14 @@ export default function CareerInfoSection() {
         )}
 
         {activeTab === 'malla' && (
-          <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-200 shadow-md p-8 text-center">
+          <div className="max-w-5xl mx-auto bg-white rounded-2xl border border-gray-200 shadow-md p-4 md:p-8 text-center">
             <h3 className="text-2xl font-bold text-uleam-blue mb-3">{info.malla.title}</h3>
             <p className="text-gray-700 mb-6">{info.malla.text}</p>
+            <iframe
+              src={MALLA_PDF_URL}
+              title={info.malla.title}
+              className="w-full h-[70vh] min-h-[420px] rounded-lg border border-gray-200 mb-6"
+            />
             <a
               href={MALLA_PDF_URL}
               target="_blank"

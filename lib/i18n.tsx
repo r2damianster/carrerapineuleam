@@ -23,7 +23,6 @@ const translations = {
       innovacionesLabel: 'Innovaciones Pedagógicas',
       portalPine: 'Portal PINE',
       siteName: 'Pedagogía de los Idiomas Nacionales y Extranjeros',
-      perfilEgreso: 'La Carrera',
     },
     hero: {
       title1: 'Innovaciones Pedagógicas',
@@ -630,7 +629,6 @@ const translations = {
       innovacionesLabel: 'Pedagogical Innovations',
       portalPine: 'PINE Portal',
       siteName: 'National and Foreign Languages Pedagogy',
-      perfilEgreso: 'The Program',
     },
     hero: {
       title1: 'Pedagogical Innovations',
