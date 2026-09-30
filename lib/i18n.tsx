@@ -73,7 +73,7 @@ const translations = {
       },
     },
     careerInfo: {
-      tabs: { mision: "Misión y Visión", carrera: "La Carrera", malla: "Malla Curricular", contacto: "Contacto" },
+      tabs: { mision: "Misión y Visión", carrera: "La Carrera", ingreso: "Perfil de Ingreso", egreso: "Perfil de Egreso", malla: "Malla Curricular", contacto: "Contacto" },
       mision: {
         title: "Misión",
         text: "Formar profesionales competentes en la enseñanza del inglés para hablantes de otras lenguas, con un alto sentido de autoaprendizaje, compromiso y liderazgo en el sistema educativo nacional a través del desarrollo y fortalecimiento de competencias lingüístico-comunicativas, metodológicas, investigativas y actitudinales que les permita contribuir a la transformación y mejoramiento de la educación ecuatoriana.",
@@ -679,7 +679,7 @@ const translations = {
       },
     },
     careerInfo: {
-      tabs: { mision: "Mission & Vision", carrera: "The Program", malla: "Curriculum", contacto: "Contact" },
+      tabs: { mision: "Mission & Vision", carrera: "The Program", ingreso: "Admission Profile", egreso: "Graduate Profile", malla: "Curriculum", contacto: "Contact" },
       mision: {
         title: "Mission",
         text: "To train competent professionals in teaching English to speakers of other languages, with a strong sense of self-learning, commitment and leadership in the national education system, through the development and strengthening of linguistic-communicative, methodological, research and attitudinal competencies that allow them to contribute to the transformation and improvement of Ecuadorian education.",

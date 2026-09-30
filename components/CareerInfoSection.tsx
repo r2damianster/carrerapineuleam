@@ -7,7 +7,7 @@ const MALLA_PDF_URL = '/files/2026-09-25_Malla-Ajustada-PINE.pdf';
 const COORDINATOR_EMAIL = 'german.carrera@uleam.edu.ec';
 const SECRETARY_EMAIL = 'yasmin.bermudez@uleam.edu.ec';
 
-type TabId = 'mision' | 'carrera' | 'malla' | 'contacto';
+type TabId = 'mision' | 'carrera' | 'ingreso' | 'egreso' | 'malla' | 'contacto';
 
 export default function CareerInfoSection() {
   const [activeTab, setActiveTab] = useState<TabId>('mision');
@@ -17,6 +17,8 @@ export default function CareerInfoSection() {
   const tabs: { id: TabId; label: string }[] = [
     { id: 'mision', label: info.tabs.mision },
     { id: 'carrera', label: info.tabs.carrera },
+    { id: 'ingreso', label: info.tabs.ingreso },
+    { id: 'egreso', label: info.tabs.egreso },
     { id: 'malla', label: info.tabs.malla },
     { id: 'contacto', label: info.tabs.contacto },
   ];
@@ -71,7 +73,11 @@ export default function CareerInfoSection() {
                 <p className="text-gray-700 leading-relaxed">{info.objective}</p>
               </div>
             </div>
+          </div>
+        )}
 
+        {activeTab === 'ingreso' && (
+          <div className="max-w-5xl mx-auto space-y-6">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-6 md:p-8">
               <h3 className="text-lg font-bold text-uleam-blue mb-3">{info.admission.title}</h3>
               <ul className="list-disc pl-5 space-y-1 text-gray-700 mb-5">
@@ -84,7 +90,11 @@ export default function CareerInfoSection() {
               </blockquote>
               <p className="text-gray-600 text-sm mt-3">{info.admission.loesNote}</p>
             </div>
+          </div>
+        )}
 
+        {activeTab === 'egreso' && (
+          <div className="max-w-5xl mx-auto space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-6 md:p-8">
                 <h3 className="text-lg font-bold text-uleam-blue mb-3">{info.graduation.title}</h3>
