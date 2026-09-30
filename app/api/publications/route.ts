@@ -4,7 +4,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const { searchParams } = new URL(request.url);
 
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : null;

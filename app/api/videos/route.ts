@@ -11,7 +11,8 @@ function extractEmbedId(url: string): string | null {
 
 export async function GET(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    // Lectura pública sin cookies: sin caché de datos (ver CLAUDE.md, Sesión 31).
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('category');
     const featuredOnly = searchParams.get('featured') === 'true';
@@ -51,21 +52,21 @@ export async function GET(request: Request) {
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
         WHERE v.category = ${categoryId} AND (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY v."order" ASC
+        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC
       `;
     } else if (featuredOnly) {
       rows = await sql`
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
         WHERE v.is_featured = true AND (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY v."order" ASC LIMIT 6
+        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC LIMIT 6
       `;
     } else {
       rows = await sql`
         SELECT v.*, row_to_json(c.*) AS category_expand
         FROM videos v LEFT JOIN video_categories c ON c.id = v.category
         WHERE (${incluirInactivos} OR v.activo = true) AND v.aprobado_sitio = true
-        ORDER BY v."order" ASC
+        ORDER BY COALESCE(v.published_date, v.created::date) DESC, v.created DESC
       `;
     }
 
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
         (id, title, youtube_url, embed_id, description, category, published_date, "order", is_featured, tags, aprobado_sitio, propuesto_por,
          area_sustantiva, proyecto_id, participantes_estudiantes, invitados_internos, invitados_externos, audiencia_alcanzada, profesores_responsables)
       VALUES
-        (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || null}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
+        (${id}, ${title}, ${url_final}, ${embed_id}, ${description || null}, ${category}, ${published_date || new Date().toISOString().slice(0, 10)}, ${order ?? 0}, ${!!is_featured}, ${tags || null},
          ${esAdminContenido}, ${esAdminContenido ? null : Number(usuario.id)},
          ${area_sustantiva || null}, ${proyectoIds}, ${participantesIds}, ${invitados_internos || []}, ${invitados_externos || []}, ${audiencia_alcanzada || 0}, ${responsablesIds})
       RETURNING *

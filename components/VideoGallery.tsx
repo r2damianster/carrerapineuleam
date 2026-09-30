@@ -75,7 +75,7 @@ export default function VideoGallery() {
   }, []);
 
   const sortedVideos = [...videos].sort(
-    (a, b) => new Date(b.published_date || 0).getTime() - new Date(a.published_date || 0).getTime()
+    (a, b) => new Date(b.published_date || b.created || 0).getTime() - new Date(a.published_date || a.created || 0).getTime()
   );
   const latestIds = new Set(sortedVideos.slice(0, 3).map((v) => v.id));
 

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     // (activo=false) para poder reactivarlos — el sitio público nunca lo manda.
     const incluirInactivos = searchParams.get('all') === 'true';
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     // El nombre sale de la persona (usuarios) cuando la tarjeta está enlazada; los equipos y roles
     // salen de proyecto_miembros (Sesión 51). El correo NO se toma de usuarios: las personas de
     // directorio tienen correos internos que no deben publicarse.
