@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n';
 
-const LATEST_EVENTS_LIMIT = 6;
+const LATEST_EVENTS_LIMIT = 3;
 
 interface LatestEvent {
   id: string;

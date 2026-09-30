@@ -19,8 +19,8 @@ export default function HubPage() {
         <PhotoCarousel ubicacion="portada" />
         <HubProjectsSection />
         <CareerInfoSection />
-        <LatestEventsSection />
         <NewsSection />
+        <LatestEventsSection />
         <ConnectionsSection compact />
       </main>
       <Footer context="landing" />
