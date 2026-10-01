@@ -14,7 +14,7 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!);
     const estudiantes = await sql`
-      SELECT u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso,
+      SELECT u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso, u.proyecto_investigacion_id,
              COALESCE(
                json_agg(
                  json_build_object('id', e.id, 'nombre', e.nombre)
@@ -35,7 +35,7 @@ export async function GET() {
       LEFT JOIN espacio_instructores ei ON ei.usuario_id = u.id
       LEFT JOIN espacios_enseñanza e ON e.id = ei.espacio_id AND e.area = 'vinculacion'
       WHERE u.rol = 'estudiante'
-      GROUP BY u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso
+      GROUP BY u.id, u.nombres, u.apellidos, u.email, u.activado, u.modulos_acceso, u.proyecto_investigacion_id
       ORDER BY u.nombres ASC
     `;
 
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombres, apellidos, email, puede_subir_video, tiene_investigacion } = await request.json();
+    const { nombres, apellidos, email, puede_subir_video, tiene_investigacion, proyecto_investigacion_id } = await request.json();
     if (!nombres || !apellidos || !email) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
@@ -66,10 +66,21 @@ export async function POST(request: Request) {
       ...(tiene_investigacion ? ['investigacion'] : []),
     ];
 
+    let proyectoInvestigacion: string | null = null;
+    if (tiene_investigacion) {
+      proyectoInvestigacion = proyecto_investigacion_id || 'internacionalizacion';
+      const proyectoValido = await sql`
+        SELECT 1 FROM proyectos WHERE id = ${proyectoInvestigacion} AND area = 'investigacion' AND activo = true
+      `;
+      if (proyectoValido.length === 0) {
+        return NextResponse.json({ error: 'Proyecto de investigación no válido' }, { status: 400 });
+      }
+    }
+
     const [nuevo] = await sql`
-      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, activado)
-      VALUES (${nombres}, ${apellidos}, ${String(email).trim().toLowerCase()}, ${placeholderHash}, 'estudiante', ${modulosAcceso}, false)
-      RETURNING id, nombres, apellidos, email, activado, modulos_acceso
+      INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, activado, proyecto_investigacion_id)
+      VALUES (${nombres}, ${apellidos}, ${String(email).trim().toLowerCase()}, ${placeholderHash}, 'estudiante', ${modulosAcceso}, false, ${proyectoInvestigacion})
+      RETURNING id, nombres, apellidos, email, activado, modulos_acceso, proyecto_investigacion_id
     `;
 
     return NextResponse.json({ success: true, data: nuevo }, { status: 201 });

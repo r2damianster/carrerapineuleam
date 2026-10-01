@@ -21,6 +21,25 @@ export async function PATCH(
     // completo. Se agrega/quita solo el flag pedido, sin pisar el resto de
     // modulos_acceso que el pasante ya tuviera (ej. no perder "subir_video"
     // al togglear "investigacion" o viceversa).
+    // Cambio de proyecto de investigación al que aporta el pasante (solo ese campo).
+    if (typeof body.proyecto_investigacion_id === 'string' && Object.keys(body).length === 1) {
+      const proyectoValido = await sql`
+        SELECT 1 FROM proyectos WHERE id = ${body.proyecto_investigacion_id} AND area = 'investigacion' AND activo = true
+      `;
+      if (proyectoValido.length === 0) {
+        return NextResponse.json({ error: 'Proyecto de investigación no válido' }, { status: 400 });
+      }
+      const [actualizado] = await sql`
+        UPDATE usuarios SET proyecto_investigacion_id = ${body.proyecto_investigacion_id}
+        WHERE id = ${parseInt(params.id)} AND rol = 'estudiante' AND 'investigacion' = ANY(modulos_acceso)
+        RETURNING id, nombres, apellidos, email, activado, modulos_acceso, proyecto_investigacion_id
+      `;
+      if (!actualizado) {
+        return NextResponse.json({ error: 'Pasante no encontrado o sin funciones de investigación' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, data: actualizado });
+    }
+
     const flagsTogglables: Record<string, string> = {
       puede_subir_video: 'subir_video',
       tiene_investigacion: 'investigacion',
@@ -42,9 +61,13 @@ export async function PATCH(
         : modulosActuales.filter(m => m !== modulo);
 
       const [actualizado] = await sql`
-        UPDATE usuarios SET modulos_acceso = ${modulosAcceso}
+        UPDATE usuarios SET modulos_acceso = ${modulosAcceso},
+          proyecto_investigacion_id = CASE
+            WHEN ${modulo === 'investigacion' && activar} THEN COALESCE(proyecto_investigacion_id, 'internacionalizacion')
+            WHEN ${modulo === 'investigacion' && !activar} THEN NULL
+            ELSE proyecto_investigacion_id END
         WHERE id = ${parseInt(params.id)} AND rol = 'estudiante'
-        RETURNING id, nombres, apellidos, email, activado, modulos_acceso
+        RETURNING id, nombres, apellidos, email, activado, modulos_acceso, proyecto_investigacion_id
       `;
       return NextResponse.json({ success: true, data: actualizado });
     }

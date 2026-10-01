@@ -152,12 +152,27 @@ export async function datosInformeMensual(sql: Sql, params: { supervisorId: numb
         SELECT titulo, descripcion, tipo, audiencia_alcanzada, id FROM actividades_difusion
         WHERE aprobado_sitio = true AND categoria = 'vinculacion' AND fecha BETWEEN ${desde}::date AND ${hasta}::date
       `;
+  // Actividades de investigación APROBADAS de los pasantes de estos espacios, con el proyecto
+  // al que aportan (lo asigna el líder en /vinculacion/pasantes).
+  const investigacionDelMes = await sql`
+    SELECT u.nombres, u.apellidos, to_char(a.fecha, 'DD/MM/YYYY') AS fecha, a.descripcion, a.horas::float AS horas,
+           COALESCE(py.nombre_oficial, 'Proyecto sin asignar') AS proyecto_nombre
+    FROM actividades_investigacion_pasante a
+    JOIN usuarios u ON u.id = a.usuario_id
+    LEFT JOIN proyectos py ON py.id = a.proyecto_id
+    WHERE a.estado_aprobacion = 'aprobado' AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
+      AND a.usuario_id IN (SELECT ei.usuario_id FROM espacio_instructores ei WHERE ei.espacio_id = ANY(${idsConsulta}))
+    ORDER BY a.fecha ASC, a.id ASC
+  `;
   const actividades = [
     ...sesionesConTexto.map((sesion: any) => `${sesion.espacio_nombre} (${sesion.fecha}): ${sesion.observaciones}`),
     ...Array.from(resumenSesionesPorEspacioSinTexto.values()).map(resumen =>
       `${resumen.nombre}: ${resumen.sesiones} sesión(es) aprobada(s) en el mes (${resumen.fechas.join(', ')}), ${resumen.beneficiarios} asistencia(s) de beneficiarios registradas.`
     ),
     ...difusionDelMes.map((actividad: any) => `${actividad.tipo === 'podcast' ? 'Podcast' : 'Evento'}: ${actividad.titulo}${actividad.descripcion ? ` — ${actividad.descripcion}` : ''}`),
+    ...investigacionDelMes.map((actividad: any) =>
+      `Investigación (${actividad.proyecto_nombre}) — ${actividad.nombres} ${actividad.apellidos} (${actividad.fecha}): ${actividad.descripcion} [${actividad.horas} h]`
+    ),
   ];
 
   // Señal por defecto para Observaciones: sesiones pendientes/rechazadas del mes (algo real que

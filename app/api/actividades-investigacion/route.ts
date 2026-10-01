@@ -26,9 +26,10 @@ export async function GET(request: Request) {
     if (usuario.rol === 'estudiante') {
       // Un pasante solo ve sus propias actividades.
       const actividades = await sql`
-        SELECT a.id, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
+        SELECT a.id, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.proyecto_id, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo
         FROM actividades_investigacion_pasante a
         LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id
+        LEFT JOIN proyectos py ON py.id = a.proyecto_id
         WHERE a.usuario_id = ${usuario.id}
         ORDER BY a.fecha DESC, a.id DESC
       `;
@@ -42,18 +43,20 @@ export async function GET(request: Request) {
     // Profesor/admin de vinculación: todas, o filtradas por un pasante.
     const actividades = usuarioIdParam
       ? await sql`
-          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
+          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.proyecto_id, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id
+        LEFT JOIN proyectos py ON py.id = a.proyecto_id
           WHERE a.usuario_id = ${parseInt(usuarioIdParam)}
           ORDER BY a.fecha DESC, a.id DESC
         `
       : await sql`
-          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo
+          SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas, a.espacio_id, e.nombre AS espacio_nombre, a.proyecto_id, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN espacios_enseñanza e ON e.id = a.espacio_id
+        LEFT JOIN proyectos py ON py.id = a.proyecto_id
           ORDER BY a.fecha DESC, a.id DESC
         `;
 
@@ -95,10 +98,15 @@ export async function POST(request: Request) {
       if (rows.length > 0) espacioIdValido = espacio_id;
     }
 
+    // El proyecto al que aporta lo fija el líder de Vinculación en /vinculacion/pasantes;
+    // se copia a la actividad para que el historial no cambie si luego lo reasignan.
+    const [perfilPasante] = await sql`SELECT proyecto_investigacion_id FROM usuarios WHERE id = ${usuario.id}`;
+    const proyectoId = perfilPasante?.proyecto_investigacion_id || 'internacionalizacion';
+
     const [creada] = await sql`
-      INSERT INTO actividades_investigacion_pasante (usuario_id, espacio_id, fecha, descripcion, horas)
-      VALUES (${usuario.id}, ${espacioIdValido}, ${fecha}, ${descripcion}, ${horasNum})
-      RETURNING id, fecha, descripcion, horas, espacio_id
+      INSERT INTO actividades_investigacion_pasante (usuario_id, espacio_id, fecha, descripcion, horas, proyecto_id)
+      VALUES (${usuario.id}, ${espacioIdValido}, ${fecha}, ${descripcion}, ${horasNum}, ${proyectoId})
+      RETURNING id, fecha, descripcion, horas, espacio_id, proyecto_id
     `;
 
     return NextResponse.json({ success: true, data: creada }, { status: 201 });

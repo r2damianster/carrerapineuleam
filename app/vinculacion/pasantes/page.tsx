@@ -20,7 +20,8 @@ export default function PasantesPage() {
   const [message, setMessage] = useState('');
   const [estudiantes, setEstudiantes] = useState<any[]>([]);
 
-  const [nuevoForm, setNuevoForm] = useState({ nombres: '', apellidos: '', email: '', puede_subir_video: false, tiene_investigacion: false });
+  const [proyectosInvestigacion, setProyectosInvestigacion] = useState<{ id: string; nombre_oficial: string }[]>([]);
+  const [nuevoForm, setNuevoForm] = useState({ nombres: '', apellidos: '', email: '', puede_subir_video: false, tiene_investigacion: false, proyecto_investigacion_id: 'internacionalizacion' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ nombres: '', apellidos: '', email: '' });
 
@@ -47,6 +48,25 @@ export default function PasantesPage() {
     const res = await fetch('/api/estudiantes');
     const data = await res.json();
     if (data.success) setEstudiantes(data.data);
+    const resProyectos = await fetch('/api/proyectos');
+    const dataProyectos = await resProyectos.json();
+    if (Array.isArray(dataProyectos)) {
+      setProyectosInvestigacion(dataProyectos.filter((proyecto: any) => proyecto.area === 'investigacion'));
+    }
+  };
+
+  const handleCambiarProyectoInvestigacion = async (pasante: any, proyectoId: string) => {
+    try {
+      const res = await fetch(`/api/estudiantes/${pasante.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proyecto_investigacion_id: proyectoId }),
+      });
+      if (!res.ok) throw new Error('Failed to change project');
+      fetchEstudiantes();
+    } catch (err) {
+      setMessage('Error al cambiar el proyecto de investigación');
+    }
   };
 
   const handleCrear = async (e: React.FormEvent) => {
@@ -62,7 +82,7 @@ export default function PasantesPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage(`Pasante "${data.data.nombres} ${data.data.apellidos}" registrado — pendiente de activar`);
-      setNuevoForm({ nombres: '', apellidos: '', email: '', puede_subir_video: false, tiene_investigacion: false });
+      setNuevoForm({ nombres: '', apellidos: '', email: '', puede_subir_video: false, tiene_investigacion: false, proyecto_investigacion_id: 'internacionalizacion' });
       fetchEstudiantes();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -281,6 +301,20 @@ export default function PasantesPage() {
             />
             Tiene funciones/horas de investigación (además de vinculación)
           </label>
+          {nuevoForm.tiene_investigacion && (
+            <label className="block text-sm text-gray-700">
+              Proyecto al que aportan sus actividades de investigación
+              <select
+                value={nuevoForm.proyecto_investigacion_id}
+                onChange={e => setNuevoForm({ ...nuevoForm, proyecto_investigacion_id: e.target.value })}
+                className="mt-1 w-full border rounded p-2"
+              >
+                {proyectosInvestigacion.map(proyecto => (
+                  <option key={proyecto.id} value={proyecto.id}>{proyecto.nombre_oficial}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <button disabled={loading} className="w-full bg-blue-600 text-white p-2 rounded font-medium disabled:opacity-50">
             {loading ? 'Guardando...' : 'Registrar Pasante'}
           </button>
@@ -395,6 +429,20 @@ export default function PasantesPage() {
                     >
                       {Array.isArray(s.modulos_acceso) && s.modulos_acceso.includes('investigacion') ? 'Tiene horas de investigación — quitar' : 'Sin horas de investigación — activar'}
                     </button>
+                    {Array.isArray(s.modulos_acceso) && s.modulos_acceso.includes('investigacion') && (
+                      <label className="block text-xs text-gray-600 mt-1">
+                        Aporta al proyecto:{' '}
+                        <select
+                          value={s.proyecto_investigacion_id || 'internacionalizacion'}
+                          onChange={e => handleCambiarProyectoInvestigacion(s, e.target.value)}
+                          className="border rounded p-1 text-xs"
+                        >
+                          {proyectosInvestigacion.map(proyecto => (
+                            <option key={proyecto.id} value={proyecto.id}>{proyecto.nombre_oficial}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     {s.espacios && s.espacios.length > 0 ? (
                       <p className="text-sm text-gray-600 mt-1">Instructor en: {s.espacios.map((e: any) => e.nombre).join(', ')}</p>
                     ) : (
