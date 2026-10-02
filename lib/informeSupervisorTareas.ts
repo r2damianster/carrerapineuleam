@@ -185,12 +185,29 @@ export async function registrosPorFuente(
       GROUP BY usuario_id
     `;
     const horas = actividades.reduce((total: number, fila: any) => total + fila.horas, 0);
+    // Descripciones reales (con el proyecto al que aporta cada pasante) para que la redacción
+    // con IA del informe use datos concretos y no solo conteos.
+    const descripciones = actividades.length
+      ? await sql`
+          SELECT COALESCE(py.nombre_oficial, 'Proyecto sin asignar') AS proyecto_nombre, a.descripcion, a.horas::float AS horas
+          FROM actividades_investigacion_pasante a
+          LEFT JOIN proyectos py ON py.id = a.proyecto_id
+          WHERE a.usuario_id = ANY(${idsPasantes}) AND a.estado_aprobacion = 'aprobado'
+            AND a.fecha BETWEEN ${desde}::date AND ${hasta}::date
+          ORDER BY a.fecha ASC, a.id ASC
+        `
+      : [];
+    const detalleDescripciones = descripciones
+      .map((fila: any) => `${fila.descripcion} (${fila.horas} h, aporta a: ${fila.proyecto_nombre})`)
+      .join('; ');
     return {
       cantidad: actividades.length,
       pasantesIds: actividades.map((fila: any) => fila.usuario_id),
       sesiones: actividades.reduce((total: number, fila: any) => total + fila.registros, 0),
       horas,
-      detalle: actividades.length ? `${actividades.length} estudiante(s) con actividades de investigación aprobadas (${horas} h)` : '',
+      detalle: actividades.length
+        ? `${actividades.length} estudiante(s) con actividades de investigación aprobadas (${horas} h): ${detalleDescripciones}`
+        : '',
     };
   }
 

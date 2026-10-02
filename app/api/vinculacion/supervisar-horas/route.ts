@@ -65,10 +65,11 @@ export async function GET(request: Request) {
         `
       : await sql`
           SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas::float AS horas,
-                 e.nombre AS espacio_nombre, a.estado_aprobacion, a.motivo_rechazo, a.creado_en
+                 e.nombre AS espacio_nombre, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo, a.creado_en
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
+          LEFT JOIN proyectos py ON py.id = a.proyecto_id
           WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
                   SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e2 ON e2.id = ei.espacio_id
                   WHERE ei.usuario_id = a.usuario_id AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))

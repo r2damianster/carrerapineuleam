@@ -11,6 +11,7 @@ interface Actividad {
   horas: number;
   espacio_id: number | null;
   espacio_nombre: string | null;
+  proyecto_nombre?: string | null;
   estado_aprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
   motivo_rechazo?: string | null;
   usuario_id?: number;
@@ -140,6 +141,7 @@ export default function InvestigacionActividadesPage() {
                 </span>
               </div>
               <p className="text-gray-600 mt-1">{a.descripcion}</p>
+              {a.proyecto_nombre && <p className="text-emerald-700 text-xs mt-1">Aporta al proyecto: {a.proyecto_nombre}</p>}
               {a.espacio_nombre && <p className="text-gray-400 text-xs mt-1">Espacio: {a.espacio_nombre}</p>}
               {a.estado_aprobacion === 'rechazado' && a.motivo_rechazo && <p className="text-red-600 text-xs mt-1">Motivo de rechazo: {a.motivo_rechazo}</p>}
             </li>

@@ -50,6 +50,7 @@ interface RegistroHoras {
   tipo_podcast?: string;
   descripcion?: string;
   espacio_nombre?: string | null;
+  proyecto_nombre?: string | null;
   video_aprobado_sitio?: boolean;
   puede_publicar?: boolean;
 }
@@ -753,7 +754,10 @@ export default function SupervisarAsistenciaPage() {
                       {r.youtube_url && <a href={r.youtube_url} target="_blank" rel="noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">Ver episodio</a>}
                     </p>
                   ) : (
+                    <>
                     <p className="text-sm text-gray-700">{r.descripcion}{r.espacio_nombre && <span className="text-xs text-gray-500"> — {r.espacio_nombre}</span>}</p>
+                    {r.proyecto_nombre && <p className="text-xs text-emerald-700">Aporta al proyecto: {r.proyecto_nombre}</p>}
+                    </>
                   )}
                   {r.estado_aprobacion === 'rechazado' && r.motivo_rechazo && (
                     <p className="text-sm text-red-600 mt-1">Motivo de rechazo: {r.motivo_rechazo}</p>
