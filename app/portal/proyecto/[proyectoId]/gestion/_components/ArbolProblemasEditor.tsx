@@ -10,9 +10,8 @@ interface NodoArbol {
   orden: number;
 }
 
-const URL_API = '/vinculacion/proyecto/api?seccion=arbol';
-
-export default function ArbolProblemasEditor() {
+export default function ArbolProblemasEditor({ proyectoId }: { proyectoId: string }) {
+  const URL_API = `/api/proyectos/${proyectoId}/gestion?seccion=arbol`;
   const [nodos, setNodos] = useState<NodoArbol[]>([]);
   const [mensaje, setMensaje] = useState('');
   const [borradores, setBorradores] = useState<Record<string, string>>({});

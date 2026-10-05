@@ -87,7 +87,7 @@ function InformesVinculacionContenido() {
   }, [router, tipoQuery]);
 
   useEffect(() => {
-    fetch('/vinculacion/proyecto/api?seccion=ficha')
+    fetch('/api/proyectos/vinculacion/gestion?seccion=ficha')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.ciclos) {

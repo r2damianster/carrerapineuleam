@@ -2,13 +2,24 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
+import { puedeGestionarProyecto } from '@/lib/permisosProyecto';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
 import { periodoDeCiclo } from '@/lib/periodosProyecto';
 import { enriquecerTexto } from '@/app/utilidades/_lib/enriquecerTexto';
 
-export async function GET(request: Request) {
+// Líder/colíder del proyecto (proyecto_miembros) o administración del sitio; el líder de
+// Vinculación conserva su acceso al proyecto 'vinculacion'.
+async function autorizar(sql: any, usuario: any, proyectoId: string) {
+  if (!usuario) return false;
+  if (proyectoId === 'vinculacion' && puedeGestionarVinculacion(usuario)) return true;
+  return puedeGestionarProyecto(sql, usuario, proyectoId);
+}
+
+export async function GET(request: Request, { params }: { params: { slug: string } }) {
+  const proyectoId = params.slug;
   const usuario = await getAppSessionFromCookies();
-  if (!usuario || !puedeGestionarVinculacion(usuario)) {
+  const sql = neon(process.env.DATABASE_URL!);
+  if (!(await autorizar(sql, usuario, proyectoId))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
@@ -17,12 +28,10 @@ export async function GET(request: Request) {
   const cicloIdParam = searchParams.get('ciclo_id');
   const cicloId = cicloIdParam ? parseInt(cicloIdParam) : null;
 
-  const sql = neon(process.env.DATABASE_URL!);
-
   try {
     if (seccion === 'ficha') {
       const [proyecto] = await sql`
-        SELECT * FROM proyectos WHERE id = 'vinculacion'
+        SELECT * FROM proyectos WHERE id = ${proyectoId}
       `;
       const docentes = await sql`
         SELECT id, nombres, apellidos, email, titulo_grado, post_grado, cargo_institucional
@@ -41,7 +50,7 @@ export async function GET(request: Request) {
     if (seccion === 'arbol') {
       const nodos = await sql`
         SELECT id, nivel, padre_id, texto, orden FROM proyecto_arbol_problemas
-        WHERE proyecto_id = 'vinculacion' AND activo = true ORDER BY orden, id
+        WHERE proyecto_id = ${proyectoId} AND activo = true ORDER BY orden, id
       `;
       return NextResponse.json({ success: true, nodos });
     }
@@ -49,7 +58,7 @@ export async function GET(request: Request) {
     if (seccion === 'objetivos') {
       const objetivos = await sql`
         SELECT * FROM proyecto_objetivos 
-        WHERE proyecto_id = 'vinculacion'
+        WHERE proyecto_id = ${proyectoId}
         ORDER BY tipo DESC, orden ASC, id ASC
       `;
 
@@ -58,6 +67,7 @@ export async function GET(request: Request) {
         FROM proyecto_actividades_plan a
         LEFT JOIN espacios_enseñanza e ON a.espacio_id = e.id
         LEFT JOIN usuarios u ON a.responsable_id = u.id
+        WHERE a.objetivo_id IN (SELECT id FROM proyecto_objetivos WHERE proyecto_id = ${proyectoId})
         ORDER BY a.id ASC
       `;
 
@@ -91,7 +101,7 @@ export async function GET(request: Request) {
       }
       const [metas] = await sql`
         SELECT * FROM proyecto_metas_ciclo 
-        WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${cicloId}
+        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
       `;
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
       return NextResponse.json({ success: true, metas: metas || null, ciclos });
@@ -105,7 +115,7 @@ export async function GET(request: Request) {
         SELECT p.*, u.nombres AS resp_nombres, u.apellidos AS resp_apellidos
         FROM proyecto_presupuesto p
         LEFT JOIN usuarios u ON p.responsable_id = u.id
-        WHERE p.proyecto_id = 'vinculacion' AND p.ciclo_id = ${cicloId}
+        WHERE p.proyecto_id = ${proyectoId} AND p.ciclo_id = ${cicloId}
         ORDER BY p.id ASC
       `;
 
@@ -135,7 +145,7 @@ export async function GET(request: Request) {
       }
       const filas = await sql`
         SELECT clave, texto FROM proyecto_textos_ciclo 
-        WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${cicloId}
+        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
       `;
       const textosMap: Record<string, string> = {};
       filas.forEach(f => { textosMap[f.clave] = f.texto; });
@@ -146,14 +156,16 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ error: 'Sección no válida' }, { status: 400 });
   } catch (error: any) {
-    console.error('Error GET /vinculacion/proyecto/api:', error);
+    console.error('Error GET /api/proyectos/[slug]/gestion:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request, { params }: { params: { slug: string } }) {
+  const proyectoId = params.slug;
   const usuario = await getAppSessionFromCookies();
-  if (!usuario || !puedeGestionarVinculacion(usuario)) {
+  const sql = neon(process.env.DATABASE_URL!);
+  if (!(await autorizar(sql, usuario, proyectoId)) || !usuario) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
@@ -161,7 +173,6 @@ export async function POST(request: Request) {
   const seccion = searchParams.get('seccion') || 'ficha';
   const accion = searchParams.get('accion');
 
-  const sql = neon(process.env.DATABASE_URL!);
   const body = await request.json();
 
   try {
@@ -177,11 +188,11 @@ export async function POST(request: Request) {
         }
         const [ultimo] = await sql`
           SELECT COALESCE(MAX(orden), 0)::int AS orden FROM proyecto_arbol_problemas
-          WHERE proyecto_id = 'vinculacion' AND nivel = ${nivel} AND padre_id IS NOT DISTINCT FROM ${padre_id || null}
+          WHERE proyecto_id = ${proyectoId} AND nivel = ${nivel} AND padre_id IS NOT DISTINCT FROM ${padre_id || null}
         `;
         const [nuevo] = await sql`
           INSERT INTO proyecto_arbol_problemas (proyecto_id, nivel, padre_id, texto, orden)
-          VALUES ('vinculacion', ${nivel}, ${padre_id || null}, ${String(texto).trim()}, ${ultimo.orden + 1})
+          VALUES (${proyectoId}, ${nivel}, ${padre_id || null}, ${String(texto).trim()}, ${ultimo.orden + 1})
           RETURNING id, nivel, padre_id, texto, orden
         `;
         return NextResponse.json({ success: true, nodo: nuevo });
@@ -189,11 +200,11 @@ export async function POST(request: Request) {
       if (accion === 'editar') {
         const { id, texto } = body;
         if (!id || !String(texto || '').trim()) return NextResponse.json({ error: 'Id y texto son requeridos' }, { status: 400 });
-        await sql`UPDATE proyecto_arbol_problemas SET texto = ${String(texto).trim()} WHERE id = ${id} AND proyecto_id = 'vinculacion'`;
+        await sql`UPDATE proyecto_arbol_problemas SET texto = ${String(texto).trim()} WHERE id = ${id} AND proyecto_id = ${proyectoId}`;
         return NextResponse.json({ success: true });
       }
       if (accion === 'eliminar') {
-        await sql`DELETE FROM proyecto_arbol_problemas WHERE id = ${body.id} AND proyecto_id = 'vinculacion'`;
+        await sql`DELETE FROM proyecto_arbol_problemas WHERE id = ${body.id} AND proyecto_id = ${proyectoId}`;
         return NextResponse.json({ success: true });
       }
     }
@@ -226,14 +237,14 @@ export async function POST(request: Request) {
           firmante_responsable_id = ${firmante_responsable_id || null},
           lider_id = ${lider_id || null},
           actualizado_en = now()
-        WHERE id = 'vinculacion'
+        WHERE id = ${proyectoId}
       `;
 
       await logSuperadminAction({
         actor: usuario,
         tipo_accion: 'crud_update',
         tabla_afectada: 'proyectos',
-        detalle: 'Actualizó los campos de ficha en la tabla proyectos para Vinculación',
+        detalle: `Actualizó los campos de ficha en la tabla proyectos para ${proyectoId}`,
       });
 
       return NextResponse.json({ success: true, message: 'Ficha del proyecto actualizada en la tabla proyectos' });
@@ -246,7 +257,9 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Se requieren desde_ciclo_id y hacia_ciclo_id' }, { status: 400 });
         }
         const actividadesOrigen = await sql`
-          SELECT * FROM proyecto_actividades_plan WHERE ciclo_id = ${desde_ciclo_id} AND activo = true
+          SELECT * FROM proyecto_actividades_plan
+          WHERE ciclo_id = ${desde_ciclo_id} AND activo = true
+            AND objetivo_id IN (SELECT id FROM proyecto_objetivos WHERE proyecto_id = ${proyectoId})
         `;
         const [cicloDestino] = await sql`SELECT nombre FROM ciclos_academicos WHERE id = ${hacia_ciclo_id}`;
         const periodoDestino = periodoDeCiclo(cicloDestino?.nombre || '');
@@ -273,7 +286,7 @@ export async function POST(request: Request) {
         if (!texto) return NextResponse.json({ error: 'Texto es requerido' }, { status: 400 });
         const [nuevoObj] = await sql`
           INSERT INTO proyecto_objetivos (proyecto_id, tipo, texto, orden, activo)
-          VALUES ('vinculacion', ${tipo || 'especifico'}, ${texto}, ${orden || 0}, true)
+          VALUES (${proyectoId}, ${tipo || 'especifico'}, ${texto}, ${orden || 0}, true)
           RETURNING *
         `;
         return NextResponse.json({ success: true, data: nuevoObj });
@@ -284,20 +297,22 @@ export async function POST(request: Request) {
         await sql`
           UPDATE proyecto_objetivos
           SET tipo = ${tipo}, texto = ${texto}, orden = ${orden}, activo = ${activo}
-          WHERE id = ${id} AND proyecto_id = 'vinculacion'
+          WHERE id = ${id} AND proyecto_id = ${proyectoId}
         `;
         return NextResponse.json({ success: true });
       }
 
       if (accion === 'eliminar_objetivo') {
         const { id } = body;
-        await sql`DELETE FROM proyecto_objetivos WHERE id = ${id} AND proyecto_id = 'vinculacion'`;
+        await sql`DELETE FROM proyecto_objetivos WHERE id = ${id} AND proyecto_id = ${proyectoId}`;
         return NextResponse.json({ success: true });
       }
 
       if (accion === 'crear_actividad') {
         const { objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, meta_cantidad, unidad, fuente } = body;
         if (!objetivo_id || !actividad) return NextResponse.json({ error: 'Objetivo y actividad son requeridos' }, { status: 400 });
+        const [objetivoDelProyecto] = await sql`SELECT 1 FROM proyecto_objetivos WHERE id = ${objetivo_id} AND proyecto_id = ${proyectoId}`;
+        if (!objetivoDelProyecto) return NextResponse.json({ error: 'El objetivo no pertenece a este proyecto' }, { status: 400 });
         const [nuevaAct] = await sql`
           INSERT INTO proyecto_actividades_plan (
             objetivo_id, actividad, metodologia, ciclo_id, mes_inicio, mes_fin, espacio_id, responsable_id, activo,
@@ -322,13 +337,17 @@ export async function POST(request: Request) {
               meta_cantidad = ${meta_cantidad === '' || meta_cantidad == null ? null : Number(meta_cantidad)},
               unidad = ${unidad || null}, fuente = ${fuente || 'manual'}
           WHERE id = ${id}
+            AND objetivo_id IN (SELECT id FROM proyecto_objetivos WHERE proyecto_id = ${proyectoId})
         `;
         return NextResponse.json({ success: true });
       }
 
       if (accion === 'eliminar_actividad') {
         const { id } = body;
-        await sql`DELETE FROM proyecto_actividades_plan WHERE id = ${id}`;
+        await sql`
+          DELETE FROM proyecto_actividades_plan
+          WHERE id = ${id} AND objetivo_id IN (SELECT id FROM proyecto_objetivos WHERE proyecto_id = ${proyectoId})
+        `;
         return NextResponse.json({ success: true });
       }
     }
@@ -341,7 +360,7 @@ export async function POST(request: Request) {
         INSERT INTO proyecto_metas_ciclo (
           proyecto_id, ciclo_id, meta_estudiantes, meta_docentes, meta_beneficiarios_directos, meta_beneficiarios_indirectos
         ) VALUES (
-          'vinculacion', ${ciclo_id}, ${meta_estudiantes || 0}, ${meta_docentes || 0},
+          ${proyectoId}, ${ciclo_id}, ${meta_estudiantes || 0}, ${meta_docentes || 0},
           ${meta_beneficiarios_directos || 0}, ${meta_beneficiarios_indirectos || 0}
         )
         ON CONFLICT (proyecto_id, ciclo_id) DO UPDATE SET
@@ -361,7 +380,7 @@ export async function POST(request: Request) {
           INSERT INTO proyecto_presupuesto (
             proyecto_id, ciclo_id, cedula_presupuestaria, concepto, solicitado, ejecutado, responsable_id
           ) VALUES (
-            'vinculacion', ${ciclo_id}, ${cedula_presupuestaria || null}, ${concepto},
+            ${proyectoId}, ${ciclo_id}, ${cedula_presupuestaria || null}, ${concepto},
             ${solicitado || 0}, ${ejecutado || 0}, ${responsable_id || null}
           ) RETURNING *
         `;
@@ -377,14 +396,14 @@ export async function POST(request: Request) {
               solicitado = ${solicitado || 0},
               ejecutado = ${ejecutado || 0},
               responsable_id = ${responsable_id || null}
-          WHERE id = ${id} AND proyecto_id = 'vinculacion'
+          WHERE id = ${id} AND proyecto_id = ${proyectoId}
         `;
         return NextResponse.json({ success: true });
       }
 
       if (accion === 'eliminar_item') {
         const { id } = body;
-        await sql`DELETE FROM proyecto_presupuesto WHERE id = ${id} AND proyecto_id = 'vinculacion'`;
+        await sql`DELETE FROM proyecto_presupuesto WHERE id = ${id} AND proyecto_id = ${proyectoId}`;
         return NextResponse.json({ success: true });
       }
     }
@@ -394,7 +413,7 @@ export async function POST(request: Request) {
         const { clave, borrador_previo } = body;
         const promptBase = borrador_previo && borrador_previo.trim().length > 3
           ? borrador_previo
-          : `Redacta una propuesta de borrador formal para la sección "${clave}" del informe de Vinculación universitaria en Ecuador.`;
+          : `Redacta una propuesta de borrador formal para la sección "${clave}" del informe del proyecto universitario "${proyectoId}" en Ecuador.`;
 
         const [resultado, errIA] = await enriquecerTexto('oficio_cuerpo_generar', promptBase);
         if (errIA) return NextResponse.json({ error: errIA }, { status: 500 });
@@ -407,7 +426,7 @@ export async function POST(request: Request) {
       for (const [clave, texto] of Object.entries(textos)) {
         await sql`
           INSERT INTO proyecto_textos_ciclo (proyecto_id, ciclo_id, clave, texto)
-          VALUES ('vinculacion', ${ciclo_id}, ${clave}, ${String(texto || '')})
+          VALUES (${proyectoId}, ${ciclo_id}, ${clave}, ${String(texto || '')})
           ON CONFLICT (proyecto_id, ciclo_id, clave) DO UPDATE SET texto = EXCLUDED.texto
         `;
       }
@@ -416,7 +435,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });
   } catch (error: any) {
-    console.error('Error POST /vinculacion/proyecto/api:', error);
+    console.error('Error POST /api/proyectos/[slug]/gestion:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
