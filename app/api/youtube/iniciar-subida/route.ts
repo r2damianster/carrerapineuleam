@@ -27,6 +27,13 @@ export async function POST(request: Request) {
 
     const sql = neon(process.env.DATABASE_URL!);
 
+    // Colaborador de Investigación: puede proponer el video de un podcast de un proyecto donde es
+    // aportante activo (los docentes ya entran por su rol). Queda pendiente de aprobación como todo video.
+    if (!autorizado && usuario?.rol === 'colaborador') {
+      const [aportante] = await sql`SELECT 1 FROM investigacion_aportantes WHERE usuario_id = ${Number(usuario.id)} AND activo = true LIMIT 1`;
+      autorizado = !!aportante;
+    }
+
     if (!autorizado && enlace_token) {
       const [enlace] = await sql`
         SELECT tipo_contenido, expira_en, max_usos, usos_actuales, activo FROM enlaces_difusion WHERE token = ${enlace_token}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import RegistrarDifusionInvestigacion from '@/components/RegistrarDifusionInvestigacion';
 
 interface ProyectoAportante {
   id: string;
@@ -148,6 +149,8 @@ export default function MisAportesPage() {
                 {guardando ? 'Registrando…' : 'Registrar aporte'}
               </button>
             </form>
+
+            <RegistrarDifusionInvestigacion proyectos={proyectos} actividadesPlan={actividadesPlan} onRegistrado={cargar} />
 
             <h2 className="mt-8 font-semibold text-gray-800">Mis aportes ({aportes.length})</h2>
             {aportes.length === 0 && <p className="mt-2 text-sm text-gray-500">Aún no has registrado aportes.</p>}

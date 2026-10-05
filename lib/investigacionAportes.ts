@@ -156,6 +156,19 @@ export async function calcularAvanceMetas(sql: any, proyectoId: string, cicloId:
   };
 }
 
+// Líderes y colíderes activos del proyecto (docentes). Son los "profesores responsables" de lo que un
+// aportante registra: ellos aprueban su publicación (lib/permisosAprobacionContenido.ts) y validan su aporte.
+export async function lideresDelProyecto(sql: any, proyectoId: string): Promise<number[]> {
+  const filas = await sql`
+    SELECT DISTINCT pm.usuario_id
+    FROM proyecto_miembros pm
+    JOIN usuarios u ON u.id = pm.usuario_id
+    WHERE pm.proyecto_id = ${proyectoId} AND pm.activo = true
+      AND pm.rol_en_proyecto IN ('lider', 'colider') AND u.rol IN ('profesor', 'admin')
+  `;
+  return filas.map((fila: any) => Number(fila.usuario_id));
+}
+
 // ¿Puede esta sesión registrar aportes en el proyecto? Solo quien es aportante activo de ese proyecto.
 export async function puedeRegistrarAporte(sql: any, usuario: AppSession, proyectoId: string): Promise<boolean> {
   if (!rolPuedeSerAportante(usuario.rol)) return false;
