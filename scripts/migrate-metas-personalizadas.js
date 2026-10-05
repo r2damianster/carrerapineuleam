@@ -17,6 +17,8 @@ async function main() {
       creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
   await sql`ALTER TABLE proyecto_metas_personalizadas ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'absoluto' CHECK (tipo IN ('absoluto','porcentual'))`;
+  // Meta por defecto de cada proyecto ("Estudiantes involucrados"): no se puede eliminar ni renombrar.
+  await sql`ALTER TABLE proyecto_metas_personalizadas ADD COLUMN IF NOT EXISTS es_defecto BOOLEAN NOT NULL DEFAULT false`;
   await sql`CREATE INDEX IF NOT EXISTS proyecto_metas_personalizadas_idx ON proyecto_metas_personalizadas(proyecto_id, ciclo_id)`;
   console.log('proyecto_metas_personalizadas lista');
 }

@@ -401,7 +401,7 @@ export default function GestionProyectoPage() {
         </div>
 
         <h1 className="text-3xl font-bold text-uleam-blue mb-2">{nombreProyecto || 'Proyecto'}: Datos e Informes</h1>
-        <p className="text-gray-600 text-sm mb-6">Ficha, objetivos y plan de trabajo, metas por ciclo, presupuesto y árbol de problemas.</p>
+        <p className="text-gray-600 text-sm mb-6">Ficha, objetivos y plan de trabajo, metas, presupuesto y árbol de problemas.</p>
 
         {mensaje && (
           <div className={`p-4 mb-6 rounded-md ${mensaje.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -414,7 +414,7 @@ export default function GestionProyectoPage() {
           {[
             { id: 'ficha', label: 'Ficha del Proyecto' },
             { id: 'objetivos', label: 'Objetivos y Actividades' },
-            { id: 'metas', label: 'Metas por Ciclo' },
+            { id: 'metas', label: 'Metas' },
             { id: 'presupuesto', label: 'Presupuesto' },
             { id: 'arbol', label: 'Árbol de Problemas' },
           ].map(tab => (
@@ -653,7 +653,7 @@ export default function GestionProyectoPage() {
 
             <div className="space-y-3">
               <h3 className="font-bold text-gray-800">Metas específicas del proyecto</h3>
-              <p className="text-xs text-gray-500">Metas propias de tu proyecto, para todo su periodo. Pueden ser un valor absoluto (ej. 4 artículos) o un porcentaje (ej. 80 %). Ve actualizando lo logrado en la misma fila: el cumplimiento se calcula contra la meta y se guarda al salir del campo.</p>
+              <p className="text-xs text-gray-500">Metas propias de tu proyecto, para todo su periodo. Pueden ser un valor absoluto (ej. 4 artículos) o un porcentaje (ej. 80 %). Ve actualizando lo logrado en la misma fila: se guarda al salir del campo. En una meta absoluta el cumplimiento es lo logrado sobre la meta; en una porcentual, lo logrado es el avance directamente.</p>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-sm text-left text-gray-700">
                   <thead className="bg-gray-100 text-xs uppercase border-b">
@@ -674,11 +674,12 @@ export default function GestionProyectoPage() {
                     {metasPersonalizadas.map(item => {
                       const valorMeta = Number(item.meta || 0);
                       const valorLogrado = Number(item.logrado || 0);
-                      const porcentaje = valorMeta > 0 ? Math.round((valorLogrado / valorMeta) * 100) : 0;
                       const esPorcentual = item.tipo === 'porcentual';
+                      // Porcentual: lo logrado ya es el avance (0-100). Absoluto: logrado respecto a la meta.
+                      const porcentaje = esPorcentual ? Math.round(valorLogrado) : valorMeta > 0 ? Math.round((valorLogrado / valorMeta) * 100) : 0;
                       return (
                         <tr key={item.id} className="border-b">
-                          <td className="px-2 py-2"><input value={item.descripcion} onChange={e => cambiarMetaLocal(item.id, 'descripcion', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
+                          <td className="px-2 py-2"><input value={item.descripcion} disabled={item.es_defecto} onChange={e => cambiarMetaLocal(item.id, 'descripcion', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 disabled:bg-gray-100 disabled:font-semibold" /></td>
                           <td className="px-2 py-2">
                             <select value={item.tipo || 'absoluto'} onChange={e => cambiarTipoMeta(item, e.target.value)} className="w-full px-2 py-1 rounded border border-gray-200 text-xs">
                               <option value="absoluto">Valor absoluto</option>
@@ -694,7 +695,7 @@ export default function GestionProyectoPage() {
                               <span className="text-xs font-bold text-purple-900 w-10 text-right">{porcentaje}%</span>
                             </div>
                           </td>
-                          <td className="px-2 py-2 text-right"><button type="button" onClick={() => handleEliminarMeta(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button></td>
+                          <td className="px-2 py-2 text-right">{item.es_defecto ? <span className="text-xs text-gray-400">Por defecto</span> : <button type="button" onClick={() => handleEliminarMeta(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button>}</td>
                         </tr>
                       );
                     })}
