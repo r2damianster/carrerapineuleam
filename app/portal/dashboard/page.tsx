@@ -6,6 +6,7 @@ import { proyectosGestionables as obtenerProyectosGestionables, puedeAdministrar
 import { SUPERADMIN_EMAILS } from '@/lib/superadmin-auth';
 import { puedeVerRegistrosVinculacion } from '@/lib/permisos-supervision';
 import { obtenerTopes } from '@/lib/topesHoras';
+import { proyectosComoAportante } from '@/lib/investigacionAportes';
 import { esDocente as esDocenteSesion, esSecretaria as esSecretariaSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
 import PendientesPortal from '@/components/PendientesPortal';
@@ -45,6 +46,16 @@ export default async function PortalDashboard() {
       proyectosAdministrables = await obtenerProyectosGestionables(neon(process.env.DATABASE_URL!), session);
     } catch {
       proyectosAdministrables = [];
+    }
+  }
+
+  // Proyectos de Investigación a los que esta persona aporta (docente o colaborador; nunca un pasante).
+  let proyectosComoAportanteInvestigacion: { id: string; nombre_oficial: string }[] = [];
+  if (esDocente || rol === 'colaborador') {
+    try {
+      proyectosComoAportanteInvestigacion = await proyectosComoAportante(neon(process.env.DATABASE_URL!), parseInt(session.id, 10));
+    } catch {
+      proyectosComoAportanteInvestigacion = [];
     }
   }
 
@@ -213,6 +224,19 @@ export default async function PortalDashboard() {
               </div>
             )}
 
+            {/* Aportes de Investigación — docentes y colaboradores agregados a un proyecto. Independiente de Vinculación. */}
+            {proyectosComoAportanteInvestigacion.length > 0 && (
+              <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-400 hover:shadow-lg transition">
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Mis aportes de Investigación</h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Proyectos donde colaboras: {proyectosComoAportanteInvestigacion.map((proyectoAportante) => proyectoAportante.nombre_oficial).join('; ')}.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Link href="/investigacion/mis-aportes" className="text-emerald-600 hover:underline">» Registrar y ver mis aportes</Link>
+                </div>
+              </div>
+            )}
+
             {/* Administrar mi proyecto — líderes y colíderes (Fase B del plan de administración por líderes) */}
             {proyectosAdministrables.length > 0 && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 hover:shadow-lg transition">
@@ -288,7 +312,7 @@ export default async function PortalDashboard() {
 
           </div>
 
-          {!esDocente && !esSecretaria && modulos_acceso.length === 0 && rol !== 'estudiante' && (
+          {!esDocente && !esSecretaria && modulos_acceso.length === 0 && rol !== 'estudiante' && rol !== 'colaborador' && (
             <div className="bg-yellow-50 p-6 rounded-lg text-yellow-800 text-center">
               Tu cuenta no tiene módulos asignados aún. Por favor contacta al administrador.
             </div>

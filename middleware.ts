@@ -47,6 +47,8 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/investigacion-actividades',
     '/vinculacion/actividades-autonomas',
     '/investigacion/informes',
+    '/investigacion/mis-aportes',
+    '/investigacion/proyectos',
     '/gestion-carrera',
     '/pine-dashboard',
     '/contribuciones',
@@ -79,6 +81,18 @@ export async function middleware(request: NextRequest) {
 
     // Colaborador de Investigación: solo su dashboard, su perfil y sus aportes (default-deny).
     if (esColaborador(session) && !RUTAS_COLABORADOR.some(ruta => pathname.startsWith(ruta))) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Aportes de Investigación: docentes y colaboradores (un pasante de Vinculación nunca es aportante).
+    // La administración del equipo es de docentes; el permiso por proyecto lo valida cada API.
+    if (
+      pathname.startsWith('/investigacion/mis-aportes') &&
+      !['profesor', 'admin', 'colaborador'].includes(session.rol)
+    ) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+    if (pathname.startsWith('/investigacion/proyectos') && !['profesor', 'admin'].includes(session.rol)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

@@ -18,6 +18,7 @@ interface UserItem {
 const ROLES_DISPONIBLES = [
   { id: 'profesor', label: 'Profesor / Docente' },
   { id: 'secretaria', label: 'Secretaria' },
+  { id: 'colaborador', label: 'Colaborador de Investigación' },
   { id: 'estudiante', label: 'Estudiante / Pasante' },
   { id: 'admin', label: 'Administrador' },
   { id: 'beneficiario', label: 'Beneficiario' },

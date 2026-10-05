@@ -42,6 +42,12 @@ export default function PanelProyectoPage() {
                 <h2 className="font-semibold text-gray-800">Datos del proyecto para informes</h2>
                 <p className="text-sm text-gray-600">Ficha, objetivos y plan de actividades, árbol de problemas, metas por ciclo, presupuesto y textos del ciclo.</p>
               </Link>
+              {proyecto.id !== 'vinculacion' && (
+                <Link href={`/investigacion/proyectos/${proyecto.id}/equipo`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">
+                  <h2 className="font-semibold text-gray-800">Equipo de investigación</h2>
+                  <p className="text-sm text-gray-600">Agrega docentes, estudiantes de apoyo y miembros externos, valida sus aportes y decide quién se muestra en la web.</p>
+                </Link>
+              )}
               <Link href={`/portal/proyecto/${proyecto.id}/pasantes`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">
                 <h2 className="font-semibold text-gray-800">Aporta desde Vinculación</h2>
                 <p className="text-sm text-gray-600">Mira qué pasantes aportan a tu proyecto, sus actividades y las horas reportadas.</p>
