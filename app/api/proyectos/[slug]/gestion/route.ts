@@ -106,11 +106,26 @@ export async function GET(request: Request, { params }: { params: { slug: string
         WHERE EXISTS (SELECT 1 FROM proyectos WHERE id = ${proyectoId})
           AND NOT EXISTS (SELECT 1 FROM proyecto_metas_personalizadas WHERE proyecto_id = ${proyectoId} AND es_defecto = true)
       `;
-      const personalizadas = await sql`
+      const filasMetas = await sql`
         SELECT id, descripcion, meta, logrado, unidad, tipo, es_defecto FROM proyecto_metas_personalizadas
         WHERE proyecto_id = ${proyectoId}
         ORDER BY es_defecto DESC, id ASC
       `;
+      // "Estudiantes involucrados" se calcula solo: pasantes de Vinculación (instructores de espacios)
+      // o pasantes asignados al proyecto de investigación.
+      const [conteo] = proyectoId === 'vinculacion'
+        ? await sql`
+            SELECT COUNT(DISTINCT ei.usuario_id)::int AS total
+            FROM espacio_instructores ei
+            JOIN usuarios u ON u.id = ei.usuario_id AND u.rol = 'estudiante'
+          `
+        : await sql`
+            SELECT COUNT(*)::int AS total FROM usuarios
+            WHERE rol = 'estudiante' AND proyecto_investigacion_id = ${proyectoId}
+          `;
+      const personalizadas = filasMetas.map(fila =>
+        fila.es_defecto ? { ...fila, logrado: conteo?.total ?? 0, automatico: true } : fila
+      );
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
       return NextResponse.json({ success: true, metas: metas || null, personalizadas, ciclos });
     }
@@ -358,7 +373,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         await sql`
           UPDATE proyecto_metas_personalizadas
           SET descripcion = CASE WHEN es_defecto THEN descripcion ELSE ${String(descripcion).trim()} END, meta = ${Number(meta) || 0},
-              logrado = ${Number(logrado) || 0}, unidad = ${unidad || null},
+              logrado = CASE WHEN es_defecto THEN logrado ELSE ${Number(logrado) || 0} END, unidad = ${unidad || null},
               tipo = ${tipo === 'porcentual' ? 'porcentual' : 'absoluto'}
           WHERE id = ${id} AND proyecto_id = ${proyectoId}
         `;

@@ -39,6 +39,36 @@ export async function proyectosComoAportante(sql: any, usuarioId: number) {
   `) as { id: string; nombre_oficial: string; tipo: TipoAportante }[];
 }
 
+// Muestra u oculta a la persona como participante en la página pública del proyecto.
+// Al mostrar: crea su tarjeta en `members` si no tiene (activo=false: queda pendiente hasta que la
+// administración del sitio la active en /admin/members, igual que el resto de contenido) y la agrega al
+// equipo del proyecto como `participante`. Nunca publica su correo (members.email queda vacío) ni toca el
+// rol de quien ya es líder/colíder/supervisor del proyecto.
+export async function sincronizarTarjetaWeb(sql: any, usuarioId: number, proyectoId: string, visible: boolean) {
+  if (!visible) {
+    await sql`
+      UPDATE proyecto_miembros SET activo = false
+      WHERE proyecto_id = ${proyectoId} AND usuario_id = ${usuarioId} AND rol_en_proyecto = 'participante'
+    `;
+    return;
+  }
+  const [tarjetaExistente] = await sql`SELECT id FROM members WHERE usuario_id = ${usuarioId} LIMIT 1`;
+  if (!tarjetaExistente) {
+    const [persona] = await sql`SELECT nombres, apellidos FROM usuarios WHERE id = ${usuarioId}`;
+    await sql`
+      INSERT INTO members (id, name, role, email, is_leader, "order", activo, usuario_id)
+      VALUES (${`member_${Date.now()}`}, ${`${persona.nombres} ${persona.apellidos}`.trim()},
+              'Participante de Investigación', '', false, 100, false, ${usuarioId})
+    `;
+  }
+  await sql`
+    INSERT INTO proyecto_miembros (proyecto_id, usuario_id, rol_en_proyecto, orden, activo)
+    VALUES (${proyectoId}, ${usuarioId}, 'participante', 100, true)
+    ON CONFLICT (proyecto_id, usuario_id) DO UPDATE SET activo = true
+      WHERE proyecto_miembros.rol_en_proyecto = 'participante'
+  `;
+}
+
 // ¿Puede esta sesión registrar aportes en el proyecto? Solo quien es aportante activo de ese proyecto.
 export async function puedeRegistrarAporte(sql: any, usuario: AppSession, proyectoId: string): Promise<boolean> {
   if (!rolPuedeSerAportante(usuario.rol)) return false;
