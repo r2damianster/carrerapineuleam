@@ -112,14 +112,11 @@ export async function GET(request: Request, { params }: { params: { slug: string
     }
 
     if (seccion === 'presupuesto') {
-      if (!cicloId) {
-        return NextResponse.json({ error: 'Se requiere ciclo_id' }, { status: 400 });
-      }
       const items = await sql`
         SELECT p.*, u.nombres AS resp_nombres, u.apellidos AS resp_apellidos
         FROM proyecto_presupuesto p
         LEFT JOIN usuarios u ON p.responsable_id = u.id
-        WHERE p.proyecto_id = ${proyectoId} AND p.ciclo_id = ${cicloId}
+        WHERE p.proyecto_id = ${proyectoId}
         ORDER BY p.id ASC
       `;
 
@@ -131,15 +128,10 @@ export async function GET(request: Request, { params }: { params: { slug: string
       });
       const porcentaje = totalSolicitado > 0 ? (totalEjecutado / totalSolicitado) * 100 : 0;
 
-      const docentes = await sql`SELECT id, nombres, apellidos FROM usuarios WHERE rol IN ('profesor', 'admin') ORDER BY nombres ASC`;
-      const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
-
       return NextResponse.json({
         success: true,
         items,
-        resumen: { totalSolicitado, totalEjecutado, porcentaje: Math.round(porcentaje * 100) / 100 },
-        docentes,
-        ciclos
+        resumen: { totalSolicitado, totalEjecutado, porcentaje: Math.round(porcentaje * 100) / 100 }
       });
     }
 
@@ -395,13 +387,13 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
     if (seccion === 'presupuesto') {
       if (accion === 'crear_item') {
-        const { ciclo_id, cedula_presupuestaria, concepto, solicitado, ejecutado, responsable_id } = body;
-        if (!ciclo_id || !concepto) return NextResponse.json({ error: 'Ciclo y concepto son requeridos' }, { status: 400 });
+        const { cedula_presupuestaria, concepto, solicitado, ejecutado, responsable_id } = body;
+        if (!concepto) return NextResponse.json({ error: 'El concepto es requerido' }, { status: 400 });
         const [nuevo] = await sql`
           INSERT INTO proyecto_presupuesto (
             proyecto_id, ciclo_id, cedula_presupuestaria, concepto, solicitado, ejecutado, responsable_id
           ) VALUES (
-            ${proyectoId}, ${ciclo_id}, ${cedula_presupuestaria || null}, ${concepto},
+            ${proyectoId}, NULL, ${cedula_presupuestaria || null}, ${concepto},
             ${solicitado || 0}, ${ejecutado || 0}, ${responsable_id || null}
           ) RETURNING *
         `;

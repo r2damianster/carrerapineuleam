@@ -138,11 +138,10 @@ export default function GestionProyectoPage() {
     }
   };
 
-  const cargarPresupuesto = async (cId: string) => {
-    if (!cId) return;
+  const cargarPresupuesto = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}?seccion=presupuesto&ciclo_id=${cId}`);
+      const res = await fetch(`${API}?seccion=presupuesto`);
       const data = await res.json();
       if (data.success) {
         setPresupuestoItems(data.items);
@@ -159,7 +158,7 @@ export default function GestionProyectoPage() {
     if (activeTab === 'ficha') cargarFicha();
     if (activeTab === 'objetivos') cargarObjetivos();
     if (activeTab === 'metas' && cicloIdSeleccionado) cargarMetas(cicloIdSeleccionado);
-    if (activeTab === 'presupuesto' && cicloIdSeleccionado) cargarPresupuesto(cicloIdSeleccionado);
+    if (activeTab === 'presupuesto') cargarPresupuesto();
   }, [activeTab, cicloIdSeleccionado]);
 
   // Submit Handlers
@@ -362,21 +361,21 @@ export default function GestionProyectoPage() {
 
   const handleAgregarPartida = async (e: React.FormEvent) => {
     e.preventDefault();
-    const guardada = await enviarPartida('crear_item', { ciclo_id: parseInt(cicloIdSeleccionado), concepto: nuevaPartida.concepto, solicitado: nuevaPartida.solicitado, ejecutado: 0 });
+    const guardada = await enviarPartida('crear_item', { concepto: nuevaPartida.concepto, solicitado: nuevaPartida.solicitado, ejecutado: 0 });
     if (guardada) {
       setNuevaPartida({ concepto: '', solicitado: '' });
-      cargarPresupuesto(cicloIdSeleccionado);
+      cargarPresupuesto();
     }
   };
 
   // Edición en la misma fila: se guarda al salir del campo y se recargan los totales.
   const handleGuardarPartidaEditada = async (partida: any) => {
-    if (await enviarPartida('editar_item', partida)) cargarPresupuesto(cicloIdSeleccionado);
+    if (await enviarPartida('editar_item', partida)) cargarPresupuesto();
   };
 
   const handleEliminarPartida = async (id: number) => {
     if (!confirm('¿Eliminar esta partida del presupuesto?')) return;
-    if (await enviarPartida('eliminar_item', { id })) cargarPresupuesto(cicloIdSeleccionado);
+    if (await enviarPartida('eliminar_item', { id })) cargarPresupuesto();
   };
 
   const cambiarPartidaLocal = (id: number, campo: string, valor: string) => {
@@ -712,9 +711,6 @@ export default function GestionProyectoPage() {
                 <h2 className="text-xl font-bold text-gray-800">Presupuesto del Proyecto</h2>
                 <p className="text-xs text-gray-500">Registra el presupuesto al inicio y actualiza lo ejecutado cuando cambie. Se guarda al salir del campo.</p>
               </div>
-              <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 font-bold text-sm">
-                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -744,7 +740,7 @@ export default function GestionProyectoPage() {
                 </thead>
                 <tbody>
                   {presupuestoItems.length === 0 && (
-                    <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">Aún no hay partidas en este ciclo.</td></tr>
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">Aún no hay partidas registradas.</td></tr>
                   )}
                   {presupuestoItems.map(item => (
                     <tr key={item.id} className="border-b">

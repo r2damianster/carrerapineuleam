@@ -198,7 +198,7 @@ export async function datosInformeLiderPlantilla(sql: Sql, params: { anio: numbe
         SELECT cedula_presupuestaria AS cedula, concepto, COALESCE(solicitado, 0)::float AS solicitado, COALESCE(ejecutado, 0)::float AS ejecutado,
                CASE WHEN COALESCE(solicitado, 0) > 0 THEN ROUND((COALESCE(ejecutado, 0) / solicitado * 100)::numeric, 1)::float ELSE 0 END AS porcentaje,
                (SELECT nombres || ' ' || apellidos FROM usuarios u WHERE u.id = responsable_id) AS responsable
-        FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${ciclo.id} ORDER BY id
+        FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' ORDER BY id
       `
     : [];
 

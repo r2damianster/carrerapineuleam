@@ -127,7 +127,7 @@ export async function datosInformeLider(
       SELECT cedula_presupuestaria AS partida, concepto AS descripcion,
              solicitado AS monto_solicitado, ejecutado AS monto_ejecutado,
              CASE WHEN COALESCE(solicitado, 0) > 0 THEN ROUND((COALESCE(ejecutado, 0) / solicitado * 100)::numeric, 1)::float ELSE 0 END AS porcentaje_ejecucion
-      FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
+      FROM proyecto_presupuesto WHERE proyecto_id = 'vinculacion'
     `,
     sql`
       SELECT clave, texto FROM proyecto_textos_ciclo WHERE proyecto_id = 'vinculacion' AND ciclo_id = ${params.cicloId}
