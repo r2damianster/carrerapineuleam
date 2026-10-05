@@ -131,7 +131,7 @@ export default function InvestigacionActividadesPage() {
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-800">
                   {!esPasante && a.nombres ? `${a.nombres} ${a.apellidos} — ` : ''}
-                  {new Date(a.fecha + 'T00:00:00').toLocaleDateString('es-EC')}
+                  {new Date(a.fecha.slice(0, 10) + 'T00:00:00').toLocaleDateString('es-EC')}
                 </span>
                 <span className="flex items-center gap-2">
                   {a.estado_aprobacion && (

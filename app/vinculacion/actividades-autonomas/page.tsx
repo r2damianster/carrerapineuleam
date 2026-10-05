@@ -147,7 +147,7 @@ export default function ActividadesAutonomasPage() {
           {actividades.map(actividad => (
             <li key={actividad.id} className="p-3 border rounded-lg text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-800">{new Date(actividad.fecha + 'T00:00:00').toLocaleDateString('es-EC')}</span>
+                <span className="font-medium text-gray-800">{new Date(actividad.fecha.slice(0, 10) + 'T00:00:00').toLocaleDateString('es-EC')}</span>
                 <span className="flex items-center gap-2">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${actividad.estado_aprobacion === 'aprobado' ? 'bg-green-100 text-green-800' : actividad.estado_aprobacion === 'rechazado' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{actividad.estado_aprobacion}</span>
                   <span className="text-emerald-700 font-medium">{actividad.horas} h</span>
