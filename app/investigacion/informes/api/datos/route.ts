@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { requireInvestigacionApi } from "../../../_lib/auth";
 
+import { calcularAvanceMetas } from "@/lib/investigacionAportes";
+
 export const runtime = "nodejs";
+
+// Las filas de otras fuentes se mezclan con id negativo; cada fuente usa su propio rango para no chocar
+// entre sí (pasantes de Vinculación: -id; aportes: -(1.000.000 + id); avance de metas: -(2.000.000 + ...)).
+const AJUSTE_ID_APORTE = 1_000_000;
+const AJUSTE_ID_AVANCE_METAS = 2_000_000;
 
 export async function GET(request: NextRequest) {
   const usuario = await requireInvestigacionApi();
@@ -20,7 +27,7 @@ export async function GET(request: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
   const usuarioId = Number(usuario.id);
 
-  const [actividadesDifusion, publicaciones, podcasts, actividadesPasantes] = await Promise.all([
+  const [actividadesDifusion, publicaciones, podcasts, actividadesPasantes, aportesValidados, ciclosDelPeriodo, proyectosDelDocente] = await Promise.all([
     sql`
       SELECT id, titulo, tipo, categoria, fecha, descripcion
       FROM actividades_difusion
@@ -52,12 +59,66 @@ export async function GET(request: NextRequest) {
         AND a.proyecto_id IN (SELECT pm.proyecto_id FROM proyecto_miembros pm WHERE pm.usuario_id = ${usuarioId} AND pm.activo)
       ORDER BY a.fecha, a.id
     `,
+    // Aportes de Investigación (docentes, colaboradores y estudiantes de apoyo) ya VALIDADOS por el líder, en
+    // proyectos donde este docente es miembro activo. Los que nacieron de un evento/podcast del que este
+    // docente ya es responsable se omiten: salen en la lista de difusión y no deben contarse dos veces.
+    sql`
+      SELECT x.id, x.fecha, x.tipo, x.descripcion, x.horas::float AS horas, u.nombres, u.apellidos,
+             py.nombre_oficial AS proyecto_nombre, pl.actividad AS meta
+      FROM investigacion_aportes x
+      JOIN usuarios u ON u.id = x.usuario_id
+      JOIN proyectos py ON py.id = x.proyecto_id
+      LEFT JOIN proyecto_actividades_plan pl ON pl.id = x.actividad_plan_id
+      LEFT JOIN actividades_difusion ad ON ad.id = x.actividad_difusion_id
+      WHERE x.estado_validacion = 'validado' AND x.fecha BETWEEN ${desde}::date AND ${hasta}::date
+        AND x.proyecto_id IN (SELECT pm.proyecto_id FROM proyecto_miembros pm WHERE pm.usuario_id = ${usuarioId} AND pm.activo)
+        AND (x.actividad_difusion_id IS NULL OR NOT (${usuarioId} = ANY(COALESCE(ad.profesores_responsables, '{}'))))
+      ORDER BY x.fecha, x.id
+    `,
+    sql`SELECT id FROM ciclos_academicos WHERE ${hasta}::date BETWEEN fecha_inicio AND fecha_fin LIMIT 1`,
+    sql`
+      SELECT py.id, py.nombre_oficial
+      FROM proyecto_miembros pm JOIN proyectos py ON py.id = pm.proyecto_id
+      WHERE pm.usuario_id = ${usuarioId} AND pm.activo AND py.area = 'investigacion' AND py.activo = true
+    `,
   ]);
+
+  // Avance de metas (ciclo que contiene el fin del período) de cada proyecto de investigación del docente.
+  // Entra como una actividad más para que se pueda marcar y viaje al documento sin tocar la plantilla.
+  const cicloDelPeriodo: number | null = ciclosDelPeriodo[0]?.id ?? null;
+  const avancesDeMetas = [];
+  for (const proyecto of proyectosDelDocente) {
+    const avance = await calcularAvanceMetas(sql, proyecto.id, cicloDelPeriodo);
+    const lineasMetas = avance.actividades
+      .filter((actividad) => actividad.meta !== null)
+      .map((actividad) => `${actividad.actividad}: ${actividad.avance}/${actividad.meta} ${actividad.unidad || (actividad.mide === 'horas' ? 'horas' : 'aportes')} (${actividad.porcentaje}%)`);
+    const { docentes, estudiantes } = avance.personas;
+    if (docentes.meta) lineasMetas.push(`Docentes en el proyecto: ${docentes.actual}/${docentes.meta}`);
+    if (estudiantes.meta) lineasMetas.push(`Estudiantes de apoyo: ${estudiantes.actual}/${estudiantes.meta}`);
+    if (lineasMetas.length === 0) continue;
+    avancesDeMetas.push({
+      id: -(AJUSTE_ID_AVANCE_METAS + Number(avance.ciclo_id ?? 0) * 100 + avancesDeMetas.length),
+      titulo: `Avance de metas — ${proyecto.nombre_oficial}`,
+      tipo: 'avance_metas',
+      categoria: 'investigacion',
+      fecha: hasta,
+      descripcion: lineasMetas.join('; '),
+    });
+  }
 
   // Se mezclan en la lista de actividades con id negativo (no choca con actividades_difusion.id)
   // para que el usuario las pueda marcar/desmarcar igual que el resto.
   const actividades = [
     ...actividadesDifusion,
+    ...aportesValidados.map((aporte: any) => ({
+      id: -(AJUSTE_ID_APORTE + aporte.id),
+      titulo: `Aporte de investigación — ${aporte.nombres} ${aporte.apellidos} (${aporte.proyecto_nombre})`,
+      tipo: 'aporte_investigacion',
+      categoria: 'investigacion',
+      fecha: aporte.fecha,
+      descripcion: `${aporte.descripcion}${aporte.meta ? ` — Meta: ${aporte.meta}` : ''}${aporte.horas > 0 ? ` [${aporte.horas} h]` : ''}`,
+    })),
+    ...avancesDeMetas,
     ...actividadesPasantes.map((actividad: any) => ({
       id: -actividad.id,
       titulo: `Investigación estudiantil — ${actividad.nombres} ${actividad.apellidos} (${actividad.proyecto_nombre})`,

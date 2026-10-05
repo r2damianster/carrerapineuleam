@@ -327,6 +327,34 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       };
     },
   },
+  {
+    // Líder/colíder de un proyecto de Investigación: aportes de su equipo por validar
+    // (investigacion_aportes). Misma condición que protege /investigacion/proyectos/[id]/equipo
+    // (puedeGestionarProyecto): líder/colíder activo del proyecto, o administración del sitio — esta
+    // última no recibe el aviso (ve todo y no es quien valida día a día).
+    id: 'aportes-investigacion-por-validar',
+    aplica: (sesion) => esDocente(sesion),
+    consultar: async (sql, sesion) => {
+      const proyectosLiderados = await proyectosQueLidera(sql, Number(sesion.id));
+      if (proyectosLiderados.length === 0) return null;
+      const pendientes = await sql`
+        SELECT proyecto_id, COUNT(*)::int AS total
+        FROM investigacion_aportes
+        WHERE estado_validacion = 'pendiente' AND proyecto_id = ANY(${proyectosLiderados}::text[])
+        GROUP BY proyecto_id
+        ORDER BY total DESC
+      `;
+      if (pendientes.length === 0) return null;
+      const total = pendientes.reduce((suma: number, fila: any) => suma + Number(fila.total), 0);
+      return {
+        id: 'aportes-investigacion-por-validar',
+        cantidad: total,
+        mensaje: `Tienes ${plural(total, 'aporte', 'aportes')} de investigación por validar.`,
+        href: `/investigacion/proyectos/${pendientes[0].proyecto_id}/equipo`,
+        severidad: 'pendiente',
+      };
+    },
+  },
 ];
 
 /**

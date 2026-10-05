@@ -233,12 +233,12 @@ export default function InformesMensualesPage() {
             </p>
 
             <SeccionSeleccion
-              titulo="Actividades registradas como responsable"
-              vacio="No tienes actividades de difusión registradas como responsable en este período."
+              titulo="Actividades, aportes validados y avance de metas"
+              vacio="No hay actividades, aportes validados ni metas con avance en este período."
               items={actividades.map((a) => ({
                 id: a.id,
                 titulo: a.titulo,
-                subtitulo: `${a.fecha} · ${a.categoria || a.tipo}`,
+                subtitulo: `${a.fecha} · ${a.tipo === 'aporte_investigacion' ? 'aporte validado' : a.tipo === 'avance_metas' ? 'avance de metas' : a.categoria || a.tipo}`,
               }))}
               seleccionados={actSel}
               onToggle={(id) => toggle(actSel, setActSel, id as number)}

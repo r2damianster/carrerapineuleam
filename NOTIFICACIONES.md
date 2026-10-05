@@ -26,6 +26,7 @@ Bloque **"🔔 Pendientes"** al inicio de `/portal/dashboard` + endpoint `GET /a
 | `fotos-menores-por-revisar` | `modulos_acceso: contenido_sitio` | `fotos.menores='revisar'` (fotos de externos y de asistencia previas al banco; nunca se publican hasta revisarlas) | `/admin/photos?menores=revisar` |
 | `fotos-sin-ubicar-proyecto` | Docente líder/colíder activo de algún proyecto y que **no** sea administración del sitio | Fotos de su proyecto `publicable`, sin menores, con fuente aprobada, **sin ubicación**, creadas en los últimos 14 días | `/portal/proyecto/<id>/fotos?estado=sin_ubicar` (o `/portal/proyecto` si lidera varios) |
 | `contenido-por-aprobar-responsable` | Cualquier docente | `actividades_difusion.aprobado_sitio=false` con el docente en `profesores_responsables` **o** en un proyecto que lidera/colidera (`proyecto_miembros`, Sesión 60). Sin umbral de antigüedad: el aviso dura hasta aprobar | `/portal/aprobaciones` (acepta `?proyecto=id`) |
+| `aportes-investigacion-por-validar` | Docente líder/colíder activo de algún proyecto (`proyecto_miembros`, solo pertenencia real; administración del sitio no recibe este aviso) | `investigacion_aportes.estado_validacion='pendiente'` en los proyectos que lidera. Sin umbral de antigüedad | `/investigacion/proyectos/<id>/equipo` (el proyecto con más pendientes) |
 
 ## ✅ Checklist obligatoria al crear una función nueva
 Si la función que agregas hace que **alguien tenga que actuar** (aprobar, revisar, completar, responder, corregir un rechazo), entonces:
