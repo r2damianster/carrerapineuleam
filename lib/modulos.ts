@@ -13,7 +13,7 @@ export interface ModuloDef {
 export const MODULOS: ModuloDef[] = [
   { id: 'vinculacion', etiqueta: 'Supervisor de Vinculación', descripcion: 'Aprueba asistencia, podcast, investigación y actividades autónomas de los pasantes de sus espacios.', asignable: true },
   { id: 'vinculacion_gestion', etiqueta: 'Líder de Vinculación', descripcion: 'Crea espacios, administra pasantes y supervisa a todos los supervisores. Requiere Supervisor.', asignable: true },
-  { id: 'investigacion', etiqueta: 'Investigación', descripcion: 'Docente: gestionar espacios e informes. Pasante: reportar actividades de investigación.', asignable: true },
+  { id: 'investigacion', etiqueta: 'Investigación', descripcion: 'Docente: informes mensuales de investigación. Pasante: reportar actividades de investigación.', asignable: true },
   { id: 'subir_video', etiqueta: 'Podcast', descripcion: 'Pasante: puede registrar podcasts.', asignable: true },
   { id: 'contenido_sitio', etiqueta: 'Administrador de sitio', descripcion: 'Contenido de la web pública (/admin).', asignable: true },
   { id: 'admin', etiqueta: 'Administración', descripcion: 'Roles de usuarios y borrado de contribuciones.', asignable: true },
@@ -40,6 +40,15 @@ export function esSecretaria(usuario: UsuarioConModulos): boolean {
   return usuario?.rol === 'secretaria';
 }
 
+// Colaborador de Investigación: externo o estudiante de apoyo que un líder/colíder agregó a un proyecto
+// (tabla investigacion_aportantes). Es independiente de Vinculación: sin módulos, sin espacios ni horas
+// reglamentarias. Solo entra a su dashboard, su perfil y sus aportes; todo lo demás se le niega por defecto.
+export const RUTAS_COLABORADOR = ['/portal/dashboard', '/portal/perfil', '/investigacion/mis-aportes'];
+
+export function esColaborador(usuario: UsuarioConModulos): boolean {
+  return usuario?.rol === 'colaborador';
+}
+
 // Utilidades (generadores de documentos): cualquier docente y la secretaria.
 export function puedeUsarUtilidades(usuario: UsuarioConModulos): boolean {
   return esDocente(usuario) || esSecretaria(usuario);
@@ -60,15 +69,15 @@ export function puedeGestionarVinculacion(usuario: UsuarioConModulos): boolean {
   return esDocente(usuario) && esLiderVinculacion(usuario);
 }
 
-// Docente de Investigación (líder): espacios e informes.
+// Docente de Investigación: informes mensuales.
 export function puedeGestionarInvestigacion(usuario: UsuarioConModulos): boolean {
   return esDocente(usuario) && tieneModulo(usuario, 'investigacion');
 }
 
-// Administrar espacios de un área: vinculación exige ser líder de Vinculación; investigación exige el módulo.
+// Administrar espacios de un área. Los espacios son un concepto de Vinculación: Investigación
+// no tiene espacios (sus aportantes se administran por proyecto, ver investigacion_aportantes).
 export function puedeAdministrarArea(usuario: UsuarioConModulos, area: string): boolean {
   if (!esDocente(usuario)) return false;
   if (area === 'vinculacion') return esLiderVinculacion(usuario);
-  if (area === 'investigacion') return tieneModulo(usuario, 'investigacion');
   return false;
 }

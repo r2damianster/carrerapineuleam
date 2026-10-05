@@ -18,7 +18,7 @@ import { buscarMasParecidoBeneficiario, evaluarGateSimilitud } from '@/lib/simil
 // obligatorio, porque esa persona ya tiene su pretest de antes.
 export async function POST(request: Request) {
   const usuario = await getAppSessionFromCookies();
-  if (!usuario || usuario.rol === 'secretaria') {
+  if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySessionCookieValue, createSessionCookieValue, SESSION_COOKIE, type AppSession } from '@/lib/session';
-import { puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, esSecretaria, puedeUsarUtilidades, RUTAS_SECRETARIA } from '@/lib/modulos';
+import { puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, esSecretaria, esColaborador, puedeUsarUtilidades, RUTAS_SECRETARIA, RUTAS_COLABORADOR } from '@/lib/modulos';
 
 // Expiración "sliding": reemite la cookie con maxAge completo (8h, ver
 // lib/session.ts) en cada request autenticado que pasa por el middleware —
@@ -46,7 +46,6 @@ export async function middleware(request: NextRequest) {
     '/vinculacion/encuesta',
     '/vinculacion/investigacion-actividades',
     '/vinculacion/actividades-autonomas',
-    '/investigacion/espacios',
     '/investigacion/informes',
     '/gestion-carrera',
     '/pine-dashboard',
@@ -75,6 +74,11 @@ export async function middleware(request: NextRequest) {
     // Secretaria: solo Mi Perfil, Utilidades y el dashboard. Cualquier otra ruta protegida
     // se le niega por defecto (no depende de que cada chequeo de abajo la excluya).
     if (esSecretaria(session) && !RUTAS_SECRETARIA.some(ruta => pathname.startsWith(ruta))) {
+       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
+    }
+
+    // Colaborador de Investigación: solo su dashboard, su perfil y sus aportes (default-deny).
+    if (esColaborador(session) && !RUTAS_COLABORADOR.some(ruta => pathname.startsWith(ruta))) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 
@@ -120,10 +124,6 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith('/vinculacion/actividades-autonomas') && session.rol !== 'estudiante') {
-       return NextResponse.redirect(new URL('/portal/dashboard', request.url));
-    }
-
-    if (pathname.startsWith('/investigacion/espacios') && !puedeGestionarInvestigacion(session)) {
        return NextResponse.redirect(new URL('/portal/dashboard', request.url));
     }
 

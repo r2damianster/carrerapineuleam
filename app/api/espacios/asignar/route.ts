@@ -7,7 +7,7 @@ import { resolverAulaInscripcion } from '@/lib/aulasEspacio';
 export async function GET(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

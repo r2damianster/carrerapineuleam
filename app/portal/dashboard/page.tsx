@@ -202,13 +202,12 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Investigación — espacios + informes mensuales (Groq + selección de registros del período) */}
+            {/* Investigación — informes mensuales (Groq + selección de registros del período) */}
             {puedeGestionarInvestigacion(session) && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Gestionar Investigación</h3>
-                <p className="text-gray-600 mb-4 text-sm">Espacios de investigación e informes mensuales de actividades.</p>
+                <p className="text-gray-600 mb-4 text-sm">Informes mensuales de actividades de investigación.</p>
                 <div className="flex flex-col gap-2">
-                  <Link href="/investigacion/espacios" className="text-emerald-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/investigacion/informes" className="text-emerald-600 hover:underline">» Generar Informe Mensual de Investigación</Link>
                 </div>
               </div>

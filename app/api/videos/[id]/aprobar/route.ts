@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria' || usuario.rol === 'beneficiario') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol) || usuario.rol === 'beneficiario') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

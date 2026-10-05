@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     // Rama aparte que exige sesión; no altera el comportamiento público de las demás consultas.
     if (searchParams.get('asignables') === '1') {
       const sesion = await getAppSessionFromCookies();
-      if (!sesion || sesion.rol === 'secretaria' || sesion.rol === 'beneficiario') {
+      if (!sesion || ['secretaria', 'colaborador'].includes(sesion.rol) || sesion.rol === 'beneficiario') {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
       }
       const sqlSesion = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });

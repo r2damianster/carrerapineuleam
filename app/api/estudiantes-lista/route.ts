@@ -9,7 +9,7 @@ import { getAppSessionFromCookies } from '@/lib/session';
 export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

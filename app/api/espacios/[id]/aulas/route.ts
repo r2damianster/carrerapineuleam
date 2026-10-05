@@ -9,7 +9,7 @@ import { puedeGestionarVinculacion } from '@/lib/modulos';
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
     const espacioId = parseInt(params.id);

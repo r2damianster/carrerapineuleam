@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

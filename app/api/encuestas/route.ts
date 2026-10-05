@@ -7,7 +7,7 @@ import { guardarEncuesta, pasantesAEvaluar, validarEncuesta, type DatosEncuesta,
 export async function POST(request: Request) {
   try {
     const usuario = await getAppSessionFromCookies();
-    if (!usuario || usuario.rol === 'secretaria') {
+    if (!usuario || ['secretaria', 'colaborador'].includes(usuario.rol)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
