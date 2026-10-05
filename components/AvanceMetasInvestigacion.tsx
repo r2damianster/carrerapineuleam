@@ -94,3 +94,36 @@ export default function AvanceMetasInvestigacion({ proyectoId }: { proyectoId: s
     </section>
   );
 }
+
+interface ProyectoConAvance {
+  id: string;
+  nombre_oficial: string;
+  avance: AvanceMetasProyecto;
+}
+
+// Dashboard PINE: avance de metas de todos los proyectos de Investigación en el período elegido
+// (o el ciclo vigente si no se eligió ninguno).
+export function AvanceInvestigacionDashboard({ periodoId }: { periodoId: string }) {
+  const [proyectos, setProyectos] = useState<ProyectoConAvance[] | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/investigacion/avance${periodoId ? `?ciclo_id=${periodoId}` : ''}`)
+      .then((respuesta) => (respuesta.ok ? respuesta.json() : Promise.reject()))
+      .then((datos) => setProyectos(datos.proyectos ?? []))
+      .catch(() => setProyectos([]));
+  }, [periodoId]);
+
+  if (proyectos === null) return <p className="text-sm text-gray-500">Cargando metas de Investigación…</p>;
+  if (proyectos.length === 0) return <p className="text-sm text-gray-500">No hay proyectos de investigación para mostrar.</p>;
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {proyectos.map((proyecto) => (
+        <section key={proyecto.id} className="rounded-xl border-t-4 border-emerald-500 bg-white p-6 shadow-md">
+          <h3 className="text-lg font-semibold text-gray-700">{proyecto.nombre_oficial}</h3>
+          <PanelAvanceMetas avance={proyecto.avance} />
+        </section>
+      ))}
+    </div>
+  );
+}

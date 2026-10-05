@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AvanceInvestigacionDashboard } from '@/components/AvanceMetasInvestigacion';
 
 export default function PineDashboard() {
   const router = useRouter();
@@ -136,6 +137,10 @@ export default function PineDashboard() {
           </div>
 
         </div>
+
+        <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Investigación — Aportantes y metas por proyecto</h2>
+        <p className="text-sm text-gray-600 mb-4">Solo cuentan los aportes que el líder de cada proyecto ha validado. Sin relación con las horas de Vinculación.</p>
+        <AvanceInvestigacionDashboard periodoId={periodoId} />
 
         <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Investigación — Contribuciones Académicas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
