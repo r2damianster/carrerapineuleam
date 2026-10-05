@@ -39,7 +39,7 @@ export default function PanelProyectoPage() {
             <h1 className="mt-2 text-2xl font-bold text-gray-800">{proyecto.nombre_oficial}</h1>
             <div className="mt-6 space-y-3">
               <Link href={`/portal/proyecto/${proyecto.id}/pasantes`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">
-                <h2 className="font-semibold text-gray-800">Estudiantes de investigación</h2>
+                <h2 className="font-semibold text-gray-800">Aporta desde Vinculación</h2>
                 <p className="text-sm text-gray-600">Mira qué pasantes aportan a tu proyecto, sus actividades y las horas reportadas.</p>
               </Link>
               <Link href={`/portal/proyecto/${proyecto.id}/fotos`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">

@@ -62,7 +62,7 @@ export default function PasantesProyectoPage() {
       <Header />
       <main className="mx-auto mt-16 max-w-3xl px-4 py-10">
         <Link href={`/portal/proyecto/${proyectoId}`} className="text-xs font-semibold text-blue-600 hover:underline">&larr; Volver al proyecto</Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-800">Estudiantes de investigación</h1>
+        <h1 className="mt-2 text-2xl font-bold text-gray-800">Aporta desde Vinculación</h1>
         <p className="text-sm text-gray-600">Pasantes que aportan a este proyecto y las actividades que reportan. Las horas las aprueba su supervisor.</p>
 
         {estado === 'cargando' && <p className="mt-4 text-sm text-gray-500">Cargando…</p>}
