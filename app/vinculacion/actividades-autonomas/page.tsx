@@ -28,6 +28,7 @@ export default function ActividadesAutonomasPage() {
   const [actividades, setActividades] = useState<ActividadAutonoma[]>([]);
   const [resumen, setResumen] = useState<ResumenHoras | null>(null);
   const [form, setForm] = useState({ fecha: '', descripcion: '', horas: '' });
+  const [confirmaAutonoma, setConfirmaAutonoma] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -67,6 +68,7 @@ export default function ActividadesAutonomasPage() {
       if (!res.ok) throw new Error(data.error);
       setMessage('Actividad registrada. Queda pendiente de aprobación de tu supervisor.');
       setForm({ fecha: '', descripcion: '', horas: '' });
+      setConfirmaAutonoma(false);
       fetchActividades();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -136,7 +138,26 @@ export default function ActividadesAutonomasPage() {
             />
           </div>
           <textarea required placeholder="¿Qué hiciste? (ej. planifiqué la clase, creé material didáctico…)" value={form.descripcion} onChange={event => setForm({ ...form, descripcion: event.target.value })} rows={3} className="w-full px-3 py-2 rounded border border-gray-300 outline-none focus:border-uleam-blue" />
-          <button disabled={loading || cupoAgotado} className="w-full bg-emerald-600 text-white p-2 rounded font-medium disabled:opacity-50">
+
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <p className="font-semibold mb-1">⚠️ Antes de registrar, ten en cuenta:</p>
+            <p>
+              Las actividades autónomas son las que haces <strong>fuera de la clase o sesión</strong>, como planificar, crear recursos,
+              preparar evaluaciones o materiales. <strong>No registres aquí</strong> lo que hiciste durante una clase o sesión con
+              beneficiarios: eso ya se acredita con la asistencia.
+            </p>
+            <label className="flex items-start gap-2 mt-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={confirmaAutonoma}
+                onChange={event => setConfirmaAutonoma(event.target.checked)}
+                className="mt-1"
+              />
+              <span>Confirmo que esta actividad la realicé fuera de clase (preparación previa) y no durante una sesión.</span>
+            </label>
+          </div>
+
+          <button disabled={loading || cupoAgotado || !confirmaAutonoma} className="w-full bg-emerald-600 text-white p-2 rounded font-medium disabled:opacity-50">
             {loading ? 'Guardando...' : 'Registrar Actividad'}
           </button>
         </form>
