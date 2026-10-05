@@ -5,7 +5,6 @@ import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { puedeGestionarProyecto } from '@/lib/permisosProyecto';
 import { logSuperadminAction } from '@/lib/superadmin-auth';
 import { periodoDeCiclo } from '@/lib/periodosProyecto';
-import { enriquecerTexto } from '@/app/utilidades/_lib/enriquecerTexto';
 
 // Líder/colíder del proyecto (proyecto_miembros) o administración del sitio; el líder de
 // Vinculación conserva su acceso al proyecto 'vinculacion'.
@@ -103,8 +102,13 @@ export async function GET(request: Request, { params }: { params: { slug: string
         SELECT * FROM proyecto_metas_ciclo 
         WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
       `;
+      const personalizadas = await sql`
+        SELECT id, descripcion, meta, logrado, unidad FROM proyecto_metas_personalizadas
+        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
+        ORDER BY id ASC
+      `;
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
-      return NextResponse.json({ success: true, metas: metas || null, ciclos });
+      return NextResponse.json({ success: true, metas: metas || null, personalizadas, ciclos });
     }
 
     if (seccion === 'presupuesto') {
@@ -137,21 +141,6 @@ export async function GET(request: Request, { params }: { params: { slug: string
         docentes,
         ciclos
       });
-    }
-
-    if (seccion === 'textos') {
-      if (!cicloId) {
-        return NextResponse.json({ error: 'Se requiere ciclo_id' }, { status: 400 });
-      }
-      const filas = await sql`
-        SELECT clave, texto FROM proyecto_textos_ciclo 
-        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
-      `;
-      const textosMap: Record<string, string> = {};
-      filas.forEach(f => { textosMap[f.clave] = f.texto; });
-      const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
-
-      return NextResponse.json({ success: true, textos: textosMap, ciclos });
     }
 
     return NextResponse.json({ error: 'Sección no válida' }, { status: 400 });
@@ -352,6 +341,38 @@ export async function POST(request: Request, { params }: { params: { slug: strin
       }
     }
 
+    if (seccion === 'metas' && accion) {
+      if (accion === 'crear_meta') {
+        const { ciclo_id, descripcion, meta, logrado, unidad } = body;
+        if (!ciclo_id || !String(descripcion || '').trim()) {
+          return NextResponse.json({ error: 'Ciclo y descripción son requeridos' }, { status: 400 });
+        }
+        const [nueva] = await sql`
+          INSERT INTO proyecto_metas_personalizadas (proyecto_id, ciclo_id, descripcion, meta, logrado, unidad)
+          VALUES (${proyectoId}, ${ciclo_id}, ${String(descripcion).trim()}, ${Number(meta) || 0}, ${Number(logrado) || 0}, ${unidad || null})
+          RETURNING id, descripcion, meta, logrado, unidad
+        `;
+        return NextResponse.json({ success: true, data: nueva });
+      }
+      if (accion === 'editar_meta') {
+        const { id, descripcion, meta, logrado, unidad } = body;
+        if (!id || !String(descripcion || '').trim()) {
+          return NextResponse.json({ error: 'Id y descripción son requeridos' }, { status: 400 });
+        }
+        await sql`
+          UPDATE proyecto_metas_personalizadas
+          SET descripcion = ${String(descripcion).trim()}, meta = ${Number(meta) || 0},
+              logrado = ${Number(logrado) || 0}, unidad = ${unidad || null}
+          WHERE id = ${id} AND proyecto_id = ${proyectoId}
+        `;
+        return NextResponse.json({ success: true });
+      }
+      if (accion === 'eliminar_meta') {
+        await sql`DELETE FROM proyecto_metas_personalizadas WHERE id = ${body.id} AND proyecto_id = ${proyectoId}`;
+        return NextResponse.json({ success: true });
+      }
+    }
+
     if (seccion === 'metas') {
       const { ciclo_id, meta_estudiantes, meta_docentes, meta_beneficiarios_directos, meta_beneficiarios_indirectos } = body;
       if (!ciclo_id) return NextResponse.json({ error: 'Se requiere ciclo_id' }, { status: 400 });
@@ -406,31 +427,6 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         await sql`DELETE FROM proyecto_presupuesto WHERE id = ${id} AND proyecto_id = ${proyectoId}`;
         return NextResponse.json({ success: true });
       }
-    }
-
-    if (seccion === 'textos') {
-      if (accion === 'borrador_ia') {
-        const { clave, borrador_previo } = body;
-        const promptBase = borrador_previo && borrador_previo.trim().length > 3
-          ? borrador_previo
-          : `Redacta una propuesta de borrador formal para la sección "${clave}" del informe del proyecto universitario "${proyectoId}" en Ecuador.`;
-
-        const [resultado, errIA] = await enriquecerTexto('oficio_cuerpo_generar', promptBase);
-        if (errIA) return NextResponse.json({ error: errIA }, { status: 500 });
-        return NextResponse.json({ success: true, borrador: resultado });
-      }
-
-      const { ciclo_id, textos } = body; // textos = { clave: texto }
-      if (!ciclo_id || !textos) return NextResponse.json({ error: 'ciclo_id y textos son requeridos' }, { status: 400 });
-
-      for (const [clave, texto] of Object.entries(textos)) {
-        await sql`
-          INSERT INTO proyecto_textos_ciclo (proyecto_id, ciclo_id, clave, texto)
-          VALUES (${proyectoId}, ${ciclo_id}, ${clave}, ${String(texto || '')})
-          ON CONFLICT (proyecto_id, ciclo_id, clave) DO UPDATE SET texto = EXCLUDED.texto
-        `;
-      }
-      return NextResponse.json({ success: true, message: 'Textos cualitativos del ciclo guardados' });
     }
 
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });

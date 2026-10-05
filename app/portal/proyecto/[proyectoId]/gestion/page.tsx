@@ -12,7 +12,7 @@ export default function GestionProyectoPage() {
   const [nombreProyecto, setNombreProyecto] = useState('');
   const [checkingSession, setCheckingSession] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ficha' | 'objetivos' | 'arbol' | 'metas' | 'presupuesto' | 'textos'>('ficha');
+  const [activeTab, setActiveTab] = useState<'ficha' | 'objetivos' | 'metas' | 'presupuesto' | 'arbol'>('ficha');
   const [mensaje, setMensaje] = useState('');
 
   // Data states
@@ -48,24 +48,13 @@ export default function GestionProyectoPage() {
     meta_estudiantes: 0, meta_docentes: 0, meta_beneficiarios_directos: 0, meta_beneficiarios_indirectos: 0
   });
 
+  const [metasPersonalizadas, setMetasPersonalizadas] = useState<any[]>([]);
+  const [nuevaMeta, setNuevaMeta] = useState({ descripcion: '', meta: '', unidad: '' });
+
   // 4. Presupuesto State
   const [presupuestoItems, setPresupuestoItems] = useState<any[]>([]);
   const [presupuestoResumen, setPresupuestoResumen] = useState({ totalSolicitado: 0, totalEjecutado: 0, porcentaje: 0 });
-  const [modalPresupuesto, setModalPresupuesto] = useState(false);
-  const [presuForm, setPresuForm] = useState({ id: null as number | null, cedula_presupuestaria: '', concepto: '', solicitado: '', ejecutado: '', responsable_id: '' });
-
-  // 5. Textos State
-  const CLAVES_TEXTOS = [
-    { clave: 'problema_inicial', titulo: '1. Problema Inicial / Diagnóstico' },
-    { clave: 'aporte_academico', titulo: '2. Aporte Académico del Proyecto' },
-    { clave: 'aporte_ods', titulo: '3. Aporte a los Objetivos de Desarrollo Sostenible (ODS)' },
-    { clave: 'nuevos_problemas', titulo: '4. Nuevos Problemas Identificados' },
-    { clave: 'nuevos_proyectos', titulo: '5. Nuevos Proyectos o Líneas Derivadas' },
-    { clave: 'mejora_oferta', titulo: '6. Mejora a la Oferta Académica' },
-    { clave: 'aporte_titulacion', titulo: '7. Aporte a la Titulación de Estudiantes' },
-  ];
-  const [textosForm, setTextosForm] = useState<Record<string, string>>({});
-  const [generandoIA, setGenerandoIA] = useState<string | null>(null);
+  const [nuevaPartida, setNuevaPartida] = useState({ concepto: '', solicitado: '' });
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -140,6 +129,7 @@ export default function GestionProyectoPage() {
       const data = await res.json();
       if (data.success) {
         setMetasForm(data.metas || { meta_estudiantes: 0, meta_docentes: 0, meta_beneficiarios_directos: 0, meta_beneficiarios_indirectos: 0 });
+        setMetasPersonalizadas(data.personalizadas || []);
       }
     } catch (err: any) {
       setMensaje(`Error: ${err.message}`);
@@ -165,28 +155,11 @@ export default function GestionProyectoPage() {
     }
   };
 
-  const cargarTextos = async (cId: string) => {
-    if (!cId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}?seccion=textos&ciclo_id=${cId}`);
-      const data = await res.json();
-      if (data.success) {
-        setTextosForm(data.textos || {});
-      }
-    } catch (err: any) {
-      setMensaje(`Error: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (activeTab === 'ficha') cargarFicha();
     if (activeTab === 'objetivos') cargarObjetivos();
     if (activeTab === 'metas' && cicloIdSeleccionado) cargarMetas(cicloIdSeleccionado);
     if (activeTab === 'presupuesto' && cicloIdSeleccionado) cargarPresupuesto(cicloIdSeleccionado);
-    if (activeTab === 'textos' && cicloIdSeleccionado) cargarTextos(cicloIdSeleccionado);
   }, [activeTab, cicloIdSeleccionado]);
 
   // Submit Handlers
@@ -331,82 +304,83 @@ export default function GestionProyectoPage() {
     }
   };
 
-  const handleGuardarPresupuestoItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const enviarMetaPersonalizada = async (accion: 'crear_meta' | 'editar_meta' | 'eliminar_meta', cuerpo: Record<string, unknown>) => {
+    setMensaje('');
     try {
-      const accion = presuForm.id ? 'editar_item' : 'crear_item';
+      const res = await fetch(`${API}?seccion=metas&accion=${accion}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return true;
+    } catch (err: any) {
+      setMensaje(`Error: ${err.message}`);
+      return false;
+    }
+  };
+
+  const handleAgregarMeta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const guardada = await enviarMetaPersonalizada('crear_meta', { ciclo_id: parseInt(cicloIdSeleccionado), ...nuevaMeta });
+    if (guardada) {
+      setNuevaMeta({ descripcion: '', meta: '', unidad: '' });
+      cargarMetas(cicloIdSeleccionado);
+    }
+  };
+
+  const handleGuardarMetaEditada = async (metaPersonalizada: any) => {
+    await enviarMetaPersonalizada('editar_meta', metaPersonalizada);
+  };
+
+  const handleEliminarMeta = async (id: number) => {
+    if (!confirm('¿Eliminar esta meta?')) return;
+    if (await enviarMetaPersonalizada('eliminar_meta', { id })) cargarMetas(cicloIdSeleccionado);
+  };
+
+  const cambiarMetaLocal = (id: number, campo: string, valor: string) => {
+    setMetasPersonalizadas(previous => previous.map(item => (item.id === id ? { ...item, [campo]: valor } : item)));
+  };
+
+  const enviarPartida = async (accion: 'crear_item' | 'editar_item' | 'eliminar_item', cuerpo: Record<string, unknown>) => {
+    setMensaje('');
+    try {
       const res = await fetch(`${API}?seccion=presupuesto&accion=${accion}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciclo_id: parseInt(cicloIdSeleccionado), ...presuForm }),
+        body: JSON.stringify(cuerpo),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setModalPresupuesto(false);
-      cargarPresupuesto(cicloIdSeleccionado);
+      return true;
     } catch (err: any) {
       setMensaje(`Error: ${err.message}`);
-    } finally {
-      setLoading(false);
+      return false;
     }
   };
 
-  const handleEliminarPresupuestoItem = async (id: number) => {
-    if (!confirm('¿Eliminar esta partida presupuestaria?')) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}?seccion=presupuesto&accion=eliminar_item`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      cargarPresupuesto(cicloIdSeleccionado);
-    } catch (err: any) {
-      setMensaje(`Error: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerarIABorrador = async (clave: string) => {
-    setGenerandoIA(clave);
-    try {
-      const res = await fetch(`${API}?seccion=textos&accion=borrador_ia`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clave, borrador_previo: textosForm[clave] || '' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setTextosForm(prev => ({ ...prev, [clave]: data.borrador }));
-    } catch (err: any) {
-      setMensaje(`Error IA: ${err.message}`);
-    } finally {
-      setGenerandoIA(null);
-    }
-  };
-
-  const handleGuardarTextos = async (e: React.FormEvent) => {
+  const handleAgregarPartida = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMensaje('');
-    try {
-      const res = await fetch(`${API}?seccion=textos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciclo_id: parseInt(cicloIdSeleccionado), textos: textosForm }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setMensaje('Textos cualitativos guardados correctamente');
-    } catch (err: any) {
-      setMensaje(`Error: ${err.message}`);
-    } finally {
-      setLoading(false);
+    const guardada = await enviarPartida('crear_item', { ciclo_id: parseInt(cicloIdSeleccionado), concepto: nuevaPartida.concepto, solicitado: nuevaPartida.solicitado, ejecutado: 0 });
+    if (guardada) {
+      setNuevaPartida({ concepto: '', solicitado: '' });
+      cargarPresupuesto(cicloIdSeleccionado);
     }
+  };
+
+  // Edición en la misma fila: se guarda al salir del campo y se recargan los totales.
+  const handleGuardarPartidaEditada = async (partida: any) => {
+    if (await enviarPartida('editar_item', partida)) cargarPresupuesto(cicloIdSeleccionado);
+  };
+
+  const handleEliminarPartida = async (id: number) => {
+    if (!confirm('¿Eliminar esta partida del presupuesto?')) return;
+    if (await enviarPartida('eliminar_item', { id })) cargarPresupuesto(cicloIdSeleccionado);
+  };
+
+  const cambiarPartidaLocal = (id: number, campo: string, valor: string) => {
+    setPresupuestoItems(previous => previous.map(item => (item.id === id ? { ...item, [campo]: valor } : item)));
   };
 
   if (checkingSession) {
@@ -423,7 +397,7 @@ export default function GestionProyectoPage() {
         </div>
 
         <h1 className="text-3xl font-bold text-uleam-blue mb-2">{nombreProyecto || 'Proyecto'}: Datos e Informes</h1>
-        <p className="text-gray-600 text-sm mb-6">Configuración de Ficha, Objetivos, Plan de Trabajo, Metas por Ciclo, Presupuesto y Textos Cualitativos.</p>
+        <p className="text-gray-600 text-sm mb-6">Ficha, objetivos y plan de trabajo, metas por ciclo, presupuesto y árbol de problemas.</p>
 
         {mensaje && (
           <div className={`p-4 mb-6 rounded-md ${mensaje.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -436,10 +410,9 @@ export default function GestionProyectoPage() {
           {[
             { id: 'ficha', label: 'Ficha del Proyecto' },
             { id: 'objetivos', label: 'Objetivos y Actividades' },
-            { id: 'arbol', label: 'Árbol de Problemas' },
             { id: 'metas', label: 'Metas por Ciclo' },
             { id: 'presupuesto', label: 'Presupuesto' },
-            { id: 'textos', label: 'Textos Cualitativos del Ciclo' },
+            { id: 'arbol', label: 'Árbol de Problemas' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -633,9 +606,7 @@ export default function GestionProyectoPage() {
           </div>
         )}
 
-        {/* TAB 3: METAS POR CICLO */}
-        {activeTab === 'arbol' && <ArbolProblemasEditor proyectoId={proyectoId} />}
-
+        {/* TAB: METAS POR CICLO */}
         {activeTab === 'metas' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b pb-4">
@@ -649,6 +620,7 @@ export default function GestionProyectoPage() {
             </div>
 
             <form onSubmit={handleGuardarMetas} className="space-y-6 max-w-2xl bg-gray-50 p-6 rounded-xl border">
+              <h3 className="font-bold text-gray-800">Metas generales</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Meta Docentes Participantes</label>
@@ -668,48 +640,95 @@ export default function GestionProyectoPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Meta Beneficiarios Indirectos</label>
                   <input type="number" min="0" value={metasForm.meta_beneficiarios_indirectos} onChange={e => setMetasForm({ ...metasForm, meta_beneficiarios_indirectos: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 rounded-lg border border-gray-300" />
-                  <p className="text-xs text-gray-400 mt-1">Los indirectos son una proyección fija en la ficha y en el informe.</p>
                 </div>
               </div>
 
               <button disabled={loading} className="w-full py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90">
-                {loading ? 'Guardando...' : 'Guardar Metas del Ciclo'}
+                {loading ? 'Guardando...' : 'Guardar Metas Generales'}
               </button>
             </form>
+
+            <div className="space-y-3">
+              <h3 className="font-bold text-gray-800">Metas específicas del proyecto</h3>
+              <p className="text-xs text-gray-500">Agrega las metas propias de tu proyecto (ej. artículos publicados, talleres realizados). Edita la meta y lo logrado directamente en la fila; se guarda al salir del campo.</p>
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm text-left text-gray-700">
+                  <thead className="bg-gray-100 text-xs uppercase border-b">
+                    <tr>
+                      <th className="px-4 py-3">Meta</th>
+                      <th className="px-4 py-3 w-28">Unidad</th>
+                      <th className="px-4 py-3 w-28 text-right">Meta</th>
+                      <th className="px-4 py-3 w-28 text-right">Logrado</th>
+                      <th className="px-4 py-3 w-20 text-right">%</th>
+                      <th className="px-4 py-3 w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metasPersonalizadas.length === 0 && (
+                      <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400">Aún no hay metas específicas en este ciclo.</td></tr>
+                    )}
+                    {metasPersonalizadas.map(item => {
+                      const valorMeta = Number(item.meta || 0);
+                      const valorLogrado = Number(item.logrado || 0);
+                      const porcentaje = valorMeta > 0 ? Math.round((valorLogrado / valorMeta) * 100) : 0;
+                      return (
+                        <tr key={item.id} className="border-b">
+                          <td className="px-2 py-2"><input value={item.descripcion} onChange={e => cambiarMetaLocal(item.id, 'descripcion', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
+                          <td className="px-2 py-2"><input value={item.unidad || ''} onChange={e => cambiarMetaLocal(item.id, 'unidad', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
+                          <td className="px-2 py-2"><input type="number" min="0" step="any" value={item.meta} onChange={e => cambiarMetaLocal(item.id, 'meta', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right" /></td>
+                          <td className="px-2 py-2"><input type="number" min="0" step="any" value={item.logrado} onChange={e => cambiarMetaLocal(item.id, 'logrado', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right" /></td>
+                          <td className="px-4 py-2 text-right font-bold text-purple-900">{porcentaje}%</td>
+                          <td className="px-2 py-2 text-right"><button type="button" onClick={() => handleEliminarMeta(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <form onSubmit={handleAgregarMeta} className="flex flex-wrap gap-2 items-end bg-gray-50 p-4 rounded-lg border">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nueva meta</label>
+                  <input required value={nuevaMeta.descripcion} onChange={e => setNuevaMeta({ ...nuevaMeta, descripcion: e.target.value })} placeholder="Ej. Artículos científicos publicados" className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
+                </div>
+                <div className="w-28">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Unidad</label>
+                  <input value={nuevaMeta.unidad} onChange={e => setNuevaMeta({ ...nuevaMeta, unidad: e.target.value })} placeholder="artículos" className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
+                </div>
+                <div className="w-28">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Meta</label>
+                  <input type="number" min="0" step="any" required value={nuevaMeta.meta} onChange={e => setNuevaMeta({ ...nuevaMeta, meta: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm text-right" />
+                </div>
+                <button className="px-4 py-2 bg-uleam-blue text-white font-medium rounded text-sm">+ Agregar meta</button>
+              </form>
+            </div>
           </div>
         )}
 
-        {/* TAB 4: PRESUPUESTO */}
+        {/* TAB: PRESUPUESTO (se define al inicio y solo se ajusta lo ejecutado con el tiempo) */}
         {activeTab === 'presupuesto' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b pb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">Presupuesto del Proyecto</h2>
-                <p className="text-xs text-gray-500">Gestión de partidas presupuestarias por ciclo académico.</p>
+                <p className="text-xs text-gray-500">Registra el presupuesto al inicio y actualiza lo ejecutado cuando cambie. Se guarda al salir del campo.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 font-bold text-sm">
-                  {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-                <button onClick={() => { setPresuForm({ id: null, cedula_presupuestaria: '', concepto: '', solicitado: '', ejecutado: '', responsable_id: '' }); setModalPresupuesto(true); }} className="px-4 py-2 bg-uleam-blue text-white font-medium rounded-lg text-sm shadow">
-                  + Nueva Partida
-                </button>
-              </div>
+              <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 font-bold text-sm">
+                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
             </div>
 
-            {/* Tarjetas Resumen */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <span className="text-xs font-semibold text-blue-700 uppercase">Total Solicitado</span>
-                <p className="text-2xl font-bold text-blue-900">${presupuestoResumen.totalSolicitado.toFixed(2)}</p>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                <span className="text-xs font-semibold text-blue-700 uppercase">Presupuestado</span>
+                <p className="text-xl font-bold text-blue-900">${presupuestoResumen.totalSolicitado.toFixed(2)}</p>
               </div>
-              <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                <span className="text-xs font-semibold text-green-700 uppercase">Total Ejecutado</span>
-                <p className="text-2xl font-bold text-green-900">${presupuestoResumen.totalEjecutado.toFixed(2)}</p>
+              <div className="bg-green-50 p-3 rounded-xl border border-green-100">
+                <span className="text-xs font-semibold text-green-700 uppercase">Ejecutado</span>
+                <p className="text-xl font-bold text-green-900">${presupuestoResumen.totalEjecutado.toFixed(2)}</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+              <div className="bg-purple-50 p-3 rounded-xl border border-purple-100">
                 <span className="text-xs font-semibold text-purple-700 uppercase">% Ejecución</span>
-                <p className="text-2xl font-bold text-purple-900">{presupuestoResumen.porcentaje}%</p>
+                <p className="text-xl font-bold text-purple-900">{presupuestoResumen.porcentaje}%</p>
               </div>
             </div>
 
@@ -717,89 +736,44 @@ export default function GestionProyectoPage() {
               <table className="w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-100 text-xs uppercase border-b">
                   <tr>
-                    <th className="px-4 py-3">Cédula</th>
                     <th className="px-4 py-3">Concepto</th>
-                    <th className="px-4 py-3 text-right">Solicitado ($)</th>
-                    <th className="px-4 py-3 text-right">Ejecutado ($)</th>
-                    <th className="px-4 py-3 text-right">% Ejecución</th>
-                    <th className="px-4 py-3">Acciones</th>
+                    <th className="px-4 py-3 w-36 text-right">Presupuestado ($)</th>
+                    <th className="px-4 py-3 w-36 text-right">Ejecutado ($)</th>
+                    <th className="px-4 py-3 w-20"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {presupuestoItems.length === 0 && (
-                    <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400">No hay partidas registradas en este ciclo.</td></tr>
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">Aún no hay partidas en este ciclo.</td></tr>
                   )}
-                  {presupuestoItems.map(item => {
-                    const sol = Number(item.solicitado || 0);
-                    const ejec = Number(item.ejecutado || 0);
-                    const pct = sol > 0 ? (ejec / sol) * 100 : 0;
-                    return (
-                      <tr key={item.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3 font-mono text-xs">{item.cedula_presupuestaria || '-'}</td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">{item.concepto}</td>
-                        <td className="px-4 py-3 text-right">${sol.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-right text-green-700 font-medium">${ejec.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-purple-900">{Math.round(pct)}%</td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2">
-                            <button onClick={() => { setPresuForm({ ...item }); setModalPresupuesto(true); }} className="text-xs text-blue-600 hover:underline">Editar</button>
-                            <button onClick={() => handleEliminarPresupuestoItem(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {presupuestoItems.map(item => (
+                    <tr key={item.id} className="border-b">
+                      <td className="px-2 py-2"><input value={item.concepto} onChange={e => cambiarPartidaLocal(item.id, 'concepto', e.target.value)} onBlur={() => handleGuardarPartidaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
+                      <td className="px-2 py-2"><input type="number" min="0" step="0.01" value={item.solicitado} onChange={e => cambiarPartidaLocal(item.id, 'solicitado', e.target.value)} onBlur={() => handleGuardarPartidaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right" /></td>
+                      <td className="px-2 py-2"><input type="number" min="0" step="0.01" value={item.ejecutado} onChange={e => cambiarPartidaLocal(item.id, 'ejecutado', e.target.value)} onBlur={() => handleGuardarPartidaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right text-green-700 font-medium" /></td>
+                      <td className="px-2 py-2 text-right"><button type="button" onClick={() => handleEliminarPartida(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+
+            <form onSubmit={handleAgregarPartida} className="flex flex-wrap gap-2 items-end bg-gray-50 p-4 rounded-lg border">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nueva partida</label>
+                <input required value={nuevaPartida.concepto} onChange={e => setNuevaPartida({ ...nuevaPartida, concepto: e.target.value })} placeholder="Ej. Materiales de talleres" className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
+              </div>
+              <div className="w-36">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Presupuestado ($)</label>
+                <input type="number" min="0" step="0.01" required value={nuevaPartida.solicitado} onChange={e => setNuevaPartida({ ...nuevaPartida, solicitado: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm text-right" />
+              </div>
+              <button className="px-4 py-2 bg-uleam-blue text-white font-medium rounded text-sm">+ Agregar partida</button>
+            </form>
           </div>
         )}
 
-        {/* TAB 5: TEXTOS CUALITATIVOS DEL CICLO */}
-        {activeTab === 'textos' && (
-          <form onSubmit={handleGuardarTextos} className="space-y-8">
-            <div className="flex justify-between items-center border-b pb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Textos Cualitativos del Ciclo</h2>
-                <p className="text-xs text-gray-500">Se incluyen en el Informe del Líder. Puedes redactarlos o generar un borrador asistido por IA.</p>
-              </div>
-              <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 font-bold text-sm">
-                {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-6">
-              {CLAVES_TEXTOS.map(item => (
-                <div key={item.clave} className="p-5 border rounded-xl bg-gray-50 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="font-bold text-gray-800 text-sm">{item.titulo}</label>
-                    <button
-                      type="button"
-                      disabled={generandoIA === item.clave}
-                      onClick={() => handleGenerarIABorrador(item.clave)}
-                      className="text-xs bg-purple-100 text-purple-800 font-bold px-3 py-1.5 rounded-lg hover:bg-purple-200 transition disabled:opacity-50 flex items-center gap-1"
-                    >
-                      {generandoIA === item.clave ? '🤖 Redactando borrador con IA...' : '✨ Redactar borrador con IA'}
-                    </button>
-                  </div>
-                  <textarea
-                    rows={4}
-                    value={textosForm[item.clave] || ''}
-                    onChange={e => setTextosForm({ ...textosForm, [item.clave]: e.target.value })}
-                    placeholder="Escribe o afina la redacción cualitativa..."
-                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white text-sm"
-                  ></textarea>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-              <button disabled={loading} className="px-8 py-3 bg-uleam-blue text-white font-bold rounded-lg hover:bg-uleam-blue/90 shadow">
-                {loading ? 'Guardando...' : 'Guardar Todos los Textos Cualitativos'}
-              </button>
-            </div>
-          </form>
-        )}
+        {/* TAB: ÁRBOL DE PROBLEMAS (última pestaña) */}
+        {activeTab === 'arbol' && <ArbolProblemasEditor proyectoId={proyectoId} />}
 
         {/* MODAL OBJETIVO */}
         {modalObjetivo && (
@@ -878,37 +852,6 @@ export default function GestionProyectoPage() {
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setModalActividad(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded font-medium text-sm">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-uleam-blue text-white rounded font-medium text-sm">Guardar Actividad</button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* MODAL PRESUPUESTO */}
-        {modalPresupuesto && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-            <form onSubmit={handleGuardarPresupuestoItem} className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
-              <h3 className="text-lg font-bold text-gray-900">{presuForm.id ? 'Editar Partida' : 'Nueva Partida Presupuestaria'}</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cédula Presupuestaria (Opcional)</label>
-                <input value={presuForm.cedula_presupuestaria} onChange={e => setPresuForm({ ...presuForm, cedula_presupuestaria: e.target.value })} placeholder="Ej. 53.02.04" className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Concepto / Detalle</label>
-                <input required value={presuForm.concepto} onChange={e => setPresuForm({ ...presuForm, concepto: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Monto Solicitado ($)</label>
-                  <input type="number" step="0.01" value={presuForm.solicitado} onChange={e => setPresuForm({ ...presuForm, solicitado: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Monto Ejecutado ($)</label>
-                  <input type="number" step="0.01" value={presuForm.ejecutado} onChange={e => setPresuForm({ ...presuForm, ejecutado: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalPresupuesto(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded font-medium text-sm">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-uleam-blue text-white rounded font-medium text-sm">Guardar Partida</button>
               </div>
             </form>
           </div>
