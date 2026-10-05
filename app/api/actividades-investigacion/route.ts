@@ -33,7 +33,14 @@ export async function GET(request: Request) {
         WHERE a.usuario_id = ${usuario.id}
         ORDER BY a.fecha DESC, a.id DESC
       `;
-      return NextResponse.json({ success: true, data: actividades });
+      // Proyecto vigente del pasante, para que lo vea aunque todavía no tenga actividades.
+      const [proyectoVigente] = await sql`
+        SELECT py.id, py.nombre_oficial
+        FROM usuarios u
+        JOIN proyectos py ON py.id = COALESCE(u.proyecto_investigacion_id, 'internacionalizacion')
+        WHERE u.id = ${usuario.id}
+      `;
+      return NextResponse.json({ success: true, data: actividades, proyecto: proyectoVigente ?? null });
     }
 
     if (!esDocenteVinculacion) {

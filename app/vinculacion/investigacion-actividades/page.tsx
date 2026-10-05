@@ -27,6 +27,7 @@ export default function InvestigacionActividadesPage() {
   const [message, setMessage] = useState('');
 
   const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [proyectoVigente, setProyectoVigente] = useState<string | null>(null);
   const [form, setForm] = useState({ fecha: '', descripcion: '', horas: '' });
 
   useEffect(() => {
@@ -50,7 +51,10 @@ export default function InvestigacionActividadesPage() {
   const fetchActividades = async () => {
     const res = await fetch('/api/actividades-investigacion');
     const data = await res.json();
-    if (data.success) setActividades(data.data);
+    if (data.success) {
+      setActividades(data.data);
+      setProyectoVigente(data.proyecto?.nombre_oficial ?? null);
+    }
   };
 
   const handleReportar = async (e: React.FormEvent) => {
@@ -99,6 +103,12 @@ export default function InvestigacionActividadesPage() {
             ? 'Registra aquí las actividades de investigación que realizas, además de tus horas de vinculación. Tu supervisor las aprueba o rechaza; solo cuentan como horas cuando quedan aprobadas.'
             : 'Actividades de investigación reportadas por pasantes de vinculación con funciones de investigación asignadas.'}
         </p>
+
+        {esPasante && proyectoVigente && (
+          <p className="mb-6 inline-block rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+            Aportas al proyecto: {proyectoVigente}
+          </p>
+        )}
 
         {message && (
           <div className={`p-4 mb-6 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
