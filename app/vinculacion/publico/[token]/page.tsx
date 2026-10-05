@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
-import StarRating from '@/components/StarRating';
+import EncuestaImpacto from '@/components/EncuestaImpacto';
+import { DATOS_ENCUESTA_VACIOS, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
 
 const preguntasPuntaje = preguntasCalificables();
@@ -14,7 +15,8 @@ type EnlaceInfo = {
   test_tipo: 'mcer' | 'encuesta';
   espacio_nombre: string;
   beneficiario_nombre: string | null;
-  instructores: { id: number; nombre: string }[];
+  pasantes: PasanteAEvaluar[];
+  porCoincidencia: boolean;
 };
 
 export default function EnlacePublicoPage() {
@@ -40,12 +42,7 @@ export default function EnlacePublicoPage() {
 
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [audioResultado, setAudioResultado] = useState<ResultadoAudioMcer | null>(null);
-  const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
-  const [aprendizaje, setAprendizaje] = useState(5);
-  const [mejora, setMejora] = useState(5);
-  const [recursos, setRecursos] = useState(5);
-  const [comentarios, setComentarios] = useState('');
-  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
+  const [datosEncuesta, setDatosEncuesta] = useState<DatosEncuesta>(DATOS_ENCUESTA_VACIOS);
 
   // El postest de MCER siempre trae la encuesta de satisfacción obligatoria en el mismo envío.
   const combinaEncuesta = enlace?.tipo === 'postest' && enlace?.test_tipo === 'mcer';
@@ -56,9 +53,6 @@ export default function EnlacePublicoPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setEnlace(data.data);
-        if (data.data.instructores?.length) {
-          setCalificacionesInstructores(Object.fromEntries(data.data.instructores.map((i: any) => [i.id, 5])));
-        }
       })
       .catch(err => setErrorCarga(err.message || 'Este enlace ya no está disponible'))
       .finally(() => setLoading(false));
@@ -87,6 +81,15 @@ export default function EnlacePublicoPage() {
       return;
     }
 
+    if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
+      const errorEncuesta = validarEncuesta(datosEncuesta, enlace.pasantes, { requiereImpacto: enlace.tipo === 'postest' });
+      if (errorEncuesta) {
+        setMensaje(`Error: ${errorEncuesta}`);
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
+
     setEnviando(true);
     setMensaje('');
     try {
@@ -102,12 +105,7 @@ export default function EnlacePublicoPage() {
         payload.nivel_asignado = resultado.level;
       }
       if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
-        payload.nivel_satisfaccion = nivelSatisfaccion;
-        payload.aprendizaje = aprendizaje;
-        payload.mejora = mejora;
-        payload.recursos = recursos;
-        payload.comentarios = comentarios;
-        payload.calificaciones_instructores = calificacionesInstructores;
+        payload = { ...payload, ...datosEncuesta };
       }
 
       const res = await fetch(`/api/enlaces/${token}/${enlace.tipo === 'pretest' ? 'pretest' : 'postest'}`, {
@@ -295,27 +293,7 @@ export default function EnlacePublicoPage() {
               {combinaEncuesta && (
                 <h3 className="text-xl font-bold text-center text-uleam-blue pt-4 border-t">Encuesta de Satisfacción</h3>
               )}
-              <StarRating label="¿Qué tan satisfecho estás con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
-              <StarRating label="¿Sientes que aprendiste?" value={aprendizaje} onChange={setAprendizaje} />
-              <StarRating label="¿Sientes que mejoraste tu nivel de inglés?" value={mejora} onChange={setMejora} />
-              <StarRating label="¿Cómo calificarías los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
-              {enlace.instructores.length > 0 && (
-                <div className="pt-4 border-t space-y-6">
-                  <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
-                  {enlace.instructores.map(i => (
-                    <StarRating key={i.id} label={`¿Cómo calificarías a ${i.nombre}?`}
-                      value={calificacionesInstructores[i.id] ?? 5}
-                      onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
-                  ))}
-                </div>
-              )}
-              <div className="pt-4">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
-                <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}
-                  placeholder="¿Qué te gustó más? ¿Qué podemos mejorar?"
-                  className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
-                ></textarea>
-              </div>
+              <EncuestaImpacto datos={datosEncuesta} onChange={setDatosEncuesta} pasantes={enlace.pasantes} porCoincidencia={enlace.porCoincidencia} mostrarImpacto={enlace.tipo === 'postest'} />
             </div>
           )}
 

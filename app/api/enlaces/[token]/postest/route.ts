@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
-
-const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
+import { guardarEncuesta, pasantesAEvaluar, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 // Público (sin sesión) — el beneficiario ya existe (ligado al token desde
 // que el instructor lo generó), solo envía las respuestas del postest.
@@ -9,11 +8,7 @@ const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
 // por una doble carrera de submits simultáneos.
 export async function POST(request: Request, { params }: { params: { token: string } }) {
   const body = await request.json();
-  const {
-    respuestas_json, puntaje_obtenido, nivel_asignado,
-    nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios,
-    calificaciones_instructores,
-  } = body;
+  const { respuestas_json, puntaje_obtenido, nivel_asignado } = body;
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
@@ -21,7 +16,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     await client.query('BEGIN');
 
     const { rows: enlaceRows } = await client.query(
-      `SELECT tipo, test_tipo, beneficiario_id, ciclo_id, creado_por, expira_en, max_usos, usos_actuales
+      `SELECT tipo, test_tipo, espacio_id, beneficiario_id, ciclo_id, creado_por, expira_en, max_usos, usos_actuales
        FROM enlaces_evaluacion WHERE token = $1 FOR UPDATE`,
       [params.token]
     );
@@ -43,21 +38,14 @@ export async function POST(request: Request, { params }: { params: { token: stri
     }
     // Todo postest de MCER trae la encuesta de satisfacción obligatoria en el mismo envío.
     const combinaEncuesta = enlace.tipo === 'postest' && enlace.test_tipo === 'mcer';
-    let idsInstructores: number[] = [];
+    const consulta = async (texto: string, parametros: unknown[]) => (await client.query(texto, parametros as any[])).rows;
+    let pasantes: PasanteAEvaluar[] = [];
     if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
-      if (![nivel_satisfaccion, aprendizaje, mejora, recursos].every(esRating)) {
+      ({ pasantes } = await pasantesAEvaluar(consulta, enlace.espacio_id, enlace.beneficiario_id));
+      const errorValidacion = validarEncuesta(body as DatosEncuesta, pasantes, { requiereImpacto: true });
+      if (errorValidacion) {
         await client.query('ROLLBACK');
-        return NextResponse.json({ error: 'Todas las calificaciones deben estar entre 1 y 5' }, { status: 400 });
-      }
-      const { rows: instructoresRows } = await client.query(
-        `SELECT usuario_id FROM espacio_instructores WHERE espacio_id = (SELECT espacio_id FROM enlaces_evaluacion WHERE token = $1)`,
-        [params.token]
-      );
-      idsInstructores = instructoresRows.map((r: any) => r.usuario_id);
-      const calificaciones = calificaciones_instructores || {};
-      if (idsInstructores.some(id => !esRating(calificaciones[id]))) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ error: 'Falta calificar a algún instructor del espacio' }, { status: 400 });
+        return NextResponse.json({ error: errorValidacion }, { status: 400 });
       }
     }
 
@@ -69,17 +57,15 @@ export async function POST(request: Request, { params }: { params: { token: stri
       );
     }
     if (enlace.test_tipo === 'encuesta' || combinaEncuesta) {
-      const { rows: [encuesta] } = await client.query(
-        `INSERT INTO encuestas_satisfaccion (beneficiario_id, ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [enlace.beneficiario_id, enlace.ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios || null]
-      );
-      for (const idInstructor of idsInstructores) {
-        await client.query(
-          `INSERT INTO encuesta_evaluaciones_instructor (encuesta_id, instructor_id, calificacion) VALUES ($1, $2, $3)`,
-          [encuesta.id, idInstructor, calificaciones_instructores[idInstructor]]
-        );
-      }
+      await guardarEncuesta(consulta, {
+        beneficiarioId: enlace.beneficiario_id,
+        cicloId: enlace.ciclo_id,
+        espacioId: enlace.espacio_id,
+        origen: 'qr_beneficiario',
+        registradoPor: null,
+        datos: { ...(body as DatosEncuesta), evaluaciones_pasantes: body.evaluaciones_pasantes || {} },
+        pasantes,
+      });
     }
 
     await client.query(`UPDATE enlaces_evaluacion SET usos_actuales = usos_actuales + 1 WHERE token = $1`, [params.token]);

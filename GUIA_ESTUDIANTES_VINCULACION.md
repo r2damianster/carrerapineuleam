@@ -130,13 +130,13 @@ Tu profesor ve, en un solo bloque por sesión: la foto que subiste, el espacio, 
 3. **Ciclo a evaluar (Encuesta)** → obligatorio, selecciona el ciclo académico.
 4. **Foto / Evidencia Física** (opcional) → si aplicaste el test en papel, sube la foto.
 5. Responde **todas** las preguntas del Post-Test MCER (opción múltiple + la pregunta de audio grabada con el micrófono).
-6. Sigue el bloque de **Encuesta de Satisfacción** (obligatorio, en la misma pantalla): califica con **estrellas (1-5)**:
-   - ¿Qué tan satisfecho está el beneficiario con el programa?
-   - ¿Sintió que aprendió?
-   - ¿Sintió que mejoró su nivel de inglés?
-   - ¿Cómo calificaría los recursos/materiales usados?
-   - **Calificación por instructor** → una fila de estrellas por cada estudiante-instructor del espacio (incluyéndote a ti si eres uno de ellos).
+6. Sigue el bloque de **Encuesta** (obligatorio, en la misma pantalla). **Nada viene marcado de antemano**: cada respuesta tiene que ser una elección real.
+   - Satisfacción con **estrellas (1-5)**: satisfacción con el programa, si aprendió, si mejoró su inglés y los recursos usados.
+   - **Cuánto le sirvió** (de *Totalmente en desacuerdo* a *Totalmente de acuerdo*): le ayudó en sus estudios (o trabajo), usa lo aprendido, se siente más seguro hablando inglés y se le abren más oportunidades.
+   - **Recomendación (0 a 10):** qué tan probable es que recomiende el club.
+   - **Calificación por pasante:** solo aparecen los pasantes que coincidieron con ese beneficiario en alguna sesión (con cuántas sesiones compartieron). Una nota de 1 a 5 y una recomendación breve ("¿qué le recomendarías?"). Si no trabajó con alguien, marca **No aplica**. El pasante solo ve promedios y comentarios **anónimos**, y solo cuando hay al menos 3 respuestas.
    - **Comentarios adicionales** (opcional).
+   - 💡 La encuesta la puede responder **el propio beneficiario** (dale el dispositivo o usa el QR sin login). Si la llenas tú desde tu cuenta, queda registrado que la llenó un pasante y tu supervisor recibe un aviso.
 7. Clic en **"Enviar Evaluación Final"**.
 
 **Qué pasa después:** se despliega una tarjeta de confirmación de éxito con el desglose del puntaje obtenido (/100) y el nivel asignado (A1-B2), confirmando también la encuesta. Se activa una cuenta regresiva de 6 segundos que te lleva de regreso a tu Dashboard (`/portal/dashboard`).

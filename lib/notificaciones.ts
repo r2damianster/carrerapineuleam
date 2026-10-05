@@ -135,6 +135,35 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
     },
   },
   {
+    // Supervisor: encuestas que un pasante llenó desde su propia cuenta (no el beneficiario por QR).
+    // Sin tabla de "leído": el aviso vive 14 días desde el registro. Mismo alcance que
+    // GET /api/vinculacion/supervisores/indicadores (espacios donde es profesor responsable).
+    id: 'encuestas-llenadas-por-pasante',
+    aplica: (sesion) => puedeSupervisarVinculacion(sesion),
+    consultar: async (sql, sesion) => {
+      const veTodo = esSuperAdminOLider(sesion);
+      const profesorId = Number(sesion.id);
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM encuestas_satisfaccion enc
+        JOIN "espacios_enseñanza" e ON e.id = enc.espacio_id
+        WHERE e.area = 'vinculacion'
+          AND enc.origen = 'panel_pasante'
+          AND enc.fecha >= NOW() - INTERVAL '14 days'
+          AND (${veTodo}::boolean IS TRUE OR e.profesor_id = ${profesorId})
+      `;
+      const total = Number(fila?.total || 0);
+      if (total === 0) return null;
+      return {
+        id: 'encuestas-llenadas-por-pasante',
+        cantidad: total,
+        mensaje: `${plural(total, 'encuesta fue llenada', 'encuestas fueron llenadas')} por un pasante desde su cuenta (no por el beneficiario) en los últimos 14 días. Revísalas en Indicadores.`,
+        href: '/vinculacion/supervisar/indicadores',
+        severidad: 'info',
+      };
+    },
+  },
+  {
     // Administrador de contenido: podcasts/videos propuestos que aún no salen en la web pública.
     id: 'videos-por-aprobar',
     aplica: (sesion) => sesion.modulos_acceso.includes('contenido_sitio'),

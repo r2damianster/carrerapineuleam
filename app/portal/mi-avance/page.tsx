@@ -43,6 +43,7 @@ interface Avance {
   asistenciasRechazadas?: { id: number; fecha: string; espacio_nombre: string; motivo_rechazo: string | null }[];
   beneficiariosDetalle?: BeneficiarioDetalle[];
   resenas?: Resena[];
+  percepcionBeneficiarios?: { respuestas: number; umbral: number; visible: boolean; promedio: number | null; observaciones: string[] };
   metaHoras?: number;
   topesHoras?: { asistencia: number | null; autonomas: number | null; investigacion: number | null; podcast: number | null; meta: number };
 }
@@ -312,6 +313,35 @@ export default function MiAvancePage() {
                   </div>
                 )}
               </div>
+              )}
+
+              {/* Cómo te perciben los beneficiarios: anónimo y solo agregado */}
+              {avance.percepcionBeneficiarios && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="border-b border-slate-100 pb-3">
+                    <h3 className="text-lg font-bold text-slate-900">🤝 Cómo te perciben los beneficiarios</h3>
+                    <p className="text-xs text-slate-500">Calificación y recomendaciones anónimas de quienes trabajaron contigo. Sin nombres, para ayudarte a mejorar.</p>
+                  </div>
+                  {avance.percepcionBeneficiarios.visible ? (
+                    <>
+                      <p className="text-sm text-slate-700">
+                        <span className="text-2xl font-bold text-amber-600">{avance.percepcionBeneficiarios.promedio?.toFixed(1)} ★</span>
+                        <span className="ml-2 text-xs text-slate-500">promedio de {avance.percepcionBeneficiarios.respuestas} respuestas</span>
+                      </p>
+                      {avance.percepcionBeneficiarios.observaciones.length > 0 && (
+                        <ul className="space-y-2">
+                          {avance.percepcionBeneficiarios.observaciones.map((observacion, indice) => (
+                            <li key={indice} className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700">“{observacion}”</li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      Aún no hay suficientes respuestas ({avance.percepcionBeneficiarios.respuestas} de {avance.percepcionBeneficiarios.umbral}). Se mostrarán cuando haya al menos {avance.percepcionBeneficiarios.umbral}, para proteger el anonimato.
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Beneficiary Feedback / Survey Comments */}

@@ -8,6 +8,8 @@ import { obtenerTopes, obtenerHorasPorTipo, horasContables } from '@/lib/topesHo
 // cuántos espacios está asignado, cuántos beneficiarios/asistencias/
 // evaluaciones/encuestas hay ahí, y sus horas acreditables (podcast +
 // investigación). Consumido por /portal/mi-avance (Sesión 40).
+const UMBRAL_ANONIMATO = 3;
+
 export async function GET() {
   try {
     const usuario = await getAppSessionFromCookies();
@@ -158,7 +160,31 @@ export async function GET() {
         `
       : [];
 
+    // Cómo lo perciben los beneficiarios: promedio y observaciones ANÓNIMAS. Con menos de
+    // UMBRAL_ANONIMATO respuestas no se muestra nada (evita deducir quién lo escribió).
+    const [percepcionRow] = await sql`
+      SELECT COUNT(*)::int AS total, ROUND(AVG(calificacion)::numeric, 2)::float AS promedio
+      FROM encuesta_evaluaciones_instructor
+      WHERE instructor_id = ${usuarioId} AND no_aplica = false
+    `;
+    const percepcionVisible = percepcionRow.total >= UMBRAL_ANONIMATO;
+    const observacionesPercepcion = percepcionVisible
+      ? await sql`
+          SELECT observacion FROM encuesta_evaluaciones_instructor
+          WHERE instructor_id = ${usuarioId} AND no_aplica = false AND observacion IS NOT NULL AND observacion <> ''
+          ORDER BY random()
+          LIMIT 15
+        `
+      : [];
+
     return NextResponse.json({
+      percepcionBeneficiarios: {
+        respuestas: percepcionRow.total,
+        umbral: UMBRAL_ANONIMATO,
+        visible: percepcionVisible,
+        promedio: percepcionVisible ? percepcionRow.promedio : null,
+        observaciones: observacionesPercepcion.map(fila => fila.observacion as string),
+      },
       espacios,
       beneficiarios: beneficiariosRow.total,
       asistenciasRegistradas: asistenciasRow.total,

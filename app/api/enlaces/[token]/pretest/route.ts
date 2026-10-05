@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-
-const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
+import { guardarEncuesta, pasantesAEvaluar, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 // Público (sin sesión) — un beneficiario escanea el QR de pretest y toma el
 // test/encuesta en el mismo envío. Dos modos:
@@ -24,8 +23,6 @@ export async function POST(request: Request, { params }: { params: { token: stri
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
     respuestas_json, puntaje_obtenido, nivel_asignado,
-    nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios,
-    calificaciones_instructores,
   } = body;
 
   if (ya_registrado) {
@@ -62,21 +59,16 @@ export async function POST(request: Request, { params }: { params: { token: stri
       await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Faltan respuestas del test' }, { status: 400 });
     }
-    let idsInstructores: number[] = [];
+    // Pre-encuesta: aún no hay nada que valorar del programa (sin preguntas de impacto) y el
+    // beneficiario no tiene historial de sesiones, así que califica a los pasantes del espacio.
+    const consulta = async (texto: string, parametros: unknown[]) => (await client.query(texto, parametros as any[])).rows;
+    let pasantes: PasanteAEvaluar[] = [];
     if (enlace.test_tipo === 'encuesta') {
-      if (![nivel_satisfaccion, aprendizaje, mejora, recursos].every(esRating)) {
+      ({ pasantes } = await pasantesAEvaluar(consulta, enlace.espacio_id, null));
+      const errorValidacion = validarEncuesta(body as DatosEncuesta, pasantes, { requiereImpacto: false });
+      if (errorValidacion) {
         await client.query('ROLLBACK');
-        return NextResponse.json({ error: 'Todas las calificaciones deben estar entre 1 y 5' }, { status: 400 });
-      }
-      const { rows: instructoresRows } = await client.query(
-        `SELECT usuario_id FROM espacio_instructores WHERE espacio_id = $1`,
-        [enlace.espacio_id]
-      );
-      idsInstructores = instructoresRows.map((r: any) => r.usuario_id);
-      const calificaciones = calificaciones_instructores || {};
-      if (idsInstructores.some(id => !esRating(calificaciones[id]))) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ error: 'Falta calificar a algún instructor del espacio' }, { status: 400 });
+        return NextResponse.json({ error: errorValidacion }, { status: 400 });
       }
     }
 
@@ -138,17 +130,15 @@ export async function POST(request: Request, { params }: { params: { token: stri
         [beneficiarioId, enlace.creado_por, puntaje_obtenido, nivel_asignado, JSON.stringify(respuestas_json)]
       );
     } else {
-      const { rows: [encuesta] } = await client.query(
-        `INSERT INTO encuestas_satisfaccion (beneficiario_id, ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [beneficiarioId, enlace.ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios || null]
-      );
-      for (const idInstructor of idsInstructores) {
-        await client.query(
-          `INSERT INTO encuesta_evaluaciones_instructor (encuesta_id, instructor_id, calificacion) VALUES ($1, $2, $3)`,
-          [encuesta.id, idInstructor, calificaciones_instructores[idInstructor]]
-        );
-      }
+      await guardarEncuesta(consulta, {
+        beneficiarioId,
+        cicloId: enlace.ciclo_id,
+        espacioId: enlace.espacio_id,
+        origen: 'qr_beneficiario',
+        registradoPor: null,
+        datos: { ...(body as DatosEncuesta), evaluaciones_pasantes: body.evaluaciones_pasantes || {} },
+        pasantes,
+      });
     }
 
     await client.query(`UPDATE enlaces_evaluacion SET usos_actuales = usos_actuales + 1 WHERE token = $1`, [params.token]);

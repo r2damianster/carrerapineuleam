@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
-import StarRating from '@/components/StarRating';
+import EncuestaImpacto from '@/components/EncuestaImpacto';
+import { DATOS_ENCUESTA_VACIOS, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 export default function EncuestaPage() {
   const router = useRouter();
@@ -16,18 +17,11 @@ export default function EncuestaPage() {
   const [espacioId, setEspacioId] = useState('');
   const [ciclos, setCiclos] = useState<any[]>([]);
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
-  const [instructores, setInstructores] = useState<any[]>([]);
-  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
+  const [pasantes, setPasantes] = useState<PasanteAEvaluar[]>([]);
+  const [porCoincidencia, setPorCoincidencia] = useState(false);
+  const [datosEncuesta, setDatosEncuesta] = useState<DatosEncuesta>(DATOS_ENCUESTA_VACIOS);
 
-  const [formData, setFormData] = useState({
-    beneficiario_id: '',
-    ciclo_id: '',
-    nivel_satisfaccion: 5,
-    aprendizaje: 5,
-    mejora: 5,
-    recursos: 5,
-    comentarios: ''
-  });
+  const [formData, setFormData] = useState({ beneficiario_id: '', ciclo_id: '' });
   const [modalEnlace, setModalEnlace] = useState<{ tipo: 'pretest' | 'postest'; beneficiarioId?: number; beneficiarioNombre?: string } | null>(null);
   const [enviadoExitoso, setEnviadoExitoso] = useState(false);
   const [conteo, setConteo] = useState(5);
@@ -46,8 +40,9 @@ export default function EncuestaPage() {
     setEnviadoExitoso(false);
     setConteo(5);
     setMessage('');
-    setFormData({ beneficiario_id: '', ciclo_id: '', nivel_satisfaccion: 5, aprendizaje: 5, mejora: 5, recursos: 5, comentarios: '' });
-    setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
+    setFormData({ beneficiario_id: '', ciclo_id: '' });
+    setDatosEncuesta(DATOS_ENCUESTA_VACIOS);
+    setPasantes([]);
   };
 
   useEffect(() => {
@@ -80,21 +75,29 @@ export default function EncuestaPage() {
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
-      setInstructores([]);
       return;
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setBeneficiarios(d.data); });
-    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+  }, [espacioId]);
+
+  // Solo se califica a los pasantes con los que ese beneficiario realmente trabajó.
+  useEffect(() => {
+    setDatosEncuesta(prev => ({ ...prev, evaluaciones_pasantes: {} }));
+    if (!espacioId || !formData.beneficiario_id) {
+      setPasantes([]);
+      return;
+    }
+    fetch(`/api/encuestas/pasantes?espacio_id=${espacioId}&beneficiario_id=${formData.beneficiario_id}`)
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          setInstructores(d.data);
-          setCalificacionesInstructores(Object.fromEntries(d.data.map((i: any) => [i.id, 5])));
+          setPasantes(d.data.pasantes);
+          setPorCoincidencia(d.data.porCoincidencia);
         }
       });
-  }, [espacioId]);
+  }, [espacioId, formData.beneficiario_id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -110,6 +113,11 @@ export default function EncuestaPage() {
       setMessage('Error: Selecciona el beneficiario y el ciclo a evaluar.');
       return;
     }
+    const errorEncuesta = validarEncuesta(datosEncuesta, pasantes, { requiereImpacto: true });
+    if (errorEncuesta) {
+      setMessage(`Error: ${errorEncuesta}`);
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
@@ -120,12 +128,7 @@ export default function EncuestaPage() {
           beneficiario_id: parseInt(formData.beneficiario_id),
           espacio_id: parseInt(espacioId),
           ciclo_id: parseInt(formData.ciclo_id),
-          nivel_satisfaccion: formData.nivel_satisfaccion,
-          aprendizaje: formData.aprendizaje,
-          mejora: formData.mejora,
-          recursos: formData.recursos,
-          comentarios: formData.comentarios,
-          calificaciones_instructores: calificacionesInstructores,
+          ...datosEncuesta,
         }),
       });
       const data = await res.json();
@@ -253,28 +256,10 @@ export default function EncuestaPage() {
           </div>
 
           <div className="pt-6 border-t space-y-6">
-            <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={formData.nivel_satisfaccion} onChange={v => setFormData({ ...formData, nivel_satisfaccion: v })} />
-            <StarRating label="¿Sintió que aprendió?" value={formData.aprendizaje} onChange={v => setFormData({ ...formData, aprendizaje: v })} />
-            <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={formData.mejora} onChange={v => setFormData({ ...formData, mejora: v })} />
-            <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={formData.recursos} onChange={v => setFormData({ ...formData, recursos: v })} />
-            {instructores.length > 0 && (
-              <div className="pt-4 border-t space-y-6">
-                <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
-                {instructores.map(i => (
-                  <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
-                    value={calificacionesInstructores[i.id] ?? 5}
-                    onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
-            <textarea name="comentarios" rows={4} value={formData.comentarios} onChange={handleChange}
-              placeholder="¿Qué le gustó más? ¿Qué podemos mejorar?"
-              className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
-            ></textarea>
+            <p className="text-center text-xs text-gray-500">
+              Puede responderla el propio beneficiario (entrégale el dispositivo o usa el QR sin login). Si la llenas tú desde tu cuenta, queda registrado y se avisa a tu supervisor.
+            </p>
+            <EncuestaImpacto datos={datosEncuesta} onChange={setDatosEncuesta} pasantes={pasantes} porCoincidencia={porCoincidencia} mostrarImpacto />
           </div>
 
           <div className="pt-6">

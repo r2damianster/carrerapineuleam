@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
-import StarRating from '@/components/StarRating';
+import EncuestaImpacto from '@/components/EncuestaImpacto';
+import { DATOS_ENCUESTA_VACIOS, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
@@ -21,7 +22,8 @@ export default function EvaluacionFinalPage() {
   const [espacioId, setEspacioId] = useState('');
   const [beneficiarios, setBeneficiarios] = useState<any[]>([]);
   const [ciclos, setCiclos] = useState<any[]>([]);
-  const [instructores, setInstructores] = useState<any[]>([]);
+  const [pasantes, setPasantes] = useState<PasanteAEvaluar[]>([]);
+  const [porCoincidencia, setPorCoincidencia] = useState(false);
 
   const [form, setForm] = useState({ beneficiario_id: '', ciclo_id: '' });
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -29,12 +31,7 @@ export default function EvaluacionFinalPage() {
   const [file, setFile] = useState<File | null>(null);
   const [modalEnlace, setModalEnlace] = useState(false);
 
-  const [nivelSatisfaccion, setNivelSatisfaccion] = useState(5);
-  const [aprendizaje, setAprendizaje] = useState(5);
-  const [mejora, setMejora] = useState(5);
-  const [recursos, setRecursos] = useState(5);
-  const [comentarios, setComentarios] = useState('');
-  const [calificacionesInstructores, setCalificacionesInstructores] = useState<Record<number, number>>({});
+  const [datosEncuesta, setDatosEncuesta] = useState<DatosEncuesta>(DATOS_ENCUESTA_VACIOS);
   const [enviadoExitoso, setEnviadoExitoso] = useState(false);
   const [conteo, setConteo] = useState(6);
   const [resultadoResumen, setResultadoResumen] = useState<{ score: number; level: string; mensaje: string } | null>(null);
@@ -58,12 +55,8 @@ export default function EvaluacionFinalPage() {
     setAnswers({});
     setAudioResultado(null);
     setFile(null);
-    setNivelSatisfaccion(5);
-    setAprendizaje(5);
-    setMejora(5);
-    setRecursos(5);
-    setComentarios('');
-    setCalificacionesInstructores(Object.fromEntries(instructores.map(i => [i.id, 5])));
+    setDatosEncuesta(DATOS_ENCUESTA_VACIOS);
+    setPasantes([]);
   };
 
   useEffect(() => {
@@ -96,21 +89,29 @@ export default function EvaluacionFinalPage() {
   useEffect(() => {
     if (!espacioId) {
       setBeneficiarios([]);
-      setInstructores([]);
       return;
     }
     fetch(`/api/beneficiarios?espacio_id=${espacioId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setBeneficiarios(d.data); });
-    fetch(`/api/espacios/instructores?espacio_id=${espacioId}`)
+  }, [espacioId]);
+
+  // Solo se califica a los pasantes con los que ese beneficiario realmente trabajó.
+  useEffect(() => {
+    setDatosEncuesta(prev => ({ ...prev, evaluaciones_pasantes: {} }));
+    if (!espacioId || !form.beneficiario_id) {
+      setPasantes([]);
+      return;
+    }
+    fetch(`/api/encuestas/pasantes?espacio_id=${espacioId}&beneficiario_id=${form.beneficiario_id}`)
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          setInstructores(d.data);
-          setCalificacionesInstructores(Object.fromEntries(d.data.map((i: any) => [i.id, 5])));
+          setPasantes(d.data.pasantes);
+          setPorCoincidencia(d.data.porCoincidencia);
         }
       });
-  }, [espacioId]);
+  }, [espacioId, form.beneficiario_id]);
 
   const beneficiarioSeleccionado = beneficiarios.find(b => String(b.id) === form.beneficiario_id);
 
@@ -134,6 +135,12 @@ export default function EvaluacionFinalPage() {
     }
     if (preguntasAudio.length > 0 && !audioResultado) {
       setMessage('Error: Debes grabar y evaluar la respuesta oral');
+      return;
+    }
+    const errorEncuesta = validarEncuesta(datosEncuesta, pasantes, { requiereImpacto: true });
+    if (errorEncuesta) {
+      setMessage(`Error: ${errorEncuesta}`);
+      window.scrollTo(0, 0);
       return;
     }
     setLoading(true);
@@ -180,12 +187,7 @@ export default function EvaluacionFinalPage() {
           beneficiario_id: parseInt(form.beneficiario_id),
           espacio_id: parseInt(espacioId),
           ciclo_id: parseInt(form.ciclo_id),
-          nivel_satisfaccion: nivelSatisfaccion,
-          aprendizaje,
-          mejora,
-          recursos,
-          comentarios,
-          calificaciones_instructores: calificacionesInstructores,
+          ...datosEncuesta,
         }),
       });
       const dataEncuesta = await resEncuesta.json();
@@ -365,27 +367,10 @@ export default function EvaluacionFinalPage() {
 
           <div className="pt-6 border-t space-y-6">
             <h3 className="text-xl font-bold text-center text-uleam-blue">Encuesta de Satisfacción (obligatoria)</h3>
-            <StarRating label="¿Qué tan satisfecho está el beneficiario con el programa?" value={nivelSatisfaccion} onChange={setNivelSatisfaccion} />
-            <StarRating label="¿Sintió que aprendió?" value={aprendizaje} onChange={setAprendizaje} />
-            <StarRating label="¿Sintió que mejoró su nivel de inglés?" value={mejora} onChange={setMejora} />
-            <StarRating label="¿Cómo calificaría los recursos/materiales usados?" value={recursos} onChange={setRecursos} />
-            {instructores.length > 0 && (
-              <div className="pt-4 border-t space-y-6">
-                <p className="text-center text-sm font-semibold text-gray-600">Calificación por instructor</p>
-                {instructores.map(i => (
-                  <StarRating key={i.id} label={`¿Cómo calificaría a ${i.nombres} ${i.apellidos}?`}
-                    value={calificacionesInstructores[i.id] ?? 5}
-                    onChange={v => setCalificacionesInstructores({ ...calificacionesInstructores, [i.id]: v })} />
-                ))}
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Comentarios adicionales (Opcional)</label>
-              <textarea rows={4} value={comentarios} onChange={e => setComentarios(e.target.value)}
-                placeholder="¿Qué le gustó más? ¿Qué podemos mejorar?"
-                className="block w-full rounded-md border-gray-300 shadow-sm p-3 border"
-              ></textarea>
-            </div>
+            <p className="text-center text-xs text-gray-500">
+              Puede responderla el propio beneficiario (entrégale el dispositivo o usa el QR sin login). Si la llenas tú desde tu cuenta, queda registrado y se avisa a tu supervisor.
+            </p>
+            <EncuestaImpacto datos={datosEncuesta} onChange={setDatosEncuesta} pasantes={pasantes} porCoincidencia={porCoincidencia} mostrarImpacto />
           </div>
 
           <div className="pt-4 border-t">

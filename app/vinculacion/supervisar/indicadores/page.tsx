@@ -20,7 +20,19 @@ interface PasanteAnalitica {
   beneficiarios_a_cargo: number;
   pre_tests_count: number;
   post_tests_count: number;
-  promedio_satisfaccion: number;
+  promedio_satisfaccion: number | null;
+  evaluaciones_recibidas: number;
+  evaluaciones_por_panel_pasante: number;
+  ganancia_mcer_espacio: number | null;
+  beneficiarios_con_ganancia: number;
+}
+
+interface ObservacionPasante {
+  pasante_id: number;
+  observacion: string;
+  calificacion: number;
+  origen: string | null;
+  fecha: string;
 }
 
 interface McerImpacto {
@@ -53,10 +65,19 @@ interface DataIndicadores {
   asistenciasUrgentes: AsistenciaUrgente[];
   encuestasConsolidado: {
     total_encuestas: number;
-    satisfaccion_general: number;
-    percepcion_aprendizaje: number;
-    recomienda_curso: number;
+    satisfaccion_general: number | null;
+    percepcion_aprendizaje: number | null;
+    recomienda_curso: number | null;
+    con_impacto: number;
+    impacto_estudios: number | null;
+    uso_aprendido: number | null;
+    seguridad_hablar: number | null;
+    oportunidades: number | null;
+    con_recomendacion: number;
+    nps: number | null;
   };
+  observacionesPasantes: ObservacionPasante[];
+  encuestasPorPasante14Dias: number;
   metaHorasLegal: number;
 }
 
@@ -199,7 +220,7 @@ export default function IndicadoresSupervisionPage() {
 
                   <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                     <div className="text-xs font-semibold text-slate-500 uppercase">Satisfacción Promedio</div>
-                    <div className="text-2xl font-bold text-amber-500 mt-1">★ {data.encuestasConsolidado.satisfaccion_general} / 5.0</div>
+                    <div className="text-2xl font-bold text-amber-500 mt-1">{data.encuestasConsolidado.satisfaccion_general !== null ? `★ ${data.encuestasConsolidado.satisfaccion_general} / 5.0` : 'Sin datos'}</div>
                     <div className="text-xs text-slate-400 mt-1">Basado en {data.encuestasConsolidado.total_encuestas} encuestas</div>
                   </div>
                 </div>
@@ -287,7 +308,27 @@ export default function IndicadoresSupervisionPage() {
                                   <span className="text-blue-600 font-bold">{p.post_tests_count} Post</span>
                                 </td>
                                 <td className="p-3.5 text-center">
-                                  <span className="text-amber-500 font-bold">★ {Math.round(p.promedio_satisfaccion * 10) / 10}</span>
+                                  {p.promedio_satisfaccion === null ? (
+                                    <span className="text-slate-400">Sin evaluaciones</span>
+                                  ) : (
+                                    <>
+                                      <span className={`font-bold ${p.evaluaciones_recibidas >= 3 && p.promedio_satisfaccion < 3 ? 'text-red-600' : 'text-amber-500'}`}>
+                                        ★ {Math.round(p.promedio_satisfaccion * 10) / 10}
+                                      </span>
+                                      <div className="text-[11px] text-slate-400">
+                                        {p.evaluaciones_recibidas} resp.
+                                        {p.evaluaciones_por_panel_pasante > 0 && ` · ${p.evaluaciones_por_panel_pasante} por pasante`}
+                                      </div>
+                                      {p.evaluaciones_recibidas >= 3 && p.promedio_satisfaccion < 3 && (
+                                        <div className="text-[11px] font-semibold text-red-600">Revisar</div>
+                                      )}
+                                    </>
+                                  )}
+                                  {p.ganancia_mcer_espacio !== null && (
+                                    <div className="text-[11px] text-slate-500 mt-1" title="Ganancia promedio Post menos Pre de los beneficiarios del espacio (correlacion, no causa)">
+                                      MCER {p.ganancia_mcer_espacio >= 0 ? '+' : ''}{p.ganancia_mcer_espacio} pts
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="p-3.5 text-center">
                                   {p.asistencias_pendientes > 0 ? (
@@ -312,6 +353,57 @@ export default function IndicadoresSupervisionPage() {
                     </table>
                   </div>
                 </div>
+
+                {data.encuestasPorPasante14Dias > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl p-3">
+                    {data.encuestasPorPasante14Dias} encuesta{data.encuestasPorPasante14Dias === 1 ? '' : 's'} fue{data.encuestasPorPasante14Dias === 1 ? '' : 'ron'} llenada{data.encuestasPorPasante14Dias === 1 ? '' : 's'} por un pasante desde su cuenta en los últimos 14 días (no por el beneficiario). Tómalas con cautela.
+                  </div>
+                )}
+
+                {data.encuestasConsolidado.con_impacto > 0 && (
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                    <h3 className="text-sm font-bold text-slate-800">Impacto percibido por los beneficiarios ({data.encuestasConsolidado.con_impacto} encuestas)</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                      {[
+                        ['Ayudó en estudios/trabajo', data.encuestasConsolidado.impacto_estudios],
+                        ['Usa lo aprendido', data.encuestasConsolidado.uso_aprendido],
+                        ['Más seguridad hablando', data.encuestasConsolidado.seguridad_hablar],
+                        ['Más oportunidades', data.encuestasConsolidado.oportunidades],
+                      ].map(([etiqueta, valor]) => (
+                        <div key={etiqueta as string} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                          <div className="text-slate-500">{etiqueta}</div>
+                          <div className="text-lg font-bold text-slate-900">{valor !== null ? `${valor} / 5` : '—'}</div>
+                        </div>
+                      ))}
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <div className="text-slate-500">Recomendación (NPS)</div>
+                        <div className="text-lg font-bold text-slate-900">{data.encuestasConsolidado.nps !== null ? data.encuestasConsolidado.nps : '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {data.observacionesPasantes.length > 0 && (
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                    <h3 className="text-sm font-bold text-slate-800">Recomendaciones de los beneficiarios por pasante</h3>
+                    <p className="text-xs text-slate-500">Anónimas: no se identifica al beneficiario.</p>
+                    <div className="space-y-2">
+                      {data.observacionesPasantes.map((registro, indice) => {
+                        const pasante = data.pasantesAnalitica.find(p => p.pasante_id === registro.pasante_id);
+                        return (
+                          <div key={indice} className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs">
+                            <div className="flex justify-between font-semibold text-slate-700">
+                              <span>{pasante ? `${pasante.apellidos} ${pasante.nombres}` : `Pasante ${registro.pasante_id}`}</span>
+                              <span className="text-amber-500">{'★'.repeat(registro.calificacion || 0)}</span>
+                            </div>
+                            <p className="text-slate-600 mt-1">“{registro.observacion}”</p>
+                            {registro.origen === 'panel_pasante' && <p className="text-[11px] text-amber-700 mt-1">Llenada por un pasante desde su cuenta</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

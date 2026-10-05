@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
-
-const esRating = (v: any) => Number.isInteger(v) && v >= 1 && v <= 5;
+import { guardarEncuesta, pasantesAEvaluar, validarEncuesta, type DatosEncuesta, type OrigenEncuesta } from '@/lib/encuestaImpacto';
 
 export async function POST(request: Request) {
   try {
@@ -13,17 +12,10 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const {
-      beneficiario_id, espacio_id, ciclo_id,
-      nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios,
-      calificaciones_instructores,
-    } = data;
+    const { beneficiario_id, espacio_id, ciclo_id, requiere_impacto = true } = data;
 
     if (!beneficiario_id || !espacio_id || !ciclo_id) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
-    }
-    if (![nivel_satisfaccion, aprendizaje, mejora, recursos].every(esRating)) {
-      return NextResponse.json({ error: 'Todas las calificaciones deben estar entre 1 y 5' }, { status: 400 });
     }
 
     if (!(await puedeOperarEspacio(usuario, espacio_id))) {
@@ -31,6 +23,7 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.DATABASE_URL!);
+    const consulta = async (texto: string, parametros: unknown[]) => (await sql.query(texto, parametros)) as any[];
 
     const inscrito = await sql`
       SELECT 1 FROM inscripciones_espacio WHERE espacio_id = ${espacio_id} AND beneficiario_id = ${beneficiario_id}
@@ -39,29 +32,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El beneficiario no está inscrito en ese espacio' }, { status: 400 });
     }
 
-    const instructores = await sql`
-      SELECT usuario_id FROM espacio_instructores WHERE espacio_id = ${espacio_id}
-    `;
-    const idsInstructores = instructores.map(i => i.usuario_id);
-    const calificaciones = calificaciones_instructores || {};
-    if (idsInstructores.some(id => !esRating(calificaciones[id]))) {
-      return NextResponse.json({ error: 'Falta calificar a algún instructor del espacio' }, { status: 400 });
+    const { pasantes } = await pasantesAEvaluar(consulta, Number(espacio_id), Number(beneficiario_id));
+    const datos = data as DatosEncuesta;
+    const errorValidacion = validarEncuesta(datos, pasantes, { requiereImpacto: !!requiere_impacto });
+    if (errorValidacion) {
+      return NextResponse.json({ error: errorValidacion }, { status: 400 });
     }
 
-    const [encuesta] = await sql`
-      INSERT INTO encuestas_satisfaccion
-        (beneficiario_id, ciclo_id, nivel_satisfaccion, aprendizaje, mejora, recursos, comentarios)
-      VALUES
-        (${beneficiario_id}, ${ciclo_id}, ${nivel_satisfaccion}, ${aprendizaje}, ${mejora}, ${recursos}, ${comentarios || null})
-      RETURNING id
-    `;
+    // Trazabilidad: quién llenó la encuesta. Si la llenó un pasante desde su cuenta (y no el
+    // beneficiario por QR) el supervisor recibe un aviso (lib/notificaciones.ts).
+    const origen: OrigenEncuesta = usuario.rol === 'estudiante' ? 'panel_pasante' : 'panel_docente';
 
-    for (const id of idsInstructores) {
-      await sql`
-        INSERT INTO encuesta_evaluaciones_instructor (encuesta_id, instructor_id, calificacion)
-        VALUES (${encuesta.id}, ${id}, ${calificaciones[id]})
-      `;
-    }
+    await guardarEncuesta(consulta, {
+      beneficiarioId: Number(beneficiario_id),
+      cicloId: Number(ciclo_id),
+      espacioId: Number(espacio_id),
+      origen,
+      registradoPor: Number(usuario.id),
+      datos: { ...datos, evaluaciones_pasantes: datos.evaluaciones_pasantes || {} },
+      pasantes,
+    });
 
     return NextResponse.json({ success: true, message: 'Encuesta enviada exitosamente' });
   } catch (error: any) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { pasantesAEvaluar, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 // Público (sin sesión) — valida un token y dice qué formulario mostrar.
 // No expone nada sensible: solo el nombre del espacio y, en postest, el
@@ -11,7 +12,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
     const rows = await sql`
       SELECT
-        el.tipo, el.test_tipo, el.expira_en, el.max_usos, el.usos_actuales, el.espacio_id,
+        el.tipo, el.test_tipo, el.expira_en, el.max_usos, el.usos_actuales, el.espacio_id, el.beneficiario_id,
         esp.nombre AS espacio_nombre,
         b.nombres AS beneficiario_nombres, b.apellidos AS beneficiario_apellidos
       FROM enlaces_evaluacion el
@@ -32,17 +33,13 @@ export async function GET(request: Request, { params }: { params: { token: strin
       return NextResponse.json({ error: 'Este enlace ya no está disponible' }, { status: 410 });
     }
 
-    // El postest de MCER siempre trae la encuesta de satisfacción en el mismo formulario — necesita la misma lista de instructores para calificar.
-    let instructores: { id: number; nombre: string }[] = [];
+    // El postest de MCER siempre trae la encuesta de satisfacción en el mismo formulario.
+    // El beneficiario califica solo a los pasantes con los que realmente trabajó.
+    let pasantes: PasanteAEvaluar[] = [];
+    let porCoincidencia = false;
     if (enlace.test_tipo === 'encuesta' || (enlace.tipo === 'postest' && enlace.test_tipo === 'mcer')) {
-      const filas = await sql`
-        SELECT u.id, u.nombres, u.apellidos
-        FROM espacio_instructores ei
-        JOIN usuarios u ON u.id = ei.usuario_id
-        WHERE ei.espacio_id = ${enlace.espacio_id}
-        ORDER BY u.apellidos
-      `;
-      instructores = filas.map(f => ({ id: f.id, nombre: `${f.nombres} ${f.apellidos}` }));
+      const consulta = async (texto: string, parametros: unknown[]) => (await sql.query(texto, parametros)) as any[];
+      ({ pasantes, porCoincidencia } = await pasantesAEvaluar(consulta, enlace.espacio_id, enlace.beneficiario_id));
     }
 
     return NextResponse.json({
@@ -54,7 +51,8 @@ export async function GET(request: Request, { params }: { params: { token: strin
         beneficiario_nombre: enlace.beneficiario_nombres
           ? `${enlace.beneficiario_nombres} ${enlace.beneficiario_apellidos}`
           : null,
-        instructores,
+        pasantes,
+        porCoincidencia,
       },
     });
   } catch (error: any) {

@@ -88,7 +88,7 @@ El Post-Test MCER y la Encuesta de Satisfacción se responden juntos, en un solo
 1. Botón **"📄 Descargar Evaluación Final en Word"** — para aplicarla en papel (MCER + encuesta en blanco).
 2. Selecciona el beneficiario (solo aparecen los inscritos en tu espacio) y el ciclo académico a evaluar, transcribe sus respuestas del MCER.
 3. Sube una foto de la evaluación física resuelta (opcional). El sistema calcula el nivel (A1/A2/B1/B2) automáticamente.
-4. Sigue la Encuesta de Satisfacción (satisfacción general, aprendizaje, mejora, recursos, calificación por instructor, comentarios) — obligatoria en el mismo envío.
+4. Sigue la Encuesta (obligatoria en el mismo envío): satisfacción, **cuánto le sirvió el programa** (en sus estudios o trabajo, uso de lo aprendido, seguridad al hablar, oportunidades), qué tan probable es que lo recomiende (0-10) y una nota con una **recomendación por cada pasante con quien trabajó** — solo aparecen los pasantes que coincidieron con ese beneficiario en alguna sesión. Nada viene marcado de antemano. **Puede responderla el propio beneficiario** (dale el dispositivo o usa el QR); si la llenas tú desde tu cuenta de pasante queda registrado y tu supervisor recibe un aviso.
 5. Al enviar, la pantalla de éxito muestra la calificación final obtenida y el nivel A1-B2 asignado, e inicia la cuenta regresiva para regresar al dashboard.
 6. **QR Evaluación Final:** genera un link/QR para que el beneficiario tome el Post-Test + encuesta él mismo desde su celular, sin login.
 7. ¿Necesitas reenviar solo la encuesta suelta (sin MCER, ej. si el Post-Test ya se tomó antes)? Hay un link a `/vinculacion/encuesta` al pie de la página, para ese caso puntual.
