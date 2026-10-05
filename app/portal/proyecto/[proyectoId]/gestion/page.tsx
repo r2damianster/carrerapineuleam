@@ -49,7 +49,7 @@ export default function GestionProyectoPage() {
   });
 
   const [metasPersonalizadas, setMetasPersonalizadas] = useState<any[]>([]);
-  const [nuevaMeta, setNuevaMeta] = useState({ descripcion: '', meta: '', unidad: '' });
+  const [nuevaMeta, setNuevaMeta] = useState({ descripcion: '', meta: '', unidad: '', tipo: 'absoluto' });
 
   // 4. Presupuesto State
   const [presupuestoItems, setPresupuestoItems] = useState<any[]>([]);
@@ -122,10 +122,9 @@ export default function GestionProyectoPage() {
   };
 
   const cargarMetas = async (cId: string) => {
-    if (!cId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}?seccion=metas&ciclo_id=${cId}`);
+      const res = await fetch(`${API}?seccion=metas${cId ? `&ciclo_id=${cId}` : ''}`);
       const data = await res.json();
       if (data.success) {
         setMetasForm(data.metas || { meta_estudiantes: 0, meta_docentes: 0, meta_beneficiarios_directos: 0, meta_beneficiarios_indirectos: 0 });
@@ -157,7 +156,7 @@ export default function GestionProyectoPage() {
   useEffect(() => {
     if (activeTab === 'ficha') cargarFicha();
     if (activeTab === 'objetivos') cargarObjetivos();
-    if (activeTab === 'metas' && cicloIdSeleccionado) cargarMetas(cicloIdSeleccionado);
+    if (activeTab === 'metas') cargarMetas(cicloIdSeleccionado);
     if (activeTab === 'presupuesto') cargarPresupuesto();
   }, [activeTab, cicloIdSeleccionado]);
 
@@ -322,9 +321,9 @@ export default function GestionProyectoPage() {
 
   const handleAgregarMeta = async (e: React.FormEvent) => {
     e.preventDefault();
-    const guardada = await enviarMetaPersonalizada('crear_meta', { ciclo_id: parseInt(cicloIdSeleccionado), ...nuevaMeta });
+    const guardada = await enviarMetaPersonalizada('crear_meta', nuevaMeta);
     if (guardada) {
-      setNuevaMeta({ descripcion: '', meta: '', unidad: '' });
+      setNuevaMeta({ descripcion: '', meta: '', unidad: '', tipo: 'absoluto' });
       cargarMetas(cicloIdSeleccionado);
     }
   };
@@ -336,6 +335,12 @@ export default function GestionProyectoPage() {
   const handleEliminarMeta = async (id: number) => {
     if (!confirm('¿Eliminar esta meta?')) return;
     if (await enviarMetaPersonalizada('eliminar_meta', { id })) cargarMetas(cicloIdSeleccionado);
+  };
+
+  const cambiarTipoMeta = (metaPersonalizada: any, tipo: string) => {
+    const actualizada = { ...metaPersonalizada, tipo };
+    setMetasPersonalizadas(previous => previous.map(item => (item.id === metaPersonalizada.id ? actualizada : item)));
+    handleGuardarMetaEditada(actualizada);
   };
 
   const cambiarMetaLocal = (id: number, campo: string, valor: string) => {
@@ -609,17 +614,16 @@ export default function GestionProyectoPage() {
         {activeTab === 'metas' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b pb-4">
-              <h2 className="text-xl font-bold text-gray-800">Metas Proyectadas del Ciclo</h2>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Ciclo Académico:</label>
-                <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 font-bold">
-                  {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-              </div>
+              <h2 className="text-xl font-bold text-gray-800">Metas del Proyecto</h2>
             </div>
 
             <form onSubmit={handleGuardarMetas} className="space-y-6 max-w-2xl bg-gray-50 p-6 rounded-xl border">
-              <h3 className="font-bold text-gray-800">Metas generales</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-gray-800">Metas generales del ciclo</h3>
+                <select value={cicloIdSeleccionado} onChange={e => setCicloIdSeleccionado(e.target.value)} className="px-3 py-1.5 rounded-lg border border-gray-300 font-bold text-sm">
+                  {ciclos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Meta Docentes Participantes</label>
@@ -649,34 +653,47 @@ export default function GestionProyectoPage() {
 
             <div className="space-y-3">
               <h3 className="font-bold text-gray-800">Metas específicas del proyecto</h3>
-              <p className="text-xs text-gray-500">Agrega las metas propias de tu proyecto (ej. artículos publicados, talleres realizados). Edita la meta y lo logrado directamente en la fila; se guarda al salir del campo.</p>
+              <p className="text-xs text-gray-500">Metas propias de tu proyecto, para todo su periodo. Pueden ser un valor absoluto (ej. 4 artículos) o un porcentaje (ej. 80 %). Ve actualizando lo logrado en la misma fila: el cumplimiento se calcula contra la meta y se guarda al salir del campo.</p>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-sm text-left text-gray-700">
                   <thead className="bg-gray-100 text-xs uppercase border-b">
                     <tr>
                       <th className="px-4 py-3">Meta</th>
+                      <th className="px-4 py-3 w-32">Tipo</th>
                       <th className="px-4 py-3 w-28">Unidad</th>
-                      <th className="px-4 py-3 w-28 text-right">Meta</th>
-                      <th className="px-4 py-3 w-28 text-right">Logrado</th>
-                      <th className="px-4 py-3 w-20 text-right">%</th>
+                      <th className="px-4 py-3 w-24 text-right">Meta</th>
+                      <th className="px-4 py-3 w-24 text-right">Logrado</th>
+                      <th className="px-4 py-3 w-40">Cumplimiento</th>
                       <th className="px-4 py-3 w-20"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {metasPersonalizadas.length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400">Aún no hay metas específicas en este ciclo.</td></tr>
+                      <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">Aún no hay metas específicas.</td></tr>
                     )}
                     {metasPersonalizadas.map(item => {
                       const valorMeta = Number(item.meta || 0);
                       const valorLogrado = Number(item.logrado || 0);
                       const porcentaje = valorMeta > 0 ? Math.round((valorLogrado / valorMeta) * 100) : 0;
+                      const esPorcentual = item.tipo === 'porcentual';
                       return (
                         <tr key={item.id} className="border-b">
                           <td className="px-2 py-2"><input value={item.descripcion} onChange={e => cambiarMetaLocal(item.id, 'descripcion', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
-                          <td className="px-2 py-2"><input value={item.unidad || ''} onChange={e => cambiarMetaLocal(item.id, 'unidad', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" /></td>
+                          <td className="px-2 py-2">
+                            <select value={item.tipo || 'absoluto'} onChange={e => cambiarTipoMeta(item, e.target.value)} className="w-full px-2 py-1 rounded border border-gray-200 text-xs">
+                              <option value="absoluto">Valor absoluto</option>
+                              <option value="porcentual">Porcentaje (%)</option>
+                            </select>
+                          </td>
+                          <td className="px-2 py-2">{esPorcentual ? <span className="px-2 text-gray-500">%</span> : <input value={item.unidad || ''} onChange={e => cambiarMetaLocal(item.id, 'unidad', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200" />}</td>
                           <td className="px-2 py-2"><input type="number" min="0" step="any" value={item.meta} onChange={e => cambiarMetaLocal(item.id, 'meta', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right" /></td>
                           <td className="px-2 py-2"><input type="number" min="0" step="any" value={item.logrado} onChange={e => cambiarMetaLocal(item.id, 'logrado', e.target.value)} onBlur={() => handleGuardarMetaEditada(item)} className="w-full px-2 py-1 rounded border border-gray-200 text-right" /></td>
-                          <td className="px-4 py-2 text-right font-bold text-purple-900">{porcentaje}%</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 flex-1 rounded bg-gray-200 overflow-hidden"><div className="h-2 bg-green-500" style={{ width: `${Math.min(porcentaje, 100)}%` }} /></div>
+                              <span className="text-xs font-bold text-purple-900 w-10 text-right">{porcentaje}%</span>
+                            </div>
+                          </td>
                           <td className="px-2 py-2 text-right"><button type="button" onClick={() => handleEliminarMeta(item.id)} className="text-xs text-red-600 hover:underline">Eliminar</button></td>
                         </tr>
                       );
@@ -688,6 +705,13 @@ export default function GestionProyectoPage() {
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-xs font-medium text-gray-700 mb-1">Nueva meta</label>
                   <input required value={nuevaMeta.descripcion} onChange={e => setNuevaMeta({ ...nuevaMeta, descripcion: e.target.value })} placeholder="Ej. Artículos científicos publicados" className="w-full px-3 py-2 rounded border border-gray-300 text-sm" />
+                </div>
+                <div className="w-36">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
+                  <select value={nuevaMeta.tipo} onChange={e => setNuevaMeta({ ...nuevaMeta, tipo: e.target.value })} className="w-full px-3 py-2 rounded border border-gray-300 text-sm">
+                    <option value="absoluto">Valor absoluto</option>
+                    <option value="porcentual">Porcentaje (%)</option>
+                  </select>
                 </div>
                 <div className="w-28">
                   <label className="block text-xs font-medium text-gray-700 mb-1">Unidad</label>

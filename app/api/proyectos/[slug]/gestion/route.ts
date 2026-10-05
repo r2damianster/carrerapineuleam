@@ -95,16 +95,13 @@ export async function GET(request: Request, { params }: { params: { slug: string
     }
 
     if (seccion === 'metas') {
-      if (!cicloId) {
-        return NextResponse.json({ error: 'Se requiere ciclo_id' }, { status: 400 });
-      }
-      const [metas] = await sql`
-        SELECT * FROM proyecto_metas_ciclo 
-        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
-      `;
+      // Las metas generales (docentes, pasantes, beneficiarios) son por ciclo; las específicas, del proyecto completo.
+      const [metas] = cicloId
+        ? await sql`SELECT * FROM proyecto_metas_ciclo WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}`
+        : [];
       const personalizadas = await sql`
-        SELECT id, descripcion, meta, logrado, unidad FROM proyecto_metas_personalizadas
-        WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}
+        SELECT id, descripcion, meta, logrado, unidad, tipo FROM proyecto_metas_personalizadas
+        WHERE proyecto_id = ${proyectoId}
         ORDER BY id ASC
       `;
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
@@ -335,26 +332,27 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
     if (seccion === 'metas' && accion) {
       if (accion === 'crear_meta') {
-        const { ciclo_id, descripcion, meta, logrado, unidad } = body;
-        if (!ciclo_id || !String(descripcion || '').trim()) {
-          return NextResponse.json({ error: 'Ciclo y descripción son requeridos' }, { status: 400 });
+        const { descripcion, meta, logrado, unidad, tipo } = body;
+        if (!String(descripcion || '').trim()) {
+          return NextResponse.json({ error: 'La descripción es requerida' }, { status: 400 });
         }
         const [nueva] = await sql`
-          INSERT INTO proyecto_metas_personalizadas (proyecto_id, ciclo_id, descripcion, meta, logrado, unidad)
-          VALUES (${proyectoId}, ${ciclo_id}, ${String(descripcion).trim()}, ${Number(meta) || 0}, ${Number(logrado) || 0}, ${unidad || null})
-          RETURNING id, descripcion, meta, logrado, unidad
+          INSERT INTO proyecto_metas_personalizadas (proyecto_id, ciclo_id, descripcion, meta, logrado, unidad, tipo)
+          VALUES (${proyectoId}, NULL, ${String(descripcion).trim()}, ${Number(meta) || 0}, ${Number(logrado) || 0}, ${unidad || null}, ${tipo === 'porcentual' ? 'porcentual' : 'absoluto'})
+          RETURNING id, descripcion, meta, logrado, unidad, tipo
         `;
         return NextResponse.json({ success: true, data: nueva });
       }
       if (accion === 'editar_meta') {
-        const { id, descripcion, meta, logrado, unidad } = body;
+        const { id, descripcion, meta, logrado, unidad, tipo } = body;
         if (!id || !String(descripcion || '').trim()) {
           return NextResponse.json({ error: 'Id y descripción son requeridos' }, { status: 400 });
         }
         await sql`
           UPDATE proyecto_metas_personalizadas
           SET descripcion = ${String(descripcion).trim()}, meta = ${Number(meta) || 0},
-              logrado = ${Number(logrado) || 0}, unidad = ${unidad || null}
+              logrado = ${Number(logrado) || 0}, unidad = ${unidad || null},
+              tipo = ${tipo === 'porcentual' ? 'porcentual' : 'absoluto'}
           WHERE id = ${id} AND proyecto_id = ${proyectoId}
         `;
         return NextResponse.json({ success: true });
