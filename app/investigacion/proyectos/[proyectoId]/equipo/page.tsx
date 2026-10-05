@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
+import AvanceMetasInvestigacion from '@/components/AvanceMetasInvestigacion';
 
 interface Aportante {
   usuario_id: number;
@@ -137,6 +138,8 @@ export default function EquipoInvestigacionPage() {
         {estado === 'listo' && (
           <>
             {mensaje && <p className="mt-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">{mensaje}</p>}
+
+            <AvanceMetasInvestigacion proyectoId={proyectoId} />
 
             <form onSubmit={agregarAportante} className="mt-6 space-y-3 rounded-lg border bg-white p-4 shadow-sm">
               <h2 className="font-semibold text-gray-800">Agregar persona</h2>

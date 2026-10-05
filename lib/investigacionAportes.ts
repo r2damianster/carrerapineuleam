@@ -69,6 +69,93 @@ export async function sincronizarTarjetaWeb(sql: any, usuarioId: number, proyect
   `;
 }
 
+export interface AvanceActividadPlan {
+  id: number;
+  actividad: string;
+  unidad: string | null;
+  meta: number | null;
+  avance: number;
+  pendiente: number;
+  porcentaje: number | null;
+  mide: 'horas' | 'aportes';
+}
+
+export interface AvanceMetasProyecto {
+  proyecto_id: string;
+  ciclo_id: number | null;
+  actividades: AvanceActividadPlan[];
+  personas: {
+    docentes: { meta: number | null; actual: number };
+    estudiantes: { meta: number | null; actual: number };
+  };
+}
+
+// Ciclo académico vigente hoy (fechas de ciclos_academicos), o el más reciente si hoy no cae en ninguno.
+export async function cicloVigenteId(sql: any): Promise<number | null> {
+  const [fila] = await sql`
+    SELECT id FROM ciclos_academicos
+    ORDER BY (CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin) DESC, fecha_inicio DESC
+    LIMIT 1
+  `;
+  return fila ? Number(fila.id) : null;
+}
+
+// Avance de las metas de un proyecto en un ciclo. Se CALCULA, nunca se captura a mano:
+//  - Cada actividad del plan (proyecto_actividades_plan) suma los aportes VALIDADOS ligados a ella.
+//    Si su `unidad` habla de horas, suma horas; en cualquier otro caso cuenta aportes.
+//  - Los aportes por validar se muestran aparte como `pendiente` y no cuentan en el avance.
+//  - Personas: aportantes activos del proyecto (docentes y estudiantes de apoyo) frente a
+//    proyecto_metas_ciclo.meta_docentes / meta_estudiantes. Los externos no cuentan contra una meta.
+export async function calcularAvanceMetas(sql: any, proyectoId: string, cicloId: number | null): Promise<AvanceMetasProyecto> {
+  const actividades = await sql`
+    SELECT a.id, a.actividad, a.unidad, a.meta_cantidad::float AS meta,
+           COALESCE(SUM(x.horas) FILTER (WHERE x.estado_validacion = 'validado'), 0)::float AS horas_validadas,
+           COUNT(x.id) FILTER (WHERE x.estado_validacion = 'validado')::int AS aportes_validados,
+           COALESCE(SUM(x.horas) FILTER (WHERE x.estado_validacion = 'pendiente'), 0)::float AS horas_pendientes,
+           COUNT(x.id) FILTER (WHERE x.estado_validacion = 'pendiente')::int AS aportes_pendientes
+    FROM proyecto_actividades_plan a
+    JOIN proyecto_objetivos o ON o.id = a.objetivo_id
+    LEFT JOIN investigacion_aportes x ON x.actividad_plan_id = a.id
+    WHERE o.proyecto_id = ${proyectoId} AND a.activo = true
+      AND (${cicloId}::int IS NULL OR a.ciclo_id = ${cicloId} OR a.ciclo_id IS NULL)
+    GROUP BY a.id
+    ORDER BY a.actividad
+  `;
+  const [metaPersonas] = cicloId
+    ? await sql`SELECT meta_docentes, meta_estudiantes FROM proyecto_metas_ciclo WHERE proyecto_id = ${proyectoId} AND ciclo_id = ${cicloId}`
+    : [undefined];
+  const [conteoPersonas] = await sql`
+    SELECT COUNT(*) FILTER (WHERE tipo = 'docente')::int AS docentes,
+           COUNT(*) FILTER (WHERE tipo = 'estudiante_apoyo')::int AS estudiantes
+    FROM investigacion_aportantes WHERE proyecto_id = ${proyectoId} AND activo = true
+  `;
+
+  return {
+    proyecto_id: proyectoId,
+    ciclo_id: cicloId,
+    actividades: actividades.map((fila: any) => {
+      const midePorHoras = /hora/i.test(fila.unidad || '');
+      const avance = midePorHoras ? fila.horas_validadas : fila.aportes_validados;
+      const pendiente = midePorHoras ? fila.horas_pendientes : fila.aportes_pendientes;
+      const meta = fila.meta && fila.meta > 0 ? fila.meta : null;
+      return {
+        id: fila.id,
+        actividad: fila.actividad,
+        unidad: fila.unidad,
+        meta,
+        avance,
+        pendiente,
+        porcentaje: meta ? Math.min(100, Math.round((avance / meta) * 100)) : null,
+        mide: midePorHoras ? 'horas' : 'aportes',
+      } as AvanceActividadPlan;
+    }),
+    personas: {
+      docentes: { meta: metaPersonas?.meta_docentes || null, actual: conteoPersonas?.docentes ?? 0 },
+      estudiantes: { meta: metaPersonas?.meta_estudiantes || null, actual: conteoPersonas?.estudiantes ?? 0 },
+    },
+  };
+}
+
 // ¿Puede esta sesión registrar aportes en el proyecto? Solo quien es aportante activo de ese proyecto.
 export async function puedeRegistrarAporte(sql: any, usuario: AppSession, proyectoId: string): Promise<boolean> {
   if (!rolPuedeSerAportante(usuario.rol)) return false;

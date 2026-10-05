@@ -40,7 +40,7 @@ export default function PanelProyectoPage() {
             <div className="mt-6 space-y-3">
               <Link href={`/portal/proyecto/${proyecto.id}/gestion`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">
                 <h2 className="font-semibold text-gray-800">Datos del proyecto para informes</h2>
-                <p className="text-sm text-gray-600">Ficha, objetivos y plan de actividades, árbol de problemas, metas por ciclo, presupuesto y textos del ciclo.</p>
+                <p className="text-sm text-gray-600">Ficha, objetivos y plan de actividades, metas, presupuesto y árbol de problemas.</p>
               </Link>
               {proyecto.id !== 'vinculacion' && (
                 <Link href={`/investigacion/proyectos/${proyecto.id}/equipo`} className="block rounded-lg border bg-white p-5 shadow-sm hover:border-blue-400">

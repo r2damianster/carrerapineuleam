@@ -111,8 +111,8 @@ export async function GET(request: Request, { params }: { params: { slug: string
         WHERE proyecto_id = ${proyectoId}
         ORDER BY es_defecto DESC, id ASC
       `;
-      // "Estudiantes involucrados" se calcula solo: pasantes de Vinculación (instructores de espacios)
-      // o pasantes asignados al proyecto de investigación.
+      // "Estudiantes involucrados": el cumplimiento lo escribe el líder/colíder; el conteo de pasantes
+      // asignados (instructores de espacios, o asignados al proyecto de investigación) va solo de referencia.
       const [conteo] = proyectoId === 'vinculacion'
         ? await sql`
             SELECT COUNT(DISTINCT ei.usuario_id)::int AS total
@@ -124,7 +124,7 @@ export async function GET(request: Request, { params }: { params: { slug: string
             WHERE rol = 'estudiante' AND proyecto_investigacion_id = ${proyectoId}
           `;
       const personalizadas = filasMetas.map(fila =>
-        fila.es_defecto ? { ...fila, logrado: conteo?.total ?? 0, automatico: true } : fila
+        fila.es_defecto ? { ...fila, asignados: conteo?.total ?? 0 } : fila
       );
       const ciclos = await sql`SELECT id, nombre FROM ciclos_academicos ORDER BY id DESC`;
       return NextResponse.json({ success: true, metas: metas || null, personalizadas, ciclos });
@@ -373,7 +373,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         await sql`
           UPDATE proyecto_metas_personalizadas
           SET descripcion = CASE WHEN es_defecto THEN descripcion ELSE ${String(descripcion).trim()} END, meta = ${Number(meta) || 0},
-              logrado = CASE WHEN es_defecto THEN logrado ELSE ${Number(logrado) || 0} END, unidad = ${unidad || null},
+              logrado = ${Number(logrado) || 0}, unidad = ${unidad || null},
               tipo = ${tipo === 'porcentual' ? 'porcentual' : 'absoluto'}
           WHERE id = ${id} AND proyecto_id = ${proyectoId}
         `;
