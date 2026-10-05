@@ -9,6 +9,7 @@ interface EnlaceEvaluacionModalProps {
   tipo: 'pretest' | 'postest';
   beneficiarioId?: number;
   beneficiarioNombre?: string;
+  aulaId?: string; // aula a la que quedan inscritos los beneficiarios que usen este enlace de pretest
   onClose: () => void;
 }
 
@@ -19,7 +20,7 @@ function mañana(): string {
 }
 
 export default function EnlaceEvaluacionModal({
-  espacioId, testTipo, tipo, beneficiarioId, beneficiarioNombre, onClose,
+  espacioId, testTipo, tipo, beneficiarioId, beneficiarioNombre, aulaId, onClose,
 }: EnlaceEvaluacionModalProps) {
   const [expiraFecha, setExpiraFecha] = useState(mañana());
   const [ciclos, setCiclos] = useState<any[]>([]);
@@ -55,6 +56,7 @@ export default function EnlaceEvaluacionModal({
           test_tipo: testTipo,
           beneficiario_id: beneficiarioId,
           ciclo_id: cicloId ? parseInt(cicloId) : undefined,
+          aula_id: aulaId ? parseInt(aulaId) : undefined,
           expira_en: `${expiraFecha}T23:59:59`,
         }),
       });

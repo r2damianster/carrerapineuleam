@@ -42,7 +42,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     await client.query('BEGIN');
 
     const { rows: enlaceRows } = await client.query(
-      `SELECT tipo, test_tipo, espacio_id, ciclo_id, creado_por, expira_en, max_usos, usos_actuales
+      `SELECT tipo, test_tipo, espacio_id, aula_id, ciclo_id, creado_por, expira_en, max_usos, usos_actuales
        FROM enlaces_evaluacion WHERE token = $1 FOR UPDATE`,
       [params.token]
     );
@@ -95,8 +95,10 @@ export async function POST(request: Request, { params }: { params: { token: stri
       beneficiarioId = existente[0].id;
       beneficiarioNombre = existente[0];
       await client.query(
-        `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [enlace.espacio_id, beneficiarioId]
+        `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id, aula_id) VALUES ($1, $2, $3)
+         ON CONFLICT (espacio_id, beneficiario_id)
+         DO UPDATE SET aula_id = COALESCE(inscripciones_espacio.aula_id, EXCLUDED.aula_id)`,
+        [enlace.espacio_id, beneficiarioId, enlace.aula_id]
       );
     } else {
       const emailFinal = email && email.trim()
@@ -124,8 +126,8 @@ export async function POST(request: Request, { params }: { params: { token: stri
       );
 
       await client.query(
-        `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [enlace.espacio_id, beneficiarioId]
+        `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id, aula_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+        [enlace.espacio_id, beneficiarioId, enlace.aula_id]
       );
     }
 

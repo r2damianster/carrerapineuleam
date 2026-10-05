@@ -18,7 +18,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
     const sql = neon(process.env.DATABASE_URL!);
     const aulas = await sql`SELECT id, nombre, activa FROM aulas WHERE espacio_id = ${espacioId} ORDER BY nombre`;
-    return NextResponse.json({ success: true, data: aulas });
+    const [espacio] = await sql`SELECT usa_aulas FROM "espacios_enseñanza" WHERE id = ${espacioId}`;
+    return NextResponse.json({ success: true, data: aulas, usa_aulas: !!espacio?.usa_aulas });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

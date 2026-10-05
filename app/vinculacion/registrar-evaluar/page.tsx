@@ -7,6 +7,7 @@ import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/l
 import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
 import ResumenValidacionModal from '@/components/ResumenValidacionModal';
+import SelectorAulaEspacio from '@/components/SelectorAulaEspacio';
 
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
@@ -24,6 +25,8 @@ export default function RegistrarEvaluarPage() {
   const [todosBeneficiarios, setTodosBeneficiarios] = useState<any[]>([]);
   const [selectedBens, setSelectedBens] = useState<number[]>([]);
   const [modalEnlace, setModalEnlace] = useState(false);
+  const [aulaId, setAulaId] = useState('');
+  const [usaAulas, setUsaAulas] = useState(false);
 
   const [nuevoForm, setNuevoForm] = useState({
     nombres: '', apellidos: '', contacto: '', email: '',
@@ -109,13 +112,17 @@ export default function RegistrarEvaluarPage() {
       setMessage('Error: Selecciona un espacio y al menos un beneficiario');
       return;
     }
+    if (usaAulas && !aulaId) {
+      setMessage('Error: Selecciona el aula');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
       const res = await fetch('/api/espacios/asignar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ espacio_id: parseInt(espacioId), beneficiarios_ids: selectedBens }),
+        body: JSON.stringify({ espacio_id: parseInt(espacioId), aula_id: aulaId ? parseInt(aulaId) : undefined, beneficiarios_ids: selectedBens }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -133,6 +140,10 @@ export default function RegistrarEvaluarPage() {
     e.preventDefault();
     if (!espacioId) {
       setMessage('Error: Selecciona un espacio');
+      return;
+    }
+    if (usaAulas && !aulaId) {
+      setMessage('Error: Selecciona el aula del beneficiario');
       return;
     }
     if (Object.keys(answers).length < preguntasPuntaje.length) {
@@ -199,6 +210,7 @@ export default function RegistrarEvaluarPage() {
         body: JSON.stringify({
           ...nuevoForm,
           espacio_id: parseInt(espacioId),
+          aula_id: aulaId ? parseInt(aulaId) : undefined,
           respuestas_json: { ...answers, _audio: audioResultado, _desglose: resultado.desglose },
           puntaje_obtenido: resultado.score,
           nivel_asignado: resultado.level,
@@ -301,6 +313,8 @@ export default function RegistrarEvaluarPage() {
           </select>
         </div>
 
+        <SelectorAulaEspacio espacioId={espacioId} aulaId={aulaId} onChange={setAulaId} onUsaAulas={setUsaAulas} />
+
         <div className="mb-6 flex flex-wrap gap-2 justify-center">
           <button type="button" disabled={!espacioId} onClick={() => setModalEnlace(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-uleam-blue hover:bg-uleam-blue/90 disabled:opacity-50">
@@ -317,6 +331,7 @@ export default function RegistrarEvaluarPage() {
             espacioId={espacioId}
             testTipo="mcer"
             tipo="pretest"
+            aulaId={aulaId}
             onClose={() => setModalEnlace(false)}
           />
         )}

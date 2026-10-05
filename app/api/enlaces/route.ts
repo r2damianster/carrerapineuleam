@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
+import { resolverAulaInscripcion } from '@/lib/aulasEspacio';
 
 // Genera un enlace/QR público (sin login) para que un beneficiario tome el
 // test MCER o la encuesta de satisfacción directamente desde su celular.
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { espacio_id, tipo, test_tipo, beneficiario_id, ciclo_id, expira_en } = await request.json();
+    const { espacio_id, tipo, test_tipo, beneficiario_id, ciclo_id, expira_en, aula_id } = await request.json();
 
     if (!espacio_id || !tipo || !test_tipo || !expira_en) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -53,11 +54,21 @@ export async function POST(request: Request) {
       }
     }
 
+    // El pretest registra beneficiarios nuevos: si el espacio usa aulas, el enlace queda ligado a una.
+    let aulaEnlace: number | null = null;
+    if (tipo === 'pretest') {
+      const aula = await resolverAulaInscripcion(sql, Number(espacio_id), aula_id);
+      if (!aula.ok) {
+        return NextResponse.json({ error: aula.error }, { status: 400 });
+      }
+      aulaEnlace = aula.aulaId;
+    }
+
     const maxUsos = tipo === 'postest' ? 1 : null;
 
     const [enlace] = await sql`
-      INSERT INTO enlaces_evaluacion (tipo, test_tipo, espacio_id, beneficiario_id, ciclo_id, creado_por, expira_en, max_usos)
-      VALUES (${tipo}, ${test_tipo}, ${espacio_id}, ${tipo === 'postest' ? beneficiario_id : null}, ${ciclo_id || null}, ${usuario.id}, ${expira_en}, ${maxUsos})
+      INSERT INTO enlaces_evaluacion (tipo, test_tipo, espacio_id, beneficiario_id, ciclo_id, creado_por, expira_en, max_usos, aula_id)
+      VALUES (${tipo}, ${test_tipo}, ${espacio_id}, ${tipo === 'postest' ? beneficiario_id : null}, ${ciclo_id || null}, ${usuario.id}, ${expira_en}, ${maxUsos}, ${aulaEnlace})
       RETURNING token
     `;
 

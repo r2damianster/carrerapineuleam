@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeOperarEspacio } from '@/lib/permisos-espacio';
+import { resolverAulaInscripcion } from '@/lib/aulasEspacio';
 import { buscarMasParecidoBeneficiario, evaluarGateSimilitud } from '@/lib/similitudRegistros';
 
 // Registro de un beneficiario NUEVO + su Pre-Test MCER en una sola
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const {
-    espacio_id,
+    espacio_id, aula_id,
     nombres, apellidos, contacto, email,
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
   // Gate de similitud (70% aviso / 90% bloqueo) — detecta a la misma persona registrada dos veces
   // con nombre parecido, antes de crear el usuario+perfil+inscripción+evaluación.
   const sqlGate = neon(process.env.DATABASE_URL!);
+  const aula = await resolverAulaInscripcion(sqlGate, Number(espacio_id), aula_id);
+  if (!aula.ok) {
+    return NextResponse.json({ error: aula.error }, { status: 400 });
+  }
   const similitud = await buscarMasParecidoBeneficiario(sqlGate, {
     nombreCompleto: `${nombres} ${apellidos}`,
     edad: edad || edad === 0 ? Number(edad) : null,
@@ -83,8 +88,8 @@ export async function POST(request: Request) {
     );
 
     await client.query(
-      `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [espacio_id, nuevoUsuario.id]
+      `INSERT INTO inscripciones_espacio (espacio_id, beneficiario_id, aula_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [espacio_id, nuevoUsuario.id, aula.aulaId]
     );
 
     await client.query(
