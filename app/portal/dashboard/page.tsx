@@ -194,6 +194,7 @@ export default async function PortalDashboard() {
                   <Link href="/vinculacion/espacios" className="text-purple-600 hover:underline">» Administrar Espacios</Link>
                   <Link href="/vinculacion/pasantes" className="text-purple-600 hover:underline">» Administrar Pasantes</Link>
                   <Link href="/vinculacion/topes-horas" className="text-purple-600 hover:underline">» Topes de horas por pasante</Link>
+                  <Link href="/vinculacion/proyeccion-horas" className="text-purple-600 hover:underline">» Proyección de cumplimiento de horas</Link>
                   <Link href="/vinculacion/informes?tipo=lider" className="text-purple-600 hover:underline">» Generar Informes del Líder (Mensual / Semestral)</Link>
                 </div>
               </div>
