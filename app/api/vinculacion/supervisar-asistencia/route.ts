@@ -73,7 +73,7 @@ export async function GET(request: Request) {
         AND (
           ${instructorId}::text IS NULL
           OR ae.registrado_por = ${instructorId}::int
-          OR EXISTS (SELECT 1 FROM espacio_instructores ei WHERE ei.espacio_id = ae.espacio_id AND ei.usuario_id = ${instructorId}::int)
+          OR EXISTS (SELECT 1 FROM asistencia_instructores aif WHERE aif.asistencia_id = ae.id AND aif.usuario_id = ${instructorId}::int)
         )
       ORDER BY
         (ae.estado_aprobacion = 'pendiente') DESC,

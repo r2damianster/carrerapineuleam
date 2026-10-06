@@ -36,6 +36,17 @@ export function puedeEditarContribucion(usuario: AppSession, contribucion: Contr
   return esAdminOSuperadmin(usuario) || esAutorOCreador(usuario, contribucion);
 }
 
+// Aprobar/rechazar un envío externo (enlace/QR) pendiente: admin/superadmin, o el docente que
+// generó el enlace (creadoPorId). Nunca el simple coautor por nombre — solo quien recibió el envío.
+export function puedeAprobarContribucion(
+  usuario: AppSession,
+  contribucion: { aprobada: boolean; creadoPorId: number | null }
+): boolean {
+  if (contribucion.aprobada) return false;
+  return esAdminOSuperadmin(usuario) ||
+    (contribucion.creadoPorId !== null && contribucion.creadoPorId === Number(usuario.id));
+}
+
 // Solo admin/superadmin borran — ni el propio autor/creador.
 export function puedeEliminarContribucion(usuario: AppSession): boolean {
   return esAdminOSuperadmin(usuario);

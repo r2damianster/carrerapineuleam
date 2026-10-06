@@ -92,7 +92,10 @@ export async function GET(request: Request) {
     // 8. Contribuciones académicas por tipo (artículos regionales/alto impacto, libros, capítulos, etc.)
     const contribucionesPorTipo = await prisma.contribution.groupBy({
       by: ['tipoPublicacion'],
-      where: periodo ? { fechaSubida: { gte: new Date(`${desde}T00:00:00Z`), lte: new Date(`${hasta}T23:59:59Z`) } } : undefined,
+      // Solo contribuciones aprobadas: los envíos externos por QR no cuentan hasta que su docente los apruebe.
+      where: periodo
+        ? { aprobada: true, fechaSubida: { gte: new Date(`${desde}T00:00:00Z`), lte: new Date(`${hasta}T23:59:59Z`) } }
+        : { aprobada: true },
       _count: { _all: true },
     });
     const conteoTipo = Object.fromEntries(contribucionesPorTipo.map(c => [c.tipoPublicacion, c._count._all]));

@@ -157,19 +157,40 @@ export interface ContributionFormInitialData extends Partial<FormValues> {
   id?: string
 }
 
+// Fila del docente que generó el enlace, precargada para quien envía por QR (modo 'public').
+export interface DocenteAutorPrecargado {
+  nombre: string
+  orden: number
+}
+
+function normalizarNombre(valor: string): string {
+  return valor.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
 export default function ContributionForm({
   tipo,
   mode,
   contributionId,
   initialData,
+  publicToken,
+  docenteAutor,
+  docenteNombre,
 }: {
   tipo: TipoPublicacion
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit' | 'public'
   contributionId?: string
   initialData?: ContributionFormInitialData
+  // Solo modo 'public' (enviar-contribucion/[token]):
+  publicToken?: string
+  docenteAutor?: DocenteAutorPrecargado | null
+  docenteNombre?: string
 }) {
   const router = useRouter()
+  const esPublico = mode === 'public'
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [enviado, setEnviado] = useState(false)
+  const [registradorNombre, setRegistradorNombre] = useState('')
+  const [registradorContacto, setRegistradorContacto] = useState('')
   const {
     register,
     control,
@@ -186,7 +207,9 @@ export default function ContributionForm({
       revisadoPares: initialData?.revisadoPares ?? true,
       authors: initialData?.authors?.length
         ? initialData.authors
-        : [{ authorName: '', order: 1, isCarreraAuthor: true, esEstudiante: false }],
+        : docenteAutor
+          ? [{ authorName: docenteAutor.nombre, order: docenteAutor.orden, isCarreraAuthor: true, esEstudiante: false }]
+          : [{ authorName: '', order: 1, isCarreraAuthor: true, esEstudiante: false }],
       ...(initialData || {}),
     },
   })
@@ -213,8 +236,30 @@ export default function ContributionForm({
     if (datos.nombreRevista) setValue('nombreRevista', datos.nombreRevista)
     if (datos.issn) setValue('issn', datos.issn)
     if (datos.authors && datos.authors.length > 0) {
-      replaceAuthors(datos.authors.map(a => ({ ...a, esEstudiante: a.esEstudiante ?? false })))
+      const autoresExtraidos = datos.authors.map(a => ({ ...a, esEstudiante: a.esEstudiante ?? false }))
+      replaceAuthors(docenteAutor ? combinarConDocente(autoresExtraidos, docenteAutor) : autoresExtraidos)
     }
+  }
+
+  // El autocompletar reemplaza la lista de autores: la fila del docente se conserva en su orden
+  // y los demás se renumeran alrededor, sin duplicarlo si la fuente ya lo traía.
+  const combinarConDocente = (
+    extraidos: { authorName: string; order: number; isCarreraAuthor: boolean; esEstudiante: boolean }[],
+    docente: DocenteAutorPrecargado
+  ) => {
+    const nombreDocente = normalizarNombre(docente.nombre)
+    const otros = extraidos
+      .filter(a => normalizarNombre(a.authorName) !== nombreDocente)
+      .sort((a, b) => a.order - b.order)
+    const resultado = []
+    let siguienteOrden = 1
+    for (const autor of otros) {
+      if (siguienteOrden === docente.orden) siguienteOrden++
+      resultado.push({ ...autor, order: siguienteOrden })
+      siguienteOrden++
+    }
+    resultado.push({ authorName: docente.nombre, order: docente.orden, isCarreraAuthor: true, esEstudiante: false })
+    return resultado.sort((a, b) => a.order - b.order).slice(0, 5)
   }
 
   const buscarPorDoi = async () => {
@@ -222,7 +267,7 @@ export default function ContributionForm({
     setAutocompletando('doi')
     setAutocompletarError(null)
     try {
-      const res = await fetch('/api/contribuciones/extract-doi', {
+      const res = await fetch(esPublico ? `/api/enlaces-contribucion/${publicToken}/extract-doi` : '/api/contribuciones/extract-doi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ doi: doiInput }),
@@ -243,7 +288,7 @@ export default function ContributionForm({
     try {
       const form = new FormData()
       form.append('archivo', archivo)
-      const res = await fetch('/api/contribuciones/extract-pdf', { method: 'POST', body: form })
+      const res = await fetch(esPublico ? `/api/enlaces-contribucion/${publicToken}/extract-pdf` : '/api/contribuciones/extract-pdf', { method: 'POST', body: form })
       const datos = await res.json()
       if (!res.ok) throw new Error(datos.error || 'No se pudo leer el PDF')
       aplicarDatosExtraidos(datos)
@@ -256,6 +301,13 @@ export default function ContributionForm({
 
   const onSubmit = async (data: FormValues) => {
     try {
+      if (esPublico && !registradorNombre.trim()) {
+        throw new Error('Escribe tu nombre en "¿Quién envía esta contribución?"')
+      }
+      const ordenes = data.authors.map(a => a.order)
+      if (new Set(ordenes).size !== ordenes.length) {
+        throw new Error('Dos autores no pueden tener el mismo número de orden')
+      }
       const payload: any = { ...data }
       // El input "Título" representa el título del libro en estos dos tipos —
       // se copia a tituloLibro para que quede en el campo correcto de la BD.
@@ -267,7 +319,14 @@ export default function ContributionForm({
       delete payload.filiacionOtro
       delete payload.participacionOtro
 
-      const url = mode === 'edit' ? `/api/contribuciones/${contributionId}` : '/api/contribuciones'
+      if (esPublico) {
+        payload.registradorExternoNombre = registradorNombre.trim()
+        payload.registradorExternoContacto = registradorContacto.trim()
+      }
+
+      const url = esPublico
+        ? `/api/enlaces-contribucion/${publicToken}`
+        : mode === 'edit' ? `/api/contribuciones/${contributionId}` : '/api/contribuciones'
       const method = mode === 'edit' ? 'PATCH' : 'POST'
       const res = await fetch(url, {
         method,
@@ -276,7 +335,13 @@ export default function ContributionForm({
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Error al guardar')
+        const mensaje = Array.isArray(err.error) ? err.error.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join('; ') : err.error
+        throw new Error(mensaje || 'Error al guardar')
+      }
+      if (esPublico) {
+        setEnviado(true)
+        window.scrollTo({ top: 0 })
+        return
       }
       router.push(mode === 'edit' ? '/contribuciones?contribucion=editada' : '/portal/dashboard?contribucion=registrada')
     } catch (e: any) {
@@ -284,20 +349,64 @@ export default function ContributionForm({
     }
   }
 
+  // El nuevo autor toma el menor número de orden libre (si el docente ya ocupa el 2, no se repite).
   const addAuthor = () => {
-    if (authorFields.length < 5) {
-      appendAuthor({ authorName: '', order: authorFields.length + 1, isCarreraAuthor: true, esEstudiante: false })
-    }
+    if (authorFields.length >= 5) return
+    const ordenesUsados = watch('authors').map(a => Number(a.order))
+    let ordenLibre = 1
+    while (ordenesUsados.includes(ordenLibre)) ordenLibre++
+    appendAuthor({ authorName: '', order: ordenLibre, isCarreraAuthor: true, esEstudiante: false })
   }
 
   const esArticulo = tipo === 'ARTICULO_REGIONAL' || tipo === 'ARTICULO_ALTO_IMPACTO'
   const tituloLabel = tipo === 'LIBRO' || tipo === 'CAPITULO_LIBRO' ? 'Título del libro *' : 'Título *'
 
+  if (enviado) {
+    return (
+      <div className="max-w-xl mx-auto p-6 text-center">
+        <h1 className="text-2xl font-bold text-green-700 mb-2">¡Contribución enviada!</h1>
+        <p className="text-gray-600">
+          {docenteNombre ? `${docenteNombre} la revisará y la aprobará.` : 'Será revisada y aprobada por el docente.'} Ya puedes cerrar esta página.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">{mode === 'edit' ? 'Editar contribución' : 'Nuevo registro de contribución'}</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        {mode === 'edit' ? 'Editar contribución' : esPublico ? 'Enviar contribución académica' : 'Nuevo registro de contribución'}
+      </h1>
 
-      {mode === 'create' && (
+      {esPublico && (
+        <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6 space-y-3">
+          <p className="text-sm text-blue-900">
+            {docenteNombre ? `${docenteNombre} te invitó a registrar esta contribución.` : 'Fuiste invitado a registrar esta contribución.'}{' '}
+            Quedará pendiente hasta que el docente la revise y la apruebe.
+          </p>
+          <div>
+            <label className="block text-sm font-medium">¿Quién envía esta contribución? *</label>
+            <input
+              type="text"
+              value={registradorNombre}
+              onChange={e => setRegistradorNombre(e.target.value)}
+              placeholder="Tu nombre completo"
+              className="mt-1 block w-full border rounded p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Contacto (correo o teléfono, opcional)</label>
+            <input
+              type="text"
+              value={registradorContacto}
+              onChange={e => setRegistradorContacto(e.target.value)}
+              className="mt-1 block w-full border rounded p-2"
+            />
+          </div>
+        </div>
+      )}
+
+      {mode !== 'edit' && (
         <div className="bg-gray-50 border rounded p-4 mb-6 space-y-3">
           <h2 className="font-medium text-gray-800">Autocompletar (opcional)</h2>
           <p className="text-sm text-gray-500">

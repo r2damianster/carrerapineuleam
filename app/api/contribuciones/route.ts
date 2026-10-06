@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
-import { puedeEditarContribucion, puedeEliminarContribucion } from '@/lib/permisosContribucion';
+import { puedeEditarContribucion, puedeEliminarContribucion, puedeAprobarContribucion } from '@/lib/permisosContribucion';
 import { contribucionSchema as baseSchema } from '@/lib/contribucionSchema';
+import { datosContribucion, autoresParaCrear } from '@/lib/contribucionData';
 
 export async function GET() {
   const usuario = await getAppSessionFromCookies();
@@ -19,6 +20,7 @@ export async function GET() {
     ...c,
     _puedeEditar: puedeEditarContribucion(usuario, c),
     _puedeEliminar: puedeEliminarContribucion(usuario),
+    _puedeAprobar: puedeAprobarContribucion(usuario, c),
   }));
   return NextResponse.json(conPermisos);
 }
@@ -34,67 +36,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parseResult.error.errors }, { status: 400 });
   }
   const data = parseResult.data;
-  // Forzar CODIGO_IES a ULEAM y defaults de facultad/carrera
-  data.codigo_ies = 'ULEAM';
-  const creadoPorId = Number(usuario.id);
-  if (!data.facultad) data.facultad = 'Facultad de Educación y Turismo';
-  if (!data.carrera) data.carrera = 'Pedagogía de los Idiomas Nacionales y Extranjeros';
   const fechaPub = new Date(data.fechaPublicacion);
   const periodoAcademico = calcularPeriodoAcademico(fechaPub);
   const contribution = await prisma.contribution.create({
     data: {
-      codigo_ies: data.codigo_ies,
-      creadoPorId,
-      periodoAcademico,
-      facultad: data.facultad,
-      carrera: data.carrera,
-      tipoPublicacion: data.tipoPublicacion as any,
-      tipoArticulo: data.tipoArticulo,
-      codigoPublicacion: data.codigoPublicacion,
-      proyecto: data.proyecto,
-      titulo: data.titulo,
-      tituloLibro: data.tituloLibro,
-      nombreRevista: data.nombreRevista,
-      issn: data.issn,
-      isbn: data.isbn,
-      fechaPublicacion: fechaPub,
-      campoDetallado: data.campoDetallado,
-      estado: data.estado as any,
-      linkPublicacion: data.linkPublicacion,
-      linkRevista: data.linkRevista,
-      filiacion: data.filiacion,
-      identificacionParticipante: data.identificacionParticipante,
-      categoria: data.categoria as any,
-      participacion: data.participacion,
-      cuartil: data.cuartil,
-      lineaInvestigacion: data.lineaInvestigacion,
-      intercultural: data.intercultural,
-      baseDatosIndexada: data.baseDatosIndexada,
-      revisadoPares: data.revisadoPares,
-      tituloCapitulo: data.tituloCapitulo,
-      editorCompilador: data.editorCompilador,
-      paginas: data.paginas,
-      totalCapituloLibro: data.totalCapituloLibro,
-      nombrePonencia: data.nombrePonencia,
-      nombreEvento: data.nombreEvento,
-      edicionEvento: data.edicionEvento,
-      organizadorEvento: data.organizadorEvento,
-      comiteOrganizador: data.comiteOrganizador,
-      pais: data.pais,
-      ciudad: data.ciudad,
-      certificadoN: data.certificadoN,
-      solicitudN: data.solicitudN,
-      claseDeObra: data.claseDeObra,
-      tituloObra: data.tituloObra,
-      lugar: data.lugar,
-      authors: {
-        create: data.authors.map(a => ({
-          authorName: a.authorName,
-          order: a.order,
-          isCarreraAuthor: a.isCarreraAuthor,
-          esEstudiante: a.esEstudiante,
-        })),
-      },
+      ...datosContribucion(data, fechaPub, periodoAcademico),
+      creadoPorId: Number(usuario.id),
+      authors: { create: autoresParaCrear(data.authors) },
     },
     include: { authors: true },
   });

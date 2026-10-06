@@ -81,6 +81,10 @@ model Contribution {
   validadoPor            String?   // id del admin que valida
   fechaValidacion        DateTime?
   creadoPorId            Int?      // usuarios.id de quien la registró — permite editar solo lo propio
+  origen                 String   @default("docente") // 'docente' | 'enlace_externo' (QR de enlaces_contribucion)
+  aprobada               Boolean  @default(true)      // enlace_externo nace false; solo las aprobadas cuentan en estadísticas
+  registradorExternoNombre   String?
+  registradorExternoContacto String?
   authors                ContributionAuthor[]
 }
 

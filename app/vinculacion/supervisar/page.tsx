@@ -88,6 +88,14 @@ const aMarcaTiempo = (fecha: string | null | undefined) => {
   return isNaN(fechaObjeto.getTime()) ? 0 : fechaObjeto.getTime();
 };
 
+const horasSesion = (r: Registro) => {
+  if (!r.hora_inicio || !r.hora_fin) return null;
+  const [hi, mi] = r.hora_inicio.split(':').map(Number);
+  const [hf, mf] = r.hora_fin.split(':').map(Number);
+  const minutos = (hf * 60 + mf) - (hi * 60 + mi);
+  return Math.round((minutos / 60) * 100) / 100;
+};
+
 const formatearFecha = (fecha: string | null | undefined) => {
   if (!fecha) return '';
   const fechaObjeto = new Date(fecha.includes('T') ? fecha : `${fecha}T00:00:00`);
@@ -145,6 +153,7 @@ export default function SupervisarAsistenciaPage() {
     const urlHoras = (tipo: TipoHoras) => {
       const parametros = new URLSearchParams(parametrosBase);
       parametros.set('tipo', tipo);
+      if (instructorId) parametros.set('pasante_id', instructorId);
       return `/api/vinculacion/supervisar-horas?${parametros}`;
     };
 
@@ -338,16 +347,39 @@ export default function SupervisarAsistenciaPage() {
   const registrosConHoras = registrosVisibles.filter(
     (registro): registro is Extract<RegistroUnificado, { horas: RegistroHoras }> => registro.tipo !== 'asistencia'
   );
+  // Resumen de horas por pasante y tipo (según los filtros activos). Asistencia: horas de la sesión
+  // para cada pasante que asistió (titular o invitado); si hay un pasante filtrado, solo él.
+  type HorasPorEstado = { aprobado: number; pendiente: number };
+  const resumenPorPasante = (() => {
+    const mapa = new Map<string, { nombre: string; tipos: Record<TipoRegistro, HorasPorEstado> }>();
+    const vacio = (): Record<TipoRegistro, HorasPorEstado> => ({
+      asistencia: { aprobado: 0, pendiente: 0 },
+      podcast: { aprobado: 0, pendiente: 0 },
+      investigacion: { aprobado: 0, pendiente: 0 },
+      autonomas: { aprobado: 0, pendiente: 0 },
+    });
+    const sumar = (pasanteId: number, nombre: string, tipo: TipoRegistro, estadoRegistro: string, horas: number) => {
+      if (estadoRegistro !== 'aprobado' && estadoRegistro !== 'pendiente') return;
+      if (instructorId && String(pasanteId) !== instructorId) return;
+      const clave = String(pasanteId);
+      if (!mapa.has(clave)) mapa.set(clave, { nombre, tipos: vacio() });
+      mapa.get(clave)!.tipos[tipo][estadoRegistro] += horas;
+    };
+    registrosVisibles.forEach(registro => {
+      if (registro.tipo === 'asistencia') {
+        const duracion = horasSesion(registro.asistencia) ?? 0;
+        registro.asistencia.asistentes_instructor.forEach(asistente =>
+          sumar(asistente.id, asistente.nombre, 'asistencia', registro.estado, duracion));
+      } else {
+        sumar(registro.horas.usuario_id, `${registro.horas.nombres} ${registro.horas.apellidos}`, registro.tipo, registro.estado, registro.horas.horas);
+      }
+    });
+    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  })();
+  const redondear = (valor: number) => Math.round(valor * 100) / 100;
+
   const totalHorasAprobadas = registrosConHoras.filter(r => r.estado === 'aprobado').reduce((suma, r) => suma + r.horas.horas, 0);
   const totalHorasPendientes = registrosConHoras.filter(r => r.estado === 'pendiente').reduce((suma, r) => suma + r.horas.horas, 0);
-
-  const horasSesion = (r: Registro) => {
-    if (!r.hora_inicio || !r.hora_fin) return null;
-    const [hi, mi] = r.hora_inicio.split(':').map(Number);
-    const [hf, mf] = r.hora_fin.split(':').map(Number);
-    const minutos = (hf * 60 + mf) - (hi * 60 + mi);
-    return Math.round((minutos / 60) * 100) / 100;
-  };
 
   if (checkingSession) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
@@ -413,25 +445,62 @@ export default function SupervisarAsistenciaPage() {
               <option value="todos">Todos</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Pasante (todos los tipos)</label>
+            <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+              <option value="">Todos</option>
+              {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+            </select>
+          </div>
           {mostrarFiltrosAsistencia && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Espacio (asistencia)</label>
-                <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                  <option value="">Todos</option>
-                  {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Estudiante-instructor (asistencia)</label>
-                <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                  <option value="">Todos</option>
-                  {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-                </select>
-              </div>
-            </>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Espacio (asistencia)</label>
+              <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                <option value="">Todos</option>
+                {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </div>
           )}
         </div>
+
+        {resumenPorPasante.length > 0 && (
+          <div className="bg-white p-4 rounded-xl shadow-sm mb-4 overflow-x-auto">
+            <h2 className="text-sm font-bold text-gray-800 mb-2">Horas por pasante (según filtros) — aprobadas / pendientes</h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="py-1 pr-3">Pasante</th>
+                  {TIPOS_REGISTRO.map(tipo => <th key={tipo} className="py-1 px-2">{ETIQUETA_TIPO[tipo].texto}</th>)}
+                  <th className="py-1 pl-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumenPorPasante.map(fila => {
+                  const totalAprobado = TIPOS_REGISTRO.reduce((suma, tipo) => suma + fila.tipos[tipo].aprobado, 0);
+                  const totalPendiente = TIPOS_REGISTRO.reduce((suma, tipo) => suma + fila.tipos[tipo].pendiente, 0);
+                  return (
+                    <tr key={fila.nombre} className="border-t border-gray-100">
+                      <td className="py-1.5 pr-3 font-medium text-gray-800">{fila.nombre}</td>
+                      {TIPOS_REGISTRO.map(tipo => (
+                        <td key={tipo} className="py-1.5 px-2 text-gray-700">
+                          <span className="text-green-700 font-semibold">{redondear(fila.tipos[tipo].aprobado)}</span>
+                          {' / '}
+                          <span className="text-yellow-700">{redondear(fila.tipos[tipo].pendiente)}</span>
+                        </td>
+                      ))}
+                      <td className="py-1.5 pl-2 font-semibold">
+                        <span className="text-green-700">{redondear(totalAprobado)}</span>
+                        {' / '}
+                        <span className="text-yellow-700">{redondear(totalPendiente)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="text-[11px] text-gray-400 mt-2">Cambia "Estado" a "Todos" para ver aprobadas y pendientes juntas. Rechazadas no suman.</p>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <span className="text-xs font-medium text-gray-500">Tipo:</span>

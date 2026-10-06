@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
+import EnlaceContribucionModal from "@/components/EnlaceContribucionModal";
 
 interface Author {
   authorName: string;
@@ -18,6 +19,11 @@ interface Contribution {
   authors: Author[];
   _puedeEditar: boolean;
   _puedeEliminar: boolean;
+  _puedeAprobar: boolean;
+  aprobada: boolean;
+  origen: string;
+  registradorExternoNombre: string | null;
+  registradorExternoContacto: string | null;
   [key: string]: any; // resto de campos específicos por tipo
 }
 
@@ -72,6 +78,7 @@ export default function ContributionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false);
 
   const fetchContributions = async () => {
     setLoading(true);
@@ -105,6 +112,21 @@ export default function ContributionsPage() {
     }
   };
 
+  const handleRevision = async (id: string, accion: "aprobar" | "rechazar") => {
+    if (accion === "rechazar" && !confirm("¿Rechazar y eliminar este envío?")) return;
+    const res = await fetch(`/api/contribuciones/${id}/aprobar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accion }),
+    });
+    if (res.ok) {
+      fetchContributions();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "No se pudo completar la acción");
+    }
+  };
+
   if (loading) return <div className="p-4">Cargando…</div>;
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
 
@@ -115,7 +137,16 @@ export default function ContributionsPage() {
           &larr; Volver al Portal PINE
         </Link>
       </div>
-      <h1 className="text-2xl font-bold mb-4">Contribuciones registradas</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Contribuciones registradas</h1>
+        <button
+          onClick={() => setMostrarModalEnlace(true)}
+          className="px-3 py-2 bg-uleam-blue text-white rounded font-semibold hover:bg-uleam-blue/90"
+        >
+          🔗 Recibir contribución por enlace/QR
+        </button>
+      </div>
+      {mostrarModalEnlace && <EnlaceContribucionModal onClose={() => setMostrarModalEnlace(false)} />}
       {contributions.length === 0 ? (
         <p>No hay contribuciones registradas.</p>
       ) : (
@@ -149,7 +180,16 @@ export default function ContributionsPage() {
                       </button>
                     </td>
                     <td className="p-2 border">{c.tipoPublicacion}</td>
-                    <td className="p-2 border">{c.titulo}</td>
+                    <td className="p-2 border">
+                      {c.titulo}
+                      {!c.aprobada && (
+                        <div className="mt-1 inline-block rounded bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                          Pendiente de aprobación
+                          {c.registradorExternoNombre ? ` · enviado por ${c.registradorExternoNombre}` : ""}
+                          {c.registradorExternoContacto ? ` (${c.registradorExternoContacto})` : ""}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-2 border">{c.periodoAcademico}</td>
                     <td className="p-2 border">{c.lineaInvestigacion}</td>
                     <td className="p-2 border">{new Date(c.fechaSubida).toLocaleString()}</td>
@@ -161,6 +201,18 @@ export default function ContributionsPage() {
                       ))}
                     </td>
                     <td className="p-2 border space-x-2 whitespace-nowrap">
+                      {c._puedeAprobar && (
+                        <>
+                          <button
+                            className="px-3 py-1 bg-green-600 text-white rounded"
+                            onClick={() => handleRevision(c.id, "aprobar")}
+                          >Aprobar</button>
+                          <button
+                            className="px-3 py-1 bg-orange-600 text-white rounded"
+                            onClick={() => handleRevision(c.id, "rechazar")}
+                          >Rechazar</button>
+                        </>
+                      )}
                       {c._puedeEditar && (
                         <Link
                           href={`/contribuciones/${c.id}/editar`}

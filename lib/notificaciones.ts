@@ -355,6 +355,30 @@ const REGLAS_NOTIFICACION: ReglaNotificacion[] = [
       };
     },
   },
+  {
+    // Docente que generó un enlace/QR de contribuciones: envíos externos esperando su aprobación
+    // ("Contribution".aprobada = false, creadoPorId = él). Misma condición que
+    // POST /api/contribuciones/[id]/aprobar (admin también puede aprobar, pero ve todo en el listado y
+    // no recibe el aviso de envíos ajenos).
+    id: 'contribuciones-por-aprobar',
+    aplica: (sesion) => esDocente(sesion),
+    consultar: async (sql, sesion) => {
+      const [fila] = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM "Contribution"
+        WHERE "aprobada" = false AND "origen" = 'enlace_externo' AND "creadoPorId" = ${Number(sesion.id)}
+      `;
+      const total = Number(fila?.total ?? 0);
+      if (total === 0) return null;
+      return {
+        id: 'contribuciones-por-aprobar',
+        cantidad: total,
+        mensaje: `Tienes ${plural(total, 'contribución enviada por enlace', 'contribuciones enviadas por enlace')} por aprobar.`,
+        href: '/contribuciones',
+        severidad: 'pendiente',
+      };
+    },
+  },
 ];
 
 /**
