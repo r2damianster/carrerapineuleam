@@ -54,6 +54,7 @@ export default function ProyeccionHorasPage() {
   const [periodoId, setPeriodoId] = useState<number | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<Estado | 'todos'>('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [filtroSupervisor, setFiltroSupervisor] = useState('');
   const [campoOrden, setCampoOrden] = useState<CampoOrden>('proyeccionSinAutonomas');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [mensaje, setMensaje] = useState('');
@@ -88,10 +89,17 @@ export default function ProyeccionHorasPage() {
     return total;
   }, [filas]);
 
+  const supervisoresDisponibles = useMemo(() => {
+    const nombres = new Set<string>();
+    filas.forEach(fila => fila.supervisores.split(', ').filter(Boolean).forEach(nombre => nombres.add(nombre)));
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b));
+  }, [filas]);
+
   const filasVisibles = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
     return filas
       .filter(fila => filtroEstado === 'todos' || fila.estado === filtroEstado)
+      .filter(fila => !filtroSupervisor || fila.supervisores.split(', ').includes(filtroSupervisor))
       .filter(fila => !termino || `${fila.nombres} ${fila.apellidos} ${fila.supervisores}`.toLowerCase().includes(termino))
             .sort((a, b) => {
         const comparacion = campoOrden === 'nombre'
@@ -99,7 +107,7 @@ export default function ProyeccionHorasPage() {
           : a[campoOrden] - b[campoOrden];
         return ordenAscendente ? comparacion : -comparacion;
       });
-  }, [filas, filtroEstado, busqueda, campoOrden, ordenAscendente]);
+  }, [filas, filtroEstado, filtroSupervisor, busqueda, campoOrden, ordenAscendente]);
 
   if (verificando) return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
 
@@ -124,6 +132,13 @@ export default function ProyeccionHorasPage() {
               className="block mt-1 border rounded-md px-2 py-1.5 bg-white"
             >
               {periodos.map(periodo => <option key={periodo.id} value={periodo.id}>{periodo.nombre}</option>)}
+            </select>
+          </label>
+          <label className="text-sm text-gray-700">
+            Supervisor
+            <select value={filtroSupervisor} onChange={evento => setFiltroSupervisor(evento.target.value)} className="block mt-1 border rounded-md px-2 py-1.5 bg-white">
+              <option value="">Todos</option>
+              {supervisoresDisponibles.map(nombre => <option key={nombre} value={nombre}>{nombre}</option>)}
             </select>
           </label>
           <label className="text-sm text-gray-700">
