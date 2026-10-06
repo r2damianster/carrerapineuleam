@@ -62,6 +62,31 @@ type FiltroTipo = 'todos' | TipoRegistro;
 const TIPOS_REGISTRO: TipoRegistro[] = ['asistencia', 'podcast', 'investigacion', 'autonomas'];
 
 // Etiqueta de color por tipo: todo lo supervisable va en una sola lista, distinguido por esta marca.
+type CampoFiltro = 'periodo' | 'supervisor' | 'estado' | 'pasante' | 'espacio' | 'tipo' | 'fechas' | 'horas';
+type OperadorHoras = '<' | '<=' | '=' | '>=' | '>';
+
+const CAMPOS_FILTRO: Record<CampoFiltro, string> = {
+  periodo: 'Período',
+  supervisor: 'Pasantes de',
+  estado: 'Estado',
+  pasante: 'Pasante',
+  espacio: 'Espacio (asistencia)',
+  tipo: 'Tipo',
+  fechas: 'Fechas',
+  horas: 'Horas',
+};
+const OPERADORES_HORAS: OperadorHoras[] = ['<', '<=', '=', '>=', '>'];
+
+const cumpleOperadorHoras = (horas: number, operador: OperadorHoras, valor: number) => {
+  switch (operador) {
+    case '<': return horas < valor;
+    case '<=': return horas <= valor;
+    case '=': return Math.abs(horas - valor) < 0.001;
+    case '>=': return horas >= valor;
+    default: return horas > valor;
+  }
+};
+
 const ETIQUETA_TIPO: Record<TipoRegistro, { texto: string; clases: string }> = {
   asistencia: { texto: 'Asistencia', clases: 'bg-sky-100 text-sky-800' },
   podcast: { texto: 'Podcast', clases: 'bg-purple-100 text-purple-800' },
@@ -135,6 +160,12 @@ export default function SupervisarAsistenciaPage() {
   const [confirmandoAsistencia, setConfirmandoAsistencia] = useState<RegistroUnificado | null>(null);
   const [periodoId, setPeriodoId] = useState<string | null>(null); // null = aún sin resolver; '' = todos
   const [supervisor, setSupervisor] = useState('todos');
+  // Filtro personalizado: campos activos (chips) y sus valores. Los de fechas/horas se aplican en el cliente.
+  const [camposActivos, setCamposActivos] = useState<CampoFiltro[]>(['periodo', 'estado']);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [horasOperador, setHorasOperador] = useState<OperadorHoras>('>=');
+  const [horasValor, setHorasValor] = useState('');
   const [periodos, setPeriodos] = useState<{ id: number; nombre: string; fecha_inicio: string; fecha_fin: string }[]>([]);
   const [supervisores, setSupervisores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
 
@@ -235,9 +266,38 @@ export default function SupervisarAsistenciaPage() {
   });
 
   const conteoPorTipo = (tipo: TipoRegistro) => registrosUnificados.filter(registro => registro.tipo === tipo).length;
-  const registrosVisibles = filtroTipo === 'todos'
-    ? registrosUnificados
-    : registrosUnificados.filter(registro => registro.tipo === filtroTipo);
+  const horasDelRegistro = (registro: RegistroUnificado) =>
+    registro.tipo === 'asistencia' ? horasSesion(registro.asistencia) : registro.horas.horas;
+  const desdeMarca = fechaDesde ? aMarcaTiempo(fechaDesde) : null;
+  const hastaMarca = fechaHasta ? aMarcaTiempo(fechaHasta) + 86399999 : null;
+  const valorHoras = horasValor !== '' ? Number(horasValor) : null;
+  const registrosVisibles = registrosUnificados.filter(registro => {
+    if (filtroTipo !== 'todos' && registro.tipo !== filtroTipo) return false;
+    if (desdeMarca !== null && registro.marcaTiempo < desdeMarca) return false;
+    if (hastaMarca !== null && registro.marcaTiempo > hastaMarca) return false;
+    if (valorHoras !== null && !isNaN(valorHoras)) {
+      const horas = horasDelRegistro(registro);
+      if (horas === null || !cumpleOperadorHoras(horas, horasOperador, valorHoras)) return false;
+    }
+    return true;
+  });
+
+  const camposDisponibles = (Object.keys(CAMPOS_FILTRO) as CampoFiltro[])
+    .filter(campo => !camposActivos.includes(campo) && (campo !== 'supervisor' || esLider));
+  const agregarFiltro = (campo: CampoFiltro) => setCamposActivos(previos => [...previos, campo]);
+  // Quitar un filtro lo devuelve a su valor neutro (sin restringir).
+  const quitarFiltro = (campo: CampoFiltro) => {
+    setCamposActivos(previos => previos.filter(activo => activo !== campo));
+    if (campo === 'periodo') setPeriodoId('');
+    if (campo === 'supervisor') setSupervisor('todos');
+    if (campo === 'estado') setEstado('todos');
+    if (campo === 'pasante') setInstructorId('');
+    if (campo === 'espacio') setEspacioId('');
+    if (campo === 'tipo') setFiltroTipo('todos');
+    if (campo === 'fechas') { setFechaDesde(''); setFechaHasta(''); }
+    if (campo === 'horas') setHorasValor('');
+  };
+  const limpiarFiltros = () => (Object.keys(CAMPOS_FILTRO) as CampoFiltro[]).forEach(quitarFiltro);
 
   const decidir = async (
     registro: RegistroUnificado,
@@ -385,8 +445,6 @@ export default function SupervisarAsistenciaPage() {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
   }
 
-  const mostrarFiltrosAsistencia = filtroTipo === 'todos' || filtroTipo === 'asistencia';
-
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
@@ -418,49 +476,85 @@ export default function SupervisarAsistenciaPage() {
 
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
 
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Período académico</label>
-            <select value={periodoId ?? ''} onChange={e => setPeriodoId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="">Todos los períodos</option>
-              {periodos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-          {esLider && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Pasantes de</label>
-              <select value={supervisor} onChange={e => setSupervisor(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                <option value="todos">Todos los supervisores</option>
-                <option value="yo">Solo los míos</option>
-                {supervisores.map(sup => <option key={sup.id} value={sup.id}>{sup.nombres} {sup.apellidos}</option>)}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500">Filtros:</span>
+            {camposActivos.map(campo => (
+              <div key={campo} className="flex flex-wrap items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full pl-3 pr-1.5 py-1 text-xs">
+                <span className="font-semibold text-blue-900">{CAMPOS_FILTRO[campo]}</span>
+                {campo === 'periodo' && (
+                  <select value={periodoId ?? ''} onChange={e => setPeriodoId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="">Todos</option>
+                    {periodos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                )}
+                {campo === 'supervisor' && (
+                  <select value={supervisor} onChange={e => setSupervisor(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="todos">Todos</option>
+                    <option value="yo">Solo los míos</option>
+                    {supervisores.map(sup => <option key={sup.id} value={sup.id}>{sup.nombres} {sup.apellidos}</option>)}
+                  </select>
+                )}
+                {campo === 'estado' && (
+                  <select value={estado} onChange={e => setEstado(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="pendiente">Pendientes</option>
+                    <option value="aprobado">Aprobados</option>
+                    <option value="rechazado">Rechazados</option>
+                    <option value="todos">Todos</option>
+                  </select>
+                )}
+                {campo === 'pasante' && (
+                  <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="">Todos</option>
+                    {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+                  </select>
+                )}
+                {campo === 'espacio' && (
+                  <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="">Todos</option>
+                    {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                  </select>
+                )}
+                {campo === 'tipo' && (
+                  <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value as FiltroTipo)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                    <option value="todos">Todos ({registrosUnificados.length})</option>
+                    {TIPOS_REGISTRO.map(tipo => <option key={tipo} value={tipo}>{ETIQUETA_TIPO[tipo].texto} ({conteoPorTipo(tipo)})</option>)}
+                  </select>
+                )}
+                {campo === 'fechas' && (
+                  <>
+                    <span className="text-gray-500">desde</span>
+                    <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5" />
+                    <span className="text-gray-500">hasta</span>
+                    <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5" />
+                  </>
+                )}
+                {campo === 'horas' && (
+                  <>
+                    <select value={horasOperador} onChange={e => setHorasOperador(e.target.value as OperadorHoras)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
+                      {OPERADORES_HORAS.map(operador => <option key={operador} value={operador}>{operador}</option>)}
+                    </select>
+                    <input type="number" min="0" step="0.5" value={horasValor} onChange={e => setHorasValor(e.target.value)} placeholder="h" className="w-16 rounded border border-gray-300 bg-white px-1.5 py-0.5" />
+                    <span className="text-gray-500">h por registro</span>
+                  </>
+                )}
+                <button onClick={() => quitarFiltro(campo)} title="Quitar filtro" className="rounded-full px-1.5 text-blue-900 hover:bg-blue-200">✕</button>
+              </div>
+            ))}
+            {camposDisponibles.length > 0 && (
+              <select
+                value=""
+                onChange={e => { if (e.target.value) agregarFiltro(e.target.value as CampoFiltro); }}
+                className="rounded-full border border-dashed border-gray-400 bg-white px-3 py-1 text-xs text-gray-600"
+              >
+                <option value="">+ Filtro</option>
+                {camposDisponibles.map(campo => <option key={campo} value={campo}>{CAMPOS_FILTRO[campo]}</option>)}
               </select>
-            </div>
-          )}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="pendiente">Pendientes</option>
-              <option value="aprobado">Aprobados</option>
-              <option value="rechazado">Rechazados</option>
-              <option value="todos">Todos</option>
-            </select>
+            )}
+            {camposActivos.length > 0 && (
+              <button onClick={limpiarFiltros} className="ml-auto text-xs text-gray-500 hover:underline">Quitar todos</button>
+            )}
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Pasante (todos los tipos)</label>
-            <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-              <option value="">Todos</option>
-              {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-            </select>
-          </div>
-          {mostrarFiltrosAsistencia && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Espacio (asistencia)</label>
-              <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                <option value="">Todos</option>
-                {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
-            </div>
-          )}
         </div>
 
         {resumenPorPasante.length > 0 && (
@@ -502,29 +596,13 @@ export default function SupervisarAsistenciaPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-xs font-medium text-gray-500">Tipo:</span>
-          <button
-            onClick={() => setFiltroTipo('todos')}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${filtroTipo === 'todos' ? 'bg-uleam-blue text-white border-transparent' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}
-          >
-            Todos ({registrosUnificados.length})
-          </button>
-          {TIPOS_REGISTRO.map(tipo => (
-            <button
-              key={tipo}
-              onClick={() => setFiltroTipo(tipo)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${filtroTipo === tipo ? `${ETIQUETA_TIPO[tipo].clases} border-current` : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}
-            >
-              {ETIQUETA_TIPO[tipo].texto} ({conteoPorTipo(tipo)})
-            </button>
-          ))}
-          {(filtroTipo === 'todos' || filtroTipo === 'podcast') && (
-            <button onClick={() => setEpisodioEnEdicion(null)} className="ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg bg-uleam-blue text-white hover:opacity-90">
+        {(filtroTipo === 'todos' || filtroTipo === 'podcast') && (
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setEpisodioEnEdicion(null)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-uleam-blue text-white hover:opacity-90">
               + Asignar horas de un episodio ya subido
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {confirmandoAsistencia && confirmandoAsistencia.tipo === 'asistencia' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
