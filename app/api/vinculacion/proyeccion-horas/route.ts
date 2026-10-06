@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeGestionarVinculacion } from '@/lib/modulos';
 import { TIPOS_HORAS, horasContables, topesPorDefectoSegunModulos, type TopesPasante, type TipoHoras } from '@/lib/topesHoras';
-import { proyectarPasante } from '@/lib/proyeccionHoras';
+import { proyectarPasante, estadoDesdeProyeccion } from '@/lib/proyeccionHoras';
 
 // Proyección de cumplimiento de horas — solo líder de Vinculación / superadmin.
 // GET ?periodo_id=N (por defecto el ciclo que contiene hoy, o el más reciente).
@@ -44,10 +44,6 @@ export async function GET(request: Request) {
       (
         COALESCE((SELECT SUM(h.horas) FROM horas_asistencia_instructor h JOIN asistencia_espacio a ON a.id = h.asistencia_id
                   WHERE h.usuario_id = u.id AND a.fecha BETWEEN ${periodo.fecha_inicio}::date AND ${periodo.fecha_fin}::date), 0)
-        + COALESCE((SELECT SUM(horas) FROM actividades_autonomas_pasante WHERE usuario_id = u.id AND estado_aprobacion = 'aprobado'
-                  AND fecha BETWEEN ${periodo.fecha_inicio}::date AND ${periodo.fecha_fin}::date), 0)
-        + COALESCE((SELECT SUM(horas) FROM actividades_investigacion_pasante WHERE usuario_id = u.id AND estado_aprobacion = 'aprobado'
-                  AND fecha BETWEEN ${periodo.fecha_inicio}::date AND ${periodo.fecha_fin}::date), 0)
         + COALESCE((SELECT SUM(horas_total) FROM horas_podcast_pasante WHERE usuario_id = u.id AND estado_aprobacion = 'aprobado'
                   AND creado_en::date BETWEEN ${periodo.fecha_inicio}::date AND ${periodo.fecha_fin}::date), 0)
       )::float AS horas_en_ciclo,
@@ -71,10 +67,37 @@ export async function GET(request: Request) {
       investigacion: fila.investigacion_aprobadas, podcast: fila.podcast_aprobadas,
     };
     const contables = horasContables(aprobadas, topes);
-    const proyeccion = proyectarPasante({
+    // Modelo: horas FLEXIBLES (autónomas + investigación) el pasante las registra cuando quiera, incluso al final,
+    // así que no se proyectan por ritmo: se asume que completa su tope (sin tope, solo lo ya aprobado).
+    // Horas DE RITMO (clubes + podcast) sí dependen del avance: se proyectan y se comparan con
+    // metaRitmo = meta − flexibles asumidas.
+    const flexiblesActuales = contables.porTipo.autonomas + contables.porTipo.investigacion;
+    const asumida = (tipo: 'autonomas' | 'investigacion') =>
+      topes[tipo] === null ? contables.porTipo[tipo] : Math.max(topes[tipo] as number, contables.porTipo[tipo]);
+    const flexiblesAsumidas = asumida('autonomas') + asumida('investigacion');
+    const flexiblesPorCumplir = Math.max(0, flexiblesAsumidas - flexiblesActuales);
+    const metaRitmo = Math.max(0, topes.meta - flexiblesAsumidas);
+    const ritmoAcumuladas = contables.total - flexiblesActuales;
+    const base = proyectarPasante({
       inicioCiclo: periodo.fecha_inicio, finCiclo: periodo.fecha_fin, hoy,
-      horasAcumuladas: contables.total, horasEnCiclo: fila.horas_en_ciclo, meta: topes.meta,
+      horasAcumuladas: ritmoAcumuladas, horasEnCiclo: fila.horas_en_ciclo, meta: Math.max(metaRitmo, 0.0001),
     });
+    const horasFaltantes = Math.max(0, topes.meta - contables.total);
+    const faltanDeRitmo = Math.max(0, metaRitmo - ritmoAcumuladas);
+    const semanasRestantes = base.diasRestantes / 7;
+    const redondear = (valor: number) => Math.round(valor * 10) / 10;
+    const proyeccion = {
+      diasTranscurridos: base.diasTranscurridos,
+      diasRestantes: base.diasRestantes,
+      confianzaBaja: base.confianzaBaja,
+      horasPorSemana: base.horasPorSemana,
+      proyeccionRitmo: redondear(base.proyeccionFinal),
+      proyeccionTotal: redondear(Math.min(topes.meta, base.proyeccionFinal + flexiblesAsumidas)),
+      deficitProyectado: redondear(Math.max(0, metaRitmo - base.proyeccionFinal)),
+      horasFaltantes: redondear(horasFaltantes),
+      horasPorSemanaRequeridas: faltanDeRitmo === 0 || semanasRestantes === 0 ? null : redondear(faltanDeRitmo / semanasRestantes),
+      estado: estadoDesdeProyeccion(base.proyeccionFinal, horasFaltantes, metaRitmo),
+    };
     // Cupo por tipo para reasignar: lo que aún cabe bajo el tope (0 = no habilitado, null = libre hasta la meta).
     const cupos = TIPOS_HORAS.map(({ id, etiqueta }) => {
       const tope = topes[id];
@@ -85,8 +108,13 @@ export async function GET(request: Request) {
       id: fila.id, nombres: fila.nombres, apellidos: fila.apellidos, supervisores: fila.supervisores,
       meta: topes.meta, acumuladas: Math.round(contables.total * 10) / 10, pendientes: Math.round(fila.pendientes * 10) / 10,
       porTipo: contables.porTipo, cupos, ...proyeccion,
-      autonomas: Math.round(contables.porTipo.autonomas * 10) / 10,
-      proyeccionSinAutonomas: Math.round(Math.max(0, proyeccion.proyeccionFinal - contables.porTipo.autonomas) * 10) / 10,
+      metaRitmo: redondear(metaRitmo),
+      ritmoAcumuladas: redondear(ritmoAcumuladas),
+      flexibles: {
+        autonomas: { registradas: redondear(contables.porTipo.autonomas), tope: redondear(asumida('autonomas')) },
+        investigacion: { registradas: redondear(contables.porTipo.investigacion), tope: redondear(asumida('investigacion')) },
+      },
+      flexiblesPorCumplir: redondear(flexiblesPorCumplir),
     };
   });
 

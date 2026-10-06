@@ -31,6 +31,13 @@ const MS_POR_DIA = 86_400_000;
 const aFecha = (texto: string) => new Date(`${texto.slice(0, 10)}T00:00:00`);
 const redondear = (valor: number) => Math.round(valor * 10) / 10;
 
+export function estadoDesdeProyeccion(proyeccionFinal: number, horasFaltantes: number, meta: number): EstadoProyeccion {
+  if (horasFaltantes === 0) return 'completo';
+  if (proyeccionFinal >= meta) return 'cumple';
+  if (proyeccionFinal >= meta * UMBRAL_EN_RIESGO) return 'en_riesgo';
+  return 'no_cumple';
+}
+
 export function proyectarPasante(entrada: EntradaProyeccion): ResultadoProyeccion {
   const inicio = aFecha(entrada.inicioCiclo);
   const fin = aFecha(entrada.finCiclo);
@@ -44,11 +51,7 @@ export function proyectarPasante(entrada: EntradaProyeccion): ResultadoProyeccio
   const proyeccionFinal = Math.min(entrada.meta, entrada.horasAcumuladas + horasPorDia * diasRestantes);
   const horasFaltantes = Math.max(0, entrada.meta - entrada.horasAcumuladas);
 
-  let estado: EstadoProyeccion;
-  if (horasFaltantes === 0) estado = 'completo';
-  else if (proyeccionFinal >= entrada.meta) estado = 'cumple';
-  else if (proyeccionFinal >= entrada.meta * UMBRAL_EN_RIESGO) estado = 'en_riesgo';
-  else estado = 'no_cumple';
+  const estado = estadoDesdeProyeccion(proyeccionFinal, horasFaltantes, entrada.meta);
 
   const semanasRestantes = diasRestantes / 7;
   return {

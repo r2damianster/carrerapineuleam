@@ -7,6 +7,7 @@ import { puedeGestionarVinculacion } from '@/lib/modulos';
 
 type Estado = 'completo' | 'cumple' | 'en_riesgo' | 'no_cumple';
 
+interface Flexible { registradas: number; tope: number }
 interface FilaProyeccion {
   id: number;
   nombres: string;
@@ -15,12 +16,16 @@ interface FilaProyeccion {
   meta: number;
   acumuladas: number;
   pendientes: number;
+  metaRitmo: number;
+  ritmoAcumuladas: number;
   horasPorSemana: number;
-  proyeccionFinal: number;
-  autonomas: number;
-  proyeccionSinAutonomas: number;
+  proyeccionRitmo: number;
+  proyeccionTotal: number;
+  deficitProyectado: number;
   horasFaltantes: number;
   horasPorSemanaRequeridas: number | null;
+  flexibles: { autonomas: Flexible; investigacion: Flexible };
+  flexiblesPorCumplir: number;
   diasTranscurridos: number;
   diasRestantes: number;
   estado: Estado;
@@ -29,12 +34,13 @@ interface FilaProyeccion {
 }
 interface Periodo { id: number; nombre: string; fecha_inicio: string; fecha_fin: string }
 
-type CampoOrden = 'proyeccionSinAutonomas' | 'proyeccionFinal' | 'acumuladas' | 'horasFaltantes' | 'horasPorSemana' | 'nombre';
+type CampoOrden = 'proyeccionTotal' | 'proyeccionRitmo' | 'deficitProyectado' | 'ritmoAcumuladas' | 'acumuladas' | 'horasPorSemana' | 'nombre';
 const CAMPOS_ORDEN: { id: CampoOrden; etiqueta: string }[] = [
-  { id: 'proyeccionSinAutonomas', etiqueta: 'Proyección sin autónomas' },
-  { id: 'proyeccionFinal', etiqueta: 'Proyección al cierre (con autónomas)' },
-  { id: 'acumuladas', etiqueta: 'Horas acumuladas' },
-  { id: 'horasFaltantes', etiqueta: 'Horas que faltan' },
+  { id: 'proyeccionTotal', etiqueta: 'Proyección total al cierre' },
+  { id: 'proyeccionRitmo', etiqueta: 'Proyección de clubes + podcast' },
+  { id: 'deficitProyectado', etiqueta: 'Déficit proyectado' },
+  { id: 'ritmoAcumuladas', etiqueta: 'Horas de clubes + podcast acumuladas' },
+  { id: 'acumuladas', etiqueta: 'Horas acumuladas totales' },
   { id: 'horasPorSemana', etiqueta: 'Ritmo (h/sem)' },
   { id: 'nombre', etiqueta: 'Nombre' },
 ];
@@ -53,9 +59,9 @@ export default function ProyeccionHorasPage() {
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [periodoId, setPeriodoId] = useState<number | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<Estado | 'todos'>('todos');
-  const [busqueda, setBusqueda] = useState('');
   const [filtroSupervisor, setFiltroSupervisor] = useState('');
-  const [campoOrden, setCampoOrden] = useState<CampoOrden>('proyeccionSinAutonomas');
+  const [busqueda, setBusqueda] = useState('');
+  const [campoOrden, setCampoOrden] = useState<CampoOrden>('proyeccionTotal');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [mensaje, setMensaje] = useState('');
 
@@ -101,7 +107,7 @@ export default function ProyeccionHorasPage() {
       .filter(fila => filtroEstado === 'todos' || fila.estado === filtroEstado)
       .filter(fila => !filtroSupervisor || fila.supervisores.split(', ').includes(filtroSupervisor))
       .filter(fila => !termino || `${fila.nombres} ${fila.apellidos} ${fila.supervisores}`.toLowerCase().includes(termino))
-            .sort((a, b) => {
+      .sort((a, b) => {
         const comparacion = campoOrden === 'nombre'
           ? `${a.nombres} ${a.apellidos}`.localeCompare(`${b.nombres} ${b.apellidos}`)
           : a[campoOrden] - b[campoOrden];
@@ -116,21 +122,26 @@ export default function ProyeccionHorasPage() {
       <div className="max-w-7xl mx-auto">
         <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium mb-4">&larr; Volver al Portal PINE</Link>
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Proyección de cumplimiento de horas</h1>
-        <p className="text-sm text-gray-600 mb-4">
-          Ritmo = horas aprobadas dentro del período ÷ días transcurridos. Si el pasante mantiene ese ritmo hasta el fin del período,
-          esta es la proyección de su total frente a la meta. Solo cuentan horas <strong>aprobadas</strong> (con topes aplicados); las pendientes se muestran aparte.
-        </p>
+        <div className="text-sm text-gray-600 mb-4 space-y-1">
+          <p>
+            <strong>Clubes y podcast</strong> dependen del avance: se proyectan con el ritmo del período
+            (horas aprobadas ÷ días transcurridos × días restantes).
+          </p>
+          <p>
+            <strong>Investigación y autónomas</strong> el pasante las registra cuando quiera, incluso al final: no se proyectan por ritmo,
+            se asume que las cumple al 100 % de su tope (sin tope, solo cuenta lo ya aprobado).
+          </p>
+          <p>
+            <strong>Proyección total</strong> = clubes + podcast proyectados + investigación y autónomas completas. Solo cuentan horas aprobadas.
+          </p>
+        </div>
 
         {mensaje && <div className="p-3 mb-4 rounded-md text-sm bg-red-50 text-red-700">{mensaje}</div>}
 
         <div className="flex flex-wrap items-end gap-4 mb-4">
           <label className="text-sm text-gray-700">
             Período
-            <select
-              value={periodoId ?? ''}
-              onChange={evento => cargar(Number(evento.target.value))}
-              className="block mt-1 border rounded-md px-2 py-1.5 bg-white"
-            >
+            <select value={periodoId ?? ''} onChange={evento => cargar(Number(evento.target.value))} className="block mt-1 border rounded-md px-2 py-1.5 bg-white">
               {periodos.map(periodo => <option key={periodo.id} value={periodo.id}>{periodo.nombre}</option>)}
             </select>
           </label>
@@ -173,7 +184,7 @@ export default function ProyeccionHorasPage() {
             <div className="text-2xl font-bold text-gray-800">{filas.length}</div>
             <div className="text-xs text-gray-500">Pasantes</div>
           </button>
-          {(Object.keys(ETIQUETA_ESTADO) as Estado[]).reverse().map(estado => (
+          {(['no_cumple', 'en_riesgo', 'cumple', 'completo'] as Estado[]).map(estado => (
             <button key={estado} onClick={() => setFiltroEstado(estado)} className={`p-3 rounded-lg border text-left bg-white ${filtroEstado === estado ? 'ring-2 ring-blue-500' : ''}`}>
               <div className="text-2xl font-bold text-gray-800">{conteos[estado]}</div>
               <div className="text-xs text-gray-500">{ETIQUETA_ESTADO[estado].texto}</div>
@@ -186,12 +197,11 @@ export default function ProyeccionHorasPage() {
             <thead className="bg-gray-100 text-gray-600 text-left">
               <tr>
                 <th className="p-3">Pasante</th>
-                <th className="p-3">Acumuladas / meta</th>
-                <th className="p-3">Ritmo (h/sem)</th>
-                <th className="p-3">Proyección al cierre</th>
-                <th className="p-3">Proyección sin autónomas</th>
-                <th className="p-3">Faltan</th>
-                <th className="p-3">Ritmo requerido</th>
+                <th className="p-3">Clubes + podcast<br /><span className="font-normal text-xs">acumuladas / necesarias</span></th>
+                <th className="p-3">Ritmo<br /><span className="font-normal text-xs">h/sem · requerido</span></th>
+                <th className="p-3">Proyección clubes + podcast</th>
+                <th className="p-3">Investigación y autónomas<br /><span className="font-normal text-xs">registradas / tope</span></th>
+                <th className="p-3">Proyección total<br /><span className="font-normal text-xs">asumiendo investigación y autónomas cumplidas</span></th>
                 <th className="p-3">Estado</th>
                 <th className="p-3">Planificar: cupo por tipo</th>
               </tr>
@@ -204,22 +214,33 @@ export default function ProyeccionHorasPage() {
                     <div className="text-xs text-gray-500">{fila.supervisores || 'Sin supervisor'}</div>
                   </td>
                   <td className="p-3">
-                    <div>{fila.acumuladas} / {fila.meta} h</div>
+                    <div>{fila.ritmoAcumuladas} / {fila.metaRitmo} h</div>
                     <div className="w-28 h-1.5 bg-gray-200 rounded mt-1">
-                      <div className="h-1.5 bg-blue-500 rounded" style={{ width: `${Math.min(100, (fila.acumuladas / fila.meta) * 100)}%` }} />
+                      <div className="h-1.5 bg-blue-500 rounded" style={{ width: `${fila.metaRitmo > 0 ? Math.min(100, (fila.ritmoAcumuladas / fila.metaRitmo) * 100) : 100}%` }} />
                     </div>
                     {fila.pendientes > 0 && <div className="text-xs text-amber-700 mt-1">+{fila.pendientes} h por aprobar</div>}
                   </td>
-                  <td className="p-3">{fila.horasPorSemana}</td>
-                  <td className="p-3">{fila.proyeccionFinal} h</td>
-                  <td className="p-3 font-medium">{fila.proyeccionSinAutonomas} h<div className="text-xs text-gray-400 font-normal">(−{fila.autonomas} h autónomas)</div></td>
-                  <td className="p-3">{fila.horasFaltantes} h</td>
                   <td className="p-3">
-                    {fila.horasPorSemanaRequeridas === null ? '—' : (
-                      <span className={fila.horasPorSemanaRequeridas > fila.horasPorSemana ? 'text-red-700 font-medium' : ''}>
-                        {fila.horasPorSemanaRequeridas} h/sem
-                      </span>
-                    )}
+                    <div>{fila.horasPorSemana} h/sem</div>
+                    <div className="text-xs">
+                      {fila.horasPorSemanaRequeridas === null ? '—' : (
+                        <span className={fila.horasPorSemanaRequeridas > fila.horasPorSemana ? 'text-red-700 font-medium' : 'text-gray-500'}>
+                          necesita {fila.horasPorSemanaRequeridas} h/sem
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3">
+                    <div className="font-medium">{fila.proyeccionRitmo} h</div>
+                    {fila.deficitProyectado > 0 && <div className="text-xs text-red-700">faltarían {fila.deficitProyectado} h</div>}
+                  </td>
+                  <td className="p-3 text-xs text-gray-700">
+                    <div>Investigación: {fila.flexibles.investigacion.registradas} / {fila.flexibles.investigacion.tope} h</div>
+                    <div>Autónomas: {fila.flexibles.autonomas.registradas} / {fila.flexibles.autonomas.tope} h</div>
+                  </td>
+                  <td className="p-3">
+                    <div className="font-semibold">{fila.proyeccionTotal} / {fila.meta} h</div>
+                    <div className="text-xs text-gray-500">hoy: {fila.acumuladas} h</div>
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[fila.estado].clases}`}>{ETIQUETA_ESTADO[fila.estado].texto}</span>
@@ -233,13 +254,13 @@ export default function ProyeccionHorasPage() {
                 </tr>
               ))}
               {filasVisibles.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
+                <tr><td colSpan={8} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
               )}
             </tbody>
           </table>
         </div>
         <p className="text-xs text-gray-500 mt-3">
-          Estados: <strong>Cumple</strong> si la proyección alcanza la meta; <strong>En riesgo</strong> si llega al 85 % o más; <strong>No cumple</strong> por debajo.
+          Estados, sobre las horas de clubes + podcast frente a las necesarias: <strong>Cumple</strong> si la proyección las alcanza; <strong>En riesgo</strong> si llega al 85 % o más; <strong>No cumple</strong> por debajo.
           Los topes por tipo se editan en <Link href="/vinculacion/topes-horas" className="text-blue-600 hover:underline">Topes de horas</Link>.
         </p>
       </div>
