@@ -1,5 +1,6 @@
 "use client"
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import * as yup from 'yup'
@@ -374,6 +375,20 @@ export default function ContributionForm({
 
   return (
     <div className="max-w-3xl mx-auto p-4">
+      {/* Quien envía por enlace/QR no tiene cuenta ni portal: sin navegación interna. */}
+      {!esPublico && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium">
+            &larr; Volver al Portal PINE
+          </Link>
+          <Link
+            href={mode === 'edit' ? '/contribuciones' : '/contribuciones/new'}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {mode === 'edit' ? 'Volver al listado' : 'Cambiar tipo de contribución'}
+          </Link>
+        </div>
+      )}
       <h1 className="text-2xl font-bold mb-4">
         {mode === 'edit' ? 'Editar contribución' : esPublico ? 'Enviar contribución académica' : 'Nuevo registro de contribución'}
       </h1>
