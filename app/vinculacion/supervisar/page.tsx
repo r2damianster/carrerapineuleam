@@ -556,7 +556,7 @@ export default function SupervisarAsistenciaPage() {
                             {primero.titulo} {primero.tipo_podcast && <span className="text-xs text-gray-500">({primero.tipo_podcast})</span>}
                             {primero.youtube_url && <a href={primero.youtube_url} target="_blank" rel="noreferrer" className="ml-2 text-blue-600 hover:underline text-xs">Ver episodio</a>}
                           </p>
-                          {primero.supervisor_nombre && <p className="text-xs text-gray-500">Supervisor: <strong>{primero.supervisor_nombre}</strong></p>}
+                          {primero.supervisor_nombre && <p className="mt-1"><span className="inline-block rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-800" title="Solo visible para líder y superadmin">👤 Supervisor: {primero.supervisor_nombre}</span></p>}
                           {grupo.filter(g => g.estado === 'rechazado' && g.horas.motivo_rechazo).map(g => (
                             <p key={g.clave} className="text-sm text-red-600 mt-1">Motivo de rechazo ({g.horas.nombres}): {g.horas.motivo_rechazo}</p>
                           ))}
@@ -684,7 +684,7 @@ export default function SupervisarAsistenciaPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-700">Registrado por: <strong>{r.registrado_por_nombres} {r.registrado_por_apellidos}</strong></p>
-                    {r.supervisor_nombre && <p className="text-xs text-gray-500">Supervisor: <strong>{r.supervisor_nombre}</strong></p>}
+                    {r.supervisor_nombre && <p className="mt-1"><span className="inline-block rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-800" title="Solo visible para líder y superadmin">👤 Supervisor: {r.supervisor_nombre}</span></p>}
                     <p className="text-sm text-gray-700">Beneficiarios presentes: <strong>{r.num_beneficiarios}</strong></p>
                     {r.instructores.length > 0 && (
                       <p className="text-xs text-gray-500">Instructores del espacio: {r.instructores.map(i => i.nombre).join(', ')}</p>
@@ -733,7 +733,7 @@ export default function SupervisarAsistenciaPage() {
                     {r.proyecto_nombre && <p className="text-xs text-emerald-700">Aporta al proyecto: {r.proyecto_nombre}</p>}
                     </>
                   )}
-                  {r.supervisor_nombre && <p className="text-xs text-gray-500">Supervisor: <strong>{r.supervisor_nombre}</strong></p>}
+                  {r.supervisor_nombre && <p className="mt-1"><span className="inline-block rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-semibold text-fuchsia-800" title="Solo visible para líder y superadmin">👤 Supervisor: {r.supervisor_nombre}</span></p>}
                   {r.estado_aprobacion === 'rechazado' && r.motivo_rechazo && (
                     <p className="text-sm text-red-600 mt-1">Motivo de rechazo: {r.motivo_rechazo}</p>
                   )}
