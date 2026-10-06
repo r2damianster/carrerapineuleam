@@ -17,6 +17,8 @@ interface FilaProyeccion {
   pendientes: number;
   horasPorSemana: number;
   proyeccionFinal: number;
+  autonomas: number;
+  proyeccionSinAutonomas: number;
   horasFaltantes: number;
   horasPorSemanaRequeridas: number | null;
   diasTranscurridos: number;
@@ -33,8 +35,6 @@ const ETIQUETA_ESTADO: Record<Estado, { texto: string; clases: string }> = {
   en_riesgo: { texto: 'En riesgo', clases: 'bg-amber-100 text-amber-800' },
   no_cumple: { texto: 'No cumple a este ritmo', clases: 'bg-red-100 text-red-800' },
 };
-
-const ORDEN_ESTADO: Record<Estado, number> = { no_cumple: 0, en_riesgo: 1, cumple: 2, completo: 3 };
 
 export default function ProyeccionHorasPage() {
   const router = useRouter();
@@ -81,7 +81,7 @@ export default function ProyeccionHorasPage() {
     return filas
       .filter(fila => filtroEstado === 'todos' || fila.estado === filtroEstado)
       .filter(fila => !termino || `${fila.nombres} ${fila.apellidos} ${fila.supervisores}`.toLowerCase().includes(termino))
-      .sort((a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || b.horasFaltantes - a.horasFaltantes);
+      .sort((a, b) => a.proyeccionSinAutonomas - b.proyeccionSinAutonomas || b.horasFaltantes - a.horasFaltantes);
   }, [filas, filtroEstado, busqueda]);
 
   if (verificando) return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
@@ -144,6 +144,7 @@ export default function ProyeccionHorasPage() {
                 <th className="p-3">Acumuladas / meta</th>
                 <th className="p-3">Ritmo (h/sem)</th>
                 <th className="p-3">Proyección al cierre</th>
+                <th className="p-3">Proyección − autónomas ↑</th>
                 <th className="p-3">Faltan</th>
                 <th className="p-3">Ritmo requerido</th>
                 <th className="p-3">Estado</th>
@@ -165,7 +166,8 @@ export default function ProyeccionHorasPage() {
                     {fila.pendientes > 0 && <div className="text-xs text-amber-700 mt-1">+{fila.pendientes} h por aprobar</div>}
                   </td>
                   <td className="p-3">{fila.horasPorSemana}</td>
-                  <td className="p-3 font-medium">{fila.proyeccionFinal} h</td>
+                  <td className="p-3">{fila.proyeccionFinal} h</td>
+                  <td className="p-3 font-medium">{fila.proyeccionSinAutonomas} h<div className="text-xs text-gray-400 font-normal">(−{fila.autonomas} h autónomas)</div></td>
                   <td className="p-3">{fila.horasFaltantes} h</td>
                   <td className="p-3">
                     {fila.horasPorSemanaRequeridas === null ? '—' : (
@@ -186,7 +188,7 @@ export default function ProyeccionHorasPage() {
                 </tr>
               ))}
               {filasVisibles.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
               )}
             </tbody>
           </table>

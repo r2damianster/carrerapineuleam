@@ -85,6 +85,8 @@ export async function GET(request: Request) {
       id: fila.id, nombres: fila.nombres, apellidos: fila.apellidos, supervisores: fila.supervisores,
       meta: topes.meta, acumuladas: Math.round(contables.total * 10) / 10, pendientes: Math.round(fila.pendientes * 10) / 10,
       porTipo: contables.porTipo, cupos, ...proyeccion,
+      autonomas: Math.round(contables.porTipo.autonomas * 10) / 10,
+      proyeccionSinAutonomas: Math.round(Math.max(0, proyeccion.proyeccionFinal - contables.porTipo.autonomas) * 10) / 10,
     };
   });
 
