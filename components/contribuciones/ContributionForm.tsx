@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState } from 'react'
+import EnlaceContribucionModal from '@/components/EnlaceContribucionModal'
 import { useForm, useFieldArray } from 'react-hook-form'
 import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -190,6 +191,7 @@ export default function ContributionForm({
   const esPublico = mode === 'public'
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [enviado, setEnviado] = useState(false)
+  const [mostrarModalEnlace, setMostrarModalEnlace] = useState(false)
   const [registradorNombre, setRegistradorNombre] = useState('')
   const [registradorContacto, setRegistradorContacto] = useState('')
   const {
@@ -389,6 +391,21 @@ export default function ContributionForm({
           </Link>
         </div>
       )}
+      {mode === 'create' && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <p className="mb-2 text-sm text-blue-900">
+            ¿Prefieres que otra persona registre esta contribución? Genera un enlace/QR; lo que envíe queda pendiente hasta que lo apruebes.
+          </p>
+          <button
+            type="button"
+            onClick={() => setMostrarModalEnlace(true)}
+            className="px-3 py-2 bg-uleam-blue text-white rounded font-semibold hover:bg-uleam-blue/90"
+          >
+            🔗 Recibir contribución por enlace/QR
+          </button>
+        </div>
+      )}
+      {mostrarModalEnlace && <EnlaceContribucionModal onClose={() => setMostrarModalEnlace(false)} />}
       <h1 className="text-2xl font-bold mb-4">
         {mode === 'edit' ? 'Editar contribución' : esPublico ? 'Enviar contribución académica' : 'Nuevo registro de contribución'}
       </h1>
