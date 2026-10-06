@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
 import EditorEpisodioPodcast from '@/components/EditorEpisodioPodcast';
+import ReglasFiltro, { crearRegla, reglaDe, cumpleNumero, cumpleFecha, type CampoRegla, type ReglaFiltro } from '@/components/ReglasFiltro';
 
 interface Instructor {
   id: number;
@@ -62,31 +63,6 @@ type FiltroTipo = 'todos' | TipoRegistro;
 const TIPOS_REGISTRO: TipoRegistro[] = ['asistencia', 'podcast', 'investigacion', 'autonomas'];
 
 // Etiqueta de color por tipo: todo lo supervisable va en una sola lista, distinguido por esta marca.
-type CampoFiltro = 'periodo' | 'supervisor' | 'estado' | 'pasante' | 'espacio' | 'tipo' | 'fechas' | 'horas';
-type OperadorHoras = '<' | '<=' | '=' | '>=' | '>';
-
-const CAMPOS_FILTRO: Record<CampoFiltro, string> = {
-  periodo: 'Período',
-  supervisor: 'Pasantes de',
-  estado: 'Estado',
-  pasante: 'Pasante',
-  espacio: 'Espacio (asistencia)',
-  tipo: 'Tipo',
-  fechas: 'Fechas',
-  horas: 'Horas',
-};
-const OPERADORES_HORAS: OperadorHoras[] = ['<', '<=', '=', '>=', '>'];
-
-const cumpleOperadorHoras = (horas: number, operador: OperadorHoras, valor: number) => {
-  switch (operador) {
-    case '<': return horas < valor;
-    case '<=': return horas <= valor;
-    case '=': return Math.abs(horas - valor) < 0.001;
-    case '>=': return horas >= valor;
-    default: return horas > valor;
-  }
-};
-
 const ETIQUETA_TIPO: Record<TipoRegistro, { texto: string; clases: string }> = {
   asistencia: { texto: 'Asistencia', clases: 'bg-sky-100 text-sky-800' },
   podcast: { texto: 'Podcast', clases: 'bg-purple-100 text-purple-800' },
@@ -139,11 +115,18 @@ export default function SupervisarAsistenciaPage() {
   const [procesandoClave, setProcesandoClave] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
-  const [estado, setEstado] = useState('pendiente');
-  const [espacioId, setEspacioId] = useState('');
-  const [instructorId, setInstructorId] = useState('');
-  // Filtro por etiqueta: todos (por defecto) o un solo tipo.
-  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos');
+  // Reglas de filtro (estilo Excel). De entrada: pendientes del período vigente; ambas se pueden cambiar o quitar.
+  const [reglas, setReglas] = useState<ReglaFiltro[]>(() => [
+    crearRegla('estado', 'seleccion', 'pendiente'),
+    crearRegla('periodo', 'seleccion', ''),
+  ]);
+  const periodoAutoAplicado = useRef(false);
+  const estado = reglaDe(reglas, 'estado')?.valor ?? 'todos';
+  const periodoId = reglaDe(reglas, 'periodo')?.valor ?? '';
+  const supervisor = reglaDe(reglas, 'supervisor')?.valor ?? 'todos';
+  const instructorId = reglaDe(reglas, 'pasante')?.valor ?? '';
+  const espacioId = reglaDe(reglas, 'espacio')?.valor ?? '';
+  const filtroTipo = (reglaDe(reglas, 'tipo')?.valor ?? 'todos') as FiltroTipo;
   // Editor de episodios de podcast: undefined = cerrado, null = elegir un video, string = editar ese video.
   const [episodioEnEdicion, setEpisodioEnEdicion] = useState<string | null | undefined>(undefined);
   // Sesión 53: publicar un episodio (video + actividad) sin pasar por /admin/videos.
@@ -158,14 +141,6 @@ export default function SupervisarAsistenciaPage() {
   // Sesión 53: aprobar asistencia también confirma menores/calidad de la foto (no bloquea las
   // horas del pasante — solo decide si la foto se puede usar en web e informes).
   const [confirmandoAsistencia, setConfirmandoAsistencia] = useState<RegistroUnificado | null>(null);
-  const [periodoId, setPeriodoId] = useState<string | null>(null); // null = aún sin resolver; '' = todos
-  const [supervisor, setSupervisor] = useState('todos');
-  // Filtro personalizado: campos activos (chips) y sus valores. Los de fechas/horas se aplican en el cliente.
-  const [camposActivos, setCamposActivos] = useState<CampoFiltro[]>(['periodo', 'estado']);
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
-  const [horasOperador, setHorasOperador] = useState<OperadorHoras>('>=');
-  const [horasValor, setHorasValor] = useState('');
   const [periodos, setPeriodos] = useState<{ id: number; nombre: string; fecha_inicio: string; fecha_fin: string }[]>([]);
   const [supervisores, setSupervisores] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
 
@@ -204,12 +179,13 @@ export default function SupervisarAsistenciaPage() {
         if (respuestaAsistencia.periodos) {
           setPeriodos(respuestaAsistencia.periodos);
           // Período por defecto: el vigente (el que contiene hoy), o el más reciente.
-          setPeriodoId(previo => {
-            if (previo !== null) return previo;
+          if (!periodoAutoAplicado.current) {
+            periodoAutoAplicado.current = true;
             const hoy = new Date().toISOString().slice(0, 10);
             const vigente = respuestaAsistencia.periodos.find((p: any) => p.fecha_inicio.slice(0, 10) <= hoy && hoy <= p.fecha_fin.slice(0, 10));
-            return String((vigente || respuestaAsistencia.periodos[0])?.id ?? '');
-          });
+            const porDefecto = String((vigente || respuestaAsistencia.periodos[0])?.id ?? '');
+            setReglas(previas => previas.map(regla => (regla.campo === 'periodo' ? { ...regla, valor: porDefecto } : regla)));
+          }
         }
       }
 
@@ -268,36 +244,32 @@ export default function SupervisarAsistenciaPage() {
   const conteoPorTipo = (tipo: TipoRegistro) => registrosUnificados.filter(registro => registro.tipo === tipo).length;
   const horasDelRegistro = (registro: RegistroUnificado) =>
     registro.tipo === 'asistencia' ? horasSesion(registro.asistencia) : registro.horas.horas;
-  const desdeMarca = fechaDesde ? aMarcaTiempo(fechaDesde) : null;
-  const hastaMarca = fechaHasta ? aMarcaTiempo(fechaHasta) + 86399999 : null;
-  const valorHoras = horasValor !== '' ? Number(horasValor) : null;
+  const reglaFechas = reglaDe(reglas, 'fechas');
+  const reglaHoras = reglaDe(reglas, 'horas');
   const registrosVisibles = registrosUnificados.filter(registro => {
     if (filtroTipo !== 'todos' && registro.tipo !== filtroTipo) return false;
-    if (desdeMarca !== null && registro.marcaTiempo < desdeMarca) return false;
-    if (hastaMarca !== null && registro.marcaTiempo > hastaMarca) return false;
-    if (valorHoras !== null && !isNaN(valorHoras)) {
+    if (reglaFechas && !cumpleFecha(registro.marcaTiempo, reglaFechas)) return false;
+    if (reglaHoras && reglaHoras.valor !== '') {
       const horas = horasDelRegistro(registro);
-      if (horas === null || !cumpleOperadorHoras(horas, horasOperador, valorHoras)) return false;
+      if (horas === null || !cumpleNumero(horas, reglaHoras)) return false;
     }
     return true;
   });
 
-  const camposDisponibles = (Object.keys(CAMPOS_FILTRO) as CampoFiltro[])
-    .filter(campo => !camposActivos.includes(campo) && (campo !== 'supervisor' || esLider));
-  const agregarFiltro = (campo: CampoFiltro) => setCamposActivos(previos => [...previos, campo]);
-  // Quitar un filtro lo devuelve a su valor neutro (sin restringir).
-  const quitarFiltro = (campo: CampoFiltro) => {
-    setCamposActivos(previos => previos.filter(activo => activo !== campo));
-    if (campo === 'periodo') setPeriodoId('');
-    if (campo === 'supervisor') setSupervisor('todos');
-    if (campo === 'estado') setEstado('todos');
-    if (campo === 'pasante') setInstructorId('');
-    if (campo === 'espacio') setEspacioId('');
-    if (campo === 'tipo') setFiltroTipo('todos');
-    if (campo === 'fechas') { setFechaDesde(''); setFechaHasta(''); }
-    if (campo === 'horas') setHorasValor('');
-  };
-  const limpiarFiltros = () => (Object.keys(CAMPOS_FILTRO) as CampoFiltro[]).forEach(quitarFiltro);
+  const camposRegla: CampoRegla[] = [
+    { clave: 'estado', etiqueta: 'Estado', tipo: 'seleccion', opciones: [
+      { valor: 'pendiente', etiqueta: 'Pendiente' }, { valor: 'aprobado', etiqueta: 'Aprobado' }, { valor: 'rechazado', etiqueta: 'Rechazado' }] },
+    { clave: 'periodo', etiqueta: 'Período académico', tipo: 'seleccion',
+      opciones: periodos.map(p => ({ valor: String(p.id), etiqueta: p.nombre })) },
+    { clave: 'supervisor', etiqueta: 'Supervisor', tipo: 'seleccion', visible: esLider, opciones: [
+      { valor: 'yo', etiqueta: 'Solo los míos' }, ...supervisores.map(sup => ({ valor: String(sup.id), etiqueta: `${sup.nombres} ${sup.apellidos}` }))] },
+    { clave: 'pasante', etiqueta: 'Pasante', tipo: 'seleccion', opciones: instructores.map(i => ({ valor: String(i.id), etiqueta: i.nombre })) },
+    { clave: 'tipo', etiqueta: 'Tipo de registro', tipo: 'seleccion',
+      opciones: TIPOS_REGISTRO.map(tipo => ({ valor: tipo, etiqueta: `${ETIQUETA_TIPO[tipo].texto} (${conteoPorTipo(tipo)})` })) },
+    { clave: 'espacio', etiqueta: 'Espacio (asistencia)', tipo: 'seleccion', opciones: espacios.map(e => ({ valor: String(e.id), etiqueta: e.nombre })) },
+    { clave: 'fechas', etiqueta: 'Fecha', tipo: 'fechas' },
+    { clave: 'horas', etiqueta: 'Horas del registro', tipo: 'numero', sufijo: 'h' },
+  ];
 
   const decidir = async (
     registro: RegistroUnificado,
@@ -407,37 +379,6 @@ export default function SupervisarAsistenciaPage() {
   const registrosConHoras = registrosVisibles.filter(
     (registro): registro is Extract<RegistroUnificado, { horas: RegistroHoras }> => registro.tipo !== 'asistencia'
   );
-  // Resumen de horas por pasante y tipo (según los filtros activos). Asistencia: horas de la sesión
-  // para cada pasante que asistió (titular o invitado); si hay un pasante filtrado, solo él.
-  type HorasPorEstado = { aprobado: number; pendiente: number };
-  const resumenPorPasante = (() => {
-    const mapa = new Map<string, { nombre: string; tipos: Record<TipoRegistro, HorasPorEstado> }>();
-    const vacio = (): Record<TipoRegistro, HorasPorEstado> => ({
-      asistencia: { aprobado: 0, pendiente: 0 },
-      podcast: { aprobado: 0, pendiente: 0 },
-      investigacion: { aprobado: 0, pendiente: 0 },
-      autonomas: { aprobado: 0, pendiente: 0 },
-    });
-    const sumar = (pasanteId: number, nombre: string, tipo: TipoRegistro, estadoRegistro: string, horas: number) => {
-      if (estadoRegistro !== 'aprobado' && estadoRegistro !== 'pendiente') return;
-      if (instructorId && String(pasanteId) !== instructorId) return;
-      const clave = String(pasanteId);
-      if (!mapa.has(clave)) mapa.set(clave, { nombre, tipos: vacio() });
-      mapa.get(clave)!.tipos[tipo][estadoRegistro] += horas;
-    };
-    registrosVisibles.forEach(registro => {
-      if (registro.tipo === 'asistencia') {
-        const duracion = horasSesion(registro.asistencia) ?? 0;
-        registro.asistencia.asistentes_instructor.forEach(asistente =>
-          sumar(asistente.id, asistente.nombre, 'asistencia', registro.estado, duracion));
-      } else {
-        sumar(registro.horas.usuario_id, `${registro.horas.nombres} ${registro.horas.apellidos}`, registro.tipo, registro.estado, registro.horas.horas);
-      }
-    });
-    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  })();
-  const redondear = (valor: number) => Math.round(valor * 100) / 100;
-
   const totalHorasAprobadas = registrosConHoras.filter(r => r.estado === 'aprobado').reduce((suma, r) => suma + r.horas.horas, 0);
   const totalHorasPendientes = registrosConHoras.filter(r => r.estado === 'pendiente').reduce((suma, r) => suma + r.horas.horas, 0);
 
@@ -476,125 +417,7 @@ export default function SupervisarAsistenciaPage() {
 
         {message && <div className="p-4 mb-6 rounded-md bg-red-50 text-red-700">{message}</div>}
 
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500">Filtros:</span>
-            {camposActivos.map(campo => (
-              <div key={campo} className="flex flex-wrap items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full pl-3 pr-1.5 py-1 text-xs">
-                <span className="font-semibold text-blue-900">{CAMPOS_FILTRO[campo]}</span>
-                {campo === 'periodo' && (
-                  <select value={periodoId ?? ''} onChange={e => setPeriodoId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="">Todos</option>
-                    {periodos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                  </select>
-                )}
-                {campo === 'supervisor' && (
-                  <select value={supervisor} onChange={e => setSupervisor(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="todos">Todos</option>
-                    <option value="yo">Solo los míos</option>
-                    {supervisores.map(sup => <option key={sup.id} value={sup.id}>{sup.nombres} {sup.apellidos}</option>)}
-                  </select>
-                )}
-                {campo === 'estado' && (
-                  <select value={estado} onChange={e => setEstado(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="pendiente">Pendientes</option>
-                    <option value="aprobado">Aprobados</option>
-                    <option value="rechazado">Rechazados</option>
-                    <option value="todos">Todos</option>
-                  </select>
-                )}
-                {campo === 'pasante' && (
-                  <select value={instructorId} onChange={e => setInstructorId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="">Todos</option>
-                    {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-                  </select>
-                )}
-                {campo === 'espacio' && (
-                  <select value={espacioId} onChange={e => setEspacioId(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="">Todos</option>
-                    {espacios.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                  </select>
-                )}
-                {campo === 'tipo' && (
-                  <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value as FiltroTipo)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                    <option value="todos">Todos ({registrosUnificados.length})</option>
-                    {TIPOS_REGISTRO.map(tipo => <option key={tipo} value={tipo}>{ETIQUETA_TIPO[tipo].texto} ({conteoPorTipo(tipo)})</option>)}
-                  </select>
-                )}
-                {campo === 'fechas' && (
-                  <>
-                    <span className="text-gray-500">desde</span>
-                    <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5" />
-                    <span className="text-gray-500">hasta</span>
-                    <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5" />
-                  </>
-                )}
-                {campo === 'horas' && (
-                  <>
-                    <select value={horasOperador} onChange={e => setHorasOperador(e.target.value as OperadorHoras)} className="rounded border border-gray-300 bg-white px-1.5 py-0.5">
-                      {OPERADORES_HORAS.map(operador => <option key={operador} value={operador}>{operador}</option>)}
-                    </select>
-                    <input type="number" min="0" step="0.5" value={horasValor} onChange={e => setHorasValor(e.target.value)} placeholder="h" className="w-16 rounded border border-gray-300 bg-white px-1.5 py-0.5" />
-                    <span className="text-gray-500">h por registro</span>
-                  </>
-                )}
-                <button onClick={() => quitarFiltro(campo)} title="Quitar filtro" className="rounded-full px-1.5 text-blue-900 hover:bg-blue-200">✕</button>
-              </div>
-            ))}
-            {camposDisponibles.length > 0 && (
-              <select
-                value=""
-                onChange={e => { if (e.target.value) agregarFiltro(e.target.value as CampoFiltro); }}
-                className="rounded-full border border-dashed border-gray-400 bg-white px-3 py-1 text-xs text-gray-600"
-              >
-                <option value="">+ Filtro</option>
-                {camposDisponibles.map(campo => <option key={campo} value={campo}>{CAMPOS_FILTRO[campo]}</option>)}
-              </select>
-            )}
-            {camposActivos.length > 0 && (
-              <button onClick={limpiarFiltros} className="ml-auto text-xs text-gray-500 hover:underline">Quitar todos</button>
-            )}
-          </div>
-        </div>
-
-        {resumenPorPasante.length > 0 && (
-          <div className="bg-white p-4 rounded-xl shadow-sm mb-4 overflow-x-auto">
-            <h2 className="text-sm font-bold text-gray-800 mb-2">Horas por pasante (según filtros) — aprobadas / pendientes</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-500">
-                  <th className="py-1 pr-3">Pasante</th>
-                  {TIPOS_REGISTRO.map(tipo => <th key={tipo} className="py-1 px-2">{ETIQUETA_TIPO[tipo].texto}</th>)}
-                  <th className="py-1 pl-2">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resumenPorPasante.map(fila => {
-                  const totalAprobado = TIPOS_REGISTRO.reduce((suma, tipo) => suma + fila.tipos[tipo].aprobado, 0);
-                  const totalPendiente = TIPOS_REGISTRO.reduce((suma, tipo) => suma + fila.tipos[tipo].pendiente, 0);
-                  return (
-                    <tr key={fila.nombre} className="border-t border-gray-100">
-                      <td className="py-1.5 pr-3 font-medium text-gray-800">{fila.nombre}</td>
-                      {TIPOS_REGISTRO.map(tipo => (
-                        <td key={tipo} className="py-1.5 px-2 text-gray-700">
-                          <span className="text-green-700 font-semibold">{redondear(fila.tipos[tipo].aprobado)}</span>
-                          {' / '}
-                          <span className="text-yellow-700">{redondear(fila.tipos[tipo].pendiente)}</span>
-                        </td>
-                      ))}
-                      <td className="py-1.5 pl-2 font-semibold">
-                        <span className="text-green-700">{redondear(totalAprobado)}</span>
-                        {' / '}
-                        <span className="text-yellow-700">{redondear(totalPendiente)}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="text-[11px] text-gray-400 mt-2">Cambia "Estado" a "Todos" para ver aprobadas y pendientes juntas. Rechazadas no suman.</p>
-          </div>
-        )}
+        <ReglasFiltro campos={camposRegla} reglas={reglas} onCambiar={setReglas} />
 
         {(filtroTipo === 'todos' || filtroTipo === 'podcast') && (
           <div className="flex justify-end mb-4">
