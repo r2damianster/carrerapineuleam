@@ -29,6 +29,16 @@ interface FilaProyeccion {
 }
 interface Periodo { id: number; nombre: string; fecha_inicio: string; fecha_fin: string }
 
+type CampoOrden = 'proyeccionSinAutonomas' | 'proyeccionFinal' | 'acumuladas' | 'horasFaltantes' | 'horasPorSemana' | 'nombre';
+const CAMPOS_ORDEN: { id: CampoOrden; etiqueta: string }[] = [
+  { id: 'proyeccionSinAutonomas', etiqueta: 'Proyección sin autónomas' },
+  { id: 'proyeccionFinal', etiqueta: 'Proyección al cierre (con autónomas)' },
+  { id: 'acumuladas', etiqueta: 'Horas acumuladas' },
+  { id: 'horasFaltantes', etiqueta: 'Horas que faltan' },
+  { id: 'horasPorSemana', etiqueta: 'Ritmo (h/sem)' },
+  { id: 'nombre', etiqueta: 'Nombre' },
+];
+
 const ETIQUETA_ESTADO: Record<Estado, { texto: string; clases: string }> = {
   completo: { texto: 'Completó la meta', clases: 'bg-green-100 text-green-800' },
   cumple: { texto: 'Cumple si mantiene el ritmo', clases: 'bg-emerald-100 text-emerald-800' },
@@ -44,6 +54,8 @@ export default function ProyeccionHorasPage() {
   const [periodoId, setPeriodoId] = useState<number | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<Estado | 'todos'>('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [campoOrden, setCampoOrden] = useState<CampoOrden>('proyeccionSinAutonomas');
+  const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [mensaje, setMensaje] = useState('');
 
   const cargar = useCallback(async (periodoSolicitado?: number | null) => {
@@ -81,8 +93,13 @@ export default function ProyeccionHorasPage() {
     return filas
       .filter(fila => filtroEstado === 'todos' || fila.estado === filtroEstado)
       .filter(fila => !termino || `${fila.nombres} ${fila.apellidos} ${fila.supervisores}`.toLowerCase().includes(termino))
-      .sort((a, b) => a.proyeccionSinAutonomas - b.proyeccionSinAutonomas || b.horasFaltantes - a.horasFaltantes);
-  }, [filas, filtroEstado, busqueda]);
+            .sort((a, b) => {
+        const comparacion = campoOrden === 'nombre'
+          ? `${a.nombres} ${a.apellidos}`.localeCompare(`${b.nombres} ${b.apellidos}`)
+          : a[campoOrden] - b[campoOrden];
+        return ordenAscendente ? comparacion : -comparacion;
+      });
+  }, [filas, filtroEstado, busqueda, campoOrden, ordenAscendente]);
 
   if (verificando) return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
 
@@ -107,6 +124,19 @@ export default function ProyeccionHorasPage() {
               className="block mt-1 border rounded-md px-2 py-1.5 bg-white"
             >
               {periodos.map(periodo => <option key={periodo.id} value={periodo.id}>{periodo.nombre}</option>)}
+            </select>
+          </label>
+          <label className="text-sm text-gray-700">
+            Ordenar por
+            <select value={campoOrden} onChange={evento => setCampoOrden(evento.target.value as CampoOrden)} className="block mt-1 border rounded-md px-2 py-1.5 bg-white">
+              {CAMPOS_ORDEN.map(campo => <option key={campo.id} value={campo.id}>{campo.etiqueta}</option>)}
+            </select>
+          </label>
+          <label className="text-sm text-gray-700">
+            Sentido
+            <select value={ordenAscendente ? 'asc' : 'desc'} onChange={evento => setOrdenAscendente(evento.target.value === 'asc')} className="block mt-1 border rounded-md px-2 py-1.5 bg-white">
+              <option value="asc">Menor a mayor</option>
+              <option value="desc">Mayor a menor</option>
             </select>
           </label>
           <input
@@ -144,7 +174,7 @@ export default function ProyeccionHorasPage() {
                 <th className="p-3">Acumuladas / meta</th>
                 <th className="p-3">Ritmo (h/sem)</th>
                 <th className="p-3">Proyección al cierre</th>
-                <th className="p-3">Proyección − autónomas ↑</th>
+                <th className="p-3">Proyección sin autónomas</th>
                 <th className="p-3">Faltan</th>
                 <th className="p-3">Ritmo requerido</th>
                 <th className="p-3">Estado</th>
