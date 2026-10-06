@@ -37,6 +37,7 @@ export async function GET(request: Request) {
         ae.foto_url, foto_descartada(ae.foto_url) AS foto_descartada, ae.estado_aprobacion, ae.motivo_rechazo, ae.creado_en,
         ae.auditoria_ia_estado, ae.auditoria_ia_conteo_detectado, ae.auditoria_ia_conteo_esperado,
         ae.registrado_por,
+        (CASE WHEN ${esLider}::boolean THEN sup.nombres || ' ' || sup.apellidos END) AS supervisor_nombre,
         u.nombres AS registrado_por_nombres, u.apellidos AS registrado_por_apellidos,
         (SELECT COUNT(*)::int FROM asistencia_beneficiarios ab WHERE ab.asistencia_id = ae.id) AS num_beneficiarios,
         (
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
       FROM asistencia_espacio ae
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       JOIN usuarios u ON u.id = ae.registrado_por
+      LEFT JOIN usuarios sup ON sup.id = e.profesor_id
       WHERE e.area = 'vinculacion'
         AND (${supervisorFiltro}::int IS NULL OR e.profesor_id = ${supervisorFiltro}::int)
         AND (${periodoId}::text IS NULL OR ae.fecha BETWEEN

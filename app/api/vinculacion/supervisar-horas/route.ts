@@ -33,7 +33,12 @@ export async function GET(request: Request) {
                  h.tipo_podcast, h.audiencia_alcanzada, h.horas_total::float AS horas,
                  h.estado_aprobacion, h.motivo_rechazo, h.creado_en, h.creado_en::date AS fecha,
                  v.aprobado_sitio AS video_aprobado_sitio, v.propuesto_por AS video_propuesto_por,
-                 v.participantes_estudiantes AS video_participantes, v.profesores_responsables AS video_responsables
+                 v.participantes_estudiantes AS video_participantes, v.profesores_responsables AS video_responsables,
+                 (CASE WHEN ${esLider}::boolean THEN (
+                   SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
+                   FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
+                   JOIN usuarios sp ON sp.id = es3.profesor_id
+                   WHERE eis.usuario_id = h.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM horas_podcast_pasante h
           JOIN usuarios u ON u.id = h.usuario_id
           JOIN videos v ON v.id = h.video_id
@@ -50,7 +55,12 @@ export async function GET(request: Request) {
       : tipo === 'autonomas'
       ? await sql`
           SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas::float AS horas,
-                 a.estado_aprobacion, a.motivo_rechazo, a.creado_en
+                 a.estado_aprobacion, a.motivo_rechazo, a.creado_en,
+                 (CASE WHEN ${esLider}::boolean THEN (
+                   SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
+                   FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
+                   JOIN usuarios sp ON sp.id = es3.profesor_id
+                   WHERE eis.usuario_id = a.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM actividades_autonomas_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
@@ -65,7 +75,12 @@ export async function GET(request: Request) {
         `
       : await sql`
           SELECT a.id, a.usuario_id, u.nombres, u.apellidos, a.fecha, a.descripcion, a.horas::float AS horas,
-                 e.nombre AS espacio_nombre, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo, a.creado_en
+                 e.nombre AS espacio_nombre, py.nombre_oficial AS proyecto_nombre, a.estado_aprobacion, a.motivo_rechazo, a.creado_en,
+                 (CASE WHEN ${esLider}::boolean THEN (
+                   SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
+                   FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
+                   JOIN usuarios sp ON sp.id = es3.profesor_id
+                   WHERE eis.usuario_id = a.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
