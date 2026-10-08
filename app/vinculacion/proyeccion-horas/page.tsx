@@ -58,10 +58,11 @@ const primerNombreSupervisores = (supervisores: string) =>
     : 'Sin supervisor';
 
 // Verde: pocas horas faltantes; naranja: relativamente pocas; rojo: muchas.
-const clasesDeficit = (horasFaltantes: number, metaRitmo: number) => {
-  const proporcion = metaRitmo > 0 ? horasFaltantes / metaRitmo : 1;
-  if (proporcion <= 0.1) return 'bg-green-100 text-green-800';
-  if (proporcion <= 0.35) return 'bg-orange-100 text-orange-800';
+const MAX_HORAS_FALTANTES_VERDE = 5;
+const MAX_HORAS_FALTANTES_NARANJA = 15;
+const clasesDeficit = (horasFaltantes: number) => {
+  if (horasFaltantes <= MAX_HORAS_FALTANTES_VERDE) return 'bg-green-100 text-green-800';
+  if (horasFaltantes <= MAX_HORAS_FALTANTES_NARANJA) return 'bg-orange-100 text-orange-800';
   return 'bg-red-100 text-red-800';
 };
 
@@ -244,7 +245,7 @@ export default function ProyeccionHorasPage() {
                   </td>
                   <td className="p-3">
                     {(fila.estado === 'no_cumple' || fila.estado === 'en_riesgo') && fila.deficitProyectado > 0 ? (
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${clasesDeficit(fila.deficitProyectado, fila.metaRitmo)}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${clasesDeficit(fila.deficitProyectado)}`}>
                         Le faltarían {fila.deficitProyectado} h
                       </span>
                     ) : (
@@ -268,9 +269,9 @@ export default function ProyeccionHorasPage() {
           </p>
           <p>
             Estado, según clubes + podcast frente a lo necesario: <strong>Cumple</strong> si la proyección lo alcanza; si no, <em>le faltarían X h</em>:
-            <span className="text-green-700 font-medium"> verde</span> (pocas, ≤10 %),
-            <span className="text-orange-600 font-medium"> naranja</span> (relativamente pocas, ≤35 %),
-            <span className="text-red-700 font-medium"> rojo</span> (muchas).
+            <span className="text-green-700 font-medium"> verde</span> (hasta {MAX_HORAS_FALTANTES_VERDE} h),
+            <span className="text-orange-600 font-medium"> naranja</span> (hasta {MAX_HORAS_FALTANTES_NARANJA} h),
+            <span className="text-red-700 font-medium"> rojo</span> (más de {MAX_HORAS_FALTANTES_NARANJA} h).
             Los topes por tipo se editan en <Link href="/vinculacion/topes-horas" className="text-blue-600 hover:underline">Topes de horas</Link>.
           </p>
         </div>
