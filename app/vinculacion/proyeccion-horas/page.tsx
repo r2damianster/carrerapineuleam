@@ -37,7 +37,7 @@ interface Periodo { id: number; nombre: string; fecha_inicio: string; fecha_fin:
 type CampoOrden = 'proyeccionTotal' | 'proyeccionRitmo' | 'deficitProyectado' | 'ritmoAcumuladas' | 'acumuladas' | 'horasPorSemana' | 'nombre';
 const CAMPOS_ORDEN: { id: CampoOrden; etiqueta: string }[] = [
   { id: 'proyeccionTotal', etiqueta: 'Proyección total al cierre' },
-  { id: 'proyeccionRitmo', etiqueta: 'Proyección de clubes + podcast' },
+  { id: 'proyeccionRitmo', etiqueta: 'Total sin autónomas + investigación' },
   { id: 'deficitProyectado', etiqueta: 'Déficit proyectado' },
   { id: 'ritmoAcumuladas', etiqueta: 'Horas de clubes + podcast acumuladas' },
   { id: 'acumuladas', etiqueta: 'Horas acumuladas totales' },
@@ -50,6 +50,19 @@ const ETIQUETA_ESTADO: Record<Estado, { texto: string; clases: string }> = {
   cumple: { texto: 'Cumple si mantiene el ritmo', clases: 'bg-emerald-100 text-emerald-800' },
   en_riesgo: { texto: 'En riesgo', clases: 'bg-amber-100 text-amber-800' },
   no_cumple: { texto: 'No cumple a este ritmo', clases: 'bg-red-100 text-red-800' },
+};
+
+const primerNombreSupervisores = (supervisores: string) =>
+  supervisores
+    ? supervisores.split(', ').filter(Boolean).map(nombreCompleto => nombreCompleto.split(' ')[0]).join(', ')
+    : 'Sin supervisor';
+
+// Verde: pocas horas faltantes; naranja: relativamente pocas; rojo: muchas.
+const clasesDeficit = (horasFaltantes: number, metaRitmo: number) => {
+  const proporcion = metaRitmo > 0 ? horasFaltantes / metaRitmo : 1;
+  if (proporcion <= 0.1) return 'bg-green-100 text-green-800';
+  if (proporcion <= 0.35) return 'bg-orange-100 text-orange-800';
+  return 'bg-red-100 text-red-800';
 };
 
 export default function ProyeccionHorasPage() {
@@ -118,27 +131,16 @@ export default function ProyeccionHorasPage() {
   if (verificando) return <div className="min-h-screen flex items-center justify-center text-gray-500">Verificando sesión...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <Link href="/portal/dashboard" className="inline-flex items-center text-blue-600 hover:underline font-medium mb-4">&larr; Volver al Portal PINE</Link>
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">Proyección de cumplimiento de horas</h1>
-        <div className="text-sm text-gray-600 mb-4 space-y-1">
-          <p>
-            <strong>Clubes y podcast</strong> dependen del avance: se proyectan con el ritmo del período
-            (horas aprobadas ÷ días transcurridos × días restantes).
-          </p>
-          <p>
-            <strong>Investigación y autónomas</strong> el pasante las registra cuando quiera, incluso al final: no se proyectan por ritmo,
-            se asume que las cumple al 100 % de su tope (sin tope, solo cuenta lo ya aprobado).
-          </p>
-          <p>
-            <strong>Proyección total</strong> = clubes + podcast proyectados + investigación y autónomas completas. Solo cuentan horas aprobadas.
-          </p>
+    <div className="h-screen flex flex-col bg-gray-50 py-4 px-4">
+      <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0">
+        <div className="flex items-baseline gap-4 mb-2 shrink-0">
+          <Link href="/portal/dashboard" className="text-blue-600 hover:underline font-medium text-sm">&larr; Volver al Portal PINE</Link>
+          <h1 className="text-xl font-bold text-gray-800">Proyección de cumplimiento de horas</h1>
         </div>
 
-        {mensaje && <div className="p-3 mb-4 rounded-md text-sm bg-red-50 text-red-700">{mensaje}</div>}
+        {mensaje && <div className="p-3 mb-2 rounded-md text-sm bg-red-50 text-red-700 shrink-0">{mensaje}</div>}
 
-        <div className="flex flex-wrap items-end gap-4 mb-4">
+        <div className="flex flex-wrap items-end gap-4 mb-2 shrink-0">
           <label className="text-sm text-gray-700">
             Período
             <select value={periodoId ?? ''} onChange={evento => cargar(Number(evento.target.value))} className="block mt-1 border rounded-md px-2 py-1.5 bg-white">
@@ -179,31 +181,29 @@ export default function ProyeccionHorasPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <button onClick={() => setFiltroEstado('todos')} className={`p-3 rounded-lg border text-left bg-white ${filtroEstado === 'todos' ? 'ring-2 ring-blue-500' : ''}`}>
-            <div className="text-2xl font-bold text-gray-800">{filas.length}</div>
-            <div className="text-xs text-gray-500">Pasantes</div>
+        <div className="grid grid-cols-5 gap-2 mb-2 shrink-0">
+          <button onClick={() => setFiltroEstado('todos')} className={`px-3 py-1.5 rounded-lg border text-left bg-white flex items-baseline gap-2 ${filtroEstado === 'todos' ? 'ring-2 ring-blue-500' : ''}`}>
+            <span className="text-lg font-bold text-gray-800">{filas.length}</span>
+            <span className="text-xs text-gray-500">Pasantes</span>
           </button>
           {(['no_cumple', 'en_riesgo', 'cumple', 'completo'] as Estado[]).map(estado => (
-            <button key={estado} onClick={() => setFiltroEstado(estado)} className={`p-3 rounded-lg border text-left bg-white ${filtroEstado === estado ? 'ring-2 ring-blue-500' : ''}`}>
-              <div className="text-2xl font-bold text-gray-800">{conteos[estado]}</div>
-              <div className="text-xs text-gray-500">{ETIQUETA_ESTADO[estado].texto}</div>
+            <button key={estado} onClick={() => setFiltroEstado(estado)} className={`px-3 py-1.5 rounded-lg border text-left bg-white flex items-baseline gap-2 ${filtroEstado === estado ? 'ring-2 ring-blue-500' : ''}`}>
+              <span className="text-lg font-bold text-gray-800">{conteos[estado]}</span>
+              <span className="text-xs text-gray-500">{ETIQUETA_ESTADO[estado].texto}</span>
             </button>
           ))}
         </div>
 
-        <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-md overflow-auto flex-1 min-h-0">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 text-gray-600 text-left">
+            <thead className="bg-gray-100 text-gray-600 text-left sticky top-0 z-10 shadow-sm">
               <tr>
-                <th className="p-3">Pasante</th>
+                <th className="p-3">Pasante<br /><span className="font-normal text-xs">supervisor · cupo por tipo</span></th>
                 <th className="p-3">Clubes + podcast<br /><span className="font-normal text-xs">acumuladas / necesarias</span></th>
                 <th className="p-3">Ritmo<br /><span className="font-normal text-xs">h/sem · requerido</span></th>
-                <th className="p-3">Proyección clubes + podcast</th>
-                <th className="p-3">Investigación y autónomas<br /><span className="font-normal text-xs">registradas / tope</span></th>
+                <th className="p-3">Total <span className="text-red-700 font-bold underline">SIN</span> autónomas + investigación<br /><span className="font-normal text-xs">proyección clubes + podcast</span></th>
                 <th className="p-3">Proyección total<br /><span className="font-normal text-xs">asumiendo investigación y autónomas cumplidas</span></th>
                 <th className="p-3">Estado</th>
-                <th className="p-3">Planificar: cupo por tipo</th>
               </tr>
             </thead>
             <tbody>
@@ -211,7 +211,12 @@ export default function ProyeccionHorasPage() {
                 <tr key={fila.id} className="border-t align-top">
                   <td className="p-3">
                     <div className="font-medium text-gray-800">{fila.nombres} {fila.apellidos}</div>
-                    <div className="text-xs text-gray-500">{fila.supervisores || 'Sin supervisor'}</div>
+                    <div className="text-xs text-gray-500">{primerNombreSupervisores(fila.supervisores)}</div>
+                    {fila.estado !== 'completo' && fila.cupos.length > 0 && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        {fila.cupos.map(item => <div key={item.tipo}>{item.etiqueta}: hasta {item.cupo} h</div>)}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3">
                     <div>{fila.ritmoAcumuladas} / {fila.metaRitmo} h</div>
@@ -232,37 +237,43 @@ export default function ProyeccionHorasPage() {
                   </td>
                   <td className="p-3">
                     <div className="font-medium">{fila.proyeccionRitmo} h</div>
-                    {fila.deficitProyectado > 0 && <div className="text-xs text-red-700">faltarían {fila.deficitProyectado} h</div>}
-                  </td>
-                  <td className="p-3 text-xs text-gray-700">
-                    <div>Investigación: {fila.flexibles.investigacion.registradas} / {fila.flexibles.investigacion.tope} h</div>
-                    <div>Autónomas: {fila.flexibles.autonomas.registradas} / {fila.flexibles.autonomas.tope} h</div>
                   </td>
                   <td className="p-3">
                     <div className="font-semibold">{fila.proyeccionTotal} / {fila.meta} h</div>
                     <div className="text-xs text-gray-500">hoy: {fila.acumuladas} h</div>
                   </td>
                   <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[fila.estado].clases}`}>{ETIQUETA_ESTADO[fila.estado].texto}</span>
+                    {(fila.estado === 'no_cumple' || fila.estado === 'en_riesgo') && fila.deficitProyectado > 0 ? (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${clasesDeficit(fila.deficitProyectado, fila.metaRitmo)}`}>
+                        Le faltarían {fila.deficitProyectado} h
+                      </span>
+                    ) : (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ETIQUETA_ESTADO[fila.estado].clases}`}>{ETIQUETA_ESTADO[fila.estado].texto}</span>
+                    )}
                     {fila.confianzaBaja && <div className="text-xs text-gray-400 mt-1">Pocos días de datos: tendencia poco fiable</div>}
-                  </td>
-                  <td className="p-3 text-xs text-gray-600">
-                    {fila.estado === 'completo' || fila.cupos.length === 0
-                      ? '—'
-                      : fila.cupos.map(item => <div key={item.tipo}>{item.etiqueta}: hasta {item.cupo} h</div>)}
                   </td>
                 </tr>
               ))}
               {filasVisibles.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">Sin pasantes para este filtro.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-500 mt-3">
-          Estados, sobre las horas de clubes + podcast frente a las necesarias: <strong>Cumple</strong> si la proyección las alcanza; <strong>En riesgo</strong> si llega al 85 % o más; <strong>No cumple</strong> por debajo.
-          Los topes por tipo se editan en <Link href="/vinculacion/topes-horas" className="text-blue-600 hover:underline">Topes de horas</Link>.
-        </p>
+        <div className="text-xs text-gray-500 mt-2 shrink-0 space-y-0.5">
+          <p>
+            <strong>Clubes y podcast</strong> se proyectan con el ritmo del período (horas aprobadas ÷ días transcurridos × días restantes).
+            <strong> Investigación y autónomas</strong> no se proyectan por ritmo: se asume que se cumplen al 100 % de su tope.
+            <strong> Proyección total</strong> = clubes + podcast proyectados + investigación y autónomas completas. Solo cuentan horas aprobadas.
+          </p>
+          <p>
+            Estado, según clubes + podcast frente a lo necesario: <strong>Cumple</strong> si la proyección lo alcanza; si no, <em>le faltarían X h</em>:
+            <span className="text-green-700 font-medium"> verde</span> (pocas, ≤10 %),
+            <span className="text-orange-600 font-medium"> naranja</span> (relativamente pocas, ≤35 %),
+            <span className="text-red-700 font-medium"> rojo</span> (muchas).
+            Los topes por tipo se editan en <Link href="/vinculacion/topes-horas" className="text-blue-600 hover:underline">Topes de horas</Link>.
+          </p>
+        </div>
       </div>
     </div>
   );
