@@ -58,7 +58,10 @@ export default function EspacioInstructoresPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ espacio_id: espacioId, estudiantes_ids: selectedInstructores, tipo: tipoAsignacion }),
       });
-      if (!res.ok) throw new Error('Error asignando instructores');
+      if (!res.ok) {
+        const cuerpoError = await res.json().catch(() => null);
+        throw new Error(cuerpoError?.error ?? 'Error asignando instructores');
+      }
       setMessage('Instructores asignados correctamente');
       setSelectedInstructores([]);
       fetchData();

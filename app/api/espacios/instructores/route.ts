@@ -94,6 +94,32 @@ export async function POST(request: Request) {
     const tipoAsignacion = tipo ?? 'titular';
 
     const sql = neon(process.env.DATABASE_URL!);
+
+    // Un pasante solo puede ser titular con UN supervisor: si ya es titular en un espacio de
+    // otro profesor, el segundo espacio debe asignarse como "apoyo".
+    if (tipoAsignacion === 'titular') {
+      const conflictos = await sql`
+        SELECT DISTINCT u.nombres, u.apellidos, e.nombre AS espacio, s.nombres AS sup_nombres, s.apellidos AS sup_apellidos
+        FROM espacio_instructores ei
+        JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
+        JOIN usuarios u ON u.id = ei.usuario_id
+        LEFT JOIN usuarios s ON s.id = e.profesor_id
+        WHERE ei.usuario_id = ANY(${estudiantes_ids}::int[])
+          AND ei.tipo = 'titular'
+          AND e.area = 'vinculacion'
+          AND ei.espacio_id <> ${espacio_id}
+          AND e.profesor_id IS DISTINCT FROM (SELECT profesor_id FROM "espacios_enseñanza" WHERE id = ${espacio_id})
+      `;
+      if (conflictos.length > 0) {
+        const detalle = conflictos.map((c: any) =>
+          `${c.nombres} ${c.apellidos} ya es titular en "${c.espacio}"${c.sup_nombres ? ` (supervisor: ${c.sup_nombres} ${c.sup_apellidos})` : ''}`
+        ).join('; ');
+        return NextResponse.json({
+          error: `${detalle}. Un pasante solo puede tener un supervisor titular: asígnalo en este espacio como "Apoyo permanente".`,
+        }, { status: 409 });
+      }
+    }
+
     for (const usuario_id of estudiantes_ids) {
       // Si ya estaba asignado, reasignar cambia su tipo (titular <-> apoyo).
       await sql`
