@@ -16,6 +16,7 @@ export default function EspacioInstructoresPage() {
   const [estudiantes, setEstudiantes] = useState<any[]>([]);
   const [instructoresActuales, setInstructoresActuales] = useState<any[]>([]);
   const [selectedInstructores, setSelectedInstructores] = useState<number[]>([]);
+  const [tipoAsignacion, setTipoAsignacion] = useState<'titular' | 'apoyo'>('titular');
   const [espacio, setEspacio] = useState<{ id: number; nombre: string } | null>(null);
   const [supervisor, setSupervisor] = useState<{ nombres: string; apellidos: string } | null>(null);
 
@@ -55,7 +56,7 @@ export default function EspacioInstructoresPage() {
       const res = await fetch('/api/espacios/instructores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ espacio_id: espacioId, estudiantes_ids: selectedInstructores }),
+        body: JSON.stringify({ espacio_id: espacioId, estudiantes_ids: selectedInstructores, tipo: tipoAsignacion }),
       });
       if (!res.ok) throw new Error('Error asignando instructores');
       setMessage('Instructores asignados correctamente');
@@ -100,6 +101,23 @@ export default function EspacioInstructoresPage() {
               </label>
             ))}
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de asignación</label>
+            <select
+              value={tipoAsignacion}
+              onChange={(e) => setTipoAsignacion(e.target.value as 'titular' | 'apoyo')}
+              className="w-full border rounded p-2"
+            >
+              <option value="titular">Titular (espacio principal)</option>
+              <option value="apoyo">Apoyo permanente (invitado fijo)</option>
+            </select>
+            {tipoAsignacion === 'apoyo' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Aparece siempre en la asistencia de este espacio y el supervisor de este espacio aprueba esas horas.
+                Su supervisor general (podcast, investigación, autónomas) sigue siendo el de su espacio titular.
+              </p>
+            )}
+          </div>
           <button disabled={loading || selectedInstructores.length === 0} className="w-full bg-blue-600 text-white p-2 rounded">Asignar Seleccionados</button>
 
           <h4 className="font-semibold mt-6">Instructores actuales</h4>
@@ -107,6 +125,9 @@ export default function EspacioInstructoresPage() {
             {instructoresActuales.map(i => (
               <li key={i.id}>
                 {i.nombres} {i.apellidos}
+                {i.tipo === 'apoyo' && (
+                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">Apoyo</span>
+                )}
                 {supervisor && (
                   <span className="text-emerald-600 ml-2">
                     — Supervisor: {supervisor.nombres} {supervisor.apellidos}

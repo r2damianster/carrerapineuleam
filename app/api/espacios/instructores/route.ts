@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const aulaId = aula_id_param ? parseInt(aula_id_param) : null;
     const [instructores, espacioRows] = await Promise.all([
       sql`
-        SELECT u.id, u.nombres, u.apellidos
+        SELECT u.id, u.nombres, u.apellidos, ei.tipo
         FROM espacio_instructores ei
         JOIN usuarios u ON ei.usuario_id = u.id
         WHERE ei.espacio_id = ${parseInt(espacio_id)}
@@ -84,17 +84,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { espacio_id, estudiantes_ids } = await request.json();
+    const { espacio_id, estudiantes_ids, tipo } = await request.json();
     if (!espacio_id || !estudiantes_ids || estudiantes_ids.length === 0) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
+    if (tipo !== undefined && !['titular', 'apoyo'].includes(tipo)) {
+      return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
+    }
+    const tipoAsignacion = tipo ?? 'titular';
 
     const sql = neon(process.env.DATABASE_URL!);
     for (const usuario_id of estudiantes_ids) {
+      // Si ya estaba asignado, reasignar cambia su tipo (titular <-> apoyo).
       await sql`
-        INSERT INTO espacio_instructores (espacio_id, usuario_id)
-        VALUES (${espacio_id}, ${usuario_id})
-        ON CONFLICT DO NOTHING
+        INSERT INTO espacio_instructores (espacio_id, usuario_id, tipo)
+        VALUES (${espacio_id}, ${usuario_id}, ${tipoAsignacion})
+        ON CONFLICT (espacio_id, usuario_id) DO UPDATE SET tipo = EXCLUDED.tipo
       `;
     }
 

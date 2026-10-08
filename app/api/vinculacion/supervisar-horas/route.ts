@@ -38,13 +38,13 @@ export async function GET(request: Request) {
                    SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
                    FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
                    JOIN usuarios sp ON sp.id = es3.profesor_id
-                   WHERE eis.usuario_id = h.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
+                   WHERE eis.usuario_id = h.usuario_id AND eis.tipo = 'titular' AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM horas_podcast_pasante h
           JOIN usuarios u ON u.id = h.usuario_id
           JOIN videos v ON v.id = h.video_id
           WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
                   SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-                  WHERE ei.usuario_id = h.usuario_id AND e.area = 'vinculacion' AND e.profesor_id = ${supervisorFiltro}::int))
+                  WHERE ei.usuario_id = h.usuario_id AND ei.tipo = 'titular' AND e.area = 'vinculacion' AND e.profesor_id = ${supervisorFiltro}::int))
             AND (${estado}::text IS NULL OR ${estado} = 'todos' OR h.estado_aprobacion = ${estado})
             AND (${pasanteId}::text IS NULL OR h.usuario_id = ${pasanteId}::int)
             AND (${periodoId}::text IS NULL OR h.creado_en::date BETWEEN
@@ -60,12 +60,12 @@ export async function GET(request: Request) {
                    SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
                    FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
                    JOIN usuarios sp ON sp.id = es3.profesor_id
-                   WHERE eis.usuario_id = a.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
+                   WHERE eis.usuario_id = a.usuario_id AND eis.tipo = 'titular' AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM actividades_autonomas_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
                   SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e2 ON e2.id = ei.espacio_id
-                  WHERE ei.usuario_id = a.usuario_id AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))
+                  WHERE ei.usuario_id = a.usuario_id AND ei.tipo = 'titular' AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))
             AND (${estado}::text IS NULL OR ${estado} = 'todos' OR a.estado_aprobacion = ${estado})
             AND (${pasanteId}::text IS NULL OR a.usuario_id = ${pasanteId}::int)
             AND (${periodoId}::text IS NULL OR a.fecha BETWEEN
@@ -80,14 +80,14 @@ export async function GET(request: Request) {
                    SELECT string_agg(DISTINCT sp.nombres || ' ' || sp.apellidos, ', ')
                    FROM espacio_instructores eis JOIN "espacios_enseñanza" es3 ON es3.id = eis.espacio_id
                    JOIN usuarios sp ON sp.id = es3.profesor_id
-                   WHERE eis.usuario_id = a.usuario_id AND es3.area = 'vinculacion') END) AS supervisor_nombre
+                   WHERE eis.usuario_id = a.usuario_id AND eis.tipo = 'titular' AND es3.area = 'vinculacion') END) AS supervisor_nombre
           FROM actividades_investigacion_pasante a
           JOIN usuarios u ON u.id = a.usuario_id
           LEFT JOIN "espacios_enseñanza" e ON e.id = a.espacio_id
           LEFT JOIN proyectos py ON py.id = a.proyecto_id
           WHERE (${supervisorFiltro}::int IS NULL OR EXISTS (
                   SELECT 1 FROM espacio_instructores ei JOIN "espacios_enseñanza" e2 ON e2.id = ei.espacio_id
-                  WHERE ei.usuario_id = a.usuario_id AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))
+                  WHERE ei.usuario_id = a.usuario_id AND ei.tipo = 'titular' AND e2.area = 'vinculacion' AND e2.profesor_id = ${supervisorFiltro}::int))
             AND (${estado}::text IS NULL OR ${estado} = 'todos' OR a.estado_aprobacion = ${estado})
             AND (${pasanteId}::text IS NULL OR a.usuario_id = ${pasanteId}::int)
             AND (${periodoId}::text IS NULL OR a.fecha BETWEEN

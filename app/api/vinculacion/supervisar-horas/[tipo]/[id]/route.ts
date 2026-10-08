@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: { tipo: stri
       const [propio] = await sql`
         SELECT 1 FROM espacio_instructores ei
         JOIN "espacios_enseñanza" e ON e.id = ei.espacio_id
-        WHERE ei.usuario_id = ${fila.usuario_id} AND e.area = 'vinculacion' AND e.profesor_id = ${supervisorId}
+        WHERE ei.usuario_id = ${fila.usuario_id} AND ei.tipo = 'titular' AND e.area = 'vinculacion' AND e.profesor_id = ${supervisorId}
         LIMIT 1
       `;
       if (!propio) {
