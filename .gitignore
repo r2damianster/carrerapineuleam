@@ -56,3 +56,7 @@ carrera-herramientas/
 
 # Scripts de diagnóstico locales contra la Neon (no versionar)
 scratch/
+
+# HyperFrames videos (solo lo definitivo va a public/video/)
+videos/*
+!videos/README.md
