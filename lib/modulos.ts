@@ -34,7 +34,7 @@ export function esDocente(usuario: UsuarioConModulos): boolean {
 
 // Secretaria de Carrera: rol propio sin módulos. Solo entra a Mi Perfil y a /utilidades
 // (ver allowlist en middleware.ts); nada más del portal.
-export const RUTAS_SECRETARIA = ['/portal/dashboard', '/portal/perfil', '/utilidades'];
+export const RUTAS_SECRETARIA = ['/portal/dashboard', '/portal/perfil', '/portal/tutoriales', '/utilidades'];
 
 export function esSecretaria(usuario: UsuarioConModulos): boolean {
   return usuario?.rol === 'secretaria';
@@ -43,7 +43,7 @@ export function esSecretaria(usuario: UsuarioConModulos): boolean {
 // Colaborador de Investigación: externo o estudiante de apoyo que un líder/colíder agregó a un proyecto
 // (tabla investigacion_aportantes). Es independiente de Vinculación: sin módulos, sin espacios ni horas
 // reglamentarias. Solo entra a su dashboard, su perfil y sus aportes; todo lo demás se le niega por defecto.
-export const RUTAS_COLABORADOR = ['/portal/dashboard', '/portal/perfil', '/investigacion/mis-aportes'];
+export const RUTAS_COLABORADOR = ['/portal/dashboard', '/portal/perfil', '/portal/tutoriales', '/investigacion/mis-aportes'];
 
 export function esColaborador(usuario: UsuarioConModulos): boolean {
   return usuario?.rol === 'colaborador';

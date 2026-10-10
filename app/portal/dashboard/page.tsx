@@ -9,6 +9,7 @@ import { obtenerTopes } from '@/lib/topesHoras';
 import { proyectosComoAportante } from '@/lib/investigacionAportes';
 import { esDocente as esDocenteSesion, esSecretaria as esSecretariaSesion, puedeGestionarVinculacion, puedeSupervisarVinculacion, puedeGestionarInvestigacion, tieneModulo } from '@/lib/modulos';
 import { obtenerNotificaciones } from '@/lib/notificaciones';
+import { tutorialesParaRol } from '@/lib/tutoriales';
 import PendientesPortal from '@/components/PendientesPortal';
 import Header from '@/components/Header';
 import Link from 'next/link';
@@ -312,6 +313,12 @@ export default async function PortalDashboard() {
             )}
 
           </div>
+
+          {tutorialesParaRol(rol).length > 0 && (
+            <p className="mt-10 text-center text-xs text-gray-400">
+              <Link href="/portal/tutoriales" className="hover:text-uleam-blue hover:underline">Tutoriales en video</Link>
+            </p>
+          )}
 
           {!esDocente && !esSecretaria && modulos_acceso.length === 0 && rol !== 'estudiante' && rol !== 'colaborador' && (
             <div className="bg-yellow-50 p-6 rounded-lg text-yellow-800 text-center">

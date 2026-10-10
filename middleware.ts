@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
     '/portal/mi-avance',
     '/portal/proyecto',
     '/portal/aprobaciones',
+    '/portal/tutoriales',
     '/vinculacion/dinamicas-linguisticas/asistencia',
     '/vinculacion/espacios',
     '/vinculacion/asistencia',

@@ -213,6 +213,14 @@ Auditoría pedida por el usuario tras fallos de deploy y trabajo en paralelo con
 - ✅ **CORREGIDO 2026-09-24** (ver Sesión 44/47). Original: funcionalidad sin documentar: página de Política de Privacidad (ES/EN), subida de audio en MCER con recorte a 30 s (`lib/mcerAudio.ts`, `@breezystack/lamejs`), editar/eliminar espacios de vinculación, contador de instructores/supervisor, horas de investigación de pasantes e import de vinculación 2026-2, permisos de supervisión por profesor. Ver CHANGELOG para el detalle parcial.
 - ✅ Verificado OK: `tsc --noEmit` limpio; ninguna ruta API nueva sin chequeo de sesión (las sin sesión son login/registro/públicas por diseño; informes usan `requireInvestigacionApi`); sin `neon()` a nivel de módulo; sin secretos/cadenas de conexión hardcodeados; `docencia/ciclos` ya usa `no-store`.
 
+## Cambios Recientes (Sesión 65 — 2026-10-10): sección Tutoriales en video por rol
+
+- **`/portal/tutoriales`** (página servidor, protegida en `middleware.ts`): lista y reproduce los videos que corresponden al **rol** de la sesión. Entrada discreta: enlace pequeño "Tutoriales en video" al pie de `/portal/dashboard` (solo si hay alguno para ese rol); no es tarjeta ni categoría nueva. `secretaria` y `colaborador` pueden entrar (sumada a `RUTAS_SECRETARIA`/`RUTAS_COLABORADOR`).
+- **Catálogo:** `lib/tutoriales.ts` (`TUTORIALES`, cada uno con `roles`, `archivo`). Para agregar un video: copiar el MP4 a `public/video/` y sumar la entrada. Primer video: `utilidades` (profesor, admin, secretaria), 86 s, 1080p, locución `ef_dora` + colchón musical continuo.
+- **Video:** fuente en `videos/utilidades-tutorial/` (ignorada por git; `build.mjs` genera `index.html`, `make-bed.mjs` sintetiza el colchón). Capturas reales de `/utilidades` tomadas con sesión firmada local. El MP4 final vive en `public/video/utilidades-tutorial.mp4` (público por URL, no contiene datos sensibles).
+- **Regla de sonido:** todo video lleva voz y música continua hasta el final (ver `~/.claude/skills/hyperframes/SKILL.md` § «Audio obligatorio»).
+- Verificado: `tsc` y `next build` limpios; página probada por HTTP con sesiones de profesor/secretaria (ven el video) y estudiante/colaborador (sin videos). No probado clic-a-clic ni reproducción en navegador.
+
 ## Cambios Recientes (Sesión 64 — 2026-10-06): contribuciones académicas por enlace/QR (solo las genera un docente)
 
 - **Qué es:** un docente (`rol` profesor/admin — **nunca** estudiante, colaborador ni secretaria, `lib/permisos-enlace-contribucion.ts`) genera un enlace/QR para que alguien SIN cuenta registre un artículo, libro, capítulo, memoria de evento o propiedad intelectual. Botón "🔗 Recibir contribución por enlace/QR" en `/contribuciones` (`components/EnlaceContribucionModal.tsx`, con lista "Mis enlaces generados" y revocar).
