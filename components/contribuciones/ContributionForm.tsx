@@ -479,7 +479,7 @@ export default function ContributionForm({
                 if (archivo) extraerDePdf(archivo)
                 e.target.value = ''
               }}
-              className="block mt-1 text-sm"
+              className="block mt-1 w-full max-w-full text-sm"
             />
             {autocompletando === 'pdf' && <p className="text-sm text-gray-500 mt-1">Leyendo PDF…</p>}
           </div>
@@ -745,7 +745,7 @@ export default function ContributionForm({
           {authorFields.map((author, index) => {
             const esDeCarrera = watch(`authors.${index}.isCarreraAuthor`)
             return (
-              <div key={author.id} className="grid grid-cols-5 gap-2 mb-2">
+              <div key={author.id} className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4 sm:mb-2">
                 <input
                   type="text"
                   placeholder="Nombre"
