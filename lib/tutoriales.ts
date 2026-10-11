@@ -22,7 +22,22 @@ export const TUTORIALES: Tutorial[] = [
     archivo: '/video/utilidades-tutorial.mp4',
     roles: ['profesor', 'admin', 'secretaria'],
   },
+  {
+    id: 'contribucion-externa',
+    titulo: 'Contribuciones por enlace: qué ve y qué hace quien lo recibe',
+    descripcion: 'El mismo video que ve la persona externa al abrir tu enlace/QR: dónde están los datos, autocompletar por DOI o PDF y cómo agregar los autores en orden.',
+    duracion: '1:17',
+    archivo: '/video/contribucion-externa-tutorial.mp4',
+    roles: ['profesor', 'admin'],
+  },
 ];
+
+// Mismo MP4 que muestra /enviar-contribucion/[token] (público, sin sesión).
+export const TUTORIAL_CONTRIBUCION_EXTERNA = {
+  duracion: '1:17',
+  archivo: '/video/contribucion-externa-tutorial.mp4',
+  poster: '/video/contribucion-externa-tutorial-poster.jpg',
+};
 
 export function tutorialesParaRol(rol: string | undefined | null): Tutorial[] {
   if (!rol) return [];

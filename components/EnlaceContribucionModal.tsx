@@ -222,6 +222,12 @@ export default function EnlaceContribucionModal({ onClose }: EnlaceContribucionM
                 WhatsApp
               </button>
             </div>
+            <p className="mt-3 text-xs text-gray-500">
+              Quien abra el enlace verá un video corto que explica cómo enviar la contribución.{' '}
+              <a href="/portal/tutoriales?v=contribucion-externa" target="_blank" rel="noreferrer" className="font-medium text-uleam-blue hover:underline">
+                Ver el video
+              </a>
+            </p>
           </>
         )}
 

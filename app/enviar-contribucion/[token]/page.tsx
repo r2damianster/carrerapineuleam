@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import ContributionForm from '@/components/contribuciones/ContributionForm';
+import TutorialEnlaceExterno from '@/components/TutorialEnlaceExterno';
 import { TIPO_PUBLICACION_LABEL, type TipoPublicacionEnlace } from '@/lib/enlaceContribucion';
 
 interface InfoEnlace {
@@ -47,6 +48,7 @@ export default function EnviarContribucionPage() {
       <p className="max-w-3xl mx-auto px-4 pt-4 text-sm text-gray-500">
         Hola, {info.nombre_invitado}. Tipo de contribución: <strong>{TIPO_PUBLICACION_LABEL[info.tipo_publicacion]}</strong>
       </p>
+      <TutorialEnlaceExterno />
       <ContributionForm
         tipo={info.tipo_publicacion}
         mode="public"
