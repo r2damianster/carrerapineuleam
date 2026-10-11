@@ -83,14 +83,15 @@ chico (ver `components/ProjectInfoPlaceholder.tsx` como ejemplo) que sí use
 
 ## 4. Git: dos ramas, siempre sincronizadas
 
-Este repo tiene `main` (auto-deploy a producción en Vercel) y una rama de
-feature activa. Para cada cambio:
+`main` hace auto-deploy a producción en Vercel: no se trabaja directamente en
+ella. Cada cambio va en una rama de feature y entra a `main` por merge/PR.
+Antes de editar un archivo compartido, `git diff origin/main -- <archivo>`
+(hubo auto-commits que revirtieron trabajo ajeno).
 
 ```bash
 git add <archivos específicos>   # nunca -A a ciegas sin revisar git status primero
 git commit -m "..."
-git push origin main
-git checkout <rama-de-feature> && git merge main && git push origin <rama-de-feature> && git checkout main
+git push origin <rama-de-feature>
 ```
 
 Si no sabés el nombre exacto de la rama de feature activa, mirá el contexto

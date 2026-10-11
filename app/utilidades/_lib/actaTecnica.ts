@@ -1,7 +1,7 @@
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun,
 } from "docx";
-import { pedirCompletionIA, formatearErrorIA } from "./groq";
+import { enriquecerTexto } from "./enriquecerTexto";
 import { formatearFechaLarga } from "./fechas";
 import { renderizarPlantilla, fusionarDocx } from "./docxtemplater";
 
@@ -31,33 +31,6 @@ export interface DatosActa {
   elaboradoNombre: string;
 }
 
-const PROMPTS_ACTA: Record<"aspectos" | "desarrollo" | "compromisos", { seccion: string; instruccion: string; temperature: number }> = {
-  aspectos: {
-    seccion: "Puntos del orden del día",
-    instruccion:
-      "TAREA: Organiza los puntos del orden del día.\n" +
-      "REGLAS: No expandas el texto innecesariamente. Solo corrige ortografía y formaliza levemente el vocabulario.\n" +
-      "FORMATO: Presenta cada punto precedido por una viñeta (•). No redactes párrafos largos.",
-    temperature: 0.2,
-  },
-  compromisos: {
-    seccion: "Decisiones y compromisos finales",
-    instruccion:
-      "TAREA: Redacta los acuerdos y compromisos institucionales.\n" +
-      "REGLAS: Sé directo y breve. Mantén la esencia de la nota original sin añadir relleno.\n" +
-      "FORMATO: Presenta cada compromiso precedido por una viñeta (•). Corrige coherencia y ortografía.",
-    temperature: 0.2,
-  },
-  desarrollo: {
-    seccion: "Desarrollo y deliberaciones de la reunión",
-    instruccion:
-      "TAREA: Convierte las notas en un relato académico fluido y profesional.\n" +
-      "REGLAS: Aquí SÍ puedes expandirte. Conecta los puntos del orden del día con conectores lógicos.\n" +
-      "FORMATO: Redacta en párrafos narrativos. Usa tono solemne (ej: 'asimismo', 'se procedió a').",
-    temperature: 0.5,
-  },
-};
-
 /** Redacta cada sección del acta con IA a partir de las notas del usuario. Siempre se ejecuta al generar (igual que logic/actas_logic.py:generar_texto_ia). */
 export async function generarTextoIA(tipo: "aspectos" | "desarrollo" | "compromisos", notasUsuario: string): Promise<string> {
   if (!notasUsuario || notasUsuario.trim().length < 2) {
@@ -67,24 +40,13 @@ export async function generarTextoIA(tipo: "aspectos" | "desarrollo" | "compromi
     return `[IA no configurada] ${notasUsuario}`;
   }
 
-  const config = PROMPTS_ACTA[tipo];
-  const prompt =
-    `Actúa como un Secretario Académico universitario de alto nivel.\n\n` +
-    `SECCIÓN: ${config.seccion}.\n${config.instruccion}\n\n` +
-    `NOTAS DEL USUARIO:\n${notasUsuario}`;
-
-  try {
-    const resultado = await pedirCompletionIA(
-      [
-        { role: "system", content: "Eres un redactor experto que diferencia entre listas breves y desarrollo narrativo." },
-        { role: "user", content: prompt },
-      ],
-      { temperature: config.temperature, reasoningEffort: "low" }
-    );
-    return resultado.replace(/\*\*/g, "").replace(/\*/g, "•");
-  } catch (e) {
-    return `${formatearErrorIA(e)} (notas originales: ${notasUsuario})`;
+  // Los prompts viven en un solo lugar (enriquecerTexto.ts → acta_*), compartidos con el botón
+  // "Mejorar con IA" del formulario, para que ambos caminos redacten con el mismo criterio.
+  const [resultado, error] = await enriquecerTexto(`acta_${tipo}`, notasUsuario);
+  if (error !== null) {
+    return `${error} (notas originales: ${notasUsuario})`;
   }
+  return resultado.replace(/\*\*/g, "").replace(/\*/g, "•");
 }
 
 /** Construye una página adicional solo con las fotos de evidencia (la plantilla oficial no tiene tag para imágenes, solo un rótulo de sección). Se fusiona después del acta con fusionarDocx. */
