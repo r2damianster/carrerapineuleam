@@ -311,7 +311,11 @@ export default function ContributionForm({
       if (new Set(ordenes).size !== ordenes.length) {
         throw new Error('Dos autores no pueden tener el mismo número de orden')
       }
-      const payload: any = { ...data }
+      // Cadenas vacías (cuartil, intercultural, etc.) se guardan como ausentes, no como "".
+      // En edición se envían tal cual: omitirlos impediría vaciar un campo.
+      const payload: any = mode === 'edit'
+        ? { ...data }
+        : Object.fromEntries(Object.entries(data).filter(([, valor]) => valor !== ''))
       // El input "Título" representa el título del libro en estos dos tipos —
       // se copia a tituloLibro para que quede en el campo correcto de la BD.
       if (tipo === 'LIBRO' || tipo === 'CAPITULO_LIBRO') {
@@ -547,8 +551,12 @@ export default function ContributionForm({
           <div className="border-t pt-4 space-y-4">
             <h3 className="font-medium text-gray-700">Datos específicos del artículo</h3>
             <div>
-              <label className="block text-sm">Tipo de artículo</label>
-              <input type="text" placeholder="ej: Revista, Investigación" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
+              <label className="block text-sm">Tipo de artículo (no es el título)</label>
+              <input type="text" list="tipos-articulo" placeholder="Revista o Investigación" {...register('tipoArticulo')} className="mt-1 block w-full border rounded p-2" />
+              <datalist id="tipos-articulo">
+                <option value="Revista" />
+                <option value="Investigación" />
+              </datalist>
             </div>
             <div>
               <label className="block text-sm">Código de publicación (DOI)</label>
