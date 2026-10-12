@@ -143,7 +143,10 @@ export default function IndicadoresSupervisionPage() {
         {/* Top Navbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
           <div>
-            <Link href="/vinculacion/supervisar" className="text-xs text-blue-400 hover:underline font-semibold block mb-1">
+            <Link href="/portal/dashboard" className="text-xs text-blue-400 hover:underline font-semibold block mb-1">
+              &larr; Volver al Portal PINE
+            </Link>
+            <Link href="/vinculacion/supervisar" className="text-xs text-slate-400 hover:underline font-semibold block mb-1">
               &larr; Volver a Aprobación de Asistencias
             </Link>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">

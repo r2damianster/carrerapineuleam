@@ -28,7 +28,10 @@ export default async function PortalTutoriales({
       <Header />
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 mt-16">
         <div className="max-w-5xl mx-auto">
-          <Link href="/portal/dashboard" className="text-sm text-uleam-blue hover:underline">
+          <Link
+            href="/portal/dashboard"
+            className="inline-flex items-center rounded-lg bg-white px-4 py-2 text-blue-600 font-medium shadow-sm border border-gray-200 hover:bg-blue-50 hover:underline"
+          >
             &larr; Volver al Portal PINE
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mt-3">Tutoriales</h1>
