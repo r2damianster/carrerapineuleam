@@ -40,7 +40,7 @@ interface Avance {
   horasAsistencia: { total: number; sesiones: number; sesionesPendientes: number };
   horasInvestigacion: { total: number; reportes: number } | null;
   horasAutonomas?: { total: number; pendientes: number; maximo: number };
-  asistenciasRechazadas?: { id: number; fecha: string; espacio_nombre: string; motivo_rechazo: string | null }[];
+  asistenciasRechazadas?: { id: number; fecha: string; espacio_nombre: string; motivo_rechazo: string | null; registrada_por_mi: boolean }[];
   beneficiariosDetalle?: BeneficiarioDetalle[];
   resenas?: Resena[];
   percepcionBeneficiarios?: { respuestas: number; umbral: number; visible: boolean; promedio: number | null; observaciones: string[] };
@@ -131,7 +131,7 @@ export default function MiAvancePage() {
               {avance.asistenciasRechazadas && avance.asistenciasRechazadas.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
                   <h2 className="text-sm font-bold text-red-800 mb-2">
-                    Asistencias rechazadas por tu supervisor ({avance.asistenciasRechazadas.length})
+                    Asistencias rechazadas por el supervisor ({avance.asistenciasRechazadas.length})
                   </h2>
                   <ul className="space-y-2">
                     {avance.asistenciasRechazadas.map((rechazo) => (
@@ -139,12 +139,17 @@ export default function MiAvancePage() {
                         <span className="font-semibold">{rechazo.espacio_nombre}</span>
                         {' · '}{new Date(rechazo.fecha).toLocaleDateString('es-EC', { timeZone: 'UTC' })}
                         {' — '}{rechazo.motivo_rechazo || 'Sin motivo indicado'}
+                        {!rechazo.registrada_por_mi && <span className="text-red-700"> (la registró otra persona del espacio)</span>}
                       </li>
                     ))}
                   </ul>
-                  <Link href="/vinculacion/asistencia" className="inline-block mt-3 text-xs font-semibold text-red-700 hover:underline">
-                    Volver a registrar la asistencia &rarr;
-                  </Link>
+                  {avance.asistenciasRechazadas.some((rechazo) => rechazo.registrada_por_mi) ? (
+                    <Link href="/vinculacion/asistencia" className="inline-block mt-3 text-xs font-semibold text-red-700 hover:underline">
+                      Volver a registrar la asistencia &rarr;
+                    </Link>
+                  ) : (
+                    <p className="mt-3 text-xs text-red-700">Quien registró la sesión debe volver a registrarla.</p>
+                  )}
                 </div>
               )}
 
