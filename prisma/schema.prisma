@@ -41,6 +41,7 @@ model Contribution {
   tipoArticulo           String?   // solo para artículos
   codigoPublicacion      String?   // opcional
   proyecto               String?
+  proyectoId             String?   // proyectos.id — de qué proyecto es; lo usa el líder para eliminar (lib/permisosContribucion.ts)
   titulo                 String
   tituloLibro            String?   // para libros y capítulos
   nombreRevista          String?   // para artículos
@@ -96,4 +97,5 @@ model ContributionAuthor {
   order            Int      // 1..5
   isCarreraAuthor  Boolean
   esEstudiante     Boolean  @default(false) // solo aplica si isCarreraAuthor=true; docente vs estudiante de la carrera
+  usuarioId        Int?     // usuarios.id del docente autor (NULL = externo/estudiante o nombre ambiguo)
 }

@@ -1,39 +1,43 @@
 import type { AppSession } from '@/lib/session';
+import { normalizarTexto } from '@/lib/contribucionVinculos';
 
 interface ContribucionAutores {
   creadoPorId: number | null;
-  authors: { authorName: string; isCarreraAuthor: boolean }[];
+  authors: { authorName: string; isCarreraAuthor: boolean; usuarioId?: number | null }[];
 }
 
-function normalizarNombre(valor: string): string {
-  return valor
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // quita tildes
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
+interface ContribucionConProyecto {
+  proyectoId: string | null;
+}
+
+export function esSuperadmin(usuario: Pick<AppSession, 'modulos_acceso'>): boolean {
+  return usuario.modulos_acceso.includes('superadmin');
 }
 
 export function esAdminOSuperadmin(usuario: Pick<AppSession, 'modulos_acceso'>): boolean {
-  return usuario.modulos_acceso.includes('admin') || usuario.modulos_acceso.includes('superadmin');
+  return usuario.modulos_acceso.includes('admin') || esSuperadmin(usuario);
 }
 
-// Dueño = quien la registró (creadoPorId) o quien aparece como autor/coautor
-// de la carrera con su mismo nombre completo (fallback para filas creadas
-// antes de que existiera creadoPorId, o cargadas por otra persona en su nombre).
+// Dueño = quien la registró (creadoPorId) o autor/coautor de la carrera.
+// Autor se decide por usuarioId (asignado al guardar, ver lib/contribucionVinculos.ts).
+// Solo si ese autor no tiene usuarioId (filas antiguas o nombre ambiguo) se cae al nombre completo.
 function esAutorOCreador(usuario: AppSession, contribucion: ContribucionAutores): boolean {
-  if (contribucion.creadoPorId !== null && contribucion.creadoPorId === Number(usuario.id)) {
+  const usuarioId = Number(usuario.id);
+  if (contribucion.creadoPorId !== null && contribucion.creadoPorId === usuarioId) {
     return true;
   }
-  const nombreUsuario = normalizarNombre(usuario.nombres);
-  return contribucion.authors.some(
-    a => a.isCarreraAuthor && normalizarNombre(a.authorName) === nombreUsuario
-  );
+  const nombreUsuario = normalizarTexto(usuario.nombres);
+  return contribucion.authors.some(autor => {
+    if (autor.usuarioId !== null && autor.usuarioId !== undefined) {
+      return autor.usuarioId === usuarioId;
+    }
+    return autor.isCarreraAuthor && normalizarTexto(autor.authorName) === nombreUsuario;
+  });
 }
 
-// Autor/coautor y admin/superadmin pueden editar. Nadie más.
+// Editar: solo autor/coautor (o quien la registró) y superadmin. El módulo `admin` NO edita lo ajeno.
 export function puedeEditarContribucion(usuario: AppSession, contribucion: ContribucionAutores): boolean {
-  return esAdminOSuperadmin(usuario) || esAutorOCreador(usuario, contribucion);
+  return esSuperadmin(usuario) || esAutorOCreador(usuario, contribucion);
 }
 
 // Aprobar/rechazar un envío externo (enlace/QR) pendiente: admin/superadmin, o el docente que
@@ -47,7 +51,30 @@ export function puedeAprobarContribucion(
     (contribucion.creadoPorId !== null && contribucion.creadoPorId === Number(usuario.id));
 }
 
-// Solo admin/superadmin borran — ni el propio autor/creador.
-export function puedeEliminarContribucion(usuario: AppSession): boolean {
-  return esAdminOSuperadmin(usuario);
+// Proyectos donde el usuario es líder o colíder ACTIVO. Se consulta en Neon en cada petición
+// (nunca la cookie), igual que lib/permisosProyecto.ts.
+export async function proyectosLiderados(sql: any, usuario: AppSession): Promise<Set<string>> {
+  const usuarioId = Number(usuario.id);
+  if (Number.isNaN(usuarioId)) return new Set();
+  const filas = await sql`
+    SELECT pm.proyecto_id
+    FROM proyecto_miembros pm
+    JOIN proyectos p ON p.id = pm.proyecto_id
+    WHERE pm.usuario_id = ${usuarioId}
+      AND pm.activo = true
+      AND pm.rol_en_proyecto IN ('lider', 'colider')
+      AND p.activo = true
+  `;
+  return new Set(filas.map((fila: any) => String(fila.proyecto_id)));
+}
+
+// Eliminar: solo superadmin o líder/colíder del proyecto de la contribución. Ni el propio autor.
+// Sin proyecto asignado (proyectoId NULL) solo el superadmin puede.
+export function puedeEliminarContribucion(
+  usuario: AppSession,
+  contribucion: ContribucionConProyecto,
+  proyectosDondeEsLider: Set<string>
+): boolean {
+  if (esSuperadmin(usuario)) return true;
+  return contribucion.proyectoId !== null && proyectosDondeEsLider.has(contribucion.proyectoId);
 }

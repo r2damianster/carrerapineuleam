@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 import prisma from '@/lib/prisma';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
-import { puedeEditarContribucion, puedeEliminarContribucion, puedeAprobarContribucion } from '@/lib/permisosContribucion';
+import {
+  puedeEditarContribucion,
+  puedeEliminarContribucion,
+  puedeAprobarContribucion,
+  proyectosLiderados,
+} from '@/lib/permisosContribucion';
+import { resolverUsuarioIdsAutores } from '@/lib/contribucionVinculos';
 import { contribucionSchema as baseSchema } from '@/lib/contribucionSchema';
 import { datosContribucion, autoresParaCrear } from '@/lib/contribucionData';
 
@@ -11,6 +18,8 @@ export async function GET() {
   if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
+  const liderados = await proyectosLiderados(sql, usuario);
   const contributions = await prisma.contribution.findMany({
     include: { authors: true },
     orderBy: { fechaSubida: 'desc' },
@@ -19,7 +28,7 @@ export async function GET() {
   const conPermisos = contributions.map(c => ({
     ...c,
     _puedeEditar: puedeEditarContribucion(usuario, c),
-    _puedeEliminar: puedeEliminarContribucion(usuario),
+    _puedeEliminar: puedeEliminarContribucion(usuario, c, liderados),
     _puedeAprobar: puedeAprobarContribucion(usuario, c),
   }));
   return NextResponse.json(conPermisos);
@@ -38,11 +47,13 @@ export async function POST(request: Request) {
   const data = parseResult.data;
   const fechaPub = new Date(data.fechaPublicacion);
   const periodoAcademico = calcularPeriodoAcademico(fechaPub);
+  const sql = neon(process.env.DATABASE_URL!);
+  const usuarioIds = await resolverUsuarioIdsAutores(sql, data.authors);
   const contribution = await prisma.contribution.create({
     data: {
       ...datosContribucion(data, fechaPub, periodoAcademico),
       creadoPorId: Number(usuario.id),
-      authors: { create: autoresParaCrear(data.authors) },
+      authors: { create: autoresParaCrear(data.authors, usuarioIds) },
     },
     include: { authors: true },
   });
@@ -51,13 +62,22 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const usuario = await getAppSessionFromCookies();
-  if (!usuario || !puedeEliminarContribucion(usuario)) {
+  if (!usuario || !['profesor', 'admin'].includes(usuario.rol)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  }
+  const contribucion = await prisma.contribution.findUnique({ where: { id } });
+  if (!contribucion) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } });
+  const liderados = await proyectosLiderados(sql, usuario);
+  if (!puedeEliminarContribucion(usuario, contribucion, liderados)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
     await prisma.contribution.delete({ where: { id } });

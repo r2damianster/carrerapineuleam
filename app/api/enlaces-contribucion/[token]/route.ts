@@ -6,6 +6,7 @@ import { puedeGenerarEnlaceContribucion } from '@/lib/permisos-enlace-contribuci
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
 import { contribucionSchema } from '@/lib/contribucionSchema';
 import { datosContribucion, autoresParaCrear } from '@/lib/contribucionData';
+import { resolverUsuarioIdsAutores } from '@/lib/contribucionVinculos';
 import { esTokenValido, motivoEnlaceNoVigente, MAX_AUTORES } from '@/lib/enlaceContribucion';
 
 export const dynamic = 'force-dynamic';
@@ -120,7 +121,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
         aprobada: false,
         registradorExternoNombre: nombreRegistrador,
         registradorExternoContacto: contactoRegistrador || null,
-        authors: { create: autoresParaCrear(data.authors) },
+        authors: { create: autoresParaCrear(data.authors, await resolverUsuarioIdsAutores(sql, data.authors)) },
       },
     });
     return NextResponse.json({ success: true }, { status: 201 });
