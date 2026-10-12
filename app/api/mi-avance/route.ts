@@ -87,7 +87,8 @@ export async function GET() {
     // Asistencias rechazadas en los últimos 14 días (misma ventana que el aviso de
     // lib/notificaciones.ts → 'asistencias-rechazadas'): fecha, espacio y motivo.
     const asistenciasRechazadas = await sql`
-      SELECT ae.id, ae.fecha, e.nombre AS espacio_nombre, ae.motivo_rechazo
+      SELECT ae.id, ae.fecha, e.nombre AS espacio_nombre, ae.motivo_rechazo,
+             (ae.registrado_por = ${usuarioId}) AS registrada_por_mi
       FROM asistencia_espacio ae
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
       WHERE (ae.registrado_por = ${usuarioId}
