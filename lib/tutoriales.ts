@@ -30,6 +30,14 @@ export const TUTORIALES: Tutorial[] = [
     archivo: '/video/contribucion-externa-tutorial.mp4',
     roles: ['profesor', 'admin'],
   },
+  {
+    id: 'contribucion-enlace-docente',
+    titulo: 'Contribuciones: pide a tu estudiante que registre tu publicación',
+    descripcion: 'Cómo generar el enlace/QR, enviarlo a tu estudiante o egresado y aprobar el registro para que sume a los indicadores de la carrera.',
+    duracion: '1:13',
+    archivo: '/video/contribucion-enlace-docente-tutorial.mp4',
+    roles: ['profesor', 'admin'],
+  },
 ];
 
 // Mismo MP4 que muestra /enviar-contribucion/[token] (público, sin sesión).
