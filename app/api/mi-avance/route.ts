@@ -75,12 +75,14 @@ export async function GET() {
       FROM horas_asistencia_instructor ha
       WHERE ha.usuario_id = ${usuarioId}
     `;
-    const [asistenciasPendientesRow] = espacioIds.length > 0
-      ? await sql`
-          SELECT COUNT(*)::int AS total FROM asistencia_espacio
-          WHERE espacio_id = ANY(${espacioIds}) AND registrado_por = ${usuarioId} AND estado_aprobacion = 'pendiente'
-        `
-      : [{ total: 0 }];
+    // Pendientes: sesiones que el pasante registró o en las que figura presente (titular o
+    // invitado), aunque otro las haya registrado.
+    const [asistenciasPendientesRow] = await sql`
+      SELECT COUNT(*)::int AS total FROM asistencia_espacio ae
+      WHERE ae.estado_aprobacion = 'pendiente'
+        AND (ae.registrado_por = ${usuarioId}
+             OR EXISTS (SELECT 1 FROM asistencia_instructores ai WHERE ai.asistencia_id = ae.id AND ai.usuario_id = ${usuarioId}))
+    `;
 
     // Asistencias rechazadas en los últimos 14 días (misma ventana que el aviso de
     // lib/notificaciones.ts → 'asistencias-rechazadas'): fecha, espacio y motivo.
@@ -88,7 +90,8 @@ export async function GET() {
       SELECT ae.id, ae.fecha, e.nombre AS espacio_nombre, ae.motivo_rechazo
       FROM asistencia_espacio ae
       JOIN "espacios_enseñanza" e ON e.id = ae.espacio_id
-      WHERE ae.registrado_por = ${usuarioId}
+      WHERE (ae.registrado_por = ${usuarioId}
+             OR EXISTS (SELECT 1 FROM asistencia_instructores ai WHERE ai.asistencia_id = ae.id AND ai.usuario_id = ${usuarioId}))
         AND ae.estado_aprobacion = 'rechazado'
         AND COALESCE(ae.fecha_aprobacion, ae.creado_en) >= NOW() - INTERVAL '14 days'
       ORDER BY ae.fecha DESC
