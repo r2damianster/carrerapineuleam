@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 import prisma from '@/lib/prisma';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { calcularPeriodoAcademico } from '@/lib/periodoAcademico';
-import { puedeEditarContribucion, puedeEliminarContribucion } from '@/lib/permisosContribucion';
+import { puedeEditarContribucion, puedeEliminarContribucion, proyectosLiderados } from '@/lib/permisosContribucion';
+import { resolverProyectoId, resolverUsuarioIdsAutores } from '@/lib/contribucionVinculos';
 import { contribucionSchema as baseSchema } from '@/lib/contribucionSchema';
 
 // GET: detalle de una contribución (para precargar el formulario de edición).
@@ -24,7 +26,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
   return NextResponse.json({
     ...contribution,
     _puedeEditar: true,
-    _puedeEliminar: puedeEliminarContribucion(usuario),
+    _puedeEliminar: puedeEliminarContribucion(
+      usuario,
+      contribution,
+      await proyectosLiderados(neon(process.env.DATABASE_URL!, { fetchOptions: { cache: 'no-store' } }), usuario)
+    ),
   });
 }
 
@@ -55,6 +61,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const data = parseResult.data;
   const fechaPub = new Date(data.fechaPublicacion);
   const periodoAcademico = calcularPeriodoAcademico(fechaPub);
+  const usuarioIds = await resolverUsuarioIdsAutores(neon(process.env.DATABASE_URL!), data.authors);
 
   const actualizada = await prisma.contribution.update({
     where: { id: params.id },
@@ -66,6 +73,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       tipoArticulo: data.tipoArticulo,
       codigoPublicacion: data.codigoPublicacion,
       proyecto: data.proyecto,
+      proyectoId: resolverProyectoId(data.proyecto),
       titulo: data.titulo,
       tituloLibro: data.tituloLibro,
       nombreRevista: data.nombreRevista,
@@ -104,7 +112,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       // creadoPorId nunca se toca acá — la propiedad no cambia por editar.
       authors: {
         deleteMany: {},
-        create: data.authors.map(a => ({
+        create: data.authors.map((a, indice) => ({
+          usuarioId: usuarioIds[indice],
           authorName: a.authorName,
           order: a.order,
           isCarreraAuthor: a.isCarreraAuthor,

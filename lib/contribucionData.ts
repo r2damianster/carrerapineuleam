@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { contribucionSchema } from '@/lib/contribucionSchema';
+import { resolverProyectoId } from '@/lib/contribucionVinculos';
 
 type DatosContribucion = z.infer<typeof contribucionSchema>;
 
@@ -17,6 +18,7 @@ export function datosContribucion(data: DatosContribucion, fechaPublicacion: Dat
     tipoArticulo: data.tipoArticulo,
     codigoPublicacion: data.codigoPublicacion,
     proyecto: data.proyecto,
+    proyectoId: resolverProyectoId(data.proyecto),
     titulo: data.titulo,
     tituloLibro: data.tituloLibro,
     nombreRevista: data.nombreRevista,
@@ -55,8 +57,10 @@ export function datosContribucion(data: DatosContribucion, fechaPublicacion: Dat
   };
 }
 
-export function autoresParaCrear(authors: DatosContribucion['authors']) {
-  return authors.map(autor => ({
+// usuarioIds: mismo orden que authors, de resolverUsuarioIdsAutores (lib/contribucionVinculos.ts).
+export function autoresParaCrear(authors: DatosContribucion['authors'], usuarioIds: (number | null)[]) {
+  return authors.map((autor, indice) => ({
+    usuarioId: usuarioIds[indice] ?? null,
     authorName: autor.authorName,
     order: autor.order,
     isCarreraAuthor: autor.isCarreraAuthor,
