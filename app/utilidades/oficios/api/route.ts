@@ -29,6 +29,23 @@ function leerFirmantes(json: string): { TITULO: string; NOMBRE: string; CARGO: s
     .filter((firmante) => firmante.NOMBRE);
 }
 
+const MAX_LINEAS_COPIA = 30;
+const MAX_CARACTERES_LINEA_COPIA = 300;
+
+/** Una persona por línea; descarta vacías y duplicadas (sin distinguir mayúsculas). */
+function leerCopias(texto: string): string[] {
+  const vistas = new Set<string>();
+  const lineas: string[] = [];
+  for (const linea of texto.split(/\r?\n/)) {
+    const limpia = linea.replace(/\s+/g, " ").trim().slice(0, MAX_CARACTERES_LINEA_COPIA);
+    const clave = limpia.toLowerCase();
+    if (!limpia || vistas.has(clave)) continue;
+    vistas.add(clave);
+    lineas.push(limpia);
+  }
+  return lineas.slice(0, MAX_LINEAS_COPIA);
+}
+
 export async function POST(request: NextRequest) {
   if (!(await requireDocenteApi())) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -38,6 +55,7 @@ export async function POST(request: NextRequest) {
     const campo = (nombre: string) => (form.get(nombre)?.toString() ?? "").trim();
 
     const numOficio = campo("num_oficio");
+    const copias = leerCopias(campo("copia_a"));
     const contexto = {
       NUM_OFICIO: numOficio,
       FECHA_EMISION: formatearFechaLarga(campo("fecha_emision")),
@@ -49,7 +67,8 @@ export async function POST(request: NextRequest) {
       CUERPO: campo("cuerpo"),
       FIRMANTES: leerFirmantes(campo("firmantes")),
       INICIALES: campo("iniciales"),
-      COPIA_A: campo("copia_a"),
+      TIENE_COPIA: copias.length > 0,
+      COPIA_A: copias.join("\n"),
     };
 
     if (contexto.FIRMANTES.length === 0) {

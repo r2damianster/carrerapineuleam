@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { etiquetaPersona, nombreConGrados } from "../_lib/formatoPersona";
 
 interface Docente {
   id: number;
@@ -55,7 +56,12 @@ export default function OficiosPage() {
   const [destinatarioCargo, setDestinatarioCargo] = useState("");
   const [destinatarioCarrera, setDestinatarioCarrera] = useState("");
 
-  const [copiaA, setCopiaA] = useState("");
+  // CC: una línea de texto por persona. Filtro y lista propios, independientes del destinatario,
+  // para poder copiar a personas de cualquier dependencia sin tocar el filtro de arriba.
+  const [copias, setCopias] = useState<string[]>([]);
+  const [ccCarreraFiltro, setCcCarreraFiltro] = useState("");
+  const [docentesCc, setDocentesCc] = useState<Docente[]>([]);
+  const [copiaManual, setCopiaManual] = useState("");
 
   const [asunto, setAsunto] = useState("");
   const [cuerpo, setCuerpo] = useState("");
@@ -87,6 +93,16 @@ export default function OficiosPage() {
   }, [carreraFiltro]);
 
   useEffect(() => {
+    const url = ccCarreraFiltro
+      ? `/utilidades/oficios/api/destinatarios?carrera=${encodeURIComponent(ccCarreraFiltro)}`
+      : "/utilidades/oficios/api/destinatarios";
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setDocentesCc(Array.isArray(data) ? data : []))
+      .catch(() => setDocentesCc([]));
+  }, [ccCarreraFiltro]);
+
+  useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setMiId(data?.usuario?.id ?? null))
@@ -111,12 +127,27 @@ export default function OficiosPage() {
     setDestinatarioCarrera((prev) => (prev ? `${prev}\n${d.carrera}` : d.carrera));
   }
 
+  function agregarLineaCopia(linea: string) {
+    const limpia = linea.replace(/\s+/g, " ").trim();
+    if (!limpia) return;
+    setCopias((previas) =>
+      previas.some((existente) => existente.toLowerCase() === limpia.toLowerCase()) ? previas : [...previas, limpia]
+    );
+  }
+
   function agregarCopia(id: string) {
-    const d = docentes.find((x) => String(x.id) === id);
+    const d = docentesCc.find((x) => String(x.id) === id);
     if (!d) return;
-    const nombreCompleto = `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`;
-    const linea = `${nombreCompleto} - ${d.cargo}`;
-    setCopiaA((prev) => (prev ? `${prev}\n${linea}` : linea));
+    agregarLineaCopia(d.cargo ? `${nombreConGrados(d)} - ${d.cargo}` : nombreConGrados(d));
+  }
+
+  function agregarCopiaManual() {
+    agregarLineaCopia(copiaManual);
+    setCopiaManual("");
+  }
+
+  function quitarCopia(copiaIndex: number) {
+    setCopias((previas) => previas.filter((_, index) => index !== copiaIndex));
   }
 
   function actualizarFirmante(firmanteIndex: number, cambios: Partial<Firmante>) {
@@ -176,7 +207,7 @@ export default function OficiosPage() {
       fd.set("destinatario_nombre", destinatarioNombre);
       fd.set("destinatario_cargo", destinatarioCargo);
       fd.set("destinatario_carrera", destinatarioCarrera);
-      fd.set("copia_a", copiaA);
+      fd.set("copia_a", copias.join("\n"));
       fd.set("asunto", asunto);
       fd.set("cuerpo", cuerpo);
       fd.set(
@@ -258,7 +289,7 @@ export default function OficiosPage() {
             <select defaultValue="" onChange={(e) => { agregarDestinatario(e.target.value); e.target.value = ""; }} className="ht-input">
               <option value="" disabled>-- Seleccione un destinatario --</option>
               {docentes.map((d) => (
-                <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+                <option key={d.id} value={d.id}>{etiquetaPersona(d)}</option>
               ))}
             </select>
           </label>
@@ -280,19 +311,53 @@ export default function OficiosPage() {
         <fieldset className="rounded-lg border border-slate-300 p-4">
           <legend className="px-2 font-semibold text-[#003366]">Con copia a (CC)</legend>
           <label className="mb-3 block text-sm">
-            Seleccione personas para agregar a CC
-            <select defaultValue="" onChange={(e) => { agregarCopia(e.target.value); e.target.value = ""; }} className="ht-input">
+            Filtrar por carrera/dependencia
+            <select value={ccCarreraFiltro} onChange={(e) => setCcCarreraFiltro(e.target.value)} className="ht-input">
+              <option value="">-- Todas las carreras/dependencias --</option>
+              {carreras.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label className="mb-3 block text-sm">
+            Agregar desde el directorio
+            <select value="" onChange={(e) => agregarCopia(e.target.value)} className="ht-input">
               <option value="" disabled>-- Seleccione alguien para añadir a CC --</option>
-              {docentes.map((d) => (
-                <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+              {docentesCc.map((d) => (
+                <option key={d.id} value={d.id}>{etiquetaPersona(d)}</option>
               ))}
             </select>
           </label>
-          <button type="button" onClick={() => setCopiaA("")} className="mb-3 rounded bg-slate-200 px-3 py-1 text-sm">Limpiar CC</button>
-          <label className="block text-sm">
-            Personas en CC
-            <textarea rows={3} value={copiaA} onChange={(e) => setCopiaA(e.target.value)} className="ht-input" />
-          </label>
+          <div className="mb-3">
+            <label className="block text-sm" htmlFor="copia-manual">
+              O escribir a mano (persona que no está en el directorio)
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="copia-manual"
+                value={copiaManual}
+                onChange={(e) => setCopiaManual(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); agregarCopiaManual(); } }}
+                placeholder="Ej: Lic. Ana Mora, Mg. - Directora de Bienestar Estudiantil"
+                className="ht-input"
+              />
+              <button type="button" onClick={agregarCopiaManual} className="mt-1 rounded bg-slate-200 px-3 text-sm">Agregar</button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              * ¿Será frecuente? <Link href="/utilidades/directorio" className="text-[#003366] underline">Agrégala al directorio</Link> para elegirla desde la lista.
+            </p>
+          </div>
+          {copias.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin copias: el oficio saldrá sin sección «Con copia a».</p>
+          ) : (
+            <ul className="space-y-1">
+              {copias.map((copia, copiaIndex) => (
+                <li key={copia} className="flex items-center justify-between gap-2 rounded bg-slate-100 px-3 py-1 text-sm">
+                  <span>{copia}</span>
+                  <button type="button" onClick={() => quitarCopia(copiaIndex)} aria-label={`Quitar ${copia}`}
+                    className="rounded bg-red-100 px-2 text-xs text-red-700">✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </fieldset>
 
         <fieldset className="rounded-lg border border-slate-300 p-4">
@@ -337,7 +402,7 @@ export default function OficiosPage() {
                 >
                   <option value="">-- Seleccione un firmante (o escriba abajo) --</option>
                   {docentes.map((d) => (
-                    <option key={d.id} value={d.id}>{d.titulo_grado} {d.nombre}, {d.post_grado} — {d.cargo}</option>
+                    <option key={d.id} value={d.id}>{etiquetaPersona(d)}</option>
                   ))}
                 </select>
               </label>
