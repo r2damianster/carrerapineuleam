@@ -5,7 +5,8 @@ type Doc = { id: string; title: string; filename: string; description: string; i
 function DocCard({ doc }: { doc: Doc }) {
   const isExternalUrl = doc.filename.startsWith('http://') || doc.filename.startsWith('https://');
   const fileUrl = isExternalUrl ? doc.filename : `/admin-assets/${doc.filename}`;
-  const buttonLabel = isExternalUrl ? 'Acceder' : 'Ver PDF';
+  const isPdf = doc.filename.toLowerCase().endsWith('.pdf');
+  const buttonLabel = isExternalUrl ? 'Acceder' : isPdf ? 'Ver PDF' : 'Abrir';
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition">
@@ -145,6 +146,17 @@ const documents = {
       description: 'Oficio firmado del Consejo de Facultad que notifica la Resolución N° RCF-ET-SO-02-N°0148-2026 sobre el cambio de liderazgo (22 de julio de 2026).',
       icon: '📬',
       date: '2026-07-22',
+      period: '2026-1',
+    },
+  ],
+  vinculacion: [
+    {
+      id: 'capacitacion-portal-pine-vinculacion',
+      title: 'Capacitación — Portal PINE: Vinculación',
+      filename: '2026-09-16_CapacitacionPortalPINE-Vinculacion.pptx',
+      description: 'Diapositivas (16) de la capacitación «Guía para pasantes-instructores de Vinculación» sobre el uso del Portal PINE.',
+      icon: '🎓',
+      date: '2026-09-16',
       period: '2026-1',
     },
   ],
@@ -404,6 +416,18 @@ export default function DocumentsPage() {
         </h2>
         <div className="grid gap-6 md:grid-cols-2">
           {documents.proyecto.map((doc) => (
+            <DocCard key={doc.id} doc={doc} />
+          ))}
+        </div>
+      </div>
+
+      {/* Vinculación */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+          <span>🤝</span> Vinculación
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {documents.vinculacion.map((doc) => (
             <DocCard key={doc.id} doc={doc} />
           ))}
         </div>
