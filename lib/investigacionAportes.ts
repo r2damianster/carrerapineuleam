@@ -3,7 +3,7 @@
 // ligado opcionalmente a una actividad del plan = meta). Las horas son solo reconocimiento.
 // Reglas:
 //  - Un pasante de Vinculación (rol `estudiante`) NO puede ser aportante: si aporta, lo hace desde Vinculación.
-//  - Pueden ser aportantes: docentes (`profesor`/`admin`), colaboradores (`colaborador`, cualquier correo) y beneficiarios ya registrados.
+//  - Pueden ser aportantes: docentes (`profesor`/`admin`) y colaboradores (`colaborador`, cualquier correo).
 //  - Agrega y valida el líder/colíder del proyecto (lib/permisosProyecto.ts:puedeGestionarProyecto).
 import type { AppSession } from './session';
 
@@ -19,14 +19,13 @@ export const TIPOS_APORTE = ['actividad', 'evento', 'podcast', 'producto', 'otro
 export type TipoAporte = (typeof TIPOS_APORTE)[number];
 
 // Roles de cuenta que pueden figurar como aportantes. `estudiante` queda fuera a propósito.
-// `beneficiario` (nunca inicia sesión) puede figurar como aportante sin perder su historial de Vinculación.
 export function rolPuedeSerAportante(rol: string | null | undefined): boolean {
-  return rol === 'profesor' || rol === 'admin' || rol === 'colaborador' || rol === 'beneficiario';
+  return rol === 'profesor' || rol === 'admin' || rol === 'colaborador';
 }
 
 // Tipo por defecto según el rol de la cuenta (el líder puede afinar entre estudiante de apoyo y externo).
 export function tipoAportantePorDefecto(rol: string | null | undefined): TipoAportante {
-  return rol === 'colaborador' || rol === 'beneficiario' ? 'externo' : 'docente';
+  return rol === 'colaborador' ? 'externo' : 'docente';
 }
 
 // Proyectos a los que la persona aporta hoy (activo en investigacion_aportantes y proyecto activo).
