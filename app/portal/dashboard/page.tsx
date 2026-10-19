@@ -258,8 +258,8 @@ export default async function PortalDashboard() {
               </div>
             )}
 
-            {/* Secretaria: solo perfil (Utilidades va en su tarjeta propia, abajo). */}
-            {esSecretaria && (
+            {/* Secretaria y colaborador: solo perfil (Utilidades va en su tarjeta propia, abajo). */}
+            {(esSecretaria || rol === 'colaborador') && (
               <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500 hover:shadow-lg transition">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Mi Perfil</h3>
                 <p className="text-gray-600 mb-4 text-sm">Tus datos personales y profesionales.</p>
