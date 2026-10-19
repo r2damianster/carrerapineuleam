@@ -90,6 +90,16 @@ export default function GestionCarreraPage() {
       .catch(() => setProyectosInvestigacion([]));
   }, [router]);
 
+  // El proyecto/área se pregunta una sola vez (categoría + "¿Qué proyecto de
+  // investigación?"); el área y proyecto del podcast se derivan de ahí.
+  useEffect(() => {
+    const areaPorCategoria: Record<string, string> = { investigacion: 'investigacion', vinculacion: 'vinculacion', asignatura: 'docencia' };
+    setVideoArea(areaPorCategoria[form.categoria] || 'vinculacion');
+    setVideoProyectoId(form.categoria === 'investigacion' ? form.proyecto : '');
+  }, [form.categoria, form.proyecto]);
+
+  const proyectoPodcastDefinido = form.categoria === 'investigacion' && !!form.proyecto;
+
   // Acceso temporal para externos (sin cuenta) — lo calcula el servidor en /api/auth/me
   // (módulos de siempre, o líder/colíder de cualquier proyecto — Sesión 53), ver lib/permisos-enlace-difusion.ts
   const puedeGenerarEnlace = puedeGenerarEnlaceServidor;
@@ -325,12 +335,14 @@ export default function GestionCarreraPage() {
 
           {form.tipo === 'podcast' && (
             <>
-              <SelectorAreaProyectoPodcast
-                area={videoArea}
-                proyectoId={videoProyectoId}
-                onAreaChange={setVideoArea}
-                onProyectoChange={setVideoProyectoId}
-              />
+              {!proyectoPodcastDefinido && (
+                <SelectorAreaProyectoPodcast
+                  area={videoArea}
+                  proyectoId={videoProyectoId}
+                  onAreaChange={setVideoArea}
+                  onProyectoChange={setVideoProyectoId}
+                />
+              )}
               <SubirVideoDifusion
                 key={videoResetKey}
                 titulo={form.titulo}
@@ -377,6 +389,7 @@ export default function GestionCarreraPage() {
             proyectosSeleccionados={proyectosEvento}
             onCambio={setProyectosEvento}
             onSinProyectos={setSinProyectosAsignables}
+            proyectoSugeridoId={form.categoria === 'investigacion' ? form.proyecto : ''}
           />
 
           <div>

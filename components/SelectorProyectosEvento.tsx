@@ -12,6 +12,8 @@ interface SelectorProyectosEventoProps {
   onCambio: (proyectosSeleccionados: string[]) => void;
   /** Se avisa al formulario si no hay ningún proyecto asignable (para deshabilitar el envío). */
   onSinProyectos?: (sinProyectos: boolean) => void;
+  /** Proyecto ya elegido en otra parte del formulario: se marca solo si está entre los asignables. */
+  proyectoSugeridoId?: string;
 }
 
 // WP5b — A qué proyecto(s) pertenece lo que se está registrando. La lista viene del servidor
@@ -19,7 +21,7 @@ interface SelectorProyectosEventoProps {
 // administración del sitio ve todos; un docente solo los proyectos de los que es miembro; un
 // pasante tiene una regla fija (no elige, solo se muestra la etiqueta). El servidor vuelve a
 // validar todo: este componente solo es comodidad de interfaz.
-export default function SelectorProyectosEvento({ proyectosSeleccionados, onCambio, onSinProyectos }: SelectorProyectosEventoProps) {
+export default function SelectorProyectosEvento({ proyectosSeleccionados, onCambio, onSinProyectos, proyectoSugeridoId }: SelectorProyectosEventoProps) {
   const [proyectos, setProyectos] = useState<ProyectoAsignable[]>([]);
   const [esFijo, setEsFijo] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -44,7 +46,17 @@ export default function SelectorProyectosEvento({ proyectosSeleccionados, onCamb
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const alternarProyecto = (proyectoId: string) => {
+  useEffect(() => {
+    if (!proyectoSugeridoId || cargando) return;
+    const esAsignable = proyectos.some((proyecto) => proyecto.id === proyectoSugeridoId);
+    if (esAsignable && !proyectosSeleccionados.includes(proyectoSugeridoId)) {
+      onCambio([...proyectosSeleccionados, proyectoSugeridoId]);
+    }
+    // Solo reacciona al cambio del proyecto sugerido (el usuario puede desmarcarlo después).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proyectoSugeridoId, cargando]);
+
+  const alternarProyecto =(proyectoId: string) => {
     onCambio(
       proyectosSeleccionados.includes(proyectoId)
         ? proyectosSeleccionados.filter((seleccionado) => seleccionado !== proyectoId)
