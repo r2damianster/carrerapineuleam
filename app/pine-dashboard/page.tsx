@@ -92,7 +92,7 @@ export default function PineDashboard() {
 
           {/* Tarjeta 2: Beneficiarios Inscritos & Atendidos */}
           <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-teal-500">
-            <h3 className="text-lg font-semibold text-gray-800">Beneficiarios Inscritos</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Beneficiarios Inscritos (Vinculación)</h3>
             <p className="text-4xl font-bold text-teal-600 my-2">{stats.totalInscritos} / {stats.totalBeneficiarios}</p>
             <p className="text-sm text-gray-500">Beneficiarios asignados activamente a espacios de enseñanza.</p>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4">
@@ -141,7 +141,7 @@ export default function PineDashboard() {
 
         {stats.perfilBeneficiarios && (
           <>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Vinculación — Perfil de beneficiarios ({stats.perfilBeneficiarios.total})</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Perfil de beneficiarios (Vinculación) — {stats.perfilBeneficiarios.total} personas</h2>
             <PerfilBeneficiariosDashboard perfil={stats.perfilBeneficiarios} />
           </>
         )}
