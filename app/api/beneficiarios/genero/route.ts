@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { getAppSessionFromCookies } from '@/lib/session';
 import { puedeSupervisarVinculacion } from '@/lib/modulos';
 
-const GENEROS_VALIDOS = ['femenino', 'masculino', 'otro', 'prefiero_no_decir'];
+const GENEROS_VALIDOS = ['femenino', 'masculino', 'mujer_lgbti', 'hombre_lgbti', 'prefiero_no_decir'];
 
 export async function PATCH(request: Request) {
   try {

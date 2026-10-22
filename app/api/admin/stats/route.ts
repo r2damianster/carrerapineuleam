@@ -71,6 +71,46 @@ export async function GET(request: Request) {
            WHERE (${periodoId}::int IS NULL OR e.ciclo_id = ${periodoId}::int)) as total_inscritos
     `;
 
+    // 5b. Perfil demográfico de beneficiarios (inscritos en espacios del período; sin período = todos los registrados)
+    const perfilBeneficiarios = await sql`
+      SELECT
+        COALESCE(u.genero, 'sin_dato') AS genero,
+        COALESCE(pb.tiene_discapacidad, false) AS tiene_discapacidad,
+        pb.tipo_discapacidad,
+        CASE
+          WHEN pb.edad IS NULL OR pb.edad < 1 THEN 'sin_dato'
+          WHEN pb.edad <= 11 THEN '0-11'
+          WHEN pb.edad <= 17 THEN '12-17'
+          WHEN pb.edad <= 29 THEN '18-29'
+          ELSE '30+'
+        END AS rango_edad,
+        COALESCE(pb.situacion_ocupacional, 'sin_dato') AS situacion_ocupacional,
+        COALESCE(pb.nivel_educativo, 'sin_dato') AS nivel_educativo
+      FROM usuarios u
+      LEFT JOIN perfiles_beneficiarios pb ON pb.usuario_id = u.id
+      WHERE u.rol = 'beneficiario'
+        AND (${periodoId}::int IS NULL OR EXISTS (
+          SELECT 1 FROM inscripciones_espacio ie
+          JOIN "espacios_enseñanza" e ON e.id = ie.espacio_id
+          WHERE ie.beneficiario_id = u.id AND e.ciclo_id = ${periodoId}::int
+        ))
+    `;
+    const contarPor = (campo: string) => {
+      const conteo: Record<string, number> = {};
+      for (const fila of perfilBeneficiarios as any[]) {
+        conteo[fila[campo]] = (conteo[fila[campo]] || 0) + 1;
+      }
+      return conteo;
+    };
+    // Tipos de discapacidad: el campo es texto libre; se normaliza y se descartan respuestas "No".
+    const tiposDiscapacidad: Record<string, number> = {};
+    for (const fila of perfilBeneficiarios as any[]) {
+      if (!fila.tiene_discapacidad) continue;
+      const tipoNormalizado = String(fila.tipo_discapacidad || '').trim().toLowerCase();
+      const tipo = !tipoNormalizado || tipoNormalizado === 'no' ? 'sin especificar' : tipoNormalizado;
+      tiposDiscapacidad[tipo] = (tiposDiscapacidad[tipo] || 0) + 1;
+    }
+
     // 6. Horas totales acreditadas por pasantes
     const [horasAcreditadas] = await sql`
       SELECT (
@@ -115,6 +155,15 @@ export async function GET(request: Request) {
         totalBeneficiarios: beneficiariosStats?.total_registrados || 0,
         horasTotalesAcreditadas: horasAcreditadas?.total_horas || 0,
         espaciosActivos: espaciosStats?.total || 0,
+        perfilBeneficiarios: {
+          total: perfilBeneficiarios.length,
+          genero: contarPor('genero'),
+          conDiscapacidad: (perfilBeneficiarios as any[]).filter(fila => fila.tiene_discapacidad).length,
+          tiposDiscapacidad,
+          rangoEdad: contarPor('rango_edad'),
+          situacionOcupacional: contarPor('situacion_ocupacional'),
+          nivelEducativo: contarPor('nivel_educativo'),
+        },
         contribuciones: {
           articulosRegionales: conteoTipo.ARTICULO_REGIONAL || 0,
           articulosAltoImpacto: conteoTipo.ARTICULO_ALTO_IMPACTO || 0,

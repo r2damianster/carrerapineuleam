@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Pool } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { esGeneroValido } from '@/lib/generos';
 import { guardarEncuesta, pasantesAEvaluar, validarEncuesta, type DatosEncuesta, type PasanteAEvaluar } from '@/lib/encuestaImpacto';
 
 // Público (sin sesión) — un beneficiario escanea el QR de pretest y toma el
@@ -19,7 +20,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
   const body = await request.json();
   const {
     ya_registrado,
-    nombres, apellidos, contacto, email,
+    nombres, apellidos, contacto, email, genero,
     edad, tiene_discapacidad, tipo_discapacidad,
     situacion_ocupacional, rol_laboral, nivel_educativo, carrera, curso,
     respuestas_json, puntaje_obtenido, nivel_asignado,
@@ -31,6 +32,8 @@ export async function POST(request: Request, { params }: { params: { token: stri
     }
   } else if (!nombres || !apellidos) {
     return NextResponse.json({ error: 'Faltan nombres/apellidos' }, { status: 400 });
+  } else if (!esGeneroValido(genero)) {
+    return NextResponse.json({ error: 'El género es obligatorio' }, { status: 400 });
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -99,9 +102,9 @@ export async function POST(request: Request, { params }: { params: { token: stri
       const passwordHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
 
       const { rows: [nuevoUsuario] } = await client.query(
-        `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso)
-         VALUES ($1, $2, $3, $4, 'beneficiario', '{}') RETURNING id, nombres, apellidos`,
-        [nombres, apellidos, emailFinal, passwordHash]
+        `INSERT INTO usuarios (nombres, apellidos, email, password_hash, rol, modulos_acceso, genero)
+         VALUES ($1, $2, $3, $4, 'beneficiario', '{}', $5) RETURNING id, nombres, apellidos`,
+        [nombres, apellidos, emailFinal, passwordHash, genero]
       );
       beneficiarioId = nuevoUsuario.id;
       beneficiarioNombre = nuevoUsuario;

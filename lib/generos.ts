@@ -3,7 +3,8 @@
 export const OPCIONES_GENERO = [
   { valor: 'femenino', etiqueta: 'Femenino' },
   { valor: 'masculino', etiqueta: 'Masculino' },
-  { valor: 'otro', etiqueta: 'Otro' },
+  { valor: 'mujer_lgbti', etiqueta: 'Mujer LGBTI+' },
+  { valor: 'hombre_lgbti', etiqueta: 'Hombre LGBTI+' },
   { valor: 'prefiero_no_decir', etiqueta: 'Prefiero no decir' },
 ] as const;
 
@@ -11,4 +12,8 @@ export const GENEROS_VALIDOS: string[] = OPCIONES_GENERO.map(opcion => opcion.va
 
 export function esGeneroValido(valor: unknown): valor is string {
   return typeof valor === 'string' && GENEROS_VALIDOS.includes(valor);
+}
+
+export function etiquetaGenero(valor: string | null | undefined): string {
+  return OPCIONES_GENERO.find(opcion => opcion.valor === valor)?.etiqueta ?? 'Sin dato';
 }

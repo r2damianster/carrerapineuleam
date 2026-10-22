@@ -1,5 +1,6 @@
 'use client';
 
+import { OPCIONES_GENERO } from '@/lib/generos';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { mcerQuestions, preguntasCalificables, calcularResultadoMcer } from '@/lib/questions';
@@ -33,7 +34,7 @@ export default function EnlacePublicoPage() {
   const [emailExistente, setEmailExistente] = useState('');
 
   const [datosForm, setDatosForm] = useState({
-    nombres: '', apellidos: '', contacto: '', email: '',
+    nombres: '', apellidos: '', contacto: '', email: '', genero: '',
     edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
     situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
   });
@@ -200,6 +201,10 @@ export default function EnlacePublicoPage() {
                   </div>
                   <input placeholder="Contacto (teléfono)" value={datosForm.contacto} onChange={e => setDatosForm({ ...datosForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
                   <input type="email" placeholder="Email (opcional)" value={datosForm.email} onChange={e => setDatosForm({ ...datosForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
+                  <select required value={datosForm.genero} onChange={e => setDatosForm({ ...datosForm, genero: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white">
+                    <option value="">Género *</option>
+                    {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
+                  </select>
                   <input type="number" min="0" placeholder="Edad" value={datosForm.edad} onChange={e => setDatosForm({ ...datosForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
 
                   <label className="flex items-center gap-3 px-1 cursor-pointer">

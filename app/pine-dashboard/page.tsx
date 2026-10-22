@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import PerfilBeneficiariosDashboard from '@/components/PerfilBeneficiariosDashboard';
 import { AvanceInvestigacionDashboard } from '@/components/AvanceMetasInvestigacion';
 
 export default function PineDashboard() {
@@ -137,6 +138,13 @@ export default function PineDashboard() {
           </div>
 
         </div>
+
+        {stats.perfilBeneficiarios && (
+          <>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Vinculación — Perfil de beneficiarios ({stats.perfilBeneficiarios.total})</h2>
+            <PerfilBeneficiariosDashboard perfil={stats.perfilBeneficiarios} />
+          </>
+        )}
 
         <h2 className="text-xl font-bold text-gray-800 mb-4 mt-10">Investigación — Aportantes y metas por proyecto</h2>
         <p className="text-sm text-gray-600 mb-4">Solo cuentan los aportes que el líder de cada proyecto ha validado. Sin relación con las horas de Vinculación.</p>

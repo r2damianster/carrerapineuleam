@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { OPCIONES_GENERO } from '@/lib/generos';
 
 interface Beneficiario {
   id: number;
@@ -156,10 +157,7 @@ export default function BackfillGeneroPage() {
                         className="px-3 py-1.5 rounded border border-gray-300 outline-none focus:border-uleam-blue text-sm"
                       >
                         <option value="">-- Sin dato --</option>
-                        <option value="femenino">Femenino</option>
-                        <option value="masculino">Masculino</option>
-                        <option value="otro">Otro</option>
-                        <option value="prefiero_no_decir">Prefiero no decir</option>
+                        {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
                       </select>
                     </td>
                     <td className="px-4 py-3">

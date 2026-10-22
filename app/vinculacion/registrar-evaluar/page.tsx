@@ -8,6 +8,7 @@ import EnlaceEvaluacionModal from '@/components/EnlaceEvaluacionModal';
 import AudioQuestionRecorder, { ResultadoAudioMcer } from '@/components/AudioQuestionRecorder';
 import ResumenValidacionModal from '@/components/ResumenValidacionModal';
 import SelectorAulaEspacio from '@/components/SelectorAulaEspacio';
+import { OPCIONES_GENERO, etiquetaGenero } from '@/lib/generos';
 
 const preguntasPuntaje = preguntasCalificables();
 const preguntasAudio = mcerQuestions.filter(q => q.type === 'audio');
@@ -29,7 +30,7 @@ export default function RegistrarEvaluarPage() {
   const [usaAulas, setUsaAulas] = useState(false);
 
   const [nuevoForm, setNuevoForm] = useState({
-    nombres: '', apellidos: '', contacto: '', email: '',
+    nombres: '', apellidos: '', contacto: '', email: '', genero: '',
     edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
     situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
   });
@@ -61,7 +62,7 @@ export default function RegistrarEvaluarPage() {
     setResultadoResumen(null);
     setMessage('');
     setNuevoForm({
-      nombres: '', apellidos: '', contacto: '', email: '',
+      nombres: '', apellidos: '', contacto: '', email: '', genero: '',
       edad: '', tiene_discapacidad: false, tipo_discapacidad: '',
       situacion_ocupacional: '', rol_laboral: '', nivel_educativo: '', carrera: '', curso: '',
     });
@@ -383,6 +384,10 @@ export default function RegistrarEvaluarPage() {
               <input placeholder="Contacto (teléfono)" value={nuevoForm.contacto} onChange={e => setNuevoForm({ ...nuevoForm, contacto: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
               <input type="email" placeholder="Email (opcional)" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
 
+              <select required value={nuevoForm.genero} onChange={e => setNuevoForm({ ...nuevoForm, genero: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue bg-white">
+                <option value="">Género *</option>
+                {OPCIONES_GENERO.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
+              </select>
               <input type="number" min="0" placeholder="Edad" value={nuevoForm.edad} onChange={e => setNuevoForm({ ...nuevoForm, edad: e.target.value })} className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:border-uleam-blue" />
 
               <label className="flex items-center gap-3 px-1 cursor-pointer">
@@ -488,6 +493,7 @@ export default function RegistrarEvaluarPage() {
           filas={[
             { label: 'Nombre', value: `${nuevoForm.nombres} ${nuevoForm.apellidos}` },
             { label: 'Espacio', value: espacios.find((e) => String(e.id) === espacioId)?.nombre ?? '' },
+            { label: 'Género', value: etiquetaGenero(nuevoForm.genero) },
             { label: 'Edad', value: nuevoForm.edad || '—' },
           ]}
           similitud={similitud}
