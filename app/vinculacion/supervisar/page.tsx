@@ -117,12 +117,13 @@ export default function SupervisarAsistenciaPage() {
   const [procesandoClave, setProcesandoClave] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
-  // Reglas de filtro (estilo Excel). De entrada: pendientes del período vigente; ambas se pueden cambiar o quitar.
+  // Reglas de filtro (estilo Excel). De entrada: solo los míos y pendientes; ambas se pueden cambiar o quitar.
+  // La regla de supervisor solo existe para el líder; si la sesión no lo es, se retira al cargar (el servidor ya la ignora).
   const [reglas, setReglas] = useState<ReglaFiltro[]>(() => [
+    crearRegla('supervisor', 'seleccion', 'yo'),
     crearRegla('estado', 'seleccion', 'pendiente'),
-    crearRegla('periodo', 'seleccion', ''),
   ]);
-  const periodoAutoAplicado = useRef(false);
+  const reglaSupervisorRevisada = useRef(false);
   const estado = reglaDe(reglas, 'estado')?.valor ?? 'todos';
   const periodoId = reglaDe(reglas, 'periodo')?.valor ?? '';
   const supervisor = reglaDe(reglas, 'supervisor')?.valor ?? 'todos';
@@ -178,15 +179,11 @@ export default function SupervisarAsistenciaPage() {
         setInstructores(respuestaAsistencia.instructores);
         setEsLider(!!respuestaAsistencia.esLider);
         setSupervisores(respuestaAsistencia.supervisores || []);
-        if (respuestaAsistencia.periodos) {
-          setPeriodos(respuestaAsistencia.periodos);
-          // Período por defecto: el vigente (el que contiene hoy), o el más reciente.
-          if (!periodoAutoAplicado.current) {
-            periodoAutoAplicado.current = true;
-            const hoy = new Date().toISOString().slice(0, 10);
-            const vigente = respuestaAsistencia.periodos.find((p: any) => p.fecha_inicio.slice(0, 10) <= hoy && hoy <= p.fecha_fin.slice(0, 10));
-            const porDefecto = String((vigente || respuestaAsistencia.periodos[0])?.id ?? '');
-            setReglas(previas => previas.map(regla => (regla.campo === 'periodo' ? { ...regla, valor: porDefecto } : regla)));
+        if (respuestaAsistencia.periodos) setPeriodos(respuestaAsistencia.periodos);
+        if (!reglaSupervisorRevisada.current) {
+          reglaSupervisorRevisada.current = true;
+          if (!respuestaAsistencia.esLider) {
+            setReglas(previas => previas.filter(regla => regla.campo !== 'supervisor'));
           }
         }
       }
